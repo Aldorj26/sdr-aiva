@@ -16,14 +16,15 @@ async function getMetricas() {
   return data ?? []
 }
 
-async function getRecentLeads(q?: string, status?: string) {
+async function getRecentLeads(q?: string, status?: string, importante?: string) {
   let query = supabaseAdmin
     .from('sdr_leads')
-    .select('id, nome, telefone, cidade, status, data_ultimo_contato')
+    .select('id, nome, telefone, cidade, status, data_ultimo_contato, importante')
     .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
-    .limit(q || status ? 50 : 10)
+    .limit(q || status || importante ? 50 : 10)
 
   if (status) query = query.eq('status', status)
+  if (importante === 'true') query = query.eq('importante', true)
   if (q && q.trim()) {
     const term = q.trim()
     query = query.or(`nome.ilike.%${term}%,telefone.ilike.%${term}%,cidade.ilike.%${term}%`)
@@ -245,19 +246,19 @@ function StatusPill({ status }: { status: string }) {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>
+  searchParams: Promise<{ q?: string; status?: string; importante?: string }>
 }) {
   const sp = await searchParams
   const [metricas, leads, agora, timeline, agenda, saude, msgsPorDia] = await Promise.all([
     getMetricas(),
-    getRecentLeads(sp.q, sp.status),
+    getRecentLeads(sp.q, sp.status, sp.importante),
     getAgora(),
     getTimeline(),
     getAgenda(),
     getSaude(),
     getMensagensPorDia(),
   ])
-  const filtroAtivo = Boolean(sp.q || sp.status)
+  const filtroAtivo = Boolean(sp.q || sp.status || sp.importante)
   const total = metricas.reduce((s: number, m: { total: number }) => s + Number(m.total), 0)
 
   // Funil
@@ -489,9 +490,12 @@ export default async function Page({
           </tr>
         </thead>
         <tbody>
-          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null }) => (
+          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean }) => (
             <ClickableRow key={l.telefone} leadId={l.id}>
-              <td>{l.nome}</td>
+              <td>
+                {l.importante && <span style={{ color: '#f59e0b', marginRight: 4 }} title="Importante (3+ lojas)">★</span>}
+                {l.nome}
+              </td>
               <td style={{ color: 'var(--text-dim)' }}>{l.telefone}</td>
               <td style={{ color: 'var(--text-dim)' }}>{l.cidade ?? '—'}</td>
               <td><StatusPill status={l.status} /></td>

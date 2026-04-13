@@ -19,11 +19,13 @@ export default function SearchBar() {
   const sp = useSearchParams()
   const [q, setQ] = useState(sp.get('q') ?? '')
   const [status, setStatus] = useState(sp.get('status') ?? '')
+  const [importante, setImportante] = useState(sp.get('importante') === 'true')
 
-  function apply(nextQ: string, nextStatus: string) {
+  function apply(nextQ: string, nextStatus: string, nextImportante: boolean) {
     const params = new URLSearchParams()
     if (nextQ.trim()) params.set('q', nextQ.trim())
     if (nextStatus) params.set('status', nextStatus)
+    if (nextImportante) params.set('importante', 'true')
     router.push(params.toString() ? `/?${params.toString()}` : '/')
   }
 
@@ -32,7 +34,7 @@ export default function SearchBar() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          apply(q, status)
+          apply(q, status, importante)
         }}
         style={{ display: 'flex', gap: '0.5rem', flex: 1, minWidth: 260 }}
       >
@@ -57,7 +59,7 @@ export default function SearchBar() {
         value={status}
         onChange={(e) => {
           setStatus(e.target.value)
-          apply(q, e.target.value)
+          apply(q, e.target.value, importante)
         }}
         style={{
           background: '#0f0f0f',
@@ -76,11 +78,32 @@ export default function SearchBar() {
           </option>
         ))}
       </select>
-      {(q || status) && (
+      <button
+        onClick={() => {
+          const next = !importante
+          setImportante(next)
+          apply(q, status, next)
+        }}
+        style={{
+          background: importante ? '#f59e0b22' : 'transparent',
+          border: importante ? '1px solid #f59e0b55' : '1px solid #333',
+          color: importante ? '#f59e0b' : '#888',
+          padding: '0.5rem 0.75rem',
+          borderRadius: '0.25rem',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          fontSize: '0.8rem',
+          fontWeight: importante ? 600 : 400,
+        }}
+      >
+        ★ Importante
+      </button>
+      {(q || status || importante) && (
         <button
           onClick={() => {
             setQ('')
             setStatus('')
+            setImportante(false)
             router.push('/')
           }}
           style={{

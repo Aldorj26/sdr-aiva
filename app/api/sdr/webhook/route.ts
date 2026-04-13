@@ -344,6 +344,7 @@ export async function POST(req: NextRequest) {
         if (!Number.isNaN(num) && num >= 3) {
           try {
             await addOpportunityTags(oppId, [TAG_IDS.AIVA, TAG_IDS.IMPORTANTE])
+            await supabaseAdmin.from('sdr_leads').update({ importante: true }).eq('id', lead.id)
             console.log(`CRM: Tag "Importante" aplicada na oportunidade #${oppId} (${num} lojas)`)
           } catch (err) {
             console.log(`CRM: Erro ao adicionar tag Importante na oportunidade #${oppId}:`, err)

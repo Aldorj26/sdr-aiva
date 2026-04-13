@@ -27,6 +27,7 @@ export interface Lead {
   data_proximo_followup: string | null
   data_ultimo_contato: string | null
   acionar_humano: boolean
+  importante: boolean
   observacoes: string | null
   criado_em: string
   webhook_lock_at: string | null
