@@ -20,6 +20,7 @@ import {
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio } from '@/lib/claude'
+import { isAdmin, isCommand, handleCommand, respondToAdmin } from '@/lib/admin-commands'
 
 // Status que bloqueiam processamento
 const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO']
@@ -118,6 +119,18 @@ export async function POST(req: NextRequest) {
 
   if (!conteudo.trim()) {
     return NextResponse.json({ ok: true, ignorado: 'sem_conteudo' })
+  }
+
+  // ─── Admin bot: intercepta comandos de números admin ───────────────────────
+  const adminTelefone = remoteJid
+    ? remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '')
+    : clientId.startsWith('55') ? clientId : `55${clientId}`
+
+  if (isAdmin(adminTelefone) && isCommand(conteudo)) {
+    console.log(`Admin command from ${adminTelefone}: ${conteudo}`)
+    const response = await handleCommand(adminTelefone, conteudo)
+    await respondToAdmin(adminTelefone, response)
+    return NextResponse.json({ ok: true, admin: true, comando: conteudo.split(/\s+/)[0] })
   }
 
   // 4. Busca o lead — tenta por chatId, telefone do remoteJid, ou clientId
