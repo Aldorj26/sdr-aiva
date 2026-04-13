@@ -63,7 +63,7 @@ export async function respondToAdmin(telefone: string, response: string): Promis
 
 function cmdHelp(): string {
   return [
-    '🤖 *Comandos Admin SDR Agent AIVA*',
+    '*Comandos Admin SDR Agent AIVA*',
     '',
     '/status — métricas do sistema',
     '/lead <telefone> — detalhes de um lead',
@@ -103,14 +103,14 @@ async function cmdStatus(): Promise<string> {
     .eq('importante', true)
 
   return [
-    '📊 *Status SDR Agent AIVA*',
+    '*Status SDR Agent AIVA*',
     '',
     `Total de leads: ${total}`,
     ...lines,
     '',
-    `🟢 Conversas ativas (2h): ${ativas ?? 0}`,
-    `🟡 Aguardando humano: ${humano ?? 0}`,
-    `⭐ Importantes: ${importantes ?? 0}`,
+    `Conversas ativas (2h): ${ativas ?? 0}`,
+    `Aguardando humano: ${humano ?? 0}`,
+    `Importantes: ${importantes ?? 0}`,
   ].join('\n')
 }
 
@@ -134,18 +134,18 @@ async function cmdLead(telefone?: string): Promise<string> {
     .limit(3)
 
   const ultimasMsgs = (msgs ?? []).reverse().map(m => {
-    const dir = m.direcao === 'in' ? '👤' : '🤖'
+    const dir = m.direcao === 'in' ? '>' : '<'
     return `${dir} ${m.conteudo.substring(0, 80)}`
   }).join('\n')
 
   return [
-    `📋 *Lead: ${lead.nome}*`,
-    `📱 ${lead.telefone}`,
-    `📍 ${lead.cidade ?? '—'}`,
-    `📌 Status: ${lead.status}`,
-    `⭐ Importante: ${lead.importante ? 'Sim' : 'Não'}`,
-    `🔔 Acionar humano: ${lead.acionar_humano ? 'Sim' : 'Não'}`,
-    lead.observacoes ? `📝 ${lead.observacoes.substring(0, 100)}` : '',
+    `*Lead: ${lead.nome}*`,
+    `Tel: ${lead.telefone}`,
+    `Cidade: ${lead.cidade ?? '--'}`,
+    `Status: ${lead.status}`,
+    `Importante: ${lead.importante ? 'Sim' : 'Nao'}`,
+    `Acionar humano: ${lead.acionar_humano ? 'Sim' : 'Nao'}`,
+    lead.observacoes ? `Obs: ${lead.observacoes.substring(0, 100)}` : '',
     '',
     '*Últimas msgs:*',
     ultimasMsgs || '(sem mensagens)',
@@ -175,9 +175,9 @@ async function cmdDisparar(telefone?: string, nomeRaw?: string): Promise<string>
 
   const data = await res.json()
   if (data.ok && data.sucesso > 0) {
-    return `✅ Campanha disparada para ${tel} (${nome})`
+    return `[OK] Campanha disparada para ${tel} (${nome})`
   }
-  return `❌ Falha ao disparar: ${JSON.stringify(data)}`
+  return `[ERRO] Falha ao disparar: ${JSON.stringify(data)}`
 }
 
 async function cmdFollowup(): Promise<string> {
@@ -194,9 +194,9 @@ async function cmdFollowup(): Promise<string> {
 
   const data = await res.json()
   if (data.ok) {
-    return `✅ Follow-up executado: ${data.sucesso} enviados, ${data.falha} falhas (${data.processados} processados)`
+    return `[OK] Follow-up executado: ${data.sucesso} enviados, ${data.falha} falhas (${data.processados} processados)`
   }
-  return `❌ Erro no follow-up: ${JSON.stringify(data)}`
+  return `[ERRO] Erro no follow-up: ${JSON.stringify(data)}`
 }
 
 async function cmdReprocessar(telefone?: string): Promise<string> {
@@ -252,7 +252,7 @@ async function cmdReprocessar(telefone?: string): Promise<string> {
 
   const data = await res.json()
   if (data.ok) {
-    return `✅ Lead ${lead.nome} (${tel}) reprocessado — status: ${data.status}`
+    return `[OK] Lead ${lead.nome} (${tel}) reprocessado — status: ${data.status}`
   }
-  return `❌ Erro ao reprocessar: ${JSON.stringify(data)}`
+  return `[ERRO] Erro ao reprocessar: ${JSON.stringify(data)}`
 }
