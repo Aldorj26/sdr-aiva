@@ -29,7 +29,7 @@ export default function SearchBar() {
     router.push(params.toString() ? `/?${params.toString()}` : '/')
   }
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     background: '#0f0f0f',
     border: '1px solid #222',
     color: '#eee',
@@ -40,80 +40,83 @@ export default function SearchBar() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', margin: '0.5rem 0 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0 0' }}>
+      {/* Linha 1: input de busca */}
       <form
         onSubmit={(e) => {
           e.preventDefault()
           apply(q, status, importante)
         }}
-        style={{ display: 'contents' }}
       >
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nome, telefone ou cidade…"
-          style={{ ...inputStyle, flex: '1 1 200px' }}
+          style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
         />
       </form>
-      <select
-        value={status}
-        onChange={(e) => {
-          setStatus(e.target.value)
-          apply(q, e.target.value, importante)
-        }}
-        style={inputStyle}
-      >
-        <option value="">Todos os status</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={() => {
-          const next = !importante
-          setImportante(next)
-          apply(q, status, next)
-        }}
-        style={{
-          background: importante ? '#f59e0b22' : 'transparent',
-          border: importante ? '1px solid #f59e0b55' : '1px solid #333',
-          color: importante ? '#f59e0b' : '#888',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '0.25rem',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: '0.85rem',
-          fontWeight: importante ? 600 : 400,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        ★ Importante
-      </button>
-      {(q || status || importante) && (
+      {/* Linha 2: filtros */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value)
+            apply(q, e.target.value, importante)
+          }}
+          style={inputStyle}
+        >
+          <option value="">Todos os status</option>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => {
-            setQ('')
-            setStatus('')
-            setImportante(false)
-            router.push('/')
+            const next = !importante
+            setImportante(next)
+            apply(q, status, next)
           }}
           style={{
-            background: 'transparent',
-            border: '1px solid #333',
-            color: '#888',
+            background: importante ? '#f59e0b22' : 'transparent',
+            border: importante ? '1px solid #f59e0b55' : '1px solid #333',
+            color: importante ? '#f59e0b' : '#888',
             padding: '0.5rem 0.75rem',
             borderRadius: '0.25rem',
             cursor: 'pointer',
             fontFamily: 'inherit',
-            fontSize: '0.8rem',
+            fontSize: '0.85rem',
+            fontWeight: importante ? 600 : 400,
+            whiteSpace: 'nowrap',
           }}
         >
-          ✕ Limpar
+          ★ Importante
         </button>
-      )}
+        {(q || status || importante) && (
+          <button
+            onClick={() => {
+              setQ('')
+              setStatus('')
+              setImportante(false)
+              router.push('/')
+            }}
+            style={{
+              background: 'transparent',
+              border: '1px solid #333',
+              color: '#888',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.8rem',
+            }}
+          >
+            ✕ Limpar
+          </button>
+        )}
+      </div>
     </div>
   )
 }
