@@ -29,6 +29,16 @@ export default function SearchBar() {
     router.push(params.toString() ? `/?${params.toString()}` : '/')
   }
 
+  const inputStyle = {
+    background: '#0f0f0f',
+    border: '1px solid #222',
+    color: '#eee',
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0.25rem',
+    fontFamily: 'inherit',
+    fontSize: '0.85rem',
+  }
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', margin: '0.5rem 0 0' }}>
       <form
@@ -36,23 +46,14 @@ export default function SearchBar() {
           e.preventDefault()
           apply(q, status, importante)
         }}
-        style={{ display: 'flex', gap: '0.5rem', flex: '1 1 200px', minWidth: 200, maxWidth: 500 }}
+        style={{ display: 'contents' }}
       >
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nome, telefone ou cidade…"
-          style={{
-            flex: 1,
-            background: '#0f0f0f',
-            border: '1px solid #222',
-            color: '#eee',
-            padding: '0.5rem 0.75rem',
-            borderRadius: '0.25rem',
-            fontFamily: 'inherit',
-            fontSize: '0.85rem',
-          }}
+          style={{ ...inputStyle, flex: '1 1 200px' }}
         />
       </form>
       <select
@@ -61,15 +62,7 @@ export default function SearchBar() {
           setStatus(e.target.value)
           apply(q, e.target.value, importante)
         }}
-        style={{
-          background: '#0f0f0f',
-          border: '1px solid #222',
-          color: '#eee',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '0.25rem',
-          fontFamily: 'inherit',
-          fontSize: '0.85rem',
-        }}
+        style={inputStyle}
       >
         <option value="">Todos os status</option>
         {STATUSES.map((s) => (
@@ -92,8 +85,9 @@ export default function SearchBar() {
           borderRadius: '0.25rem',
           cursor: 'pointer',
           fontFamily: 'inherit',
-          fontSize: '0.8rem',
+          fontSize: '0.85rem',
           fontWeight: importante ? 600 : 400,
+          whiteSpace: 'nowrap',
         }}
       >
         ★ Importante
