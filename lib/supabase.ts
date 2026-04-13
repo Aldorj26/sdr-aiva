@@ -96,7 +96,7 @@ export async function getLeadsForFollowup(): Promise<Lead[]> {
     .from('sdr_leads')
     .select('*')
     .lte('data_proximo_followup', now)
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","FORMULARIO_ENVIADO")')
+    .in('status', ['DISPARO_REALIZADO', 'SEM_RESPOSTA'])
 
   if (error) {
     console.error('Erro ao buscar leads para follow-up:', error)
