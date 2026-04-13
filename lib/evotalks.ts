@@ -105,6 +105,21 @@ export async function getOpenChatId(
 }
 
 /**
+ * Busca as últimas mensagens de um chat pelo chatId.
+ * direction: 1 = IN (lead), 2 = template/HSM, 3 = OUT (agente)
+ */
+export async function getChatMessages(
+  chatId: number,
+  limit = 10
+): Promise<Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number }>> {
+  const data = await post<{ messages: Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number }> }>(
+    '/int/getChatMessages',
+    { chatId, limit }
+  )
+  return data.messages ?? []
+}
+
+/**
  * Envia uma mensagem de texto em um chat já aberto (via chatId).
  */
 export async function sendMessageToChat(
