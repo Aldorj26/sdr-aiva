@@ -312,7 +312,7 @@ export default async function Page({
           <div>
             <h1>SDR Agent AIVA</h1>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-              Track Tecnologia · VictorIA · {new Date().toLocaleString('pt-BR')}
+              Track Tecnologia · VictorIA · {new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
             </p>
           </div>
         </div>
@@ -501,7 +501,7 @@ export default async function Page({
               <td><StatusPill status={l.status} /></td>
               <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                 {l.data_ultimo_contato
-                  ? new Date(l.data_ultimo_contato).toLocaleString('pt-BR')
+                  ? new Date(l.data_ultimo_contato).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                   : '—'}
               </td>
             </ClickableRow>
@@ -580,7 +580,7 @@ function HealthCard({
     <div className="card">
       <div className="card-label">{label}</div>
       <div className="card-value" style={{ color }}>{fmtRelativo(iso)}</div>
-      <div className="card-hint">{new Date(iso).toLocaleString('pt-BR')}</div>
+      <div className="card-hint">{new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
     </div>
   )
 }

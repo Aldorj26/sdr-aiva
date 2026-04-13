@@ -225,7 +225,7 @@ export default function LeadDrawer() {
                 label="Último contato"
                 value={
                   data.lead.data_ultimo_contato
-                    ? new Date(data.lead.data_ultimo_contato).toLocaleString('pt-BR')
+                    ? new Date(data.lead.data_ultimo_contato).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                     : '—'
                 }
               />
@@ -233,7 +233,7 @@ export default function LeadDrawer() {
                 label="Próximo follow-up"
                 value={
                   data.lead.data_proximo_followup
-                    ? new Date(data.lead.data_proximo_followup).toLocaleString('pt-BR')
+                    ? new Date(data.lead.data_proximo_followup).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                     : '—'
                 }
               />
@@ -293,7 +293,7 @@ export default function LeadDrawer() {
                       )}
                       <div>{m.conteudo}</div>
                       <div style={{ color: '#555', fontSize: '0.7rem', marginTop: '0.3rem' }}>
-                        {new Date(m.enviado_em).toLocaleString('pt-BR')}
+                        {new Date(m.enviado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                       </div>
                     </div>
                   </div>
