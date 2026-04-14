@@ -89,20 +89,27 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // Dispara HSM de aprovação (template deve ter {{1}} = nome do lojista)
-      await sendTemplate(telefone, templateId, [nomeContato])
+      // Dispara HSM de aprovação. Template 15 "(CAMPANHA) Link de Cadastro" tem
+      // 1 variável {{1}} que carrega todo o conteúdo do meio (incluindo o link).
+      // Corpo do template:
+      //   Bem vindo{{1}}
+      //   Assim que finalizar, retorne aqui.
+      const varTemplate =
+        ', sua loja foi aprovada pela Aiva! Preencha esse seu cadastro atraves do link ' +
+        'https://retail-onboarding-hub.vercel.app/onboarding/full'
+      await sendTemplate(telefone, templateId, [varTemplate])
 
-      // Em seguida, manda texto livre com o link da CAF (janela de 24h já aberta pelo template)
-      const linkCafMsg =
-        `${nomeContato}, pra finalizar a ativação da AIVA na sua loja, é só completar o cadastro da CAF (documentação do sócio) neste link:\n\n` +
-        `https://retail-onboarding-hub.vercel.app/onboarding/full\n\n` +
-        `⚠️ Importante: se você tem mais de uma loja com CNPJ *matriz* (cada uma com raiz de CNPJ diferente), precisa fazer um cadastro para cada matriz. Filiais (mesma raiz de CNPJ) não precisam de cadastro separado.\n\n` +
-        `São poucos minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀`
+      // Aviso complementar sobre CNPJ matriz/filial (não está no template HSM).
+      // Enviado como texto livre — janela de 24h já foi aberta pelo template acima.
+      const avisoMatrizMsg =
+        `${nomeContato}, um aviso importante sobre o cadastro:\n\n` +
+        `Se você tem mais de uma loja com CNPJ *matriz* (cada uma com raiz de CNPJ diferente), precisa fazer um cadastro para cada matriz. Filiais (mesma raiz de CNPJ) não precisam de cadastro separado.\n\n` +
+        `Qualquer dúvida durante o preenchimento, pode me chamar aqui.`
 
       try {
-        await sendText(telefone, linkCafMsg)
+        await sendText(telefone, avisoMatrizMsg)
       } catch (err) {
-        console.error(`Falha ao enviar link CAF pós-template para ${telefone}:`, err)
+        console.error(`Falha ao enviar aviso CNPJ matriz para ${telefone}:`, err)
       }
 
       // Registra no histórico do lead
@@ -117,19 +124,19 @@ export async function POST(req: NextRequest) {
           {
             lead_id: lead.id,
             direcao: 'out',
-            conteudo: `[Template AIVA aprovação enviado — ${nomeContato}]`,
-            template_hsm: 'aiva_aprovacao',
+            conteudo: `[Template (CAMPANHA) Link de Cadastro enviado — ${nomeContato}]`,
+            template_hsm: 'aiva_link_cadastro',
           },
           {
             lead_id: lead.id,
             direcao: 'out',
-            conteudo: linkCafMsg,
+            conteudo: avisoMatrizMsg,
           },
         ])
       }
 
-      console.log(`Template aprovação AIVA + link CAF enviados: opp #${opportunityId} → ${telefone}`)
-      return NextResponse.json({ ok: true, template_enviado: true, link_caf_enviado: true, telefone })
+      console.log(`Template link cadastro + aviso matriz enviados: opp #${opportunityId} → ${telefone}`)
+      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, telefone })
     } catch (err) {
       console.error('Erro ao enviar template de aprovação:', err)
       return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })
