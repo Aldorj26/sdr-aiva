@@ -192,31 +192,43 @@ async function getAgenda() {
 }
 
 /**
- * Mensagens por dia — últimos 7 dias, dividido em recebidas/enviadas
+ * Mensagens por dia — últimos 7 dias, agregados em BRT.
+ * Usa RPC `get_mensagens_por_dia` que retorna já agrupado:
+ *   [{ dia: '2026-04-14', direcao: 'in', total: 175 }, ...]
  */
 async function getMensagensPorDia() {
-  const sete = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data } = await supabaseAdmin
-    .from('sdr_mensagens')
-    .select('direcao, enviado_em')
-    .gte('enviado_em', sete)
-    .limit(5000)
+  const { data } = await supabaseAdmin.rpc('get_mensagens_por_dia')
+  const rows = (data ?? []) as Array<{ dia: string; direcao: string; total: number }>
 
-  const buckets: Record<string, { recebidas: number; enviadas: number }> = {}
-  // Inicializa os 7 dias (label DD/MM)
+  // Gera labels dos 7 dias em BRT (hoje, ontem, ..., 6 dias atrás)
+  const buckets: Record<string, { dia: string; recebidas: number; enviadas: number }> = {}
+  const fmtBrt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const labelBrt = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+  })
+
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-    const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-    buckets[key] = { recebidas: 0, enviadas: 0 }
+    const iso = fmtBrt.format(d) // yyyy-mm-dd em BRT
+    const label = labelBrt.format(d) // dd/mm em BRT
+    buckets[iso] = { dia: label, recebidas: 0, enviadas: 0 }
   }
-  for (const m of (data ?? []) as Array<{ direcao: string; enviado_em: string }>) {
-    const d = new Date(m.enviado_em)
-    const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (!buckets[key]) continue
-    if (m.direcao === 'in') buckets[key].recebidas++
-    else buckets[key].enviadas++
+
+  for (const r of rows) {
+    const bucket = buckets[r.dia]
+    if (!bucket) continue
+    if (r.direcao === 'in') bucket.recebidas = Number(r.total)
+    else bucket.enviadas = Number(r.total)
   }
-  return Object.entries(buckets).map(([dia, v]) => ({ dia, ...v }))
+
+  return Object.values(buckets)
 }
 
 // ─── Helpers visuais ──────────────────────────────────────────────────────────
