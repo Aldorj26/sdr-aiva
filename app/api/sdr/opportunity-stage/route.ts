@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getOpportunity, sendToHubSpot, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
+import { getOpportunity, sendToHubSpot, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 
 /**
@@ -83,6 +83,57 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('Erro ao enviar para HubSpot:', err)
       return NextResponse.json({ ok: false, erro: 'hubspot_error' }, { status: 500 })
+    }
+  }
+
+  // Stage 54 — Pré Aprovação → envia dados pra planilha AIVA APROVAÇÃO
+  // Usado quando o time preenche manualmente os dados no CRM a partir de um
+  // lead INTERESSADO e move pra Pré Aprovação (fluxo manual, sem passar pelo chat).
+  if (stageNum === STAGES.PRE_APROVACAO) {
+    try {
+      const opp = await getOpportunity(Number(opportunityId))
+      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+
+      await sendToGoogleSheets({
+        nome_socio: forms['da6ddf70'],
+        email_socio: forms['dafa40f0'],
+        telefone: telefone || forms['db8569f0'],
+        nome_varejo: forms['dcacfa00'],
+        cnpj_matriz: forms['dd2ab580'],
+        faturamento_anual: forms['ddb960f0'],
+        valor_boleto_mensal: forms['de2cbc30'],
+        regiao_varejo: forms['dede58f0'],
+        numero_lojas: forms['df6f9c70'],
+        localizacao_lojas: forms['e0099280'],
+        possui_outra_financeira: forms['e07d62f0'],
+        cnpjs_adicionais: forms['e0f66380'],
+        status: 'PRE_APROVACAO',
+        opportunity_id: String(opportunityId),
+      })
+
+      // Registra no histórico do lead (se existir)
+      if (telefone) {
+        const { data: lead } = await supabaseAdmin
+          .from('sdr_leads')
+          .select('id')
+          .eq('telefone', telefone)
+          .maybeSingle()
+
+        if (lead?.id) {
+          await supabaseAdmin.from('sdr_mensagens').insert({
+            lead_id: lead.id,
+            direcao: 'out',
+            conteudo: `[Dados enviados pra planilha AIVA APROVAÇÃO via Pré Aprovação manual — opp #${opportunityId}]`,
+          })
+        }
+      }
+
+      console.log(`Google Sheets: dados enviados via Pré Aprovação manual — opp #${opportunityId}`)
+      return NextResponse.json({ ok: true, google_sheets: true, opportunity_id: opportunityId })
+    } catch (err) {
+      console.error('Erro ao enviar dados pra Google Sheets (stage 54):', err)
+      return NextResponse.json({ ok: false, erro: 'google_sheets_error' }, { status: 500 })
     }
   }
 
