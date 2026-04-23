@@ -45,7 +45,16 @@ export interface DadosColetados {
 
 export interface ClaudeResponse {
   mensagem: string
-  novo_status: 'INTERESSADO' | 'FORMULARIO_ENVIADO' | 'OPT_OUT' | 'NAO_QUALIFICADO' | 'AGUARDANDO'
+  novo_status:
+    | 'INTERESSADO'
+    | 'FORMULARIO_ENVIADO' // legacy
+    | 'OPT_OUT'
+    | 'NAO_QUALIFICADO'
+    | 'AGUARDANDO'
+    | 'BOT_DETECTADO' // chatbot/atendimento automático detectado, sem acesso ao decisor
+    | 'AGUARDANDO_APROVACAO' // 7 dados Fase 1 completos
+    | 'COLETANDO_COMPLEMENTO' // Fase 3 em andamento (setado via stage 49)
+    | 'CADASTRO_COMPLETO' // 12 dados Fase 3 completos
   acionar_humano: boolean
   motivo_humano: string | null
   dados_coletados: DadosColetados | null
@@ -85,13 +94,28 @@ export async function transcreverAudio(
 }
 
 /**
+ * Instrução de fase injetada no último user message pra forçar o Claude a
+ * seguir o status atual, mesmo quando o histórico sugere outra fase.
+ */
+function buildFaseInstrucao(statusAtual: string): string | null {
+  if (statusAtual === 'COLETANDO_COMPLEMENTO') {
+    return `[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = COLETANDO_COMPLEMENTO. Você está na FASE 3.\nA Fase 1 e Fase 2 JÁ PASSARAM. Ignore a mensagem "Perfeito, já tenho tudo pra pré-aprovação" no histórico — ela é de uma fase anterior.\nAgora você PRECISA coletar os 5 dados restantes, um de cada vez: email, faturamento, valor boleto, localização detalhada, CNPJs adicionais.\nComece perguntando o EMAIL do sócio.\nRetorne novo_status = "COLETANDO_COMPLEMENTO" (ou "CADASTRO_COMPLETO" se os 5 dados ficarem completos nessa mensagem).\nNUNCA retorne "AGUARDANDO_APROVACAO" nem "INTERESSADO".\n[FIM INSTRUÇÃO DO SISTEMA]`
+  }
+  if (statusAtual === 'AGUARDANDO_APROVACAO') {
+    return `[INSTRUÇÃO DO SISTEMA]\nStatus do lead = AGUARDANDO_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". NÃO peça dados novos.\nRetorne novo_status = "AGUARDANDO_APROVACAO" e acionar_humano = false.\n[FIM INSTRUÇÃO DO SISTEMA]`
+  }
+  return null
+}
+
+/**
  * Processa uma mensagem recebida do lead com histórico de conversa.
  * Retorna a resposta estruturada da VictorIA.
  */
 export async function processarMensagem(
   mensagemRecebida: string,
   historico: Mensagem[],
-  nomeDoLead: string
+  nomeDoLead: string,
+  statusAtual?: string
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -129,13 +153,29 @@ export async function processarMensagem(
     messages.push({ role: 'user', content: mensagemRecebida })
   }
 
+  // Injeta instrução de fase no último user message — o Claude dá peso maior
+  // a instruções no user message recente do que no system prompt quando o
+  // histórico é longo. Isso impede de voltar pra fase anterior.
+  const status = statusAtual ?? 'INTERESSADO'
+  const faseInstrucao = buildFaseInstrucao(status)
+  if (faseInstrucao) {
+    const ultima = messages[messages.length - 1]
+    if (ultima.role === 'user' && typeof ultima.content === 'string') {
+      ultima.content = `${faseInstrucao}\n\n${ultima.content}`
+    }
+  }
+
   // Prefill: força o Claude a começar a resposta com "{" (garante JSON)
   messages.push({ role: 'assistant', content: '{' })
+
+  const systemPrompt = AIVA_SYSTEM_PROMPT
+    .replaceAll('{{nome}}', nomeDoLead)
+    .replaceAll('{{status_atual}}', status)
 
   const response = await getClient().messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 1024,
-    system: AIVA_SYSTEM_PROMPT.replace('{{nome}}', nomeDoLead),
+    system: systemPrompt,
     messages,
   })
 

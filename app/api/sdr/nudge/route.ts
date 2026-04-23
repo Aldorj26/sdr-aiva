@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, saveMensagem, getMensagens, type Lead } from '@/lib/supabase'
+import { supabaseAdmin, saveMensagem, getMensagens, type Lead, type Mensagem } from '@/lib/supabase'
 import { sendText } from '@/lib/evotalks'
 import { processarMensagem } from '@/lib/claude'
+import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
 export const maxDuration = 60
 
 const TRES_HORAS_MS = 3 * 60 * 60 * 1000
 const VINTE_QUATRO_HORAS_MS = 24 * 60 * 60 * 1000
 const MAX_LEADS_POR_EXECUCAO = 5
+
+/**
+ * Remove mensagens 'out' que são apenas marcadores internos (ex: "[Template X enviado]").
+ * Duplicado do webhook/route.ts — mantido aqui pra evitar dependência circular.
+ */
+function stripInternalMarkers(msgs: Mensagem[]): Mensagem[] {
+  return msgs.filter((m) => {
+    if (m.direcao !== 'out') return true
+    return !/^\[.*\]$/.test(m.conteudo.trim())
+  })
+}
 
 /**
  * Cron de nudge — cutuca leads com conversa parada há 3+ horas.
@@ -22,6 +34,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
+  // Skip em fim de semana (sáb/dom BRT) — nudge é "automação de impacto"
+  if (!isDiaUtil()) {
+    console.log(`[nudge] skip: ${rotuloHorario()} (fim de semana)`)
+    return NextResponse.json({ ok: true, ignorado: 'fim_de_semana', quando: rotuloHorario() })
+  }
+
   // Só dispara em horário comercial BRT (8h–20h)
   const horaBrt = Number(
     new Intl.DateTimeFormat('en-US', {
@@ -34,12 +52,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'fora_horario_comercial', hora_brt: horaBrt })
   }
 
-  // Busca todos os leads ativos (qualquer conversa em andamento)
+  // Busca leads que podem receber nudge:
+  // — Exclui status finais/em espera (OPT_OUT, descartados, cadastros finalizados)
+  // — AGUARDANDO_APROVACAO: lead aguarda aprovação interna, não deve ser cutucado
+  // — CADASTRO_COMPLETO / FORMULARIO_ENVIADO: fluxo encerrado, humano assumiu
   // O filtro real de "parado há 3h+" é feito no loop via sdr_mensagens
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')
     .select('*')
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","FORMULARIO_ENVIADO")')
+    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","FORMULARIO_ENVIADO","AGUARDANDO_APROVACAO","CADASTRO_COMPLETO","BOT_DETECTADO")')
 
   if (error) {
     console.error('Erro ao buscar leads para nudge:', error)
@@ -61,7 +82,10 @@ export async function POST(req: NextRequest) {
       continue
     }
     try {
-      const mensagens = await getMensagens(lead.id, 10)
+      const mensagensRaw = await getMensagens(lead.id, 10)
+      // Remove marcadores internos ([Template X enviado]) — confundem a VictorIA
+      // sobre a fase atual, especialmente em COLETANDO_COMPLEMENTO.
+      const mensagens = stripInternalMarkers(mensagensRaw)
 
       // Sem conversa real (só template inicial ou sem msgs) — pula
       if (mensagens.length < 2) {
@@ -115,10 +139,15 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // Gera nudge contextual via Claude usando o histórico
-      const nudgeInstrucao = '[INSTRUÇÃO DO SISTEMA: O lead parou de responder há mais de 3 horas. Envie UMA mensagem curta e natural de follow-up para retomar a conversa. Não repita informações já ditas. Seja breve e direto — máximo 2 linhas. Retome a última pergunta de forma diferente ou ofereça ajuda.]'
+      // Gera nudge contextual via Claude usando o histórico.
+      // Para COLETANDO_COMPLEMENTO, instrução específica de Fase 3 — o buildFaseInstrucao
+      // vai injetar a instrução de fase no user message, então só precisamos adicionar
+      // o contexto de que o lead parou de responder e qual dado ainda falta.
+      const nudgeInstrucao = lead.status === 'COLETANDO_COMPLEMENTO'
+        ? '[INSTRUÇÃO DO SISTEMA: O lead parou de responder durante o preenchimento do cadastro (Fase 3). Envie UMA mensagem curta e gentil lembrando que falta concluir o preenchimento. Olhe o histórico, identifique qual dado ainda não foi informado e pergunte especificamente por ele. Seja breve e amigável — máximo 2 linhas.]'
+        : '[INSTRUÇÃO DO SISTEMA: O lead parou de responder há mais de 3 horas. Envie UMA mensagem curta e natural de follow-up para retomar a conversa. Não repita informações já ditas. Seja breve e direto — máximo 2 linhas. Retome a última pergunta de forma diferente ou ofereça ajuda.]'
 
-      const resposta = await processarMensagem(nudgeInstrucao, mensagens, lead.nome)
+      const resposta = await processarMensagem(nudgeInstrucao, mensagens, lead.nome, lead.status)
 
       await sendText(lead.telefone, resposta.mensagem)
       await saveMensagem(lead.id, 'out', resposta.mensagem)

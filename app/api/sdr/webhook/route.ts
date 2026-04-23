@@ -24,7 +24,7 @@ import { processarMensagem, transcreverAudio } from '@/lib/claude'
 import { isAdmin, isCommand, handleCommand, respondToAdmin } from '@/lib/admin-commands'
 
 // Status que bloqueiam processamento
-const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO']
+const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO']
 
 /**
  * Remove mensagens 'in' consecutivas com conteúdo idêntico.
@@ -621,6 +621,16 @@ export async function POST(req: NextRequest) {
         }
       } else if (resposta.novo_status === 'NAO_QUALIFICADO') {
         await addOpportunityNote(oppId, `Lead não qualificado: ${resposta.motivo_humano ?? 'sem perfil'}`)
+      } else if (resposta.novo_status === 'BOT_DETECTADO') {
+        // Chatbot/atendimento automático detectado pela VictorIA em qualquer fase.
+        // Move opp pro stage 69 (Bot Detectado) no pipeline AIVA, fora do funil ativo.
+        try {
+          await changeOpportunityStage(oppId, STAGES.BOT_DETECTADO)
+          await addOpportunityNote(oppId, `Bot/atendimento automático detectado pela VictorIA. Sem acesso ao decisor humano.`)
+          console.log(`CRM: Oportunidade #${oppId} → Bot Detectado (stage ${STAGES.BOT_DETECTADO})`)
+        } catch (err) {
+          console.log(`CRM: Erro ao mover para Bot Detectado #${oppId}:`, err)
+        }
       }
     }
   } catch (err) {
