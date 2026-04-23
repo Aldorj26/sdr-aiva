@@ -493,6 +493,25 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Tag "Atendimento Humano" (laranja) — lead precisa ação humana nesta mensagem.
+      // Auto-detectado (bot do outro lado) não conta — já vai pra BOT_DETECTADO.
+      // addOpportunityTags sobrescreve; reincluímos AIVA e IMPORTANTE (se aplicável)
+      // pra não apagá-las.
+      if (resposta.acionar_humano && !autoDetected) {
+        try {
+          const numRaw = resposta.dados_coletados?.numero_lojas
+          const numLojas = numRaw ? Number(String(numRaw).replace(/\D/g, '')) : NaN
+          const temImportante = lead.importante || (!Number.isNaN(numLojas) && numLojas >= 3)
+          const tags: number[] = [TAG_IDS.AIVA]
+          if (temImportante) tags.push(TAG_IDS.IMPORTANTE)
+          tags.push(TAG_IDS.ATENDIMENTO_HUMANO)
+          await addOpportunityTags(oppId, tags)
+          console.log(`CRM: Tag "Atendimento Humano" aplicada na oportunidade #${oppId}`)
+        } catch (err) {
+          console.log(`CRM: Erro ao adicionar tag Atendimento Humano na oportunidade #${oppId}:`, err)
+        }
+      }
+
       // FASE 1 completa (7 dados) → move pra Pré Aprovação + envia Google Sheets
       // Só dispara na TRANSIÇÃO (lead estava em outro status antes). Se já estava
       // AGUARDANDO_APROVACAO e só mandou uma msg espontânea, não re-executa.

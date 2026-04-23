@@ -422,6 +422,7 @@ export async function linkChatToOpportunity(
 export const TAG_IDS = {
   AIVA: 69,
   IMPORTANTE: 74,
+  ATENDIMENTO_HUMANO: 76, // laranja — lead precisa ação humana (fim Fase 1/3, pedido de contrato, dúvida, etc.)
 } as const
 
 /**
