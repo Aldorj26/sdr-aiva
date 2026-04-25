@@ -249,26 +249,34 @@ export async function POST(
       })
     }
 
-    // Detecta janela 24h: conta da última msg DO CLIENTE (in)
-    let ultimaMsgIn: typeof mensagens[number] | undefined
-    for (let i = mensagens.length - 1; i >= 0; i--) {
-      if (mensagens[i].direcao === 'in') {
-        ultimaMsgIn = mensagens[i]
-        break
-      }
-    }
-    const janelaMs = 24 * 60 * 60 * 1000
-    const agora = Date.now()
-    const tsUltimaIn = ultimaMsgIn ? new Date(ultimaMsgIn.enviado_em).getTime() : NaN
-    const diffMs = agora - tsUltimaIn
-    const diffHoras = Number.isFinite(diffMs) ? (diffMs / 3600_000).toFixed(2) : 'NaN'
-    // Considera janela aberta SOMENTE se diff for número finito E menor que 24h.
-    // Se o parsing der NaN, força janela=false (não confia, vai pra HSM).
-    const janelaAberta = !!ultimaMsgIn && Number.isFinite(diffMs) && diffMs < janelaMs
+    // Detecta janela 24h via SQL — deixa o Postgres comparar timestamps
+    // (mais confiável que parse JS de timestamptz). Janela aberta = existe
+    // pelo menos 1 msg 'in' nas últimas 24h.
+    const { data: janelaRow } = await supabaseAdmin
+      .from('sdr_mensagens')
+      .select('enviado_em')
+      .eq('lead_id', id)
+      .eq('direcao', 'in')
+      .gte('enviado_em', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('enviado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const janelaAberta = !!janelaRow
+
+    // Pega também a ÚLTIMA in (sem filtro de janela) só pra log
+    const { data: ultimaInRow } = await supabaseAdmin
+      .from('sdr_mensagens')
+      .select('enviado_em')
+      .eq('lead_id', id)
+      .eq('direcao', 'in')
+      .order('enviado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     console.log(
-      `[lead-action] force-followup id=${id} ultimaIn=${ultimaMsgIn?.enviado_em ?? 'null'} ` +
-      `diffHoras=${diffHoras}h janelaAberta=${janelaAberta} totalMsgs=${mensagens.length}`
+      `[lead-action v4] force-followup id=${id} ` +
+      `ultimaIn=${ultimaInRow?.enviado_em ?? 'null'} ` +
+      `janelaAberta=${janelaAberta} totalMsgs=${mensagens.length}`
     )
 
     if (janelaAberta) {
@@ -306,12 +314,17 @@ export async function POST(
         .update({ data_ultimo_contato: new Date().toISOString() })
         .eq('id', id)
 
-      console.log(`[lead-action] force-followup id=${id} → contextual enviado (${resposta.mensagem.length} chars)`)
+      console.log(`[lead-action v4] force-followup id=${id} → contextual enviado (${resposta.mensagem.length} chars)`)
       return NextResponse.json({
         ok: true,
         action: 'force-followup',
         modo: 'contextual',
         mensagem: resposta.mensagem,
+        debug: {
+          ultimaIn: ultimaInRow?.enviado_em ?? null,
+          janelaAberta,
+          totalMsgs: mensagens.length,
+        },
       })
     }
 
@@ -372,13 +385,18 @@ export async function POST(
       .update({ data_ultimo_contato: new Date().toISOString() })
       .eq('id', id)
 
-    console.log(`[lead-action] force-followup id=${id} → hsm_retomada enviado (${miolo.length} chars no miolo)`)
+    console.log(`[lead-action v4] force-followup id=${id} → hsm_retomada enviado (${miolo.length} chars no miolo)`)
     return NextResponse.json({
       ok: true,
       action: 'force-followup',
       modo: 'hsm_retomada',
       mensagem: textoCompleto,
       miolo,
+      debug: {
+        ultimaIn: ultimaInRow?.enviado_em ?? null,
+        janelaAberta,
+        totalMsgs: mensagens.length,
+      },
     })
   }
 

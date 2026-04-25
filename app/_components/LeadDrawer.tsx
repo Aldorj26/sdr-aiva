@@ -131,12 +131,15 @@ export default function LeadDrawer() {
       }
       // Feedback explícito do modo que rodou — operador precisa saber se foi
       // texto livre (janela 24h aberta) ou template HSM (janela fechada)
+      const dbg = json.debug
+        ? `\n\n[debug] ultimaIn=${json.debug.ultimaIn ?? 'null'} janelaAberta=${json.debug.janelaAberta} totalMsgs=${json.debug.totalMsgs}`
+        : ''
       if (json.modo === 'agendado') {
-        window.alert(`📅 Agendado\n\n${json.info ?? 'Follow-up agendado pro próximo cron'}`)
+        window.alert(`📅 Agendado\n\n${json.info ?? 'Follow-up agendado pro próximo cron'}${dbg}`)
       } else if (json.modo === 'contextual') {
-        window.alert(`💬 Texto livre enviado (janela 24h aberta)\n\n${json.mensagem ?? ''}`)
+        window.alert(`💬 Texto livre enviado (janela 24h aberta)\n\n${json.mensagem ?? ''}${dbg}`)
       } else if (json.modo === 'hsm_retomada') {
-        window.alert(`📨 Template HSM "Follow Up Aiva" enviado (janela 24h fechada)\n\n${json.mensagem ?? ''}`)
+        window.alert(`📨 Template HSM "Follow Up Aiva" enviado (janela 24h fechada)\n\n${json.mensagem ?? ''}${dbg}`)
       }
       await refreshDrawer()
     } catch (err) {
