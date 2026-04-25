@@ -171,7 +171,7 @@ Gere o miolo agora.`
     messages: [{ role: 'user', content: userMessage }],
   })
 
-  const texto = response.content
+  let texto = response.content
     .filter((b) => b.type === 'text')
     .map((b) => (b as Anthropic.TextBlock).text)
     .join('')
@@ -180,8 +180,53 @@ Gere o miolo agora.`
     .replace(/^["'`]+|["'`]+$/g, '')
     .trim()
 
-  // Trava em 110 chars (margem de segurança — Meta rejeita se passar do limite)
-  return texto.slice(0, 110)
+  // Strip cumprimento + nome + "tudo bem?" do início se o Claude colocar
+  // contrariando o prompt — o template HSM 21 já abre com "Olá {{1}}, ", então
+  // qualquer saudação no miolo resulta em duplicação ("Olá Thiago, Oi Sh,...")
+  // ou em nome errado (Claude às vezes alucina um nome do histórico).
+  const stripGreeting = (s: string): string => {
+    let r = s
+    let prev = ''
+    while (prev !== r) {
+      prev = r
+      // Saudação + nome opcional (1-3 palavras) seguido de pontuação forte +
+      // "tudo bem?" opcional. Lookahead [,!?] garante que a "name section" só
+      // dispara quando o nome é seguido de pontuação (evita comer conteúdo).
+      r = r
+        .replace(
+          /^(?:oi|ol[aá]|ei|opa|hey|hi|hello|bom dia|boa tarde|boa noite)(?:\s+[\p{L}'-]+(?:\s+[\p{L}'-]+){0,2}(?=[,!?]))?[\s,!?]+(?:tudo bem[\s,!?]+)?/iu,
+          '',
+        )
+        .trim()
+      // "tudo bem?" solto no início (sem saudação antes)
+      r = r.replace(/^tudo bem[\s,!?]+/iu, '').trim()
+    }
+    return r
+  }
+  texto = stripGreeting(texto)
+
+  // Capitaliza 1ª letra — depois do strip pode sobrar minúsculo ("vi que…")
+  if (texto.length > 0) {
+    texto = texto[0].toUpperCase() + texto.slice(1)
+  }
+
+  // Trava em 110 chars MAS recua até última quebra natural (espaço/pontuação)
+  // pra não cortar palavra ao meio. Ex: "...continuarmo[s]" → "...continuarmo"
+  const MAX = 110
+  if (texto.length > MAX) {
+    const cut = texto.slice(0, MAX)
+    const lastBreak = Math.max(
+      cut.lastIndexOf(' '),
+      cut.lastIndexOf('.'),
+      cut.lastIndexOf('?'),
+      cut.lastIndexOf('!'),
+    )
+    texto = lastBreak >= MAX * 0.6
+      ? cut.slice(0, lastBreak).trimEnd()
+      : cut.trimEnd()
+  }
+
+  return texto
 }
 
 /**
