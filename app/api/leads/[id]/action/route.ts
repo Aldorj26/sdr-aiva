@@ -258,9 +258,17 @@ export async function POST(
       }
     }
     const janelaMs = 24 * 60 * 60 * 1000
-    const janelaAberta = !!(
-      ultimaMsgIn &&
-      Date.now() - new Date(ultimaMsgIn.enviado_em).getTime() < janelaMs
+    const agora = Date.now()
+    const tsUltimaIn = ultimaMsgIn ? new Date(ultimaMsgIn.enviado_em).getTime() : NaN
+    const diffMs = agora - tsUltimaIn
+    const diffHoras = Number.isFinite(diffMs) ? (diffMs / 3600_000).toFixed(2) : 'NaN'
+    // Considera janela aberta SOMENTE se diff for número finito E menor que 24h.
+    // Se o parsing der NaN, força janela=false (não confia, vai pra HSM).
+    const janelaAberta = !!ultimaMsgIn && Number.isFinite(diffMs) && diffMs < janelaMs
+
+    console.log(
+      `[lead-action] force-followup id=${id} ultimaIn=${ultimaMsgIn?.enviado_em ?? 'null'} ` +
+      `diffHoras=${diffHoras}h janelaAberta=${janelaAberta} totalMsgs=${mensagens.length}`
     )
 
     if (janelaAberta) {
