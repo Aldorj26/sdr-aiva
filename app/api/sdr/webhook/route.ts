@@ -208,16 +208,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignorado: 'telefone_invalido' })
     }
 
-    console.log(`Lead desconhecido ${telNormalizado} — criando automaticamente`)
+    console.log(`Lead desconhecido ${telNormalizado} — criando como TRIAGEM (inbound puro)`)
 
+    // Lead totalmente novo (não existe em nenhum produto) → TRIAGEM.
+    // VictorIA usa prompt de triagem pra identificar produto desejado e
+    // tirar dúvidas básicas. Aldo + Nei recebem alerta WhatsApp pra fazer
+    // contato direto.
     const { data: novoLead, error: insertErr } = await supabaseAdmin
       .from('sdr_leads')
       .insert({
         nome: 'Loja',
         telefone: telNormalizado,
-        produto: 'AIVA',
+        produto: 'TRIAGEM',
         status: 'INTERESSADO',
-        etapa_cadencia: 3,
+        etapa_cadencia: 1,
+        acionar_humano: true,
+        observacoes: '[INBOUND_TRIAGEM] Lead chegou sem prospeccao previa — Aldo/Nei vao fazer contato direto',
         data_disparo_inicial: new Date().toISOString(),
         data_ultimo_contato: new Date().toISOString(),
         evotalks_chat_id: chatId || null,
@@ -226,6 +232,7 @@ export async function POST(req: NextRequest) {
       .select('*')
       .single()
 
+    let leadEhInboundNovo = false
     if (insertErr || !novoLead) {
       // Se falhou por UNIQUE constraint, o lead já existe mas não encontramos
       // (pode ser formato de telefone diferente). Tenta buscar mais uma vez.
@@ -238,7 +245,25 @@ export async function POST(req: NextRequest) {
       }
     } else {
       lead = novoLead as Lead
-      console.log(`Lead orgânico criado: ${lead.id} (${telNormalizado})`)
+      leadEhInboundNovo = true
+      console.log(`Lead TRIAGEM criado: ${lead.id} (${telNormalizado})`)
+    }
+
+    // Alerta WhatsApp pra Aldo + Nei na PRIMEIRA mensagem inbound de lead novo TRIAGEM.
+    if (leadEhInboundNovo) {
+      try {
+        const msgPreview = (conteudo || '').slice(0, 200) || '(mensagem vazia ou só audio/midia)'
+        const alerta =
+          `🆕 *NOVO LEAD INBOUND*\n\n` +
+          `📞 ${telNormalizado}\n` +
+          `📩 Primeira msg:\n"${msgPreview}"\n\n` +
+          `A VictorIA já se apresentou e vai conversando enquanto vocês não assumem.\n` +
+          `→ Acessa o painel pra ver/responder direto: sdr-agente.vercel.app`
+        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+      } catch (err) {
+        console.error('[TRIAGEM] Erro ao alertar Aldo/Nei sobre lead inbound novo:', err)
+      }
     }
   }
 
@@ -348,9 +373,10 @@ export async function POST(req: NextRequest) {
     // 9. Processa com Claude (VictorIA)
     // Passa o status atual pra Claude saber em qual fase do fluxo está
     // (Fase 1 = INTERESSADO, Fase 2 = AGUARDANDO_APROVACAO, Fase 3 = COLETANDO_COMPLEMENTO).
+    // O produto determina o prompt: AIVA (default) ou TRIAGEM (lead inbound puro).
     let resposta
     try {
-      resposta = await processarMensagem(conteudoEfetivo, historico, lead.nome, lead.status)
+      resposta = await processarMensagem(conteudoEfetivo, historico, lead.nome, lead.status, lead.produto)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined

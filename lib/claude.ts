@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq, { toFile } from 'groq-sdk'
 import { AIVA_SYSTEM_PROMPT } from '@/prompts/aiva'
+import { TRIAGEM_SYSTEM_PROMPT } from '@/prompts/triagem'
 import type { Mensagem } from '@/lib/supabase'
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -307,7 +308,8 @@ export async function processarMensagem(
   mensagemRecebida: string,
   historico: Mensagem[],
   nomeDoLead: string,
-  statusAtual?: string
+  statusAtual?: string,
+  produto?: string
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -360,7 +362,10 @@ export async function processarMensagem(
   // Prefill: força o Claude a começar a resposta com "{" (garante JSON)
   messages.push({ role: 'assistant', content: '{' })
 
-  const systemPrompt = AIVA_SYSTEM_PROMPT
+  // Seleciona o prompt base por produto. Default AIVA — TRIAGEM é usado pra leads
+  // inbound puros (telefone novo que entrou em contato sem prospecção prévia).
+  const promptBase = produto === 'TRIAGEM' ? TRIAGEM_SYSTEM_PROMPT : AIVA_SYSTEM_PROMPT
+  const systemPrompt = promptBase
     .replaceAll('{{nome}}', nomeDoLead)
     .replaceAll('{{status_atual}}', status)
 
