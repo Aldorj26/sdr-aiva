@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'x-internal-secret': process.env.WEBHOOK_SECRET ?? '',
+            'x-auto-reprocess': 'true',
           },
           body: JSON.stringify({
             event: 'messages.upsert',

@@ -337,9 +337,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'mid_duplicado' })
   }
 
-  // Salva mensagem recebida imediatamente (antes do lock), já com o mId
-  // pra travar futuros retries via índice UNIQUE.
-  await saveMensagem(lead.id, 'in', conteudo, undefined, mId || null)
+  // Auto-reprocess (interno) ja salvou a msg em sdr_mensagens antes de chamar
+  // este webhook — pular o save abaixo evita linha duplicada com mesmo conteudo
+  // e mId=null. O processamento Claude segue normal.
+  const isAutoReprocess = req.headers.get('x-auto-reprocess') === 'true'
+
+  if (!isAutoReprocess) {
+    // Salva mensagem recebida imediatamente (antes do lock), já com o mId
+    // pra travar futuros retries via índice UNIQUE.
+    await saveMensagem(lead.id, 'in', conteudo, undefined, mId || null)
+  }
 
   // 7b. Tenta adquirir lock de processamento exclusivo deste lead
   // Evita que 4 webhooks paralelos (rajada) rodem Claude simultaneamente e se atropelem.
