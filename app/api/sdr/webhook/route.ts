@@ -391,6 +391,21 @@ export async function POST(req: NextRequest) {
         process.env.NEI_WHATSAPP!,
         `🚨 Erro ao processar mensagem de *${lead.nome}* (${lead.telefone}).\nMensagem: "${conteudoEfetivo}"`
       )
+      // Salva marcador OUT pra balancear IN/OUT — assim o auto-reprocess
+      // não vai re-disparar este webhook em loop ate Claude voltar a funcionar.
+      // O marcador fica todo entre [] (formato pegado por stripInternalMarkers
+      // via regex /^\[.*\]$/) então é filtrado antes de ir pro prompt da IA.
+      // Humano foi alertado e vai intervir manualmente.
+      const errResumo = errMsg.substring(0, 150).replace(/[\[\]]/g, '')
+      await saveMensagem(lead.id, 'out', `[CLAUDE_ERR:${new Date().toISOString()}:${errResumo}]`)
+      // Marca lead com flag em observacoes pra debug e auditoria
+      const flagErr = `[CLAUDE_ERR:${new Date().toISOString()}]`
+      const obsAtual = lead.observacoes ?? ''
+      const obsLimpa = obsAtual.replace(/\[CLAUDE_ERR:[^\]]+\]\s*/g, '').trim()
+      await supabaseAdmin
+        .from('sdr_leads')
+        .update({ observacoes: `${flagErr} ${obsLimpa}`.trim() })
+        .eq('id', lead.id)
       return NextResponse.json({ ok: false, erro: 'claude_error', detail: errMsg }, { status: 500 })
     }
 
