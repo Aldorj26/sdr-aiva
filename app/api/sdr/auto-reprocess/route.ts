@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : 'https://sdr-agent-nine.vercel.app'
+    : 'https://sdr-agente.vercel.app'
 
   let sucesso = 0
   let falha = 0

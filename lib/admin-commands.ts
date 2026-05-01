@@ -165,7 +165,7 @@ async function cmdDisparar(telefone?: string, nomeRaw?: string): Promise<string>
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : 'https://sdr-agent-nine.vercel.app'
+      : 'https://sdr-agente.vercel.app'
 
   const res = await fetch(`${baseUrl}/api/sdr/send-initial`, {
     method: 'POST',
@@ -185,7 +185,7 @@ async function cmdFollowup(): Promise<string> {
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : 'https://sdr-agent-nine.vercel.app'
+      : 'https://sdr-agente.vercel.app'
 
   const res = await fetch(`${baseUrl}/api/sdr/followup`, {
     method: 'POST',
@@ -233,7 +233,7 @@ async function cmdReprocessar(telefone?: string): Promise<string> {
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : 'https://sdr-agent-nine.vercel.app'
+      : 'https://sdr-agente.vercel.app'
 
   const res = await fetch(`${baseUrl}/api/sdr/webhook`, {
     method: 'POST',
