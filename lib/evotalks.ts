@@ -370,6 +370,12 @@ const STAGES = {
   BOT_DETECTADO: 69,
 } as const
 
+// ⚠️ COLISÃO INTENCIONAL DE ID: o stage BOT_DETECTADO=69 e a tag AIVA=69 (TAG_IDS.AIVA)
+// têm o mesmo número 69. Isso não é bug — são namespaces diferentes no Evo Talks
+// (um vai em /int/changeStage, outro em /int/updateOpportunity tags[]). Mas é
+// PERIGOSO: passar TAG_IDS.AIVA pra changeOpportunityStage por engano move o opp
+// pra Bot Detectado silenciosamente. Sempre use a constante semanticamente correta.
+
 export { STAGES }
 
 /**

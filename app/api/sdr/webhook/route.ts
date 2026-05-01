@@ -23,8 +23,14 @@ import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio } from '@/lib/claude'
 import { isAdmin, isCommand, handleCommand, respondToAdmin } from '@/lib/admin-commands'
 
-// Status que bloqueiam processamento
+// Status que bloqueiam processamento (silenciosamente — sem alerta).
+// Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out).
 const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO']
+
+// Status terminais positivos que disparam ALERTA pro Nei e encerram.
+// FORMULARIO_ENVIADO é legacy (fluxo antigo). CADASTRO_COMPLETO é o atual.
+// Lead respondeu depois de já ter completado cadastro — humano precisa intervir.
+const STATUS_ALERTA_E_ENCERRA: LeadStatus[] = ['FORMULARIO_ENVIADO', 'CADASTRO_COMPLETO']
 
 /**
  * Remove mensagens 'in' consecutivas com conteúdo idêntico.
@@ -316,8 +322,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Lead com cadastro finalizado — avisa Nei e encerra.
-  // FORMULARIO_ENVIADO é legacy (fluxo antigo). CADASTRO_COMPLETO é o novo.
-  if (lead.status === 'FORMULARIO_ENVIADO' || lead.status === 'CADASTRO_COMPLETO') {
+  if (STATUS_ALERTA_E_ENCERRA.includes(lead.status)) {
     const alerta =
       `⚠️ *${lead.nome}* (${lead.telefone}) respondeu após cadastro completo.\n` +
       `Mensagem: "${conteudo}"\n\nAcompanhe no Evo Talks.`
