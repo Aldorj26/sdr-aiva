@@ -352,7 +352,19 @@ export async function POST(req: NextRequest) {
   // Daqui em diante, qualquer return precisa liberar o lock via finally.
   let respostaFinal: { novo_status: string } | null = null
   try {
-    // 7c. Debounce — espera 2s pra capturar qualquer mensagem adicional da rajada
+    // 7c. RE-FETCH do lead pos-lock — defesa contra race conditions.
+    // O lead foi lido inicialmente la na linha ~167 (antes do lock). Se um
+    // webhook paralelo processou uma rajada antes deste, ele ja pode ter:
+    //  - Criado a oportunidade no Evo (evotalks_opportunity_id setado)
+    //  - Atualizado status (INTERESSADO -> AGUARDANDO_APROVACAO)
+    //  - Mudado nome via nome_varejo coletado
+    // Sem o re-fetch, criariamos opp duplicada porque o local `lead` ta stale.
+    const leadFresh = await getLeadByTelefone(lead.telefone)
+    if (leadFresh) {
+      lead = leadFresh
+    }
+
+    // 7d. Debounce — espera 2s pra capturar qualquer mensagem adicional da rajada
     // (usuário frequentemente envia a mesma pergunta 3-4 vezes em ~15s)
     await new Promise((r) => setTimeout(r, 2000))
 
