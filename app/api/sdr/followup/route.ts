@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLeadsForFollowup, updateLeadStatus, saveMensagem, supabaseAdmin } from '@/lib/supabase'
 import { sendTemplate, changeOpportunityStage, addOpportunityNote, STAGES } from '@/lib/evotalks'
+import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
 // Templates HSM aprovados pela Meta (Evo Talks)
 const TEMPLATES: Record<number, { id: number; texto: (nome: string) => string }> = {
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
   if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}`) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
+  // Skip silencioso em fim de semana — cron agendado vai rodar mas não dispara
+  // HSM de follow-up. Agendamentos pendentes ficam pra próxima segunda.
+  if (!isDiaUtil()) {
+    console.log(`[followup] skip: ${rotuloHorario()} (fim de semana)`)
+    return NextResponse.json({ ok: true, ignorado: 'fim_de_semana', quando: rotuloHorario() })
   }
 
   const leads = await getLeadsForFollowup()

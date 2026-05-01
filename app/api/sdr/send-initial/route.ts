@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, saveMensagem } from '@/lib/supabase'
 import { sendTemplate, createOpportunity, STAGES, checkUserExists } from '@/lib/evotalks'
+import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
 interface LeadInput {
   nome: string
@@ -11,6 +12,18 @@ interface LeadInput {
 const HSM_TEMPLATE_ID = 9
 
 export async function POST(req: NextRequest) {
+  // Bloqueio em fim de semana (defesa em profundidade — o send-campaign também bloqueia).
+  if (!isDiaUtil()) {
+    console.log(`[send-initial] bloqueado: ${rotuloHorario()} (fim de semana)`)
+    return NextResponse.json(
+      {
+        error: 'disparo_bloqueado_fim_de_semana',
+        info: `Disparos só acontecem de segunda a sexta. Hoje é ${rotuloHorario()}.`,
+      },
+      { status: 400 }
+    )
+  }
+
   const body = await req.json()
   const leads: LeadInput[] = body.leads ?? []
 

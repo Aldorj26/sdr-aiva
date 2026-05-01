@@ -32,6 +32,7 @@ export const config = {
   matcher: [
     '/',
     '/campanha',
+    '/campanhas',
     '/api/leads/:path*',
   ],
 }

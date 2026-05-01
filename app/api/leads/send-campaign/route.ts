@@ -1,45 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
 /**
  * Rota protegida pelo painel (middleware valida cookie dash_auth).
- * Recebe uma lista de telefones crus, normaliza, e delega pro
- * /api/sdr/send-initial usando o WEBHOOK_SECRET interno.
+ * Aceita 2 formatos no body:
+ *   1) Legacy:   { telefones: "string com telefones", nome, cidade, produto }
+ *   2) Novo:     { leads: [{ nome, telefone, cidade }], nome, cidade, produto }
+ * Em ambos: normaliza, deduplica, e delega pro /api/sdr/send-initial.
  */
 export async function POST(req: NextRequest) {
-  let body: { telefones?: unknown; nome?: unknown; cidade?: unknown; produto?: unknown }
+  // Bloqueia disparo de campanha em fim de semana (sáb/dom BRT).
+  // Webhook de resposta continua rodando normal — lojista fala a qualquer hora.
+  if (!isDiaUtil()) {
+    console.log(`[send-campaign] bloqueado: ${rotuloHorario()} (fim de semana)`)
+    return NextResponse.json(
+      {
+        error: 'disparo_bloqueado_fim_de_semana',
+        info: `Disparos de campanha só acontecem de segunda a sexta. Hoje é ${rotuloHorario()}.`,
+      },
+      { status: 400 }
+    )
+  }
+
+  let body: {
+    telefones?: unknown
+    leads?: unknown
+    nome?: unknown
+    cidade?: unknown
+    produto?: unknown
+  }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Payload invalido' }, { status: 400 })
   }
 
-  const telefonesRaw = typeof body.telefones === 'string' ? body.telefones : ''
   const nomeDefault = typeof body.nome === 'string' && body.nome.trim() ? body.nome.trim() : 'Loja'
   const cidadeDefault = typeof body.cidade === 'string' && body.cidade.trim() ? body.cidade.trim() : undefined
   const produto = typeof body.produto === 'string' ? body.produto.toUpperCase() : 'AIVA'
 
-  // Normaliza: extrai apenas dígitos, adiciona 55 se faltar, dedup
-  const telefones = new Set<string>()
-  for (const raw of telefonesRaw.split(/[\s,;]+/)) {
+  // Normaliza um número cru: extrai dígitos, adiciona 55 se faltar, valida tamanho.
+  // Retorna null se inválido.
+  function normalizaTelefone(raw: unknown): string | null {
+    if (typeof raw !== 'string') return null
     const digitos = raw.replace(/\D/g, '')
-    if (!digitos) continue
+    if (!digitos) return null
     const comDdi = digitos.startsWith('55') ? digitos : `55${digitos}`
-    // valida tamanho razoavel (11+2=13 ou 10+2=12)
-    if (comDdi.length < 12 || comDdi.length > 13) continue
-    telefones.add(comDdi)
+    if (comDdi.length < 12 || comDdi.length > 13) return null
+    return comDdi
   }
 
-  if (telefones.size === 0) {
+  type LeadPayload = { nome: string; telefone: string; cidade?: string }
+  const leadsMap = new Map<string, LeadPayload>() // dedup por telefone
+
+  // Formato 1: array estruturado de leads (novo)
+  if (Array.isArray(body.leads)) {
+    for (const item of body.leads as Array<Record<string, unknown>>) {
+      if (!item || typeof item !== 'object') continue
+      const telefone = normalizaTelefone(item.telefone)
+      if (!telefone || leadsMap.has(telefone)) continue
+
+      const nomeRaw = typeof item.nome === 'string' && item.nome.trim() ? item.nome.trim() : nomeDefault
+      const cidadeRaw =
+        typeof item.cidade === 'string' && item.cidade.trim()
+          ? item.cidade.trim()
+          : cidadeDefault
+
+      leadsMap.set(telefone, { nome: nomeRaw, telefone, cidade: cidadeRaw })
+    }
+  }
+
+  // Formato 2: string solta de telefones (legacy)
+  if (typeof body.telefones === 'string' && body.telefones.trim()) {
+    for (const raw of body.telefones.split(/[\s,;]+/)) {
+      const telefone = normalizaTelefone(raw)
+      if (!telefone || leadsMap.has(telefone)) continue
+      leadsMap.set(telefone, { nome: nomeDefault, telefone, cidade: cidadeDefault })
+    }
+  }
+
+  if (leadsMap.size === 0) {
     return NextResponse.json({ error: 'Nenhum telefone valido encontrado' }, { status: 400 })
   }
 
-  const leads = Array.from(telefones).map((telefone) => ({
-    nome: nomeDefault,
-    telefone,
-    cidade: cidadeDefault,
-  }))
+  const leads = Array.from(leadsMap.values())
 
-  console.log(`[send-campaign] disparo requisitado: ${leads.length} leads, produto=${produto}`)
+  const comNome = leads.filter((l) => l.nome && l.nome !== nomeDefault).length
+  const comCidade = leads.filter((l) => l.cidade && l.cidade !== cidadeDefault).length
+  console.log(
+    `[send-campaign] disparo requisitado: ${leads.length} leads, ` +
+      `${comNome} com nome custom, ${comCidade} com cidade custom, produto=${produto}`
+  )
 
   // Chama o endpoint de disparo interno usando o secret
   const origin = new URL(req.url).origin
