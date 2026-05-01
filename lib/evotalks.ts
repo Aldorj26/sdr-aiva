@@ -346,12 +346,40 @@ export async function sendToGoogleSheets(data: {
 
 /**
  * Envia alerta via WhatsApp para um número (Nei ou Aldo).
+ *
+ * Retorna { ok: boolean; error?: string } pra quem quiser checar.
+ * Em falha (janela 24h fechada, número inválido, Evo Talks fora do ar):
+ *  - Loga estruturado com prefixo [ALERT_FAILED] (greppable em Vercel logs)
+ *  - Persiste em webhook_debug pra auditoria via Supabase
+ *  - Callers existentes que ignoram o retorno continuam funcionando igual
+ *    (fire-and-forget), mas agora a falha fica visivel.
  */
-export async function alertHuman(number: string, message: string): Promise<void> {
+export async function alertHuman(
+  number: string,
+  message: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await sendText(number, message)
+    return { ok: true }
   } catch (err) {
-    console.error(`Falha ao alertar ${number}:`, err)
+    const errMsg = err instanceof Error ? err.message : String(err)
+    const errStack = err instanceof Error ? err.stack : undefined
+    console.error(`[ALERT_FAILED] number=${number} error=${errMsg}`, errStack)
+    // Persiste em webhook_debug (tabela ja existe — usada por opportunity-stage)
+    // pra historico auditavel das falhas. Se a tabela nao existir ou der erro
+    // de permissao, ignoramos silenciosamente — o log do console ja capturou.
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase')
+      await supabaseAdmin.from('webhook_debug').insert({
+        endpoint: '/lib/alertHuman',
+        method: 'POST',
+        body: { number, message: message.substring(0, 500), error: errMsg },
+        status_code: 500,
+      })
+    } catch {
+      // ignora — o console.error acima ja registrou
+    }
+    return { ok: false, error: errMsg }
   }
 }
 
