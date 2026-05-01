@@ -63,14 +63,21 @@ export const supabaseAdmin = createClient(
 // ─── Helpers de leads ─────────────────────────────────────────────────────────
 
 export async function getLeadByTelefone(telefone: string): Promise<Lead | null> {
+  // .maybeSingle() retorna null quando não encontra (sem lançar erro do Supabase
+  // como o .single() fazia). Erros reais (rede, permissão) ficam visíveis no log
+  // ao invés de serem confundidos com "lead inexistente" — o que antes podia
+  // criar duplicatas via fluxo TRIAGEM em caso de falha de conexão.
   const { data, error } = await supabaseAdmin
     .from('sdr_leads')
     .select('*')
     .eq('telefone', telefone)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
-  return data as Lead
+  if (error) {
+    console.error(`[getLeadByTelefone] erro ao buscar ${telefone}:`, error)
+    return null
+  }
+  return (data as Lead) ?? null
 }
 
 export async function getLeadByChatId(chatId: string): Promise<Lead | null> {
@@ -78,10 +85,13 @@ export async function getLeadByChatId(chatId: string): Promise<Lead | null> {
     .from('sdr_leads')
     .select('*')
     .eq('evotalks_chat_id', chatId)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
-  return data as Lead
+  if (error) {
+    console.error(`[getLeadByChatId] erro ao buscar chatId=${chatId}:`, error)
+    return null
+  }
+  return (data as Lead) ?? null
 }
 
 export async function updateLeadStatus(

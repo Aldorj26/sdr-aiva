@@ -415,6 +415,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 9c. Defesa em profundidade — bloqueia transição AGUARDANDO_APROVACAO indevida.
+  // AGUARDANDO_APROVACAO só pode vir de estados de Fase 1 (INTERESSADO, DISPARO_REALIZADO,
+  // SEM_RESPOSTA) ou de uma re-mensagem espontânea quando já está AGUARDANDO_APROVACAO/AGUARDANDO.
+  // Se a IA tentar promover lead de Fase 3 (COLETANDO_COMPLEMENTO/CADASTRO_COMPLETO) ou de
+  // estado terminal (NAO_QUALIFICADO/OPT_OUT/etc) pra AGUARDANDO_APROVACAO, bloqueia.
+  const ESTADOS_VALIDOS_AGUARDANDO_APROVACAO = [
+    'INTERESSADO', 'DISPARO_REALIZADO', 'SEM_RESPOSTA', 'AGUARDANDO_APROVACAO', 'AGUARDANDO',
+  ]
+  if (
+    resposta.novo_status === 'AGUARDANDO_APROVACAO' &&
+    !ESTADOS_VALIDOS_AGUARDANDO_APROVACAO.includes(lead.status)
+  ) {
+    console.warn(
+      `[guard] Lead ${lead.telefone}: VictorIA tentou AGUARDANDO_APROVACAO com status atual = ${lead.status}. Bloqueado.`,
+    )
+    const STATUS_FALLBACK = ['INTERESSADO', 'AGUARDANDO', 'COLETANDO_COMPLEMENTO']
+    resposta.novo_status = (STATUS_FALLBACK.includes(lead.status) ? lead.status : 'INTERESSADO') as typeof resposta.novo_status
+    resposta.mensagem = 'Tô seguindo aqui com você, qualquer dúvida me chama 👍'
+    try {
+      const msg = `⚠️ *${lead.nome}* (${lead.telefone}) — VictorIA tentou voltar pra AGUARDANDO_APROVACAO de um status inválido (atual: ${lead.status}). Mensagem reescrita e status mantido.`
+      if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+      if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+    } catch (err) {
+      console.error('[guard] falha ao alertar humanos:', err)
+    }
+  }
+
   // 10. Envia resposta ao lead (se tiver mensagem pra enviar)
   // VictorIA pode retornar mensagem vazia quando detecta atendimento automático
   // — nesse caso só marcamos o lead e não desperdiçamos envio.
@@ -568,6 +595,43 @@ export async function POST(req: NextRequest) {
       // Só dispara na TRANSIÇÃO (lead estava em outro status antes). Se já estava
       // AGUARDANDO_APROVACAO e só mandou uma msg espontânea, não re-executa.
       if (resposta.novo_status === 'AGUARDANDO_APROVACAO' && lead.status !== 'AGUARDANDO_APROVACAO') {
+        // Validação dos 7 campos obrigatórios da Fase 1 ANTES de mover stage e
+        // mandar Google Sheets. Defesa contra IA marcando completude prematura
+        // (espelho da validação dos 12 campos pro CADASTRO_COMPLETO).
+        const oppPreCheck = await getOpportunity(oppId)
+        const formsPreCheck = (oppPreCheck.formsdata ?? {}) as Record<string, string | null>
+        const camposFase1 = {
+          nome_socio: 'da6ddf70',
+          telefone: 'db8569f0',
+          nome_varejo: 'dcacfa00',
+          cnpj_matriz: 'dd2ab580',
+          regiao_varejo: 'dede58f0',
+          numero_lojas: 'df6f9c70',
+          possui_outra_financeira: 'e07d62f0',
+        }
+        const faltantesFase1 = Object.entries(camposFase1)
+          .filter(([, fieldId]) => !formsPreCheck[fieldId]?.toString().trim())
+          .map(([label]) => label)
+
+        if (faltantesFase1.length > 0) {
+          console.warn(`Pré Aprovação bloqueada — opp #${oppId} incompleto: ${faltantesFase1.join(', ')}`)
+          await addOpportunityNote(oppId, `⚠️ VictorIA marcou AGUARDANDO_APROVACAO mas faltam: ${faltantesFase1.join(', ')}. Stage NÃO movido, Google Sheets NÃO enviado. Status revertido pra INTERESSADO.`)
+
+          await supabaseAdmin
+            .from('sdr_leads')
+            .update({ status: 'INTERESSADO' })
+            .eq('id', lead.id)
+
+          const msg =
+            `⚠️ *${lead.nome}* (${lead.telefone}) — VictorIA marcou Fase 1 completa mas faltam dados: ${faltantesFase1.join(', ')}.\n` +
+            `Pré Aprovação bloqueada. Status revertido pra INTERESSADO — VictorIA vai continuar coletando.`
+          if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+          if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+
+          // Pula o resto do bloco de transição (não move stage, não envia Sheets)
+          return NextResponse.json({ ok: true, bloqueado: 'fase1_incompleta', faltantes: faltantesFase1 })
+        }
+
         await changeOpportunityStage(oppId, STAGES.PRE_APROVACAO)
         await addOpportunityNote(oppId, `Qualificação inicial (7 dados) coletada pela VictorIA via WhatsApp. Aguardando análise AIVA.`)
         console.log(`CRM: Oportunidade #${oppId} → Pré Aprovação`)
