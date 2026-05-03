@@ -10,10 +10,14 @@ export const dynamic = 'force-dynamic'
  * Pinga a fila Evo Talks (queueId=10) pra detectar antes que o SDR
  * passe a não entregar mensagem porque a fila caiu.
  *
- * - 200 quando connected + authenticated + enabled === true
- * - 503 caso contrário (com detalhes pra debug)
+ * Critério de status:
+ * - 200 quando fila Evo Talks OK (connected + authenticated + enabled).
+ *   Drift de tag NÃO derruba o status — service continua operando, é
+ *   só warning pra humano olhar (campo `tags.ok` = false fica visível
+ *   no body mas não bate o status).
+ * - 503 quando fila Evo Talks fora.
  *
- * Sem auth — endpoint público pra Uptime/Vercel monitor poder chamar.
+ * Sem auth — endpoint público pra monitor externo (Better Stack, etc).
  */
 export async function GET() {
   const ts = new Date().toISOString()
@@ -27,8 +31,9 @@ export async function GET() {
       })),
     ])
 
+    // Status overall: SÓ depende da fila. Drift de tag é warning, nao down.
     const queueOk = queue.connected && queue.authenticated && queue.enabled
-    const ok = queueOk && tagsCheck.ok
+    const ok = queueOk
 
     return NextResponse.json(
       {
