@@ -68,6 +68,39 @@ function stripInternalMarkers(msgs: Mensagem[]): Mensagem[] {
   })
 }
 
+/**
+ * Extrai dados acumulados do campo observacoes do lead.
+ * Formato armazenado: [DADOS_COLETADOS:chave=valor|chave2=valor2]
+ * Retorna objeto vazio se não houver dados.
+ */
+function parseDadosAcumulados(obs: string | null): Record<string, string> {
+  if (!obs) return {}
+  const match = obs.match(/\[DADOS_COLETADOS:([^\]]+)\]/)
+  if (!match) return {}
+  const result: Record<string, string> = {}
+  for (const pair of match[1].split('|')) {
+    const eqIdx = pair.indexOf('=')
+    if (eqIdx > 0) {
+      const key = pair.slice(0, eqIdx).trim()
+      const val = pair.slice(eqIdx + 1).trim()
+      if (key && val && val !== 'null') result[key] = val
+    }
+  }
+  return result
+}
+
+/**
+ * Serializa dados coletados para a flag [DADOS_COLETADOS:...] em observacoes.
+ * Ignora valores null/undefined/vazios.
+ */
+function serializeDadosAcumulados(dados: Record<string, string>): string | null {
+  const pairs = Object.entries(dados)
+    .filter(([, v]) => v && v !== 'null' && v !== 'undefined')
+    .map(([k, v]) => `${k}=${v}`)
+  if (pairs.length === 0) return null
+  return `[DADOS_COLETADOS:${pairs.join('|')}]`
+}
+
 export async function POST(req: NextRequest) {
   // 1. Valida autenticação
   const secret = req.headers.get('x-internal-secret') ?? ''
@@ -419,7 +452,9 @@ export async function POST(req: NextRequest) {
     // 8. Busca histórico (inclui as msgs que chegaram durante o debounce),
     // remove marcadores internos ([Template X enviado]) que confundem a VictorIA,
     // e deduplica rajadas de 'in' consecutivas idênticas.
-    const historicoRaw = await getMensagens(lead.id, 20)
+    // Janela ampliada para 30 msgs (era 20) — reduz perda de contexto em
+    // conversas longas de qualificação sem custo significativo de tokens.
+    const historicoRaw = await getMensagens(lead.id, 30)
     const historico = dedupConsecutiveIn(stripInternalMarkers(historicoRaw))
 
     // Usa a última mensagem 'in' como conteúdo efetivo (pode ser diferente da que
@@ -427,13 +462,18 @@ export async function POST(req: NextRequest) {
     const ultimaInNoHistorico = [...historico].reverse().find((m) => m.direcao === 'in')
     const conteudoEfetivo = ultimaInNoHistorico?.conteudo ?? conteudo
 
+    // Extrai dados já coletados de turns anteriores (podem não estar mais no
+    // histórico se a conversa passou de 30 msgs). Injetados no prompt pra
+    // evitar que a VictorIA re-pergunte o que o lead já respondeu.
+    const dadosAcumulados = parseDadosAcumulados(lead.observacoes ?? null)
+
     // 9. Processa com Claude (VictorIA)
     // Passa o status atual pra Claude saber em qual fase do fluxo está
     // (Fase 1 = INTERESSADO, Fase 2 = AGUARDANDO_APROVACAO, Fase 3 = COLETANDO_COMPLEMENTO).
     // O produto determina o prompt: AIVA (default) ou TRIAGEM (lead inbound puro).
     let resposta
     try {
-      resposta = await processarMensagem(conteudoEfetivo, historico, lead.nome, lead.status, lead.produto)
+      resposta = await processarMensagem(conteudoEfetivo, historico, lead.nome, lead.status, lead.produto, dadosAcumulados)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined
@@ -546,12 +586,14 @@ export async function POST(req: NextRequest) {
     updates.evotalks_client_id = clientId
   }
 
-  // Monta observações preservando flags importantes ([PAUSA_ATE:], [AUTO_DETECTED:])
-  // e sobrescrevendo o texto "solto" com o motivo mais recente.
-  if (resposta.motivo_humano || autoDetected) {
+  // Monta observações preservando flags importantes ([PAUSA_ATE:], [AUTO_DETECTED:],
+  // [DADOS_COLETADOS:]) e sobrescrevendo o texto "solto" com o motivo mais recente.
+  // Sempre atualiza observacoes para manter [DADOS_COLETADOS:...] acumulado.
+  {
     const pausaMatch = lead.observacoes?.match(/\[PAUSA_ATE:[^\]]+\]/)
     const jaTemAutoFlag = lead.observacoes?.includes('[AUTO_DETECTED')
     const partes: string[] = []
+
     if (autoDetected && !jaTemAutoFlag) {
       partes.push(`[AUTO_DETECTED:${new Date().toISOString()}]`)
     } else if (jaTemAutoFlag) {
@@ -560,6 +602,23 @@ export async function POST(req: NextRequest) {
     }
     if (pausaMatch) partes.push(pausaMatch[0])
     if (resposta.motivo_humano) partes.push(resposta.motivo_humano)
+
+    // Merge dados novos com dados já acumulados e serializa como flag
+    if (resposta.dados_coletados) {
+      const novosDados = Object.fromEntries(
+        Object.entries(resposta.dados_coletados as Record<string, string | null>)
+          .filter(([, v]) => v && v !== 'null')
+          .map(([k, v]) => [k, v as string])
+      )
+      const dadosMerged = { ...dadosAcumulados, ...novosDados }
+      const dadosFlag = serializeDadosAcumulados(dadosMerged)
+      if (dadosFlag) partes.push(dadosFlag)
+    } else {
+      // Nenhum dado novo, mas preserva os que já estavam acumulados
+      const dadosFlag = serializeDadosAcumulados(dadosAcumulados)
+      if (dadosFlag) partes.push(dadosFlag)
+    }
+
     updates.observacoes = partes.join(' ').trim() || null
   }
 

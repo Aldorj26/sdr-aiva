@@ -97,17 +97,37 @@ export async function transcreverAudio(
 /**
  * Instrução de fase injetada no último user message pra forçar o Claude a
  * seguir o status atual, mesmo quando o histórico sugere outra fase.
+ *
+ * Se dadosAcumulados tiver valores, injeta bloco DADOS_JÁ_COLETADOS antes
+ * da instrução de fase — impede a VictorIA de re-perguntar dados já salvos
+ * em observacoes mas que não aparecem mais no histórico por limitação de janela.
  */
-function buildFaseInstrucao(statusAtual: string): string | null {
+function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string, string>): string | null {
+  // Monta o bloco de dados já coletados (se houver) para prefixar qualquer instrução de fase
+  let dadosBlock = ''
+  if (dadosAcumulados && Object.keys(dadosAcumulados).length > 0) {
+    const linhas = Object.entries(dadosAcumulados)
+      .filter(([, v]) => v && v !== 'null' && v !== 'undefined')
+      .map(([k, v]) => `• ${k}: ${v}`)
+    if (linhas.length > 0) {
+      dadosBlock =
+        `[DADOS JÁ COLETADOS — NÃO PERGUNTE DE NOVO]\n` +
+        linhas.join('\n') +
+        `\nNUNCA repita uma pergunta cujo dado já está listado acima.\n\n`
+    }
+  }
+
   if (statusAtual === 'COLETANDO_COMPLEMENTO') {
-    return `[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = COLETANDO_COMPLEMENTO. Você está na FASE 3.\nA Fase 1 e Fase 2 JÁ PASSARAM. Ignore a mensagem "Perfeito, já tenho tudo pra pré-aprovação" no histórico — ela é de uma fase anterior.\nAgora você PRECISA coletar os 5 dados restantes, um de cada vez: email, faturamento, valor boleto, localização detalhada, CNPJs adicionais.\nComece perguntando o EMAIL do sócio.\nRetorne novo_status = "COLETANDO_COMPLEMENTO" (ou "CADASTRO_COMPLETO" se os 5 dados ficarem completos nessa mensagem).\nNUNCA retorne "AGUARDANDO_APROVACAO" nem "INTERESSADO".\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = COLETANDO_COMPLEMENTO. Você está na FASE 3.\nA Fase 1 e Fase 2 JÁ PASSARAM. Ignore a mensagem "Perfeito, já tenho tudo pra pré-aprovação" no histórico — ela é de uma fase anterior.\nAgora você PRECISA coletar os 5 dados restantes, um de cada vez: email, faturamento, valor boleto, localização detalhada, CNPJs adicionais.\nComece perguntando o EMAIL do sócio.\nRetorne novo_status = "COLETANDO_COMPLEMENTO" (ou "CADASTRO_COMPLETO" se os 5 dados ficarem completos nessa mensagem).\nNUNCA retorne "AGUARDANDO_APROVACAO" nem "INTERESSADO".\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'AGUARDANDO_APROVACAO') {
-    return `[INSTRUÇÃO DO SISTEMA]\nStatus do lead = AGUARDANDO_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". NÃO peça dados novos.\nRetorne novo_status = "AGUARDANDO_APROVACAO" e acionar_humano = false.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = AGUARDANDO_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". NÃO peça dados novos.\nRetorne novo_status = "AGUARDANDO_APROVACAO" e acionar_humano = false.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'INTERESSADO' || statusAtual === 'DISPARO_REALIZADO' || statusAtual === 'SEM_RESPOSTA') {
-    return `[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}. Você está na FASE 1.\nNUNCA retorne "CADASTRO_COMPLETO" — esse status é da Fase 3 e o lead ainda não foi aprovado pra avançar.\nNUNCA retorne "COLETANDO_COMPLEMENTO" — esse status é setado pelo sistema quando o operador move o card no CRM, não por você.\nVocê só pode retornar: "INTERESSADO" (ainda coletando os 7 dados da Fase 1) ou "AGUARDANDO_APROVACAO" (quando os 7 dados estiverem completos: nome_socio, telefone_socio, nome_varejo, cnpj_matriz, regiao_varejo, numero_lojas, possui_outra_financeira).\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}. Você está na FASE 1.\nNUNCA retorne "CADASTRO_COMPLETO" — esse status é da Fase 3 e o lead ainda não foi aprovado pra avançar.\nNUNCA retorne "COLETANDO_COMPLEMENTO" — esse status é setado pelo sistema quando o operador move o card no CRM, não por você.\nVocê só pode retornar: "INTERESSADO" (ainda coletando os 7 dados da Fase 1) ou "AGUARDANDO_APROVACAO" (quando os 7 dados estiverem completos: nome_socio, telefone_socio, nome_varejo, cnpj_matriz, regiao_varejo, numero_lojas, possui_outra_financeira).\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
+  // Mesmo sem instrução de fase específica, injeta dados acumulados se houver
+  if (dadosBlock) return dadosBlock.trimEnd()
   return null
 }
 
@@ -311,13 +331,19 @@ Responda só com o primeiro nome OU "DESCONHECIDO". Sem explicação, sem aspas,
 /**
  * Processa uma mensagem recebida do lead com histórico de conversa.
  * Retorna a resposta estruturada da VictorIA.
+ *
+ * @param dadosAcumulados - Dados já coletados em turns anteriores (lidos de
+ *   lead.observacoes via parseDadosAcumulados no webhook). Injetados no
+ *   user message como bloco [DADOS JÁ COLETADOS] pra evitar re-perguntas
+ *   quando o histórico foi truncado pela janela de 30 msgs.
  */
 export async function processarMensagem(
   mensagemRecebida: string,
   historico: Mensagem[],
   nomeDoLead: string,
   statusAtual?: string,
-  produto?: string
+  produto?: string,
+  dadosAcumulados?: Record<string, string>
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -370,7 +396,7 @@ export async function processarMensagem(
   // histórico é longo. Isso impede de voltar pra fase anterior.
   // (Vem DEPOIS do envelope <mensagem_lead> — fica fora dele, como instrução real.)
   const status = statusAtual ?? 'INTERESSADO'
-  const faseInstrucao = buildFaseInstrucao(status)
+  const faseInstrucao = buildFaseInstrucao(status, dadosAcumulados)
   if (faseInstrucao) {
     const ultima = messages[messages.length - 1]
     if (ultima.role === 'user' && typeof ultima.content === 'string') {
