@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(curl *)",
+      "Bash(python3 *)",
+      "Bash(jq *)",
+      "Bash(node *)",
+      "Bash(date *)",
+      "Bash(command *)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(if *)",
+      "Bash(printf *)",
+      "WebFetch(domain:sdr-agente.vercel.app)",
+      "WebFetch(domain:sdr-aiva.vercel.app)"
+    ]
+  },
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "sdr-agente.vercel.app",
+        "sdr-aiva.vercel.app"
+      ]
+    }
+  }
+}

@@ -8,5 +8,6 @@ out/
 .vercel
 CLAUDE.md
 
-.claude/
+.claude/*
+!.claude/settings.json
 .tmp/
