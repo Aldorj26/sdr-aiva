@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { alertHuman, getOpportunity, getOpenChatId, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
+import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg } from '@/lib/text'
 
@@ -36,38 +36,35 @@ function normalizePhoneBR(raw: string | null | undefined): string {
 async function sendTextsAfterTemplate(
   telefone: string,
   msgs: string[],
-  preferredChatId?: number
+  _preferredChatId?: number
 ): Promise<void> {
   const phone = normalizePhoneBR(telefone)
 
-  let chatId: number | null = preferredChatId ?? null
-  if (chatId) {
-    console.log(`sendTextsAfterTemplate: usando chatId ${chatId} retornado pelo sendTemplate (${phone})`)
-  } else {
-    // Fallback: aguarda o Evo Talks registrar o chat aberto pelo template
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await new Promise(r => setTimeout(r, 1000))
-      chatId = await getOpenChatId(phone)
-      if (chatId) {
-        console.log(`sendTextsAfterTemplate: chatId ${chatId} encontrado para ${phone} (tentativa ${attempt + 1})`)
-        break
-      }
-    }
-  }
+  // Aguarda 1.5s pro Evo Talks processar o template antes de tentar enviar textos
+  await new Promise(r => setTimeout(r, 1500))
 
-  if (!chatId) {
-    console.warn(`sendTextsAfterTemplate: nenhum chat encontrado para ${phone} — usando sendText como fallback`)
-  }
+  // Estratégia: usa openChat (que reabre chats fechados E envia mensagem)
+  // pra primeira mensagem, captura o chatId retornado e usa sendMessageToChat
+  // pras seguintes (mais rápido, sem reabrir o chat repetidas vezes).
+  let chatId: number | null = null
 
-  for (const msg of msgs) {
+  for (let i = 0; i < msgs.length; i++) {
+    const msg = msgs[i]
     try {
-      if (chatId) {
-        await sendMessageToChat(chatId, msg)
+      if (chatId === null) {
+        // Primeira iteração: openChat reabre/cria chat e envia o texto
+        const result = await openChat(phone, msg)
+        chatId = Number(result.chatId) || null
+        console.log(`sendTextsAfterTemplate: openChat para ${phone} → chatId=${chatId} (msg 1/${msgs.length})`)
       } else {
-        await sendText(phone, msg)
+        // Próximas mensagens: usa o chatId já obtido
+        await sendMessageToChat(chatId, msg)
+        console.log(`sendTextsAfterTemplate: msg ${i + 1}/${msgs.length} enviada via chatId=${chatId}`)
       }
+      // Pequena pausa entre mensagens pra ordem na conversa
+      if (i < msgs.length - 1) await new Promise(r => setTimeout(r, 500))
     } catch (err) {
-      console.error(`sendTextsAfterTemplate: falha ao enviar para ${phone}:`, err)
+      console.error(`sendTextsAfterTemplate: falha ao enviar msg ${i + 1}/${msgs.length} para ${phone}:`, err)
     }
   }
 }
