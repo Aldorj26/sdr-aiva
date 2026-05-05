@@ -302,12 +302,13 @@ export async function POST(req: NextRequest) {
       //   Assim que finalizar, retorne aqui.
       const tplResult = await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
-      // Avisos complementares enviados logo após o template HSM.
-      // Prioridade do chatId: 1) retornado pelo sendTemplate, 2) salvo no lead.
-      const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
+      // Aviso complementar sobre CNPJ matriz/filial (não está no template HSM).
+      // Mesma estratégia que funcionou no caso do Renan Calado:
+      // template + matriz aviso. Entrega quando a janela 24h está aberta
+      // (lead respondeu nas últimas 24h).
       const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
       const chatIdParaTextos = tplResult.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
-      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg], chatIdParaTextos)
+      await sendTextsAfterTemplate(telefone, [avisoMatrizMsg], chatIdParaTextos)
 
       if (lead?.id) {
         await supabaseAdmin.from('sdr_mensagens').insert([
@@ -316,11 +317,6 @@ export async function POST(req: NextRequest) {
             direcao: 'out',
             conteudo: `[Template (CAMPANHA) Link de Cadastro enviado — ${nomeContato ?? 'Lojista'}]`,
             template_hsm: 'aiva_link_cadastro',
-          },
-          {
-            lead_id: lead.id,
-            direcao: 'out',
-            conteudo: avisoCadastroMsg,
           },
           {
             lead_id: lead.id,
