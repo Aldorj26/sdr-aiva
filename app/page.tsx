@@ -529,9 +529,9 @@ export default async function Page({
         <thead>
           <tr>
             <th>Nome</th>
+            <th>Status</th>
             <th>Telefone</th>
             <th>Cidade</th>
-            <th>Status</th>
             <th>Último contato</th>
           </tr>
         </thead>
@@ -542,9 +542,9 @@ export default async function Page({
                 {l.importante && <span style={{ color: '#f59e0b', marginRight: 4 }} title="Importante (3+ lojas)">★</span>}
                 {l.nome}
               </td>
+              <td><StatusPill status={l.status} /></td>
               <td style={{ color: 'var(--text-dim)' }}>{l.telefone}</td>
               <td style={{ color: 'var(--text-dim)' }}>{l.cidade ?? '—'}</td>
-              <td><StatusPill status={l.status} /></td>
               <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                 {l.data_ultimo_contato
                   ? new Date(l.data_ultimo_contato).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
