@@ -36,32 +36,20 @@ function normalizePhoneBR(raw: string | null | undefined): string {
 async function sendTextsAfterTemplate(
   telefone: string,
   msgs: string[],
-  _preferredChatId?: number
+  knownChatId?: number | string | null
 ): Promise<void> {
   const phone = normalizePhoneBR(telefone)
 
   // Aguarda 1.5s pro Evo Talks processar o template antes de tentar enviar textos
   await new Promise(r => setTimeout(r, 1500))
 
-  // Estratégia: usa openChat (que reabre chats fechados E envia mensagem)
-  // pra primeira mensagem, captura o chatId retornado e usa sendMessageToChat
-  // pras seguintes (mais rápido, sem reabrir o chat repetidas vezes).
-  let chatId: number | null = null
-
+  // Usa sendText com knownChatId — mesmo padrão do /api/sdr/webhook que funciona
+  // (sendText prioriza sendMessageToChat com chatId conhecido, depois fallback)
   for (let i = 0; i < msgs.length; i++) {
     const msg = msgs[i]
     try {
-      if (chatId === null) {
-        // Primeira iteração: openChat reabre/cria chat e envia o texto
-        const result = await openChat(phone, msg)
-        chatId = Number(result.chatId) || null
-        console.log(`sendTextsAfterTemplate: openChat para ${phone} → chatId=${chatId} (msg 1/${msgs.length})`)
-      } else {
-        // Próximas mensagens: usa o chatId já obtido
-        await sendMessageToChat(chatId, msg)
-        console.log(`sendTextsAfterTemplate: msg ${i + 1}/${msgs.length} enviada via chatId=${chatId}`)
-      }
-      // Pequena pausa entre mensagens pra ordem na conversa
+      await sendText(phone, msg, knownChatId ?? null)
+      console.log(`sendTextsAfterTemplate: msg ${i + 1}/${msgs.length} enviada para ${phone} (chatId=${knownChatId ?? 'auto'})`)
       if (i < msgs.length - 1) await new Promise(r => setTimeout(r, 500))
     } catch (err) {
       console.error(`sendTextsAfterTemplate: falha ao enviar msg ${i + 1}/${msgs.length} para ${phone}:`, err)
@@ -300,6 +288,13 @@ export async function POST(req: NextRequest) {
         })
       }
 
+      // Busca o lead ANTES do template pra ter o chatId disponível pros textos seguintes
+      const { data: lead } = await supabaseAdmin
+        .from('sdr_leads')
+        .select('id, evotalks_chat_id')
+        .eq('telefone', telefone)
+        .maybeSingle()
+
       // Dispara HSM de aprovação. Template 15 "(CAMPANHA) Link de Cadastro" tem
       // 1 variável {{1}} que carrega todo o conteúdo do meio (incluindo o link).
       // Corpo do template:
@@ -308,18 +303,11 @@ export async function POST(req: NextRequest) {
       const tplResult = await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
       // Avisos complementares enviados logo após o template HSM.
-      // Usa o chatId retornado pelo sendTemplate (chat real onde o template foi enviado),
-      // evitando que mensagens caiam num chat antigo encontrado pelo getOpenChatId.
+      // Prioridade do chatId: 1) retornado pelo sendTemplate, 2) salvo no lead.
       const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
       const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
-      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg], tplResult.chatId)
-
-      // Registra no histórico do lead e atualiza status para ANALISE_AIVA
-      const { data: lead } = await supabaseAdmin
-        .from('sdr_leads')
-        .select('id')
-        .eq('telefone', telefone)
-        .maybeSingle()
+      const chatIdParaTextos = tplResult.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
+      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg], chatIdParaTextos)
 
       if (lead?.id) {
         await supabaseAdmin.from('sdr_mensagens').insert([
