@@ -21,7 +21,7 @@
       "schedule": "55 11 * * 1-5"
     },
     {
-      "path": "/api/sdr/followup-caf",
+      "path": "/api/sdr/followup-fase",
       "schedule": "0 16 * * *"
     }
   ]

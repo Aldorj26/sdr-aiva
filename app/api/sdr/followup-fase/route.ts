@@ -1,5 +1,5 @@
 /**
- * followup-caf/route.ts
+ * followup-fase/route.ts
  *
  * Cron diário que monitora leads em duas fases críticas sem resposta há 24h+:
  *
@@ -13,7 +13,7 @@
  * com miolo contextualizado gerado pelo Claude via gerarMioloRetomada().
  *
  * Anti-spam:
- *   - Só envia se [FOLLOWUP_CAF:ISO] em observacoes for >= 24h atrás (ou inexistente)
+ *   - Só envia se [FOLLOWUP_FASE:ISO] em observacoes for >= 24h atrás (ou inexistente)
  *   - Máximo MAX_FOLLOWUPS por lead — após isso alerta Nei e para de tentar
  *   - Respeita [PAUSA_ATE:ISO] em observacoes
  *
@@ -33,13 +33,13 @@ const MAX_FOLLOWUPS = 3
 
 function getFollowupCount(obs: string | null): number {
   if (!obs) return 0
-  const m = obs.match(/\[FOLLOWUP_CAF_COUNT:(\d+)\]/)
+  const m = obs.match(/\[FOLLOWUP_FASE_COUNT:(\d+)\]/)
   return m ? parseInt(m[1], 10) : 0
 }
 
 function getLastFollowupAt(obs: string | null): Date | null {
   if (!obs) return null
-  const m = obs.match(/\[FOLLOWUP_CAF:([^\]]+)\]/)
+  const m = obs.match(/\[FOLLOWUP_FASE:([^\]]+)\]/)
   if (!m) return null
   const d = new Date(m[1])
   return isNaN(d.getTime()) ? null : d
@@ -48,10 +48,10 @@ function getLastFollowupAt(obs: string | null): Date | null {
 function setFollowupFlags(obs: string | null, count: number): string {
   // Remove flags antigas antes de adicionar novas
   const base = (obs ?? '')
-    .replace(/\s*\[FOLLOWUP_CAF:[^\]]+\]\s*/g, '')
-    .replace(/\s*\[FOLLOWUP_CAF_COUNT:\d+\]\s*/g, '')
+    .replace(/\s*\[FOLLOWUP_FASE:[^\]]+\]\s*/g, '')
+    .replace(/\s*\[FOLLOWUP_FASE_COUNT:\d+\]\s*/g, '')
     .trim()
-  return `${base} [FOLLOWUP_CAF:${new Date().toISOString()}] [FOLLOWUP_CAF_COUNT:${count}]`.trim()
+  return `${base} [FOLLOWUP_FASE:${new Date().toISOString()}] [FOLLOWUP_FASE_COUNT:${count}]`.trim()
 }
 
 function hasPausa(obs: string | null): boolean {
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
   // Template HSM de retomada (template 21 — "Follow Up Aiva")
   const templateId = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
   if (!templateId) {
-    console.error('[followup-caf] AIVA_REATIVACAO_TEMPLATE_ID não configurado')
+    console.error('[followup-fase] AIVA_REATIVACAO_TEMPLATE_ID não configurado')
     return NextResponse.json(
       { error: 'AIVA_REATIVACAO_TEMPLATE_ID não configurado' },
       { status: 500 }
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     .limit(30)
 
   if (error) {
-    console.error('[followup-caf] erro ao buscar leads:', error)
+    console.error('[followup-fase] erro ao buscar leads:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
         try {
           if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
         } catch (alertErr) {
-          console.error(`[followup-caf] alerta Nei falhou para ${lead.telefone}:`, alertErr)
+          console.error(`[followup-fase] alerta Nei falhou para ${lead.telefone}:`, alertErr)
         }
         await supabaseAdmin
           .from('sdr_leads')
@@ -187,7 +187,7 @@ export async function GET(req: NextRequest) {
         miolo = await gerarMioloRetomada(mensagens, nomeReal)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[followup-caf] gerarMioloRetomada falhou id=${lead.id}: ${msg}`)
+        console.error(`[followup-fase] gerarMioloRetomada falhou id=${lead.id}: ${msg}`)
         miolo = ''
       }
       if (!miolo?.trim()) {
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
         {
           lead_id: lead.id,
           direcao: 'out',
-          conteudo: `[Template Follow Up Aiva (followup-caf automático — ${labelFase}) — ${nomeReal}]`,
+          conteudo: `[Template Follow Up Aiva (followup-fase automático — ${labelFase}) — ${nomeReal}]`,
           template_hsm: 'aiva_reativacao',
         },
         {
@@ -231,11 +231,11 @@ export async function GET(req: NextRequest) {
         acao: `enviado_${count + 1}_de_${MAX_FOLLOWUPS}`,
       })
       console.log(
-        `[followup-caf] enviado: ${lead.telefone} (${lead.status}) count=${count + 1}/${MAX_FOLLOWUPS}`
+        `[followup-fase] enviado: ${lead.telefone} (${lead.status}) count=${count + 1}/${MAX_FOLLOWUPS}`
       )
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[followup-caf] erro no lead ${lead.id}:`, msg)
+      console.error(`[followup-fase] erro no lead ${lead.id}:`, msg)
       ignorados++
       resultados.push({
         telefone: lead.telefone,
@@ -246,7 +246,7 @@ export async function GET(req: NextRequest) {
   }
 
   console.log(
-    `[followup-caf] concluído: ${enviados} enviados, ${ignorados} ignorados, ${escalados} escalados de ${(leads ?? []).length} total`
+    `[followup-fase] concluído: ${enviados} enviados, ${ignorados} ignorados, ${escalados} escalados de ${(leads ?? []).length} total`
   )
   return NextResponse.json({
     ok: true,

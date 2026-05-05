@@ -76,13 +76,19 @@ export async function POST(req: NextRequest) {
   ])
 
   type Discrepancia = {
-    tipo: 'opp_morta_lead_vivo' | 'lead_formulario_sem_opp' | 'opp_orfa'
+    tipo:
+      | 'opp_morta_lead_vivo'
+      | 'lead_formulario_sem_opp'
+      | 'opp_orfa'
+      | 'zona_morta_aguardando_aprovacao'
+      | 'zona_morta_cadastro_completo'
     leadId?: string
     nome?: string
     telefone?: string
     statusLead?: string
     oppId?: number
     oppStage?: number
+    horasParado?: number
   }
   const discrepancias: Discrepancia[] = []
 
@@ -136,23 +142,94 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Alerta Aldo se houver discrepância
+  // 3d. Zona morta — leads parados aguardando ação manual do time
+  //   AGUARDANDO_APROVACAO > 48h → Eduardo não aprovou/reprovou ainda
+  //   CADASTRO_COMPLETO    >  6h → Nei não moveu pra Em Análise CAF ainda
+  const limite48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const limite6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
+
+  const { data: leadsZonaMorta } = await supabaseAdmin
+    .from('sdr_leads')
+    .select('id, nome, telefone, status, data_ultimo_contato')
+    .or(
+      `and(status.eq.AGUARDANDO_APROVACAO,data_ultimo_contato.lt.${limite48h}),` +
+      `and(status.eq.CADASTRO_COMPLETO,data_ultimo_contato.lt.${limite6h})`
+    )
+    .order('data_ultimo_contato', { ascending: true })
+
+  for (const lead of leadsZonaMorta ?? []) {
+    const msParado = Date.now() - new Date(lead.data_ultimo_contato).getTime()
+    const horasParado = Math.floor(msParado / (1000 * 60 * 60))
+    discrepancias.push({
+      tipo: lead.status === 'AGUARDANDO_APROVACAO'
+        ? 'zona_morta_aguardando_aprovacao'
+        : 'zona_morta_cadastro_completo',
+      leadId: lead.id,
+      nome: lead.nome,
+      telefone: lead.telefone,
+      statusLead: lead.status,
+      horasParado,
+    })
+  }
+
+  // 4. Alerta Aldo + Nei se houver discrepância
   const aldoNumber = process.env.ALDO_WHATSAPP
+  const neiNumber = process.env.NEI_WHATSAPP
   let alertaEnviado = false
-  if (discrepancias.length > 0 && aldoNumber) {
+
+  if (discrepancias.length > 0) {
     const cnt = {
       opp_morta_lead_vivo: discrepancias.filter((d) => d.tipo === 'opp_morta_lead_vivo').length,
       lead_formulario_sem_opp: discrepancias.filter((d) => d.tipo === 'lead_formulario_sem_opp').length,
       opp_orfa: discrepancias.filter((d) => d.tipo === 'opp_orfa').length,
+      zona_morta_aguardando: discrepancias.filter((d) => d.tipo === 'zona_morta_aguardando_aprovacao').length,
+      zona_morta_cadastro: discrepancias.filter((d) => d.tipo === 'zona_morta_cadastro_completo').length,
     }
-    const msg =
-      `[Auditoria SDR AIVA] ${discrepancias.length} divergencias encontradas:\n` +
-      `- ${cnt.opp_morta_lead_vivo} leads ativos com opp morta no CRM\n` +
-      `- ${cnt.lead_formulario_sem_opp} leads em FORMULARIO_ENVIADO sem opp\n` +
-      `- ${cnt.opp_orfa} opps no CRM sem lead correspondente\n\n` +
-      `Verifique o relatório completo via /api/sdr/auditoria.`
-    const r = await alertHuman(aldoNumber, msg)
-    alertaEnviado = r.ok
+
+    // Mensagem geral pra Aldo (discrepâncias CRM + zona morta)
+    if (aldoNumber) {
+      const linhas = [`[Auditoria SDR AIVA] ${discrepancias.length} divergência(s) encontradas:`]
+      if (cnt.opp_morta_lead_vivo) linhas.push(`- ${cnt.opp_morta_lead_vivo} leads ativos com opp morta no CRM`)
+      if (cnt.lead_formulario_sem_opp) linhas.push(`- ${cnt.lead_formulario_sem_opp} leads FORMULARIO_ENVIADO sem opp`)
+      if (cnt.opp_orfa) linhas.push(`- ${cnt.opp_orfa} opps no CRM sem lead correspondente`)
+      if (cnt.zona_morta_aguardando) linhas.push(`- ${cnt.zona_morta_aguardando} leads em AGUARDANDO_APROVACAO há mais de 48h (Eduardo não agiu)`)
+      if (cnt.zona_morta_cadastro) linhas.push(`- ${cnt.zona_morta_cadastro} leads com CADASTRO_COMPLETO há mais de 6h (Nei não moveu pro CRM)`)
+      const r = await alertHuman(aldoNumber, linhas.join('\n'))
+      alertaEnviado = r.ok
+    }
+
+    // Alerta específico pra Nei sobre leads em zona morta que precisam de ação manual
+    const zonaMortaNei: Discrepancia[] = discrepancias.filter(
+      (d) => d.tipo === 'zona_morta_aguardando_aprovacao' || d.tipo === 'zona_morta_cadastro_completo'
+    )
+    if (zonaMortaNei.length > 0 && neiNumber) {
+      const aguardando = zonaMortaNei.filter((d) => d.tipo === 'zona_morta_aguardando_aprovacao')
+      const cadastro = zonaMortaNei.filter((d) => d.tipo === 'zona_morta_cadastro_completo')
+
+      const linhasNei: string[] = [`⚠️ *Ação necessária — leads parados:*`]
+
+      if (aguardando.length > 0) {
+        linhasNei.push(`\n📋 *Aguardando aprovação Eduardo (${aguardando.length}):*`)
+        for (const d of aguardando.slice(0, 5)) {
+          linhasNei.push(`- ${d.nome} (${d.telefone}) — ${d.horasParado}h parado`)
+        }
+        if (aguardando.length > 5) linhasNei.push(`  ...e mais ${aguardando.length - 5}`)
+      }
+
+      if (cadastro.length > 0) {
+        linhasNei.push(`\n✅ *Cadastro completo — mover p/ Em Análise CAF (${cadastro.length}):*`)
+        for (const d of cadastro.slice(0, 5)) {
+          linhasNei.push(`- ${d.nome} (${d.telefone}) — ${d.horasParado}h parado`)
+        }
+        if (cadastro.length > 5) linhasNei.push(`  ...e mais ${cadastro.length - 5}`)
+      }
+
+      try {
+        await alertHuman(neiNumber, linhasNei.join('\n'))
+      } catch (err) {
+        console.error('[auditoria] falha ao alertar Nei sobre zona morta:', err)
+      }
+    }
   }
 
   return NextResponse.json({
@@ -161,6 +238,7 @@ export async function POST(req: NextRequest) {
     leadsAtivos: leadsAtivos.length,
     oppsAbertas: opps.length,
     discrepancias,
+    zonaMorta: (leadsZonaMorta ?? []).length,
     alertaEnviado,
   })
 }
