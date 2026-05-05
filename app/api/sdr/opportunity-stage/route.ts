@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
         ])
 
         // Muda status para ANALISE_AIVA — VictorIA passa a responder nessa fase
-        // e o cron followup-caf monitora se o lead concluiu o cadastro CAF.
+        // e o cron followup-fase monitora se o lead concluiu o cadastro CAF.
         await supabaseAdmin
           .from('sdr_leads')
           .update({
@@ -286,8 +286,35 @@ export async function POST(req: NextRequest) {
         console.log(`Lead ${telefone}: status atualizado → ANALISE_AIVA (stage 50 EM_ANALISE)`)
       }
 
+      // Complementa planilha AIVA APROVAÇÃO com os dados completos (12 campos).
+      // Nei acaba de mover pra Em Análise CAF — neste ponto todos os dados
+      // já foram coletados pela VictorIA e estão no formulário da opp.
+      // O Apps Script faz upsert por opportunity_id: preenche células vazias
+      // da linha criada na Fase 1 sem sobrescrever o que já estava lá.
+      try {
+        await sendToGoogleSheets({
+          nome_socio:            forms['da6ddf70'],
+          email_socio:           forms['dafa40f0'],
+          telefone:              telefone || forms['db8569f0'],
+          nome_varejo:           forms['dcacfa00'],
+          cnpj_matriz:           forms['dd2ab580'],
+          faturamento_anual:     forms['ddb960f0'],
+          valor_boleto_mensal:   forms['de2cbc30'],
+          regiao_varejo:         forms['dede58f0'],
+          numero_lojas:          forms['df6f9c70'],
+          localizacao_lojas:     forms['e0099280'],
+          possui_outra_financeira: forms['e07d62f0'],
+          cnpjs_adicionais:      forms['e0f66380'],
+          status: 'ANALISE_AIVA',
+          opportunity_id: String(opportunityId),
+        })
+        console.log(`Google Sheets complementado: opp #${opportunityId} → stage 50`)
+      } catch (err) {
+        console.error(`Falha ao complementar Google Sheets no stage 50 (opp #${opportunityId}):`, err)
+      }
+
       console.log(`Template link cadastro + aviso matriz enviados: opp #${opportunityId} → ${telefone}`)
-      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, status_atualizado: 'ANALISE_AIVA', telefone })
+      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, google_sheets: true, status_atualizado: 'ANALISE_AIVA', telefone })
     } catch (err) {
       console.error('Erro ao enviar template de aprovação:', err)
       return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })
