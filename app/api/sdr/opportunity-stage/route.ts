@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
         console.error(`Falha ao enviar aviso CNPJ matriz para ${telefone}:`, err)
       }
 
-      // Registra no histórico do lead
+      // Registra no histórico do lead e atualiza status para ANALISE_AIVA
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
         .select('id')
@@ -272,10 +272,22 @@ export async function POST(req: NextRequest) {
             conteudo: avisoMatrizMsg,
           },
         ])
+
+        // Muda status para ANALISE_AIVA — VictorIA passa a responder nessa fase
+        // e o cron followup-caf monitora se o lead concluiu o cadastro CAF.
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({
+            status: 'ANALISE_AIVA',
+            data_ultimo_contato: new Date().toISOString(),
+          })
+          .eq('id', lead.id)
+
+        console.log(`Lead ${telefone}: status atualizado → ANALISE_AIVA (stage 50 EM_ANALISE)`)
       }
 
       console.log(`Template link cadastro + aviso matriz enviados: opp #${opportunityId} → ${telefone}`)
-      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, telefone })
+      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, status_atualizado: 'ANALISE_AIVA', telefone })
     } catch (err) {
       console.error('Erro ao enviar template de aprovação:', err)
       return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })

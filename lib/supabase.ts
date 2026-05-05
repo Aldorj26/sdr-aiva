@@ -14,7 +14,8 @@ export type LeadStatus =
   | 'BOT_DETECTADO' // número respondido por chatbot/atendimento automático sem acesso ao decisor
   | 'AGUARDANDO_APROVACAO' // 7 dados coletados, no stage 54 esperando análise
   | 'COLETANDO_COMPLEMENTO' // operador moveu pro stage 49, coletando 5 dados restantes
-  | 'CADASTRO_COMPLETO' // 12 dados coletados, HubSpot disparado
+  | 'CADASTRO_COMPLETO'    // 12 dados coletados, HubSpot disparado
+  | 'ANALISE_AIVA'         // stage 50 (Em Análise CAF) — link de onboarding enviado, aguardando lead concluir cadastro + biometria
 
 export interface Lead {
   id: string

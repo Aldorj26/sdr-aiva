@@ -56,6 +56,7 @@ export interface ClaudeResponse {
     | 'AGUARDANDO_APROVACAO' // 7 dados Fase 1 completos
     | 'COLETANDO_COMPLEMENTO' // Fase 3 em andamento (setado via stage 49)
     | 'CADASTRO_COMPLETO' // 12 dados Fase 3 completos
+    | 'ANALISE_AIVA'     // stage 50 — aguardando lead concluir onboarding CAF
   acionar_humano: boolean
   motivo_humano: string | null
   dados_coletados: DadosColetados | null
@@ -117,6 +118,9 @@ function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string
     }
   }
 
+  if (statusAtual === 'ANALISE_AIVA') {
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/onboarding/full).\nEle precisa: acessar o link, preencher 7 etapas com dados da empresa e fazer reconhecimento facial (CAF) ao final.\nSeu papel agora:\n- Verificar se ele concluiu o cadastro e a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas, biometria no final)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n- Se tiver dificuldade: ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\nRetorne SEMPRE novo_status = "ANALISE_AIVA" (só o time muda esse status via CRM).\nEXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
+  }
   if (statusAtual === 'COLETANDO_COMPLEMENTO') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = COLETANDO_COMPLEMENTO. Você está na FASE 3.\nA Fase 1 e Fase 2 JÁ PASSARAM. Ignore a mensagem "Perfeito, já tenho tudo pra pré-aprovação" no histórico — ela é de uma fase anterior.\nAgora você PRECISA coletar os 5 dados restantes, um de cada vez: email, faturamento, valor boleto, localização detalhada, CNPJs adicionais.\nComece perguntando o EMAIL do sócio.\nRetorne novo_status = "COLETANDO_COMPLEMENTO" (ou "CADASTRO_COMPLETO" se os 5 dados ficarem completos nessa mensagem).\nNUNCA retorne "AGUARDANDO_APROVACAO" nem "INTERESSADO".\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
