@@ -4,20 +4,51 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg } from '@/lib/text'
 
 /**
+ * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
+ * O Evo Talks indexa chats por esse formato internamente.
+ *
+ * - "47996085000" (11 dígitos) → "5547996085000"
+ * - "5547996085000" (13 dígitos) → "5547996085000" (já normalizado)
+ * - "479960850" (10 dígitos) → "55479960850" (legacy, mas tratado)
+ */
+function normalizePhoneBR(raw: string | null | undefined): string {
+  const digits = (raw ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    return digits
+  }
+  if (digits.length === 10 || digits.length === 11) {
+    return '55' + digits
+  }
+  return digits
+}
+
+/**
  * Envia uma lista de textos livres após um template HSM.
  *
  * O template abre o chat no Evo Talks, mas o chat pode não estar
  * imediatamente disponível em /int/getClientOpenChats. Aguarda até
  * 3s tentando obter o chatId; se encontrar, envia via sendMessageToChat
  * (sem abrir novo chat). Se não encontrar, usa sendText como fallback.
+ *
+ * `telefone` deve estar normalizado (com 55) para o getClientOpenChats encontrar o chat.
  */
 async function sendTextsAfterTemplate(telefone: string, msgs: string[]): Promise<void> {
+  const phone = normalizePhoneBR(telefone)
+
   // Aguarda o Evo Talks registrar o chat aberto pelo template
   let chatId: number | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     await new Promise(r => setTimeout(r, 1000))
-    chatId = await getOpenChatId(telefone)
-    if (chatId) break
+    chatId = await getOpenChatId(phone)
+    if (chatId) {
+      console.log(`sendTextsAfterTemplate: chatId ${chatId} encontrado para ${phone} (tentativa ${attempt + 1})`)
+      break
+    }
+  }
+
+  if (!chatId) {
+    console.warn(`sendTextsAfterTemplate: nenhum chat aberto encontrado para ${phone} após 3s — usando sendText como fallback`)
   }
 
   for (const msg of msgs) {
@@ -25,10 +56,10 @@ async function sendTextsAfterTemplate(telefone: string, msgs: string[]): Promise
       if (chatId) {
         await sendMessageToChat(chatId, msg)
       } else {
-        await sendText(telefone, msg)
+        await sendText(phone, msg)
       }
     } catch (err) {
-      console.error(`sendTextsAfterTemplate: falha ao enviar para ${telefone}:`, err)
+      console.error(`sendTextsAfterTemplate: falha ao enviar para ${phone}:`, err)
     }
   }
 }
@@ -101,7 +132,7 @@ export async function POST(req: NextRequest) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
       const forms = (opp.formsdata ?? {}) as Record<string, string | null>
-      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
 
       if (!telefone) {
         console.error(`Opp #${opportunityId}: telefone não encontrado pra template Complete o Cadastro`)
@@ -188,7 +219,7 @@ export async function POST(req: NextRequest) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
       const forms = (opp.formsdata ?? {}) as Record<string, string | null>
-      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
 
       await sendToGoogleSheets({
         nome_socio: forms['da6ddf70'],
@@ -246,7 +277,7 @@ export async function POST(req: NextRequest) {
       const nomeContato = normalizaNome(nomeRaw)
 
       // Telefone da oportunidade
-      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
       if (!telefone) {
         console.error(`Opp #${opportunityId}: telefone não encontrado para envio de template`)
         return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
@@ -363,7 +394,7 @@ export async function POST(req: NextRequest) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
       const forms = (opp.formsdata ?? {}) as Record<string, string | null>
-      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
 
       if (!telefone) {
         console.error(`Opp #${opportunityId}: telefone não encontrado para template Treinamento`)
