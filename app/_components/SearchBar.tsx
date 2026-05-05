@@ -52,7 +52,7 @@ export default function SearchBar() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          apply(q, status, importante)
+          apply(q, status, importante, atendimentoHumano)
         }}
       >
         <input
