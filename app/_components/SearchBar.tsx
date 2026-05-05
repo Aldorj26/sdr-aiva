@@ -10,6 +10,7 @@ const STATUSES = [
   'AGUARDANDO_APROVACAO',
   'COLETANDO_COMPLEMENTO',
   'CADASTRO_COMPLETO',
+  'ANALISE_AIVA',
   'FORMULARIO_ENVIADO',
   'SEM_RESPOSTA',
   'NAO_QUALIFICADO',
@@ -24,12 +25,14 @@ export default function SearchBar() {
   const [q, setQ] = useState(sp.get('q') ?? '')
   const [status, setStatus] = useState(sp.get('status') ?? '')
   const [importante, setImportante] = useState(sp.get('importante') === 'true')
+  const [atendimentoHumano, setAtendimentoHumano] = useState(sp.get('aguardando_humano') === 'true')
 
-  function apply(nextQ: string, nextStatus: string, nextImportante: boolean) {
+  function apply(nextQ: string, nextStatus: string, nextImportante: boolean, nextAH: boolean) {
     const params = new URLSearchParams()
     if (nextQ.trim()) params.set('q', nextQ.trim())
     if (nextStatus) params.set('status', nextStatus)
     if (nextImportante) params.set('importante', 'true')
+    if (nextAH) params.set('aguardando_humano', 'true')
     router.push(params.toString() ? `/?${params.toString()}` : '/')
   }
 
@@ -66,7 +69,7 @@ export default function SearchBar() {
           value={status}
           onChange={(e) => {
             setStatus(e.target.value)
-            apply(q, e.target.value, importante)
+            apply(q, e.target.value, importante, atendimentoHumano)
           }}
           style={inputStyle}
         >
@@ -79,9 +82,30 @@ export default function SearchBar() {
         </select>
         <button
           onClick={() => {
+            const next = !atendimentoHumano
+            setAtendimentoHumano(next)
+            apply(q, status, importante, next)
+          }}
+          style={{
+            background: atendimentoHumano ? '#fbbf2422' : 'transparent',
+            border: atendimentoHumano ? '1px solid #fbbf2455' : '1px solid #333',
+            color: atendimentoHumano ? '#fbbf24' : '#888',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.85rem',
+            fontWeight: atendimentoHumano ? 600 : 400,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          🔔 Atendimento humano
+        </button>
+        <button
+          onClick={() => {
             const next = !importante
             setImportante(next)
-            apply(q, status, next)
+            apply(q, status, next, atendimentoHumano)
           }}
           style={{
             background: importante ? '#f59e0b22' : 'transparent',
@@ -98,12 +122,13 @@ export default function SearchBar() {
         >
           ★ Importante
         </button>
-        {(q || status || importante) && (
+        {(q || status || importante || atendimentoHumano) && (
           <button
             onClick={() => {
               setQ('')
               setStatus('')
               setImportante(false)
+              setAtendimentoHumano(false)
               router.push('/')
             }}
             style={{
