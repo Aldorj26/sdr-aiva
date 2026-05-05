@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, getOpportunity, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg } from '@/lib/text'
 
 /**
  * Webhook chamado pelo Evo Talks quando uma oportunidade muda de etapa.
@@ -241,10 +241,17 @@ export async function POST(req: NextRequest) {
       //   Assim que finalizar, retorne aqui.
       await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
-      // Aviso complementar sobre CNPJ matriz/filial (não está no template HSM).
-      // Enviado como texto livre — janela de 24h já foi aberta pelo template acima.
-      const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
+      // Aviso 1 — instrução de preenchimento + biometria facial obrigatória.
+      // Enviado como texto livre logo após o template HSM.
+      const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
+      try {
+        await sendText(telefone, avisoCadastroMsg)
+      } catch (err) {
+        console.error(`Falha ao enviar aviso de cadastro para ${telefone}:`, err)
+      }
 
+      // Aviso 2 — orientação sobre CNPJ matriz/filial (não está no template HSM).
+      const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
       try {
         await sendText(telefone, avisoMatrizMsg)
       } catch (err) {
@@ -265,6 +272,11 @@ export async function POST(req: NextRequest) {
             direcao: 'out',
             conteudo: `[Template (CAMPANHA) Link de Cadastro enviado — ${nomeContato ?? 'Lojista'}]`,
             template_hsm: 'aiva_link_cadastro',
+          },
+          {
+            lead_id: lead.id,
+            direcao: 'out',
+            conteudo: avisoCadastroMsg,
           },
           {
             lead_id: lead.id,

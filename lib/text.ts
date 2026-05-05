@@ -39,6 +39,21 @@ export const APROVACAO_TEMPLATE_VAR =
   'https://retail-onboarding-hub.vercel.app/onboarding/full'
 
 /**
+ * Mensagem enviada logo após o template de aprovação, orientando sobre o
+ * preenchimento completo do cadastro CAF — incluindo a biometria facial obrigatória.
+ */
+export function buildAvisoCadastroMsg(nomeContato: string | null): string {
+  const saudacao = nomeContato ? `${nomeContato}, p` : 'P'
+  return (
+    `${saudacao}ara garantir a aprovação completa, siga os passos do cadastro até o final:\n\n` +
+    `✅ Preencha todos os dados da sua loja\n` +
+    `✅ Informe os dados bancários para recebimento\n` +
+    `✅ *Ao final, realize a biometria facial* — esse passo é obrigatório para liberar 100% do seu acesso\n\n` +
+    `📱 Se possível, faça o cadastro pelo celular para facilitar a biometria. Qualquer dúvida é só chamar!`
+  )
+}
+
+/**
  * Mensagem de texto livre enviada após o template de aprovação,
  * orientando sobre matriz/filial. Aceita nome opcional para personalizar a saudação.
  */
