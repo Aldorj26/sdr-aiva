@@ -33,7 +33,7 @@ async function getRecentLeads(
 
   let query = supabaseAdmin
     .from('sdr_leads')
-    .select('id, nome, telefone, cidade, status, data_ultimo_contato, importante')
+    .select('id, nome, telefone, cidade, status, data_ultimo_contato, importante, acionar_humano')
     .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
     .limit(temFiltro ? 500 : 10)
 
@@ -536,13 +536,31 @@ export default async function Page({
           </tr>
         </thead>
         <tbody>
-          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean }) => (
+          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean; acionar_humano: boolean }) => (
             <ClickableRow key={l.telefone} leadId={l.id}>
               <td>
                 {l.importante && <span style={{ color: '#f59e0b', marginRight: 4 }} title="Importante (3+ lojas)">★</span>}
                 {l.nome}
               </td>
-              <td><StatusPill status={l.status} /></td>
+              <td style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                <StatusPill status={l.status} />
+                {l.acionar_humano && (
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: '#fbbf2422',
+                      color: '#fbbf24',
+                      border: '1px solid #fbbf2444',
+                      borderRadius: 4,
+                      padding: '1px 5px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    🔔 humano
+                  </span>
+                )}
+              </td>
               <td style={{ color: 'var(--text-dim)' }}>{l.telefone}</td>
               <td style={{ color: 'var(--text-dim)' }}>{l.cidade ?? '—'}</td>
               <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
