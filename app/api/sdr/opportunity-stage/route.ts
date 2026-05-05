@@ -321,5 +321,116 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Stage 70 — Treinar → dispara template [AIVA] TREINAMENTO (id 25) + envia
+  // links de reunião online, materiais e formulário de cadastro dos funcionários.
+  //
+  // Fluxo: Nei move o card de ANALISE_AIVA → Treinar após a loja ser aprovada
+  // pela AIVA. O template HSM reabre a janela WhatsApp e os textos seguintes
+  // entregam os 3 links necessários pro lojista dar início ao treinamento.
+  if (stageNum === STAGES.TREINA) {
+    try {
+      const opp = await getOpportunity(Number(opportunityId))
+      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+      const telefone = (opp.mainphone ?? forms['db8569f0'] ?? '').toString().replace(/\D/g, '')
+
+      if (!telefone) {
+        console.error(`Opp #${opportunityId}: telefone não encontrado para template Treinamento`)
+        return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
+      }
+
+      // Busca lead no Supabase
+      const { data: lead } = await supabaseAdmin
+        .from('sdr_leads')
+        .select('id, nome')
+        .eq('telefone', telefone)
+        .maybeSingle()
+
+      const nomeContato = normalizaNome(forms['da6ddf70']) || normalizaNome(lead?.nome ?? null) || 'Lojista'
+
+      // Template HSM 25 — [AIVA] TREINAMENTO
+      // {{Nome do Cliente}} = nome do sócio
+      const templateId = Number(process.env.AIVA_TREINAMENTO_TEMPLATE_ID ?? 0)
+      if (!templateId) {
+        console.warn(`AIVA_TREINAMENTO_TEMPLATE_ID não configurado — template Treinamento não enviado (opp #${opportunityId})`)
+        return NextResponse.json({ ok: false, erro: 'template_treinamento_nao_configurado' })
+      }
+
+      await sendTemplate(telefone, templateId, [nomeContato])
+
+      // Textos complementares — enviados logo após o template HSM
+      // (janela de 24h já foi aberta pelo template acima)
+
+      const msgReuniao =
+        `📅 *Treinamento ao vivo:*\n` +
+        `Acesse pelo link abaixo quando chegar o horário combinado:\n` +
+        `👉 meet.google.com/hqn-vcrr-dxo`
+
+      const msgMateriais =
+        `📚 *Materiais de apoio:*\n` +
+        `Todos os documentos e vídeos do treinamento estão aqui:\n` +
+        `👉 https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing`
+
+      const msgCadastro =
+        `📝 *Cadastro dos funcionários:*\n` +
+        `Para liberar o acesso da equipe da sua loja ao sistema AIVA, preencha este formulário:\n` +
+        `👉 https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform\n\n` +
+        `Qualquer dúvida é só chamar aqui! 😊`
+
+      for (const msg of [msgReuniao, msgMateriais, msgCadastro]) {
+        try {
+          await sendText(telefone, msg)
+        } catch (err) {
+          console.error(`Falha ao enviar texto de treinamento para ${telefone}:`, err)
+        }
+      }
+
+      // Atualiza status no Supabase e registra histórico
+      if (lead?.id) {
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({
+            status: 'TREINAMENTO',
+            data_ultimo_contato: new Date().toISOString(),
+          })
+          .eq('id', lead.id)
+
+        await supabaseAdmin.from('sdr_mensagens').insert([
+          {
+            lead_id: lead.id,
+            direcao: 'out',
+            conteudo: `[Template [AIVA] TREINAMENTO enviado — ${nomeContato}]`,
+            template_hsm: 'aiva_treinamento',
+          },
+          { lead_id: lead.id, direcao: 'out', conteudo: msgReuniao },
+          { lead_id: lead.id, direcao: 'out', conteudo: msgMateriais },
+          { lead_id: lead.id, direcao: 'out', conteudo: msgCadastro },
+        ])
+      }
+
+      // Alerta Aldo + Nei sobre o início do treinamento
+      try {
+        const msg =
+          `🎓 *${lead?.nome ?? nomeContato}* (${telefone}) entrou em Treinamento.\n` +
+          `Template HSM 25 disparado — links de reunião, materiais e formulário de funcionários enviados.`
+        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+      } catch (err) {
+        console.error('Falha ao alertar humanos sobre stage 70:', err)
+      }
+
+      console.log(`Template Treinamento + links enviados: opp #${opportunityId} → ${telefone}, status → TREINAMENTO`)
+      return NextResponse.json({
+        ok: true,
+        template_enviado: true,
+        links_enviados: true,
+        status_atualizado: 'TREINAMENTO',
+        telefone,
+      })
+    } catch (err) {
+      console.error('Erro ao disparar template Treinamento:', err)
+      return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })
+    }
+  }
+
   return NextResponse.json({ ok: true, ignorado: `stage ${destStageId} sem ação configurada` })
 }

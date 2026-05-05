@@ -254,6 +254,7 @@ const STATUS_COLOR: Record<string, string> = {
   NAO_QUALIFICADO: '#f87171',
   AGUARDANDO: '#a78bfa',
   DESCARTADO: '#4b5563',
+  TREINAMENTO: '#f97316',
 }
 
 function fmtRelativo(iso: string): string {
