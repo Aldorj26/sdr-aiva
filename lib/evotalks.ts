@@ -179,19 +179,29 @@ export async function openChatAndSend(
  * Envia template HSM aprovado pela Meta (Cloud API).
  * templateId = ID numérico do template no painel Evo Talks.
  * vars = array de strings para substituição de {{1}}, {{2}}, etc.
+ *
+ * Retorna o chatId/clientId/kId quando disponíveis na resposta da Evo Talks —
+ * útil para enviar mensagens livres logo em seguida sem precisar buscar o chat.
  */
 export async function sendTemplate(
   number: string,
   templateId: number,
   vars: string[] = [],
   openNewChat = true
-): Promise<void> {
-  await post('/int/sendWaTemplate', {
+): Promise<{ chatId?: number; clientId?: number; kId?: number; raw: Record<string, unknown> }> {
+  const data = await post<Record<string, unknown>>('/int/sendWaTemplate', {
     number,
     templateId,
     data: vars,
     openNewChat,
   })
+  console.log(`sendTemplate response for ${number} (template ${templateId}):`, JSON.stringify(data))
+  return {
+    chatId: typeof data.chatId === 'number' ? data.chatId : (typeof data.fkChat === 'number' ? data.fkChat : undefined),
+    clientId: typeof data.clientId === 'number' ? data.clientId : undefined,
+    kId: typeof data.kId === 'number' ? data.kId : undefined,
+    raw: data,
+  }
 }
 
 /**

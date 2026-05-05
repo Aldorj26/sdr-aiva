@@ -33,22 +33,30 @@ function normalizePhoneBR(raw: string | null | undefined): string {
  *
  * `telefone` deve estar normalizado (com 55) para o getClientOpenChats encontrar o chat.
  */
-async function sendTextsAfterTemplate(telefone: string, msgs: string[]): Promise<void> {
+async function sendTextsAfterTemplate(
+  telefone: string,
+  msgs: string[],
+  preferredChatId?: number
+): Promise<void> {
   const phone = normalizePhoneBR(telefone)
 
-  // Aguarda o Evo Talks registrar o chat aberto pelo template
-  let chatId: number | null = null
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await new Promise(r => setTimeout(r, 1000))
-    chatId = await getOpenChatId(phone)
-    if (chatId) {
-      console.log(`sendTextsAfterTemplate: chatId ${chatId} encontrado para ${phone} (tentativa ${attempt + 1})`)
-      break
+  let chatId: number | null = preferredChatId ?? null
+  if (chatId) {
+    console.log(`sendTextsAfterTemplate: usando chatId ${chatId} retornado pelo sendTemplate (${phone})`)
+  } else {
+    // Fallback: aguarda o Evo Talks registrar o chat aberto pelo template
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await new Promise(r => setTimeout(r, 1000))
+      chatId = await getOpenChatId(phone)
+      if (chatId) {
+        console.log(`sendTextsAfterTemplate: chatId ${chatId} encontrado para ${phone} (tentativa ${attempt + 1})`)
+        break
+      }
     }
   }
 
   if (!chatId) {
-    console.warn(`sendTextsAfterTemplate: nenhum chat aberto encontrado para ${phone} após 3s — usando sendText como fallback`)
+    console.warn(`sendTextsAfterTemplate: nenhum chat encontrado para ${phone} — usando sendText como fallback`)
   }
 
   for (const msg of msgs) {
@@ -300,14 +308,14 @@ export async function POST(req: NextRequest) {
       // Corpo do template:
       //   Bem vindo{{1}}
       //   Assim que finalizar, retorne aqui.
-      await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
+      const tplResult = await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
       // Avisos complementares enviados logo após o template HSM.
-      // Usa sendTextsAfterTemplate pra aguardar o chat ser registrado no Evo Talks
-      // antes de tentar enviar — evita o problema de chat não encontrado imediatamente.
+      // Usa o chatId retornado pelo sendTemplate (chat real onde o template foi enviado),
+      // evitando que mensagens caiam num chat antigo encontrado pelo getOpenChatId.
       const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
       const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
-      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg])
+      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg], tplResult.chatId)
 
       // Registra no histórico do lead e atualiza status para ANALISE_AIVA
       const { data: lead } = await supabaseAdmin
@@ -418,7 +426,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, erro: 'template_treinamento_nao_configurado' })
       }
 
-      await sendTemplate(telefone, templateId, [nomeContato])
+      const tplResult = await sendTemplate(telefone, templateId, [nomeContato])
 
       // Textos complementares — enviados logo após o template HSM
       // (janela de 24h já foi aberta pelo template acima)
@@ -439,7 +447,7 @@ export async function POST(req: NextRequest) {
         `👉 https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform\n\n` +
         `Qualquer dúvida é só chamar aqui! 😊`
 
-      await sendTextsAfterTemplate(telefone, [msgReuniao, msgMateriais, msgCadastro])
+      await sendTextsAfterTemplate(telefone, [msgReuniao, msgMateriais, msgCadastro], tplResult.chatId)
 
       // Atualiza status no Supabase e registra histórico
       if (lead?.id) {
