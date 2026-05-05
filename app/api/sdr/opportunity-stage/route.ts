@@ -1,7 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { alertHuman, getOpportunity, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
+import { alertHuman, getOpportunity, getOpenChatId, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg } from '@/lib/text'
+
+/**
+ * Envia uma lista de textos livres após um template HSM.
+ *
+ * O template abre o chat no Evo Talks, mas o chat pode não estar
+ * imediatamente disponível em /int/getClientOpenChats. Aguarda até
+ * 3s tentando obter o chatId; se encontrar, envia via sendMessageToChat
+ * (sem abrir novo chat). Se não encontrar, usa sendText como fallback.
+ */
+async function sendTextsAfterTemplate(telefone: string, msgs: string[]): Promise<void> {
+  // Aguarda o Evo Talks registrar o chat aberto pelo template
+  let chatId: number | null = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await new Promise(r => setTimeout(r, 1000))
+    chatId = await getOpenChatId(telefone)
+    if (chatId) break
+  }
+
+  for (const msg of msgs) {
+    try {
+      if (chatId) {
+        await sendMessageToChat(chatId, msg)
+      } else {
+        await sendText(telefone, msg)
+      }
+    } catch (err) {
+      console.error(`sendTextsAfterTemplate: falha ao enviar para ${telefone}:`, err)
+    }
+  }
+}
 
 /**
  * Webhook chamado pelo Evo Talks quando uma oportunidade muda de etapa.
@@ -241,22 +271,12 @@ export async function POST(req: NextRequest) {
       //   Assim que finalizar, retorne aqui.
       await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
-      // Aviso 1 — instrução de preenchimento + biometria facial obrigatória.
-      // Enviado como texto livre logo após o template HSM.
+      // Avisos complementares enviados logo após o template HSM.
+      // Usa sendTextsAfterTemplate pra aguardar o chat ser registrado no Evo Talks
+      // antes de tentar enviar — evita o problema de chat não encontrado imediatamente.
       const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
-      try {
-        await sendText(telefone, avisoCadastroMsg)
-      } catch (err) {
-        console.error(`Falha ao enviar aviso de cadastro para ${telefone}:`, err)
-      }
-
-      // Aviso 2 — orientação sobre CNPJ matriz/filial (não está no template HSM).
       const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
-      try {
-        await sendText(telefone, avisoMatrizMsg)
-      } catch (err) {
-        console.error(`Falha ao enviar aviso CNPJ matriz para ${telefone}:`, err)
-      }
+      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg, avisoMatrizMsg])
 
       // Registra no histórico do lead e atualiza status para ANALISE_AIVA
       const { data: lead } = await supabaseAdmin
@@ -388,13 +408,7 @@ export async function POST(req: NextRequest) {
         `👉 https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform\n\n` +
         `Qualquer dúvida é só chamar aqui! 😊`
 
-      for (const msg of [msgReuniao, msgMateriais, msgCadastro]) {
-        try {
-          await sendText(telefone, msg)
-        } catch (err) {
-          console.error(`Falha ao enviar texto de treinamento para ${telefone}:`, err)
-        }
-      }
+      await sendTextsAfterTemplate(telefone, [msgReuniao, msgMateriais, msgCadastro])
 
       // Atualiza status no Supabase e registra histórico
       if (lead?.id) {
