@@ -302,13 +302,13 @@ export async function POST(req: NextRequest) {
       //   Assim que finalizar, retorne aqui.
       const tplResult = await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
 
-      // Aviso complementar sobre CNPJ matriz/filial (não está no template HSM).
-      // Mesma estratégia que funcionou no caso do Renan Calado:
-      // template + matriz aviso. Entrega quando a janela 24h está aberta
-      // (lead respondeu nas últimas 24h).
-      const avisoMatrizMsg = buildAvisoMatrizMsg(nomeContato)
+      // Texto livre reforçando o preenchimento completo do cadastro CAF —
+      // incluindo a biometria facial obrigatória ao final.
+      // Entrega no WhatsApp quando a janela 24h está aberta (lead respondeu
+      // nas últimas 24h). Quando não, fica registrado no painel da Evo Talks.
+      const avisoCadastroMsg = buildAvisoCadastroMsg(nomeContato)
       const chatIdParaTextos = tplResult.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
-      await sendTextsAfterTemplate(telefone, [avisoMatrizMsg], chatIdParaTextos)
+      await sendTextsAfterTemplate(telefone, [avisoCadastroMsg], chatIdParaTextos)
 
       if (lead?.id) {
         await supabaseAdmin.from('sdr_mensagens').insert([
@@ -321,7 +321,7 @@ export async function POST(req: NextRequest) {
           {
             lead_id: lead.id,
             direcao: 'out',
-            conteudo: avisoMatrizMsg,
+            conteudo: avisoCadastroMsg,
           },
         ])
 
