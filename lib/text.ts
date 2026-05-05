@@ -47,7 +47,7 @@ export function buildAvisoCadastroMsg(nomeContato: string | null): string {
   return (
     `${saudacao}ara garantir a aprovação completa, siga os passos do cadastro até o final:\n\n` +
     `✅ Preencha todos os dados da sua loja\n` +
-    `✅ Informe os dados bancários para recebimento\n` +
+    `✅ Informe os dados bancários para receber os pagamentos das vendas\n` +
     `✅ *Ao final, realize a biometria facial* — esse passo é obrigatório para liberar 100% do seu acesso\n\n` +
     `📱 Se possível, faça o cadastro pelo celular para facilitar a biometria. Qualquer dúvida é só chamar!`
   )
