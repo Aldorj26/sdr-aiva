@@ -437,9 +437,10 @@ export async function POST(req: NextRequest) {
       lead = leadFresh
     }
 
-    // 7d. Debounce — espera 2s pra capturar qualquer mensagem adicional da rajada
-    // (usuário frequentemente envia a mesma pergunta 3-4 vezes em ~15s)
-    await new Promise((r) => setTimeout(r, 2000))
+    // 7d. Debounce — espera 7s pra capturar qualquer mensagem adicional da rajada.
+    // Leads frequentemente mandam 2-3 msgs em sequência rápida (<5s entre elas).
+    // Com 7s de espera, a maioria dos bursts já chegou ao DB antes de chamar o Claude.
+    await new Promise((r) => setTimeout(r, 7000))
 
     // Loop de reprocessamento: se novas mensagens 'in' chegarem durante o
     // processamento (após o debounce), roda outra volta pra não deixar órfãs.
@@ -551,6 +552,27 @@ export async function POST(req: NextRequest) {
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
     } catch (err) {
       console.error('[guard] falha ao alertar humanos:', err)
+    }
+  }
+
+  // 9d. Check pré-envio: se nova mensagem 'in' chegou DURANTE o processamento do
+  // Claude (ex.: lead mandou 2 msgs com >7s de intervalo), não envia a resposta
+  // gerada agora — reprocessa na próxima iteração com contexto completo.
+  // Isso evita o cenário "VictorIA pergunta a mesma coisa duas vezes".
+  if (iteracao < MAX_ITERACOES) {
+    const { data: orfasPre } = await supabaseAdmin
+      .from('sdr_mensagens')
+      .select('id')
+      .eq('lead_id', lead.id)
+      .eq('direcao', 'in')
+      .gt('enviado_em', loopStart)
+      .limit(1)
+
+    if (orfasPre && orfasPre.length > 0) {
+      console.log(
+        `Lead ${lead.telefone}: nova msg durante Claude (iter ${iteracao}) — reprocessando sem enviar`,
+      )
+      continue
     }
   }
 
