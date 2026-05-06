@@ -25,6 +25,76 @@ function getClient() {
   return new Anthropic({ apiKey })
 }
 
+/**
+ * Mensagem fallback enviada ao lead quando o Claude está sobrecarregado
+ * mesmo após todas as retentativas. Importada pelo webhook handler.
+ *
+ * IMPORTANTE: nunca expõe o erro bruto pro lead — sempre essa string amigável.
+ */
+export const FALLBACK_MENSAGEM_OVERLOADED =
+  'Desculpe, estou com um volume alto de atendimentos. Vou te responder em instantes! 🙏'
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Detecta se o erro da Anthropic SDK é um overloaded_error (529).
+ * Reconhece formatos diferentes:
+ *  - APIError com status === 529
+ *  - error.type === 'overloaded_error' no body
+ *  - mensagem contendo "overloaded"
+ */
+function isOverloadedError(err: unknown): boolean {
+  if (!err) return false
+  if (typeof err === 'object' && err !== null) {
+    const e = err as { status?: number; error?: { type?: string } }
+    if (e.status === 529) return true
+    if (e.error?.type === 'overloaded_error') return true
+  }
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.toLowerCase().includes('overloaded')
+}
+
+/**
+ * Wrapper de retry pra chamadas à API Anthropic.
+ *
+ * - Faz a chamada via SDK (`messages.create`)
+ * - Se receber `overloaded_error` (529), aguarda e tenta de novo
+ * - Backoff: 3s → 6s → 12s (máximo 3 tentativas no total)
+ * - Erros NÃO-overloaded (auth, validation, rate limit normal) sobem na hora,
+ *   sem retry (retry não vai resolver)
+ * - Se as 3 tentativas falharem, lança o último erro — caller decide o fallback
+ *
+ * Não trata exceções aqui; quem chama precisa de try/catch ao redor pra
+ * decidir o que mostrar ao usuário (ex: webhook envia FALLBACK_MENSAGEM_OVERLOADED).
+ */
+export async function callClaudeWithRetry(
+  params: Anthropic.MessageCreateParamsNonStreaming,
+  context = 'claude',
+): Promise<Anthropic.Message> {
+  const delays = [3_000, 6_000, 12_000]
+  const maxAttempts = 3
+  let lastErr: unknown = null
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await getClient().messages.create(params)
+    } catch (err) {
+      lastErr = err
+      const overloaded = isOverloadedError(err)
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error(
+        `[callClaudeWithRetry:${context}] tentativa ${attempt + 1}/${maxAttempts} falhou${overloaded ? ' (overloaded)' : ''}: ${errMsg}`,
+      )
+      if (!overloaded) throw err
+      if (attempt === maxAttempts - 1) break
+      await sleep(delays[attempt])
+    }
+  }
+  throw lastErr
+}
+
 function getGroqClient() {
   const apiKey = loadEnvKey('GROQ_API_KEY')
   return new Groq({ apiKey })
@@ -192,12 +262,12 @@ ${linhas || '(sem conversa anterior)'}
 
 Gere o miolo agora.`
 
-  const response = await getClient().messages.create({
+  const response = await callClaudeWithRetry({
     model: 'claude-sonnet-4-5',
     max_tokens: 200,
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
-  })
+  }, 'gerarMioloRetomada')
 
   let texto = response.content
     .filter((b) => b.type === 'text')
@@ -301,12 +371,12 @@ Responda só com o primeiro nome OU "DESCONHECIDO". Sem explicação, sem aspas,
 
   let nome: string
   try {
-    const response = await getClient().messages.create({
+    const response = await callClaudeWithRetry({
       model: 'claude-sonnet-4-5',
       max_tokens: 30,
       system: systemPrompt,
       messages: [{ role: 'user', content: trecho }],
-    })
+    }, 'extrairNomeRealDoHistorico')
 
     nome = response.content
       .filter((b) => b.type === 'text')
@@ -418,12 +488,12 @@ export async function processarMensagem(
     .replaceAll('{{nome}}', nomeDoLead)
     .replaceAll('{{status_atual}}', status)
 
-  const response = await getClient().messages.create({
+  const response = await callClaudeWithRetry({
     model: 'claude-sonnet-4-5',
     max_tokens: 1024,
     system: systemPrompt,
     messages,
-  })
+  }, 'processarMensagem')
 
   const text = response.content
     .filter((b) => b.type === 'text')

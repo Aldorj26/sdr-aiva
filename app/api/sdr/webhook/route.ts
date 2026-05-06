@@ -20,7 +20,7 @@ import {
   getOpportunity, sendToGoogleSheets, sendToHubSpot,
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
-import { processarMensagem, transcreverAudio } from '@/lib/claude'
+import { processarMensagem, transcreverAudio, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { isAdmin, isCommand, handleCommand, respondToAdmin } from '@/lib/admin-commands'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
@@ -479,10 +479,22 @@ export async function POST(req: NextRequest) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined
       console.error('Erro ao processar com Claude:', errMsg, errStack)
-      // Fallback: aciona humano
+
+      // Envia mensagem amigável de fallback pro lead (NUNCA o erro bruto).
+      // Wrapped em try/catch porque se o sendText também falhar, a gente
+      // não quer derrubar o webhook todo — o alerta pro humano abaixo cobre.
+      try {
+        await sendText(lead.telefone, FALLBACK_MENSAGEM_OVERLOADED, lead.evotalks_chat_id)
+        await saveMensagem(lead.id, 'out', FALLBACK_MENSAGEM_OVERLOADED)
+      } catch (sendErr) {
+        const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+        console.error('Falha ao enviar fallback message ao lead:', sendErrMsg)
+      }
+
+      // Aciona humano em paralelo
       await alertHuman(
         process.env.NEI_WHATSAPP!,
-        `🚨 Erro ao processar mensagem de *${lead.nome}* (${lead.telefone}).\nMensagem: "${conteudoEfetivo}"`
+        `🚨 Erro ao processar mensagem de *${lead.nome}* (${lead.telefone}).\nMensagem: "${conteudoEfetivo}"\nLead recebeu fallback amigável.`
       )
       // Salva marcador OUT pra balancear IN/OUT — assim o auto-reprocess
       // não vai re-disparar este webhook em loop ate Claude voltar a funcionar.
