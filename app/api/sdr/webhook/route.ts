@@ -372,6 +372,42 @@ export async function POST(req: NextRequest) {
       console.log(`Lead TRIAGEM criado: ${lead.id} (${telNormalizado})`)
     }
 
+    // Cria oportunidade na Evo Talks IMEDIATAMENTE pra todo lead inbound novo.
+    // Isso garante que o lead entre no funil AIVA (pipeline 15, stage INTERESSADO)
+    // mesmo que a VictorIA retorne BOT_DETECTADO/NAO_QUALIFICADO depois — assim o
+    // lead aparece no painel da Evo Talks e o time pode acompanhar/intervir.
+    // O fluxo dos triggers de stages (49, 50, 70) só dispara pra opps existentes,
+    // então sem essa criação inicial o lead inbound ficava órfão fora do funil.
+    if (leadEhInboundNovo && lead) {
+      try {
+        const oppId = await createOpportunity({
+          title: `${lead.nome} — AIVA (inbound)`,
+          number: lead.telefone,
+          stageId: STAGES.INTERESSADO,
+          chatId: chatId || lead.evotalks_chat_id || undefined,
+          clientId: clientId || lead.evotalks_client_id || undefined,
+        })
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ evotalks_opportunity_id: String(oppId) })
+          .eq('id', lead.id)
+        lead.evotalks_opportunity_id = String(oppId)
+        console.log(`[INBOUND] Oportunidade #${oppId} criada em "Interessado" pra ${lead.telefone}`)
+
+        // Aplica tag AIVA pra distinção visual no painel CRM
+        try {
+          await addOpportunityTags(oppId, [TAG_IDS.AIVA])
+        } catch (err) {
+          console.error(`[INBOUND] Erro ao adicionar tag AIVA na oportunidade #${oppId}:`, err)
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error(`[INBOUND] Erro ao criar oportunidade pra ${lead.telefone}: ${errMsg}`)
+        // Não interrompe o fluxo — VictorIA continua respondendo e a opp pode
+        // ser criada mais tarde via fallback na seção 13 (handler do novo_status).
+      }
+    }
+
     // Alerta WhatsApp pra Aldo + Nei na PRIMEIRA mensagem inbound de lead novo TRIAGEM.
     if (leadEhInboundNovo) {
       try {
