@@ -412,10 +412,36 @@ export async function POST(req: NextRequest) {
       // Textos complementares — enviados logo após o template HSM
       // (janela de 24h já foi aberta pelo template acima)
 
+      // Calcula a próxima quinta-feira às 09:30 BRT (12:30 UTC) pra montar
+      // o link "Adicionar ao Google Calendar". Se hoje for quinta, pega a da
+      // semana que vem (treinamento dura 1h, das 09:30 às 10:30 BRT).
+      const proximaQuinta = (() => {
+        const agora = new Date()
+        const diaSemanaUTC = agora.getUTCDay() // 0=dom, 4=qui
+        let diasAteQuinta = (4 - diaSemanaUTC + 7) % 7
+        if (diasAteQuinta === 0) diasAteQuinta = 7 // se hoje é quinta, pega a próxima
+        const inicio = new Date(agora)
+        inicio.setUTCDate(agora.getUTCDate() + diasAteQuinta)
+        inicio.setUTCHours(12, 30, 0, 0) // 09:30 BRT
+        const fim = new Date(inicio)
+        fim.setUTCHours(13, 30, 0, 0) // 10:30 BRT
+        const fmt = (d: Date) => d.toISOString().replace(/[-:]|\.\d{3}/g, '')
+        return { start: fmt(inicio), end: fmt(fim) }
+      })()
+      const calendarLink =
+        `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+        `&text=${encodeURIComponent('Treinamento AIVA')}` +
+        `&dates=${proximaQuinta.start}/${proximaQuinta.end}` +
+        `&details=${encodeURIComponent('Link da reunião: https://meet.google.com/hqn-vcrr-dxo')}` +
+        `&location=${encodeURIComponent('https://meet.google.com/hqn-vcrr-dxo')}`
+
       const msgReuniao =
         `📅 *Treinamento ao vivo:*\n` +
-        `Acesse pelo link abaixo quando chegar o horário combinado:\n` +
-        `👉 meet.google.com/hqn-vcrr-dxo`
+        `Os treinamentos acontecem geralmente nas *quintas-feiras às 9h30*. Confirme o horário com nossa equipe.\n\n` +
+        `🔗 Link da reunião:\n` +
+        `👉 meet.google.com/hqn-vcrr-dxo\n\n` +
+        `📲 *Adicionar ao seu calendário:*\n` +
+        `👉 ${calendarLink}`
 
       const msgMateriais =
         `📚 *Materiais de apoio:*\n` +
