@@ -183,8 +183,59 @@ export async function POST(req: NextRequest) {
 
   console.log(`Webhook: text="${text.substring(0,30)}" fileId=${fileId} mimeType="${mimeType}" isAudio=${isAudio}`)
 
-  // 3. Ignora mensagens enviadas pelo próprio sistema ou sem conteúdo
+  // 3. Mensagens com fromMe=true são saídas do nosso WhatsApp.
+  //    Podem ser:
+  //    a) Eco da própria VictorIA (Evo Talks às vezes devolve nossa msg como webhook)
+  //    b) Resposta MANUAL do Nei via painel Evo Talks ou WhatsApp Business
+  //
+  //    Caso (b) é importante: se a gente ignora silenciosamente, a VictorIA
+  //    perde contexto na próxima vez que o lead responder e fica perdida
+  //    (responde como se o Nei não tivesse falado nada).
+  //
+  //    Estratégia: salva como direcao='out' com template_hsm='manual_humano'
+  //    SE for diferente da última msg 'out' nos últimos 30s (dedup do eco).
   if (fromMe || direction === 'out') {
+    const textoOut = (text || legacyText).trim()
+    if (textoOut) {
+      try {
+        const phone = remoteJid?.replace(/@s\.whatsapp\.net$/, '').replace(/\D/g, '') ?? ''
+        if (phone) {
+          const { data: lead } = await supabaseAdmin
+            .from('sdr_leads')
+            .select('id, telefone')
+            .eq('telefone', phone)
+            .maybeSingle()
+          if (lead?.id) {
+            const { data: ultimaOut } = await supabaseAdmin
+              .from('sdr_mensagens')
+              .select('conteudo, enviado_em')
+              .eq('lead_id', lead.id)
+              .eq('direcao', 'out')
+              .order('enviado_em', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            const ehEcoRecente =
+              ultimaOut &&
+              ultimaOut.conteudo?.trim() === textoOut &&
+              Date.now() - new Date(ultimaOut.enviado_em).getTime() < 30_000
+            if (ehEcoRecente) {
+              console.log(`Webhook fromMe: eco de msg própria pra ${phone}, pulando dedup`)
+            } else {
+              await supabaseAdmin.from('sdr_mensagens').insert({
+                lead_id: lead.id,
+                direcao: 'out',
+                conteudo: textoOut,
+                template_hsm: 'manual_humano',
+              })
+              console.log(`Webhook fromMe: msg manual humana salva pra ${phone} — VictorIA terá contexto na próxima resposta`)
+            }
+          }
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error('Falha ao salvar msg manual humana (fromMe):', errMsg)
+      }
+    }
     return NextResponse.json({ ok: true, ignorado: 'fromMe' })
   }
 
