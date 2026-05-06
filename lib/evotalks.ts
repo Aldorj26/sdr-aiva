@@ -484,9 +484,11 @@ export async function alertHuman(
   }
 }
 
-// ─── CRM — Pipeline Campanha AIVA ───────────────────────────────────────────
+// ─── CRM — Pipelines ────────────────────────────────────────────────────────
 
 export const PIPELINE_AIVA = 15
+export const PIPELINE_SINGLO = 17
+
 const STAGES = {
   INICIO: 66,
   INTERESSADO: 47,
@@ -500,6 +502,13 @@ const STAGES = {
   TREINA: 70,
 } as const
 
+// Stages da pipeline Singlo (id 17). Por enquanto só temos INTERESSADO mapeado;
+// quando o time Singlo precisar dos outros stages (qualificado, proposta, etc.)
+// adicionar aqui pra manter centralizado igual STAGES do AIVA.
+export const SINGLO_STAGES = {
+  INTERESSADO: 62,
+} as const
+
 // ⚠️ COLISÃO INTENCIONAL DE ID: o stage BOT_DETECTADO=69 e a tag AIVA=69 (TAG_IDS.AIVA)
 // têm o mesmo número 69. Isso não é bug — são namespaces diferentes no Evo Talks
 // (um vai em /int/changeStage, outro em /int/updateOpportunity tags[]). Mas é
@@ -509,13 +518,19 @@ const STAGES = {
 export { STAGES }
 
 /**
- * Cria uma oportunidade no pipeline Campanha AIVA.
+ * Cria uma oportunidade na Evo Talks.
+ *
+ * Por padrão cria na pipeline AIVA (15) em stage INTERESSADO (47). Pra Singlo
+ * passe `pipelineId: PIPELINE_SINGLO` + `stageId: SINGLO_STAGES.INTERESSADO`
+ * (cada pipeline tem stages com IDs diferentes — não dá pra reusar o STAGES do AIVA).
+ *
  * Retorna o ID da oportunidade criada.
  */
 export async function createOpportunity(opts: {
   title: string
   number: string
   city?: string
+  pipelineId?: number
   responsableId?: number
   stageId?: number
   tags?: string[]
@@ -523,7 +538,7 @@ export async function createOpportunity(opts: {
   clientId?: string | number
 }): Promise<number> {
   const body: Record<string, unknown> = {
-    fkPipeline: PIPELINE_AIVA,
+    fkPipeline: opts.pipelineId ?? PIPELINE_AIVA,
     fkStage: opts.stageId ?? STAGES.INTERESSADO,
     responsableid: opts.responsableId ?? 507, // Nei (userId padrão)
     title: opts.title,

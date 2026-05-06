@@ -16,6 +16,7 @@ import {
 import {
   sendText, alertHuman, downloadAudio,
   createOpportunity, changeOpportunityStage, addOpportunityNote, addOpportunityTags, STAGES, TAG_IDS,
+  PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
   getOpportunity, sendToGoogleSheets, sendToHubSpot,
 } from '@/lib/evotalks'
@@ -372,41 +373,10 @@ export async function POST(req: NextRequest) {
       console.log(`Lead TRIAGEM criado: ${lead.id} (${telNormalizado})`)
     }
 
-    // Cria oportunidade na Evo Talks IMEDIATAMENTE pra todo lead inbound novo.
-    // Isso garante que o lead entre no funil AIVA (pipeline 15, stage INTERESSADO)
-    // mesmo que a VictorIA retorne BOT_DETECTADO/NAO_QUALIFICADO depois — assim o
-    // lead aparece no painel da Evo Talks e o time pode acompanhar/intervir.
-    // O fluxo dos triggers de stages (49, 50, 70) só dispara pra opps existentes,
-    // então sem essa criação inicial o lead inbound ficava órfão fora do funil.
-    if (leadEhInboundNovo && lead) {
-      try {
-        const oppId = await createOpportunity({
-          title: `${lead.nome} — AIVA (inbound)`,
-          number: lead.telefone,
-          stageId: STAGES.INTERESSADO,
-          chatId: chatId || lead.evotalks_chat_id || undefined,
-          clientId: clientId || lead.evotalks_client_id || undefined,
-        })
-        await supabaseAdmin
-          .from('sdr_leads')
-          .update({ evotalks_opportunity_id: String(oppId) })
-          .eq('id', lead.id)
-        lead.evotalks_opportunity_id = String(oppId)
-        console.log(`[INBOUND] Oportunidade #${oppId} criada em "Interessado" pra ${lead.telefone}`)
-
-        // Aplica tag AIVA pra distinção visual no painel CRM
-        try {
-          await addOpportunityTags(oppId, [TAG_IDS.AIVA])
-        } catch (err) {
-          console.error(`[INBOUND] Erro ao adicionar tag AIVA na oportunidade #${oppId}:`, err)
-        }
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err)
-        console.error(`[INBOUND] Erro ao criar oportunidade pra ${lead.telefone}: ${errMsg}`)
-        // Não interrompe o fluxo — VictorIA continua respondendo e a opp pode
-        // ser criada mais tarde via fallback na seção 13 (handler do novo_status).
-      }
-    }
+    // NÃO criamos opp aqui — esperamos a VictorIA TRIAGEM identificar qual produto
+    // interessa (AIVA ou Singlo) na conversa pra criar na pipeline correta.
+    // A criação acontece na seção 13 (logo depois da resposta da VictorIA) baseada
+    // em dados_coletados.produto_interesse.
 
     // Alerta WhatsApp pra Aldo + Nei na PRIMEIRA mensagem inbound de lead novo TRIAGEM.
     if (leadEhInboundNovo) {
@@ -756,26 +726,57 @@ export async function POST(req: NextRequest) {
   // 13. CRM — Criar oportunidade, mover etapa e preencher formulário
   let oppId: number | null = lead.evotalks_opportunity_id ? Number(lead.evotalks_opportunity_id) : null
   try {
-    if (!oppId && (resposta.novo_status === 'INTERESSADO' || resposta.novo_status === 'AGUARDANDO_APROVACAO')) {
-      // Sem oportunidade ainda — cria no pipeline AIVA (etapa Interessado)
-      oppId = await createOpportunity({
-        title: `${lead.nome} — AIVA`,
-        number: lead.telefone,
-        city: lead.cidade ?? undefined,
-        chatId: chatId || lead.evotalks_chat_id || undefined,
-        clientId: clientId || lead.evotalks_client_id || undefined,
-      })
-      await supabaseAdmin
-        .from('sdr_leads')
-        .update({ evotalks_opportunity_id: String(oppId) })
-        .eq('id', lead.id)
-      console.log(`CRM: Oportunidade #${oppId} criada para ${lead.nome}`)
+    // Detecta produto pra decidir pipeline:
+    // - lead.produto === 'AIVA' (prospecção outbound) → sempre pipeline AIVA
+    // - lead.produto === 'TRIAGEM' (lead inbound) → usa produto_interesse retornado
+    //   pela TRIAGEM (AIVA ou SINGLO). Se ainda não foi detectado, espera próxima msg.
+    const produtoInteresse = (resposta.dados_coletados?.produto_interesse ?? null) as 'AIVA' | 'SINGLO' | null
+    const ehTriagem = lead.produto === 'TRIAGEM'
+    const usarPipelineSinglo = ehTriagem && produtoInteresse === 'SINGLO'
+    const usarPipelineAiva = !ehTriagem || produtoInteresse === 'AIVA'
 
-      // Aplica tag AIVA em toda nova oportunidade criada
-      try {
-        await addOpportunityTags(oppId, [TAG_IDS.AIVA])
-      } catch (err) {
-        console.log(`CRM: Erro ao adicionar tag AIVA na oportunidade #${oppId}:`, err)
+    if (!oppId && (resposta.novo_status === 'INTERESSADO' || resposta.novo_status === 'AGUARDANDO_APROVACAO')) {
+      if (usarPipelineSinglo) {
+        // Pipeline Singlo (17), stage Interessado (62)
+        oppId = await createOpportunity({
+          title: `${lead.nome} — Singlo (inbound)`,
+          number: lead.telefone,
+          city: lead.cidade ?? undefined,
+          pipelineId: PIPELINE_SINGLO,
+          stageId: SINGLO_STAGES.INTERESSADO,
+          chatId: chatId || lead.evotalks_chat_id || undefined,
+          clientId: clientId || lead.evotalks_client_id || undefined,
+        })
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ evotalks_opportunity_id: String(oppId) })
+          .eq('id', lead.id)
+        console.log(`CRM: Oportunidade Singlo #${oppId} criada em "Interessado" pra ${lead.nome}`)
+      } else if (usarPipelineAiva) {
+        // Pipeline AIVA (15), stage Interessado (47) — comportamento padrão
+        const tituloPrefixo = ehTriagem ? '(inbound) ' : ''
+        oppId = await createOpportunity({
+          title: `${tituloPrefixo}${lead.nome} — AIVA`,
+          number: lead.telefone,
+          city: lead.cidade ?? undefined,
+          chatId: chatId || lead.evotalks_chat_id || undefined,
+          clientId: clientId || lead.evotalks_client_id || undefined,
+        })
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ evotalks_opportunity_id: String(oppId) })
+          .eq('id', lead.id)
+        console.log(`CRM: Oportunidade AIVA #${oppId} criada para ${lead.nome}${ehTriagem ? ' (inbound)' : ''}`)
+
+        // Aplica tag AIVA em toda nova oportunidade AIVA criada
+        try {
+          await addOpportunityTags(oppId, [TAG_IDS.AIVA])
+        } catch (err) {
+          console.log(`CRM: Erro ao adicionar tag AIVA na oportunidade #${oppId}:`, err)
+        }
+      } else {
+        // TRIAGEM ainda sem produto identificado — espera próxima msg da VictorIA
+        console.log(`[TRIAGEM] Lead ${lead.telefone}: aguardando produto_interesse antes de criar opp`)
       }
     }
 

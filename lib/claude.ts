@@ -112,6 +112,13 @@ export interface DadosColetados {
   localizacao_lojas?: string | null
   possui_outra_financeira?: string | null
   cnpjs_adicionais?: string | null
+  // Setado pelo prompt TRIAGEM quando o lead inbound identifica qual produto
+  // interessa. Webhook usa pra criar opp na pipeline correta (AIVA ou Singlo).
+  produto_interesse?: 'AIVA' | 'SINGLO' | null
+  // Coleta passiva da TRIAGEM (não pergunta ativamente, só aproveita se o lead mencionar)
+  nome?: string | null
+  empresa?: string | null
+  cidade?: string | null
 }
 
 export interface ClaudeResponse {
