@@ -56,7 +56,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">🤖</div>
+        <img className="sidebar-logo-mark" src="/logo-track.png" alt="Track" />
         <div className="sidebar-logo-text">
           <strong>SDR AIVA</strong>
           <span>Track Tecnologia</span>
