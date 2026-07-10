@@ -38,5 +38,6 @@ export const config = {
     '/metricas/:path*',
     '/api/leads/:path*',
     '/api/curadoria/:path*',
+    '/api/assistente',
   ],
 }
