@@ -17,13 +17,15 @@ interface NavSection {
 const SECTIONS: NavSection[] = [
   {
     label: 'Funil',
-    items: [{ label: 'Pipeline', href: '/', icon: '📊' }],
+    items: [
+      { label: 'Pipeline', href: '/', icon: '📊' },
+      { label: 'Clientes', href: '/clientes', icon: '🏪' },
+    ],
   },
   {
     label: 'Performance',
     items: [
       { label: 'Funil de conversão', href: '/funil', icon: '📈' },
-      { label: 'Melhores horários', href: '/?view=horarios', icon: '⏰' },
       { label: 'Consumo de tokens', href: '/metricas/tokens', icon: '🪙' },
     ],
   },
@@ -32,7 +34,6 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: 'Nova campanha', href: '/campanha', icon: '➕' },
       { label: 'Campanhas', href: '/campanhas', icon: '🗂️' },
-      { label: 'Chat', href: '/chat', icon: '💬' },
     ],
   },
   {
