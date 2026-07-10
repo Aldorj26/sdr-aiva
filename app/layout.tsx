@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Sidebar from './_components/Sidebar'
+import AssistenteWidget from './_components/AssistenteWidget'
 
 export const metadata: Metadata = {
   title: 'SDR Agent AIVA',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Sidebar />
           <div className="app-main">{children}</div>
         </div>
+        <AssistenteWidget />
       </body>
     </html>
   )
