@@ -115,12 +115,13 @@ export default function AssistenteWidget() {
 }
 
 const css = `
+  /* Usa as variáveis de tema do painel (globals.css) — mesma identidade visual. */
   .ast-fab {
     position: fixed; right: 22px; bottom: 22px; z-index: 950;
     width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-    background: linear-gradient(135deg, #16a34a, #059669); color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff;
     font-size: 22px; font-weight: 700;
-    box-shadow: 0 6px 24px rgba(22,163,74,.45);
+    box-shadow: 0 6px 24px rgba(249,115,22,.35);
     transition: transform .15s;
   }
   .ast-fab:hover { transform: scale(1.07); }
@@ -130,68 +131,73 @@ const css = `
     width: 400px; max-width: calc(100vw - 32px);
     height: 560px; max-height: calc(100dvh - 32px);
     display: flex; flex-direction: column;
-    background: #101010; border: 1px solid #262626; border-radius: 16px;
-    box-shadow: 0 16px 48px rgba(0,0,0,.6);
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow-hover), 0 16px 48px rgba(16,24,40,.18);
     overflow: hidden;
-    color: #ededed;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
   }
 
   .ast-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px; background: #161616; border-bottom: 1px solid #222;
+    padding: 12px 14px; background: var(--bg-elev-2); border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
   .ast-header-left { display: flex; align-items: center; gap: 10px; }
   .ast-avatar {
     width: 34px; height: 34px; border-radius: 50%;
-    background: linear-gradient(135deg, #16a34a, #059669);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; color: #fff; font-size: 15px;
   }
-  .ast-title { font-size: 14px; font-weight: 600; }
-  .ast-sub { font-size: 11px; color: #4ade80; }
+  .ast-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .ast-sub { font-size: 11px; color: var(--accent); }
   .ast-close {
-    background: none; border: none; color: #888; font-size: 14px; cursor: pointer;
+    background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer;
     padding: 6px; border-radius: 8px;
   }
-  .ast-close:hover { background: #222; color: #fff; }
+  .ast-close:hover { background: var(--border); color: var(--text); }
 
   .ast-body {
     flex: 1; overflow-y: auto; padding: 14px;
     display: flex; flex-direction: column; gap: 8px;
+    background: var(--bg);
   }
-  .ast-empty { color: #555; font-size: 12.5px; line-height: 1.7; margin-top: 16px; text-align: center; }
+  .ast-empty { color: var(--text-muted); font-size: 12.5px; line-height: 1.7; margin-top: 16px; text-align: center; }
 
   .ast-msg-user {
     align-self: flex-end; max-width: 88%;
-    background: #14532d; border-radius: 14px 14px 4px 14px;
+    background: var(--accent); color: #fff;
+    border-radius: 14px 14px 4px 14px;
     padding: 8px 12px; font-size: 13.5px; line-height: 1.5;
     white-space: pre-wrap; word-break: break-word;
   }
   .ast-msg-ia {
     align-self: flex-start; max-width: 92%;
-    background: #191919; border: 1px solid #262626;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text);
     border-radius: 14px 14px 14px 4px;
     padding: 8px 12px; font-size: 13.5px; line-height: 1.55;
     white-space: pre-wrap; word-break: break-word;
+    box-shadow: var(--shadow);
   }
-  .ast-typing { color: #777; font-style: italic; }
+  .ast-typing { color: var(--text-muted); font-style: italic; }
 
   .ast-input-row {
     display: flex; gap: 8px; padding: 10px 12px;
-    border-top: 1px solid #222; background: #141414; flex-shrink: 0;
+    border-top: 1px solid var(--border); background: var(--bg-elev); flex-shrink: 0;
   }
   .ast-input {
     flex: 1; min-width: 0; padding: 10px 14px; border-radius: 20px;
-    border: 1px solid #333; background: #1c1c1c; color: #fff;
-    font-size: 13.5px; outline: none; caret-color: #16a34a;
+    border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text);
+    font-size: 13.5px; outline: none; caret-color: var(--accent);
   }
-  .ast-input:focus { border-color: #16a34a; }
+  .ast-input::placeholder { color: var(--text-muted); }
+  .ast-input:focus { border-color: var(--accent); }
   .ast-send {
     width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
-    background: #16a34a; color: #fff; font-size: 15px; flex-shrink: 0;
+    background: var(--accent); color: #fff; font-size: 15px; flex-shrink: 0;
   }
+  .ast-send:hover:not(:disabled) { background: var(--accent-2); }
   .ast-send:disabled { opacity: .35; cursor: default; }
 
   @media (max-width: 640px) {
