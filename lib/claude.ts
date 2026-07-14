@@ -612,8 +612,13 @@ export async function processarMensagem(
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
   // messages chegam seguidas, retorna 400 "messages: roles must alternate")
+  // FILTRO DE VAZIOS (bug real 14/07 — lead Gfourr): mensagens 'in' com conteúdo
+  // vazio (mídia sem texto/reação que o Evo entrega sem corpo) viravam um user
+  // message "" e a API devolvia 400 "user messages must have non-empty content"
+  // em TODA volta — o lead só recebia o fallback e nunca era respondido de fato.
   const messages: Anthropic.MessageParam[] = []
   for (const m of historico) {
+    if (!m.conteudo?.trim()) continue
     const role: 'user' | 'assistant' = m.direcao === 'out' ? 'assistant' : 'user'
     const last = messages[messages.length - 1]
     if (last && last.role === role && typeof last.content === 'string') {
@@ -623,16 +628,20 @@ export async function processarMensagem(
     }
   }
 
+  // A própria mensagem recebida pode vir vazia (mídia sem legenda, reação, sticker).
+  // Nunca mandar string vazia pra API — usa um marcador legível.
+  const msgRecebida = mensagemRecebida?.trim() || '[o lead enviou uma mensagem sem texto — mídia, áudio ou anexo]'
+
   // A mensagem recebida normalmente já está no histórico (o webhook salva
   // antes de chamar Claude). Só appenda se por alguma razão não estiver.
   const ultimaUser = messages[messages.length - 1]
   if (!ultimaUser || ultimaUser.role !== 'user') {
-    messages.push({ role: 'user', content: mensagemRecebida })
+    messages.push({ role: 'user', content: msgRecebida })
   } else if (
     typeof ultimaUser.content === 'string' &&
-    !ultimaUser.content.includes(mensagemRecebida)
+    !ultimaUser.content.includes(msgRecebida)
   ) {
-    ultimaUser.content = `${ultimaUser.content}\n${mensagemRecebida}`
+    ultimaUser.content = `${ultimaUser.content}\n${msgRecebida}`
   }
 
   // Claude exige que a conversa comece com 'user'. Se começar com assistant,
@@ -642,7 +651,7 @@ export async function processarMensagem(
   }
 
   if (messages.length === 0) {
-    messages.push({ role: 'user', content: mensagemRecebida })
+    messages.push({ role: 'user', content: msgRecebida })
   }
 
   // Envelopa o conteúdo da última mensagem do lead em <mensagem_lead>...</mensagem_lead>

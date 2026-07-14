@@ -540,7 +540,14 @@ export async function POST(req: NextRequest) {
   if (!isAutoReprocess) {
     // Salva mensagem recebida imediatamente (antes do lock), já com o mId
     // pra travar futuros retries via índice UNIQUE.
-    await saveMensagem(lead.id, 'in', conteudo, undefined, mId || null)
+    //
+    // NUNCA gravar conteúdo vazio (bug 14/07 — lead Gfourr): mídia/reação sem
+    // corpo virava uma linha 'in' vazia; no turno seguinte ela entrava no
+    // histórico como user message "" e a Claude API rejeitava com 400
+    // ("user messages must have non-empty content") em TODAS as voltas — o lead
+    // ficava preso no fallback pra sempre. Marcador legível no lugar do vazio.
+    const conteudoSalvar = conteudo?.trim() || '[mídia/anexo sem texto]'
+    await saveMensagem(lead.id, 'in', conteudoSalvar, undefined, mId || null)
   }
 
   // 7b. Tenta adquirir lock de processamento exclusivo deste lead
