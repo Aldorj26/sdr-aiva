@@ -150,3 +150,70 @@ export function buildAvisoMatrizMsg(nomeContato: string | null): string {
     `Me conta aqui quantas lojas você tem antes de começar, que eu te oriento no caminho certo. Assim evitamos retrabalho.`
   )
 }
+
+// ─── Sanitização de telefones alucinados ──────────────────────────────────────
+// Bug real 2026-07-14: a VictorIA INVENTOU um telefone ("pode também me ligar:
+// (31) 3360-0197") numa resposta — número que não existe em lugar nenhum do
+// prompt/código. Defesa em profundidade: qualquer telefone na resposta que não
+// esteja na whitelist (oficiais + números ditos pelo próprio lead na conversa)
+// tem a SENTENÇA removida antes do envio.
+
+/** Telefones oficiais que a VictorIA PODE citar (só dígitos, sem 55). */
+export const FONES_OFICIAIS = [
+  '2220290100', // Suporte AIVA cliente final — WhatsApp 22 2029-0100
+]
+
+const soDigitos = (s: string) => s.replace(/\D/g, '')
+
+/** Normaliza pra comparação: tira 55 do início e o 9º dígito (celular). */
+function chaveFone(digitos: string): string {
+  let d = digitos
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2)
+  if (d.length === 11 && d[2] === '9') d = d.slice(0, 2) + d.slice(3)
+  return d
+}
+
+// Padrão de telefone BR em texto: (31) 3360-0197 / 31 99999-8888 / +55 48 ...
+// Guards (?<!\d)/(?!\d) evitam casar dentro de sequências longas (protocolos, CNPJ).
+const RE_FONE = /(?<!\d)(?:\+?55[\s.-]*)?\(?\d{2}\)?[\s.-]*\d{4,5}[\s.-]?\d{4}(?!\d)/g
+
+/**
+ * Remove da mensagem qualquer telefone que não esteja na whitelist.
+ * `permitidosExtras`: números legítimos do contexto (telefone do lead,
+ * telefone_socio coletado, números que o lead escreveu na conversa).
+ */
+export function removeFonesNaoOficiais(
+  mensagem: string,
+  permitidosExtras: string[] = []
+): { texto: string; removidos: string[] } {
+  const whitelist = new Set(
+    [...FONES_OFICIAIS, ...permitidosExtras].map((f) => chaveFone(soDigitos(f))).filter(Boolean)
+  )
+  const removidos: string[] = []
+
+  const achados = mensagem.match(RE_FONE) ?? []
+  const proibidos = achados.filter((f) => !whitelist.has(chaveFone(soDigitos(f))))
+  if (proibidos.length === 0) return { texto: mensagem, removidos }
+
+  // Remove a(s) sentença(s) que contêm o número proibido (mantém o resto).
+  let texto = mensagem
+  for (const fone of proibidos) {
+    removidos.push(fone)
+    const linhas = texto.split('\n').map((linha) => {
+      if (!linha.includes(fone)) return linha
+      const sentencas = linha.split(/(?<=[.!?])\s+/).filter((s) => !s.includes(fone))
+      return sentencas.join(' ')
+    })
+    texto = linhas.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  }
+
+  // Rede de segurança: se a remoção de sentenças esvaziou a mensagem,
+  // volta pra original só arrancando os números em si.
+  if (!texto) {
+    texto = mensagem
+    for (const fone of proibidos) texto = texto.split(fone).join('')
+    texto = texto.trim()
+  }
+
+  return { texto, removidos }
+}

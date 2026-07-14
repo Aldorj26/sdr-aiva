@@ -3,6 +3,7 @@ import Groq, { toFile } from 'groq-sdk'
 import { AIVA_SYSTEM_PROMPT } from '@/prompts/aiva'
 import { TRIAGEM_SYSTEM_PROMPT } from '@/prompts/triagem'
 import type { Mensagem } from '@/lib/supabase'
+import { removeFonesNaoOficiais } from '@/lib/text'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -739,5 +740,24 @@ export async function processarMensagem(
     throw new Error(`Claude não retornou JSON válido: ${text.substring(0, 200)}`)
   }
   const parsed = JSON.parse(jsonMatch[0]) as ClaudeResponse
+
+  // Defesa contra telefone ALUCINADO (bug 2026-07-14: VictorIA inventou
+  // "(31) 3360-0197" numa resposta). Remove qualquer fone que não seja oficial
+  // nem tenha vindo do próprio lead (conversa/dados coletados).
+  if (parsed.mensagem) {
+    const ditosPeloLead = [
+      ...historico.filter((m) => m.direcao === 'in').map((m) => m.conteudo),
+      mensagemRecebida,
+      dadosAcumulados?.telefone_socio ?? '',
+    ]
+      .join(' ')
+      .match(/(?<!\d)(?:\+?55[\s.-]*)?\(?\d{2}\)?[\s.-]*\d{4,5}[\s.-]?\d{4}(?!\d)/g) ?? []
+    const { texto, removidos } = removeFonesNaoOficiais(parsed.mensagem, ditosPeloLead)
+    if (removidos.length > 0) {
+      console.warn(`[fone-alucinado] removido(s) da resposta: ${removidos.join(', ')}`)
+      parsed.mensagem = texto
+    }
+  }
+
   return parsed
 }
