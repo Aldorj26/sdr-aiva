@@ -1611,6 +1611,21 @@ export async function POST(req: NextRequest) {
       `12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.`
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)
+  } else if (
+    resposta.motivo_humano?.startsWith('dados_colaborador_coletados') &&
+    !(lead.observacoes ?? '').includes('dados_colaborador_coletados')
+  ) {
+    // 📋 Campanha "está vendendo?" (14/07): VictorIA fechou a coleta de dados de
+    // colaborador(es) — manda o resumo COMPLETO pro Nei/Aldo. Branch próprio,
+    // ANTES do 🔔: não depende da transição do acionar_humano (que engoliria o
+    // aviso se o lead já estivesse marcado). Dedupe: o motivo do turno anterior
+    // fica nas observações — se já contém o marcador, não re-alerta.
+    const msg =
+      `📋 *${lead.nome}* (${lead.telefone}) mandou dados de colaborador(es) pra cadastrar na plataforma:\n\n` +
+      `${resposta.motivo_humano}\n\n` +
+      `(Dados completos também na conversa — painel ou Evo Talks.)`
+    if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+    if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
   } else if (resposta.acionar_humano && !autoDetected && !lead.acionar_humano) {
     // Auto-detectado não alerta humanos (seria spam a cada msg do bot do outro lado).
     // O lead fica visível no filtro /?aguardando_humano=true do painel se quiserem revisar.

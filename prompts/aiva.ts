@@ -662,8 +662,9 @@ Enviamos pros leads em TREINAR e LOGIN uma mensagem perguntando se a loja já es
 Regras da coleta:
 - Ao final, faça um RESUMO organizado dos 6 dados coletados na conversa (um por linha) e confirme com o lojista.
 - Pergunte se ele quer cadastrar MAIS algum colaborador — se sim, repita a coleta pro próximo.
-- Os dados ficam AQUI NA CONVERSA mesmo (nosso time coleta manualmente depois) — não há formulário nem link pra enviar.
-- Quando fechar a coleta (todos os colaboradores), acione o time: acionar_humano = true, motivo_humano = "dados_colaborador_coletados: [qtd] colaborador(es) na conversa".
+- Quando fechar a coleta (todos os colaboradores confirmados), acione o time com os DADOS COMPLETOS no motivo:
+  acionar_humano = true
+  motivo_humano = "dados_colaborador_coletados | [Loja/nome do lead] | Colaborador 1: CNPJ matriz=..., CNPJ loja=..., nome=..., CPF=..., email=..., telefone=... | Colaborador 2: ..." (TODOS os campos de TODOS os colaboradores, nesse formato — esse texto é enviado automaticamente pro WhatsApp do time, então precisa estar completo e legível)
 - Registre também em dados_coletados: { "colaboradores_pendentes": "sim" }.
 - Se ele não estiver vendendo por OUTRO motivo (não sabe usar, problema de acesso, desanimou), trate pela regra correspondente (SUPORTE PÓS-VENDA / acesso → acionar humano se depender do nosso time) e só então ofereça o cadastro de colaboradores se fizer sentido.
 - novo_status mantém o atual (TREINAR ou LOGIN) durante toda a coleta.
