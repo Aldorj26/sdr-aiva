@@ -399,22 +399,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignorado: 'telefone_invalido' })
     }
 
-    console.log(`Lead desconhecido ${telNormalizado} — criando como TRIAGEM (inbound puro)`)
+    console.log(`Lead desconhecido ${telNormalizado} — criando como AIVA (inbound)`)
 
-    // Lead totalmente novo (não existe em nenhum produto) → TRIAGEM.
-    // VictorIA usa prompt de triagem pra identificar produto desejado e
-    // tirar dúvidas básicas. Aldo + Nei recebem alerta WhatsApp pra fazer
-    // contato direto.
+    // Lead inbound novo → produto AIVA direto. A TRIAGEM (AIVA vs Singlo) foi
+    // REMOVIDA em 2026-07-14 (decisão do Aldo): este número atende SÓ AIVA.
+    // A VictorIA usa o prompt AIVA desde a 1ª mensagem (claude.ts escolhe AIVA
+    // pra qualquer produto != TRIAGEM). A oportunidade é aberta LOGO ABAIXO, na
+    // chegada, pra o atendimento ficar registrado no funil desde o começo.
     const { data: novoLead, error: insertErr } = await supabaseAdmin
       .from('sdr_leads')
       .insert({
         nome: 'Loja',
         telefone: telNormalizado,
-        produto: 'TRIAGEM',
-        status: 'INTERESSADO',
+        produto: 'AIVA',
+        status: 'INICIO',
         etapa_cadencia: 1,
-        acionar_humano: true,
-        observacoes: '[INBOUND_TRIAGEM] Lead chegou sem prospeccao previa — Aldo/Nei vao fazer contato direto',
+        acionar_humano: false,
+        observacoes: '[INBOUND] Lead organico — chegou sem prospeccao previa',
         data_disparo_inicial: new Date().toISOString(),
         data_ultimo_contato: new Date().toISOString(),
         evotalks_chat_id: chatId || null,
@@ -437,15 +438,39 @@ export async function POST(req: NextRequest) {
     } else {
       lead = novoLead as Lead
       leadEhInboundNovo = true
-      console.log(`Lead TRIAGEM criado: ${lead.id} (${telNormalizado})`)
+      console.log(`Lead AIVA inbound criado: ${lead.id} (${telNormalizado})`)
     }
 
-    // NÃO criamos opp aqui — esperamos a VictorIA TRIAGEM identificar qual produto
-    // interessa (AIVA ou Singlo) na conversa pra criar na pipeline correta.
-    // A criação acontece na seção 13 (logo depois da resposta da VictorIA) baseada
-    // em dados_coletados.produto_interesse.
+    // Abre a oportunidade no funil AIVA JÁ NA CHEGADA (etapa Início), com o chat
+    // vinculado (fkChat) — assim o atendimento fica registrado no funil desde a
+    // 1ª mensagem. Antes a opp só nascia quando a VictorIA marcava INTERESSADO,
+    // então a conversa inicial ficava fora do funil (pedido do Aldo 2026-07-14).
+    if (leadEhInboundNovo) {
+      try {
+        const oppInbound = await createOpportunity({
+          title: '(inbound) Loja — AIVA',
+          number: lead.telefone,
+          stageId: STAGES.INICIO,
+          chatId: chatId || lead.evotalks_chat_id || undefined,
+          clientId: clientId || lead.evotalks_client_id || undefined,
+        })
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ evotalks_opportunity_id: String(oppInbound) })
+          .eq('id', lead.id)
+        lead.evotalks_opportunity_id = String(oppInbound)
+        try {
+          await addOpportunityTags(oppInbound, [TAG_IDS.AIVA, TAG_IDS.INBOUND])
+        } catch (err) {
+          console.log(`CRM: erro ao aplicar tags na opp inbound #${oppInbound}:`, err)
+        }
+        console.log(`CRM: Opp AIVA inbound #${oppInbound} criada na chegada (etapa Início) — ${lead.telefone}`)
+      } catch (err) {
+        console.error(`CRM: falha ao criar opp inbound pra ${lead.telefone}:`, err)
+      }
+    }
 
-    // Alerta WhatsApp pra Aldo + Nei na PRIMEIRA mensagem inbound de lead novo TRIAGEM.
+    // Alerta WhatsApp pra Aldo + Nei na PRIMEIRA mensagem inbound de lead novo.
     if (leadEhInboundNovo) {
       try {
         const msgPreview = (conteudo || '').slice(0, 200) || '(mensagem vazia ou só audio/midia)'
