@@ -27,9 +27,10 @@ async function getRecentLeads(
   lockTravado?: string,
   disparoDia?: string,
   etapa?: string,
+  inbound?: string,
 ) {
   const temFiltro = Boolean(
-    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa,
+    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa || inbound,
   )
 
   // Filtro por etapa do Evo é aplicado em memória (a etapa não está no banco),
@@ -53,6 +54,12 @@ async function getRecentLeads(
 
   if (pausados === 'true') {
     query = query.like('observacoes', '%[PAUSA_ATE:%')
+  }
+
+  // Inbound: leads que chegaram organicamente (marcador [INBOUND] ou o antigo
+  // [INBOUND_TRIAGEM]) — ambos começam com "[INBOUND".
+  if (inbound === 'true') {
+    query = query.like('observacoes', '%[INBOUND%')
   }
 
   if (followupHoje === 'true') {
@@ -396,6 +403,7 @@ export default async function Page({
     lock_travado?: string
     disparo_dia?: string
     etapa?: string
+    inbound?: string
   }>
 }) {
   const sp = await searchParams
@@ -411,6 +419,7 @@ export default async function Page({
       sp.lock_travado,
       sp.disparo_dia,
       sp.etapa,
+      sp.inbound,
     ),
     getAgora(),
     getPrecisamAtendimento(),
@@ -434,7 +443,8 @@ export default async function Page({
       sp.followup_hoje ||
       sp.lock_travado ||
       sp.disparo_dia ||
-      sp.etapa,
+      sp.etapa ||
+      sp.inbound,
   )
   const total = metricas.reduce((s: number, m: { total: number }) => s + Number(m.total), 0)
 

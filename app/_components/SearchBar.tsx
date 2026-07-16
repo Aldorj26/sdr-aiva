@@ -39,6 +39,7 @@ export default function SearchBar() {
   const [etapa, setEtapa] = useState(sp.get('etapa') ?? '')
   const [importante, setImportante] = useState(sp.get('importante') === 'true')
   const [atendimentoHumano, setAtendimentoHumano] = useState(sp.get('aguardando_humano') === 'true')
+  const [inbound, setInbound] = useState(sp.get('inbound') === 'true')
 
   function apply(
     nextQ: string,
@@ -46,6 +47,7 @@ export default function SearchBar() {
     nextEtapa: string,
     nextImportante: boolean,
     nextAH: boolean,
+    nextInbound: boolean,
   ) {
     const params = new URLSearchParams()
     if (nextQ.trim()) params.set('q', nextQ.trim())
@@ -53,6 +55,7 @@ export default function SearchBar() {
     if (nextEtapa) params.set('etapa', nextEtapa)
     if (nextImportante) params.set('importante', 'true')
     if (nextAH) params.set('aguardando_humano', 'true')
+    if (nextInbound) params.set('inbound', 'true')
     router.push(params.toString() ? `/?${params.toString()}` : '/')
   }
 
@@ -72,7 +75,7 @@ export default function SearchBar() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          apply(q, status, etapa, importante, atendimentoHumano)
+          apply(q, status, etapa, importante, atendimentoHumano, inbound)
         }}
       >
         <input
@@ -89,7 +92,7 @@ export default function SearchBar() {
           value={status}
           onChange={(e) => {
             setStatus(e.target.value)
-            apply(q, e.target.value, etapa, importante, atendimentoHumano)
+            apply(q, e.target.value, etapa, importante, atendimentoHumano, inbound)
           }}
           style={inputStyle}
         >
@@ -104,7 +107,7 @@ export default function SearchBar() {
           value={etapa}
           onChange={(e) => {
             setEtapa(e.target.value)
-            apply(q, status, e.target.value, importante, atendimentoHumano)
+            apply(q, status, e.target.value, importante, atendimentoHumano, inbound)
           }}
           style={inputStyle}
         >
@@ -119,7 +122,7 @@ export default function SearchBar() {
           onClick={() => {
             const next = !atendimentoHumano
             setAtendimentoHumano(next)
-            apply(q, status, etapa, importante, next)
+            apply(q, status, etapa, importante, next, inbound)
           }}
           style={{
             background: atendimentoHumano ? '#fef3c7' : 'var(--bg-elev)',
@@ -140,7 +143,7 @@ export default function SearchBar() {
           onClick={() => {
             const next = !importante
             setImportante(next)
-            apply(q, status, etapa, next, atendimentoHumano)
+            apply(q, status, etapa, next, atendimentoHumano, inbound)
           }}
           style={{
             background: importante ? '#fff3e9' : 'var(--bg-elev)',
@@ -157,7 +160,28 @@ export default function SearchBar() {
         >
           ★ Importante
         </button>
-        {(q || status || etapa || importante || atendimentoHumano) && (
+        <button
+          onClick={() => {
+            const next = !inbound
+            setInbound(next)
+            apply(q, status, etapa, importante, atendimentoHumano, next)
+          }}
+          style={{
+            background: inbound ? '#e0f2fe' : 'var(--bg-elev)',
+            border: inbound ? '1px solid #0284c7' : '1px solid var(--border-strong)',
+            color: inbound ? '#075985' : 'var(--text-muted)',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.85rem',
+            fontWeight: inbound ? 600 : 400,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          📥 Inbound
+        </button>
+        {(q || status || etapa || importante || atendimentoHumano || inbound) && (
           <button
             onClick={() => {
               setQ('')
@@ -165,6 +189,7 @@ export default function SearchBar() {
               setEtapa('')
               setImportante(false)
               setAtendimentoHumano(false)
+              setInbound(false)
               router.push('/')
             }}
             style={{
