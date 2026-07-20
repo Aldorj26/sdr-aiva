@@ -99,6 +99,7 @@ export default function LeadDrawer() {
   const [showInfo, setShowInfo] = useState(false)
   const [infoText, setInfoText] = useState('')
   const [sendingInfo, setSendingInfo] = useState(false)
+  const [infoAnexo, setInfoAnexo] = useState<File | null>(null)
 
   // Estado do painel de edição
   const [showEdit, setShowEdit] = useState(false)
@@ -174,26 +175,59 @@ export default function LeadDrawer() {
 
   // Envia uma informação pendente — mensagem manual do operador, SEM contexto/IA.
   // Abre nova interação: texto livre se janela aberta; template HSM 21 se cliente frio.
+  // Lê um File → base64 (sem o prefixo data:) + dimensões se for imagem.
+  async function lerAnexo(file: File): Promise<{ fileName: string; mimeType: string; base64: string; width?: number; height?: number }> {
+    const base64: string = await new Promise((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => resolve(String(r.result).split(',')[1] ?? '')
+      r.onerror = () => reject(new Error('falha ao ler arquivo'))
+      r.readAsDataURL(file)
+    })
+    let width: number | undefined
+    let height: number | undefined
+    if (file.type.startsWith('image/')) {
+      const dims = await new Promise<{ w: number; h: number } | null>((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
+        img.onerror = () => resolve(null)
+        img.src = URL.createObjectURL(file)
+      })
+      if (dims) { width = dims.w; height = dims.h }
+    }
+    return { fileName: file.name, mimeType: file.type || 'application/octet-stream', base64, width, height }
+  }
+
   async function sendInfoPendente() {
-    if (!leadId || !infoText.trim()) return
+    if (!leadId) return
+    if (!infoText.trim() && !infoAnexo) return
+    // Limite de segurança: o body vai em JSON pro serverless (teto ~4,5 MB no Vercel).
+    if (infoAnexo && infoAnexo.size > 3 * 1024 * 1024) {
+      window.alert('Arquivo muito grande (máx. 3 MB). Comprima ou envie direto pelo WhatsApp.')
+      return
+    }
     setSendingInfo(true)
     try {
+      const body: Record<string, unknown> = { type: 'send-info', mensagem: infoText.trim() }
+      if (infoAnexo) body.anexo = await lerAnexo(infoAnexo)
       const res = await fetch(`/api/leads/${leadId}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'send-info', mensagem: infoText.trim() }),
+        body: JSON.stringify(body),
       })
       const json = await res.json()
       if (!res.ok) {
-        window.alert(`Erro: ${json.error ?? 'desconhecido'}`)
+        window.alert(json.info ?? `Erro: ${json.error ?? 'desconhecido'}`)
         return
       }
       const via =
-        json.modo === 'hsm'
-          ? 'via template (cliente estava frio — a conversa foi reaberta)'
-          : 'como texto livre (janela aberta)'
+        json.modo === 'anexo'
+          ? 'com o anexo (janela aberta)'
+          : json.modo === 'hsm'
+            ? 'via template (cliente estava frio — a conversa foi reaberta)'
+            : 'como texto livre (janela aberta)'
       window.alert(`✅ Informação enviada ${via}.`)
       setInfoText('')
+      setInfoAnexo(null)
       setShowInfo(false)
       await refreshDrawer()
     } catch (err) {
@@ -605,23 +639,65 @@ export default function LeadDrawer() {
                   />
                   <button
                     onClick={sendInfoPendente}
-                    disabled={sendingInfo || !infoText.trim()}
+                    disabled={sendingInfo || (!infoText.trim() && !infoAnexo)}
                     style={{
                       background: sendingInfo ? 'var(--border-strong)' : '#8b5cf6',
                       border: 'none',
                       color: '#fff',
                       padding: '0.5rem 0.9rem',
                       borderRadius: 6,
-                      cursor: sendingInfo || !infoText.trim() ? 'not-allowed' : 'pointer',
+                      cursor: sendingInfo || (!infoText.trim() && !infoAnexo) ? 'not-allowed' : 'pointer',
                       fontFamily: 'inherit',
                       fontSize: '0.82rem',
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
-                      opacity: !infoText.trim() ? 0.5 : 1,
+                      opacity: !infoText.trim() && !infoAnexo ? 0.5 : 1,
                     }}
                   >
                     {sendingInfo ? 'Enviando...' : 'Enviar'}
                   </button>
+                </div>
+
+                {/* Anexar arquivo — só entregue com a janela 24h aberta */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      cursor: 'pointer',
+                      color: '#6d28d9',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      border: '1px dashed #c4b5fd',
+                      borderRadius: 6,
+                      padding: '0.35rem 0.6rem',
+                    }}
+                  >
+                    📎 Anexar arquivo
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      style={{ display: 'none' }}
+                      onChange={(e) => setInfoAnexo(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  {infoAnexo && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text)' }}>
+                      {infoAnexo.type.startsWith('image/') ? '🖼️' : '📄'} {infoAnexo.name}
+                      <span style={{ color: 'var(--text-muted)' }}>({(infoAnexo.size / 1024).toFixed(0)} KB)</span>
+                      <button
+                        onClick={() => setInfoAnexo(null)}
+                        style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.85rem', padding: 0 }}
+                        title="Remover anexo"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', width: '100%' }}>
+                    Anexo só é entregue com a conversa aberta (lojista respondeu nas últimas 24h). Máx. 3 MB.
+                  </span>
                 </div>
               </div>
             )}

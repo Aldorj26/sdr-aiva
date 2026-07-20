@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
-import { sendText, sendTemplate } from '@/lib/evotalks'
+import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
 
@@ -11,10 +11,16 @@ type Action =
   | { type: 'mark-descartado' }
   | { type: 'unlock' }
   | { type: 'send-manual'; mensagem: string }
+  | {
+      type: 'send-info'
+      mensagem: string
+      anexo?: { fileName: string; mimeType: string; base64: string; width?: number; height?: number }
+    }
   | { type: 'reprocess' }
   | { type: 'approve' }
   | { type: 'update-lead'; nome?: string; cidade?: string; observacoes?: string }
   | { type: 'mark-atendido' }
+  | { type: 'update-instrucao'; instrucao: string }
 
 export async function POST(
   req: NextRequest,
@@ -25,7 +31,7 @@ export async function POST(
 
   const { data: lead, error: leadErr } = await supabaseAdmin
     .from('sdr_leads')
-    .select('observacoes, telefone, evotalks_chat_id, nome')
+    .select('observacoes, telefone, evotalks_chat_id, nome, evotalks_opportunity_id')
     .eq('id', id)
     .maybeSingle()
   if (leadErr || !lead) {
@@ -82,6 +88,116 @@ export async function POST(
       .eq('id', id)
 
     return NextResponse.json({ ok: true, action: 'send-manual' })
+  }
+
+  // ─── Enviar INFORMAÇÃO PENDENTE (mensagem manual do operador, SEM contexto/IA) ──
+  // Abre uma nova interação com o cliente pra mandar uma info que ficou pendente.
+  // Janela 24h aberta → texto livre exato. Fechada → template HSM 21 ("Olá {{1}}, {{2}}")
+  // com o texto do operador no {{2}} (reabre a conversa). NÃO passa pela VictorIA.
+  if (action.type === 'send-info') {
+    const texto = action.mensagem?.trim() ?? ''
+    const anexo = action.anexo
+    // Com anexo, o texto pode ser vazio (vira só a mídia). Sem anexo, exige texto.
+    if (!texto && !anexo) return NextResponse.json({ error: 'mensagem_vazia' }, { status: 400 })
+
+    const { data: janelaRow } = await supabaseAdmin
+      .from('sdr_mensagens')
+      .select('enviado_em')
+      .eq('lead_id', id)
+      .eq('direcao', 'in')
+      .gte('enviado_em', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('enviado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // ANEXO só é possível com a JANELA 24h ABERTA — mídia é mensagem de texto
+    // livre, e o HSM de reabertura não carrega arquivo. Fora da janela, bloqueia
+    // com uma explicação clara (o operador manda o texto pra reabrir e anexa
+    // depois que o lojista responder).
+    if (anexo && !janelaRow) {
+      return NextResponse.json(
+        {
+          error: 'janela_fechada_anexo',
+          info: 'Não dá pra enviar anexo agora: o lojista não responde há mais de 24h (janela do WhatsApp fechada). Anexo só vai como conversa aberta. Mande só o texto pra reabrir a conversa e, quando o lojista responder, anexe o arquivo.',
+        },
+        { status: 409 }
+      )
+    }
+
+    if (janelaRow) {
+      try {
+        if (anexo) {
+          // Sobe o arquivo pro Evo e envia como mídia com o texto de legenda.
+          const chatId = lead.evotalks_chat_id ? Number(lead.evotalks_chat_id) : await getOpenChatId(lead.telefone)
+          if (!chatId) throw new Error('chat_aberto_nao_encontrado')
+          const fileId = await uploadFileToEvo({
+            fileName: anexo.fileName,
+            mimeType: anexo.mimeType,
+            base64: anexo.base64,
+            width: anexo.width,
+            height: anexo.height,
+          })
+          await sendFileToChat(chatId, fileId, texto)
+          // Registra no histórico com o marcador de mídia (mesmo formato do inbound,
+          // pra o painel exibir a imagem/arquivo que FOI ENVIADO pelo operador).
+          const marcador = anexo.mimeType.startsWith('image/')
+            ? `[LEAD_ENVIOU_IMAGEM:${fileId}]`
+            : `[LEAD_ENVIOU_ARQUIVO:${fileId}:${anexo.mimeType}]`
+          await supabaseAdmin.from('sdr_mensagens').insert(
+            texto
+              ? [
+                  { lead_id: id, direcao: 'out', conteudo: `[Anexo enviado (manual via painel)] ${texto}` },
+                  { lead_id: id, direcao: 'out', conteudo: marcador },
+                ]
+              : [{ lead_id: id, direcao: 'out', conteudo: marcador }]
+          )
+        } else {
+          // Janela aberta, sem anexo → texto livre exato (sem template)
+          await sendText(lead.telefone, texto, lead.evotalks_chat_id)
+          await supabaseAdmin.from('sdr_mensagens').insert({
+            lead_id: id,
+            direcao: 'out',
+            conteudo: `[Info pendente (manual via painel)] ${texto}`,
+          })
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        return NextResponse.json({ error: `envio_falhou: ${msg}` }, { status: 500 })
+      }
+      await supabaseAdmin
+        .from('sdr_leads')
+        .update({ data_ultimo_contato: new Date().toISOString() })
+        .eq('id', id)
+      return NextResponse.json({ ok: true, action: 'send-info', modo: anexo ? 'anexo' : 'texto_livre', mensagem: texto })
+    }
+
+    // Janela fechada (sem anexo) → template HSM 21 com o texto do operador no {{2}}
+    const templateId = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
+    if (!templateId) {
+      return NextResponse.json({ error: 'template_reativacao_nao_configurado' }, { status: 500 })
+    }
+    const nomeBase = normalizaNome(lead.nome) ?? 'lojista'
+    try {
+      await sendTemplate(lead.telefone, templateId, [nomeBase, texto])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({ error: `template_falhou: ${msg}` }, { status: 500 })
+    }
+    const textoCompleto = `Olá ${nomeBase}, ${texto}`
+    await supabaseAdmin.from('sdr_mensagens').insert([
+      {
+        lead_id: id,
+        direcao: 'out',
+        conteudo: `[Info pendente (manual via painel, HSM) — ${nomeBase}]`,
+        template_hsm: 'aiva_reativacao_48h',
+      },
+      { lead_id: id, direcao: 'out', conteudo: textoCompleto },
+    ])
+    await supabaseAdmin
+      .from('sdr_leads')
+      .update({ data_ultimo_contato: new Date().toISOString() })
+      .eq('id', id)
+    return NextResponse.json({ ok: true, action: 'send-info', modo: 'hsm', mensagem: textoCompleto })
   }
 
   if (action.type === 'update-lead') {
@@ -181,11 +297,11 @@ export async function POST(
         : []),
     ])
 
-    // 4) Marca lead como FORMULARIO_ENVIADO
+    // 4) Marca lead como CADASTRO_RECEBIDO
     await supabaseAdmin
       .from('sdr_leads')
       .update({
-        status: 'FORMULARIO_ENVIADO',
+        status: 'CADASTRO_RECEBIDO',
         data_ultimo_contato: new Date().toISOString(),
         data_proximo_followup: null,
       })
@@ -440,6 +556,16 @@ export async function POST(
     })
   }
 
+  if (action.type === 'update-instrucao') {
+    const instrucao = action.instrucao?.trim() || null
+    const { error } = await supabaseAdmin
+      .from('sdr_leads')
+      .update({ instrucao_silvia: instrucao })
+      .eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, action: 'update-instrucao', instrucao })
+  }
+
   // ─── Ações que atualizam colunas simples ─────────────────────────────────
 
   const updates: Record<string, unknown> = {}
@@ -470,6 +596,8 @@ export async function POST(
       const carimbo = `[ATENDIDO_HUMANO:${new Date().toISOString()}]`
       const base = (lead.observacoes ?? '').replace(/\s*\[ATENDIDO_HUMANO:[^\]]+\]/, '')
       updates.observacoes = `${base} ${carimbo}`.trim()
+      // Atendimento humano é controlado só pelo painel (acionar_humano) — sem
+      // etiqueta no Evo desde 29/05/2026. Nada a fazer no CRM aqui.
       break
     }
     case 'unlock': {

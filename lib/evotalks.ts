@@ -120,6 +120,44 @@ export async function getChatMessages(
 }
 
 /**
+ * Sobe um arquivo pro Evo Talks e devolve o fileId (usado depois no envio).
+ * Contrato descoberto 2026-07-20: JSON com `data` (base64). Pra imagem, o Evo
+ * EXIGE width/height — sem eles retorna 400.
+ */
+export async function uploadFileToEvo(opts: {
+  fileName: string
+  mimeType: string
+  base64: string
+  width?: number
+  height?: number
+}): Promise<number> {
+  const body: Record<string, unknown> = {
+    fileName: opts.fileName,
+    mimeType: opts.mimeType,
+    data: opts.base64,
+  }
+  if (opts.width && opts.height) {
+    body.width = opts.width
+    body.height = opts.height
+  }
+  const res = await post<{ fileId: number }>('/int/uploadFile', body)
+  return res.fileId
+}
+
+/**
+ * Envia um arquivo (já subido via uploadFileToEvo) num chat aberto. O `caption`
+ * vira a legenda da mídia. Só entrega com a janela 24h ABERTA — media é mensagem
+ * de texto livre, não passa por HSM.
+ */
+export async function sendFileToChat(
+  chatId: number,
+  fileId: number,
+  caption = ''
+): Promise<{ mId: string; kId: number }> {
+  return post<{ mId: string; kId: number }>('/int/sendMessageToChat', { chatId, text: caption, fileId })
+}
+
+/**
  * Envia uma mensagem de texto em um chat já aberto (via chatId).
  */
 export async function sendMessageToChat(
