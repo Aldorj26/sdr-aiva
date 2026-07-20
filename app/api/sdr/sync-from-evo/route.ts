@@ -132,11 +132,22 @@ export async function POST(req: NextRequest) {
       idsParaUpdate[novoStatus].push(lead.id)
     }
 
+    // Status em que "aguardando atendimento humano" não faz sentido: o lead saiu
+    // do funil ativo (ou é um bot). O webhook já ignora esses status por completo,
+    // então manter a flag só polui o filtro do painel.
+    //
+    // Bug 2026-07-20: o sync trocava só o status e deixava o acionar_humano antigo
+    // pendurado — 39 leads apareceram como "BOT_DETECTADO + humano" no painel logo
+    // depois de um sync. A flag vinha de quando o lead ainda estava ativo.
+    const STATUS_SEM_HUMANO = ['BOT_DETECTADO', 'DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO']
+
     // Update em batch por status
     for (const [status, ids] of Object.entries(idsParaUpdate)) {
+      const patch: Record<string, unknown> = { status }
+      if (STATUS_SEM_HUMANO.includes(status)) patch.acionar_humano = false
       const { error } = await supabaseAdmin
         .from('sdr_leads')
-        .update({ status })
+        .update(patch)
         .in('id', ids)
       if (error) {
         erros.push(`batch ${status} (${ids.length} leads): ${error.message}`)
