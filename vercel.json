@@ -1,28 +1,48 @@
 {
   "crons": [
     {
-      "path": "/api/sdr/nudge",
-      "schedule": "0 15 * * *"
+      "path": "/api/sdr/sync-from-evo",
+      "schedule": "0 10 * * 1-5"
     },
     {
-      "path": "/api/sdr/followup",
-      "schedule": "0 14 * * *"
+      "path": "/api/sdr/auto-descarte",
+      "schedule": "0 13 * * 1-5"
     },
     {
       "path": "/api/sdr/reativacao",
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/sdr/auditoria",
-      "schedule": "0 8 * * *"
+      "path": "/api/sdr/followup",
+      "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/sdr/briefing-aldo",
-      "schedule": "55 11 * * 1-5"
+      "path": "/api/sdr/nudge",
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/sdr/followup-fase",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/sdr/briefing-pipeline",
+      "schedule": "0 8 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/consultoria-vendas",
+      "schedule": "0 17 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/cadastro-recebido-cobranca",
+      "schedule": "0 18 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/reengajamento",
+      "schedule": "0 19 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/auto-reprocess",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
