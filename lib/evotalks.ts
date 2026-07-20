@@ -183,16 +183,31 @@ export async function openChatAndSend(
  * Retorna o chatId/clientId/kId quando disponíveis na resposta da Evo Talks —
  * útil para enviar mensagens livres logo em seguida sem precisar buscar o chat.
  */
+/**
+ * Sanitiza um parâmetro de template HSM pra atender a regra da Meta.
+ * A WhatsApp Cloud API rejeita (erro #132018) qualquer variável de template
+ * que contenha quebra de linha, tab ou mais de 4 espaços consecutivos.
+ * Texto gerado por LLM (ex.: miolo de retomada da VictorIA) costuma vir com
+ * \n — então normalizamos: \r\n\t viram espaço e runs de espaço colapsam pra 1.
+ */
+function sanitizeTemplateParam(v: string): string {
+  return (v ?? '')
+    .replace(/[\r\n\t]+/g, ' ') // quebras de linha e tabs → espaço
+    .replace(/ {2,}/g, ' ')      // 2+ espaços consecutivos → 1
+    .trim()
+}
+
 export async function sendTemplate(
   number: string,
   templateId: number,
   vars: string[] = [],
   openNewChat = true
 ): Promise<{ chatId?: number; clientId?: number; kId?: number; raw: Record<string, unknown> }> {
+  const varsSanitizadas = vars.map(sanitizeTemplateParam)
   const data = await post<Record<string, unknown>>('/int/sendWaTemplate', {
     number,
     templateId,
-    data: vars,
+    data: varsSanitizadas,
     openNewChat,
   })
   console.log(`sendTemplate response for ${number} (template ${templateId}):`, JSON.stringify(data))
@@ -489,18 +504,41 @@ export async function alertHuman(
 export const PIPELINE_AIVA = 15
 export const PIPELINE_SINGLO = 17
 
+// Stages do funil AIVA (pipeline 15) — IDs reais do Evo Talks.
+// ATUALIZADO 2026-06-03: alinhado com o Kanban real. Antes tinha
+// CAF_PENDENTE:51 / VALIDACAO_CONCLUIDA:52 / TREINA:70 (obsoletos).
+// Hoje: 51 = Loja Finalizada e Vendendo, 70 = Treinar, 71 = Login.
 const STAGES = {
   INICIO: 66,
   INTERESSADO: 47,
   SEM_RESPOSTA: 53,
   PRE_APROVACAO: 54,
   CADASTRO_RECEBIDO: 49,
-  EM_ANALISE: 50,
-  CAF_PENDENTE: 51,
-  VALIDACAO_CONCLUIDA: 52,
+  EM_ANALISE_AIVA: 50,
+  TREINAR: 70,
+  LOGIN: 71,
+  LOJA_FINALIZADA_E_VENDENDO: 51,
   BOT_DETECTADO: 69,
-  TREINA: 70,
 } as const
+
+// Progressão LINEAR do funil (ordem de avanço) por ID de stage. Usada por
+// changeStageSeAvanco (abaixo) pra impedir que movimentos automáticos da
+// VictorIA REGRIDAM uma opp que um humano (ou etapa posterior) já avançou.
+// Stages laterais (SEM_RESPOSTA 53, BOT_DETECTADO 69) ficam FORA — sem ordem.
+//
+// Bug raiz (03/06/2026 — "Mundo das Capas"): lead em Cadastro Recebido mandou
+// msg, VictorIA retornou INTERESSADO/PRE_APROVACAO, e o changeOpportunityStage
+// cego regrediu a opp 2 etapas.
+const ORDEM_FUNIL: Record<number, number> = {
+  66: 0, // INICIO
+  47: 1, // INTERESSADO
+  54: 2, // PRE_APROVACAO
+  49: 3, // CADASTRO_RECEBIDO
+  50: 4, // EM_ANALISE_AIVA
+  70: 5, // TREINAR
+  71: 6, // LOGIN
+  51: 7, // LOJA_FINALIZADA_E_VENDENDO
+}
 
 // Stages da pipeline Singlo (id 17). Por enquanto só temos INTERESSADO mapeado;
 // quando o time Singlo precisar dos outros stages (qualificado, proposta, etc.)
@@ -582,7 +620,17 @@ export const TAG_IDS = {
   IMPORTANTE: 74,
   ATENDIMENTO_HUMANO: 76, // nome no Evo Talks é "Atend Humano"
   INBOUND: 77,            // aplicada em toda opp criada a partir de lead inbound (TRIAGEM)
+  ODRES: 79,              // lojista que já usa o crediário da Odres (transferido pro funil 19)
+  UME: 7,                 // lojista que já usa a UME — já é cliente AIVA (transferido pro funil 19)
 } as const
+
+// ─── Funil 19 "Leads de Campanha AIVA" (etapa "Parcelex" 84) ────────────────────
+// Lojistas que já usam Odres OU UME são transferidos pra esse funil. A API do Evo
+// NÃO move opp entre funis — então transferirParaFunil19() recria a opp no funil 19
+// e apaga a antiga. A tag (Odres 79 ou UME 7) é passada por parâmetro.
+export const PIPELINE_FUNIL19 = 19
+const STAGE_FUNIL19_ENTRADA = 67  // etapa inicial do funil 19 (createOpportunity precisa entrar por ela)
+const STAGE_FUNIL19_DESTINO = 84  // etapa "Parcelex" — destino final
 
 /**
  * Tag genérica retornada por /int/getTags (universo de tags do sistema —
@@ -660,6 +708,35 @@ export async function addOpportunityTags(
 }
 
 /**
+ * Remove UMA tag específica de uma oportunidade, preservando as demais.
+ *
+ * O updateOpportunity SUBSTITUI o array de tags inteiro — então pra remover
+ * uma só, busca as tags atuais (getOpportunity), filtra a removida e reescreve.
+ * Usado pra tirar a tag "Atend Humano" (76) quando o lead é marcado como
+ * atendido no painel (acionar_humano = false), mantendo Evo alinhado.
+ *
+ * Fail-soft: erros são logados mas não propagados (não trava o fluxo do painel).
+ */
+export async function removeOpportunityTag(
+  opportunityId: number,
+  tagId: number
+): Promise<void> {
+  try {
+    const opp = await getOpportunity(opportunityId)
+    const atuais = (opp.tags as number[] | undefined) ?? []
+    if (!atuais.includes(tagId)) return // já não tem — nada a fazer
+    const novas = atuais.filter((t) => t !== tagId)
+    await post<{ id: number }>('/int/updateOpportunity', {
+      id: opportunityId,
+      tags: novas,
+    })
+    console.log(`CRM: Tag ${tagId} removida da oportunidade #${opportunityId} (restam ${JSON.stringify(novas)})`)
+  } catch (err) {
+    console.error(`CRM: falha ao remover tag ${tagId} da opp #${opportunityId}:`, err)
+  }
+}
+
+/**
  * Atualiza o título de uma oportunidade no CRM.
  */
 export async function updateOpportunityTitle(
@@ -674,7 +751,10 @@ export async function updateOpportunityTitle(
 }
 
 /**
- * Move uma oportunidade para outra etapa do funil.
+ * Move uma oportunidade para outra etapa do funil (move CEGO — não valida ordem).
+ * Use changeStageSeAvanco pros movimentos AUTOMÁTICOS da VictorIA, que nunca
+ * devem regredir. Este aqui fica pra movimentos explícitos (BOT_DETECTADO,
+ * NAO_QUALIFICADO) e pros handlers de opportunity-stage acionados por humano.
  */
 export async function changeOpportunityStage(
   opportunityId: number,
@@ -686,8 +766,89 @@ export async function changeOpportunityStage(
   })
 }
 
+/**
+ * Apaga (remove) uma oportunidade do CRM. Endpoint: /int/removeOpportunity.
+ */
+export async function removeOpportunity(opportunityId: number): Promise<void> {
+  await postRaw('/int/removeOpportunity', { id: opportunityId })
+}
+
+/**
+ * Transfere um lead pro funil 19 ("Leads de Campanha AIVA", etapa "Parcelex" 84).
+ * Usado pra Odres (tag 79) e UME (tag 7). A API do Evo NÃO move opp entre funis,
+ * então: cria uma NOVA opp no funil 19 (entra pela etapa 67 e move pra 84), aplica
+ * a tag informada, e apaga a opp antiga do funil de origem. Retorna o ID da nova opp.
+ */
+export async function transferirParaFunil19(opts: {
+  oldOppId: number
+  title: string
+  number: string
+  city?: string
+  tagId: number
+}): Promise<number> {
+  const novoId = await createOpportunity({
+    title:      opts.title,
+    number:     opts.number,
+    city:       opts.city,
+    pipelineId: PIPELINE_FUNIL19,
+    stageId:    STAGE_FUNIL19_ENTRADA,
+  })
+  await changeOpportunityStage(novoId, STAGE_FUNIL19_DESTINO)   // 67 → 84 (dentro do funil 19)
+  await addOpportunityTags(novoId, [opts.tagId])                 // etiqueta (Odres 79 / UME 7)
+  try {
+    await removeOpportunity(opts.oldOppId)                       // apaga a antiga (evita duplicata)
+  } catch (err) {
+    console.error(`Funil19: falha ao apagar opp antiga #${opts.oldOppId}:`, err)
+  }
+  console.log(`Funil19: lead transferido pro funil 19/84 tag ${opts.tagId} (nova opp #${novoId}, antiga #${opts.oldOppId} apagada)`)
+  return novoId
+}
+
+/**
+ * Move a opp SÓ se o destino for um AVANÇO na progressão linear do funil.
+ * Defesa em profundidade contra regressão (bug "Mundo das Capas", 03/06/2026):
+ * se a opp já está numa etapa igual ou mais avançada que o destino, NÃO move.
+ *
+ * Stages laterais (SEM_RESPOSTA 53, BOT_DETECTADO 69) ficam fora da ORDEM_FUNIL —
+ * mover PARA eles sempre passa; mover A PARTIR deles pra qualquer etapa também
+ * (lead voltou a engajar). A trava só atua DENTRO da progressão linear.
+ *
+ * Retorna { moved, motivo } pra log/auditoria. Fail-open: se não conseguir ler
+ * o stage atual, faz o move (comportamento antigo) pra não travar o fluxo.
+ */
+export async function changeStageSeAvanco(
+  opportunityId: number,
+  destStageId: number
+): Promise<{ moved: boolean; motivo?: string }> {
+  let stageAtual: number | undefined
+  try {
+    const opp = await getOpportunity(opportunityId)
+    stageAtual = Number(opp.fkStage)
+  } catch {
+    // Não conseguiu ler stage atual → move (fail-open, comportamento antigo)
+    await changeOpportunityStage(opportunityId, destStageId)
+    return { moved: true, motivo: 'sem_stage_atual_fail_open' }
+  }
+
+  const ordAtual = ORDEM_FUNIL[stageAtual]
+  const ordDest = ORDEM_FUNIL[destStageId]
+
+  // Ambos na progressão linear E destino não avança → BLOQUEIA (regressão/no-op)
+  if (ordAtual !== undefined && ordDest !== undefined && ordDest <= ordAtual) {
+    console.log(
+      `[changeStageSeAvanco] REGRESSÃO EVITADA: opp ${opportunityId} está em ` +
+      `stage ${stageAtual} (ordem ${ordAtual}), tentou mover pra ${destStageId} ` +
+      `(ordem ${ordDest}). Mantido.`,
+    )
+    return { moved: false, motivo: 'regressao_evitada' }
+  }
+
+  await changeOpportunityStage(opportunityId, destStageId)
+  return { moved: true }
+}
+
 // Mapeamento: campo da VictorIA → ID do formulário "Qualificação Varejo" no Evo Talks
-const FORM_FIELD_MAP: Record<string, string> = {
+export const FORM_FIELD_MAP: Record<string, string> = {
   nome_socio: 'da6ddf70',
   email_socio: 'dafa40f0',
   telefone_socio: 'db8569f0',
@@ -707,6 +868,106 @@ const FORM_FIELD_MAP: Record<string, string> = {
  */
 export async function getOpportunity(opportunityId: number): Promise<Record<string, unknown>> {
   return post<Record<string, unknown>>('/int/getOpportunity', { id: opportunityId })
+}
+
+// Stage Evo (pipeline 15 AIVA) → Status Supabase (1:1). Evo é a FONTE DA VERDADE.
+// Usado pelo sync diário e pela checagem em tempo real do webhook.
+export const STAGE_TO_STATUS: Record<number, string> = {
+  66: 'INICIO',
+  47: 'INTERESSADO',
+  53: 'SEM_RESPOSTA',
+  54: 'PRE_APROVACAO',
+  49: 'CADASTRO_RECEBIDO',
+  50: 'EM_ANALISE_AIVA',
+  70: 'TREINAR',
+  71: 'LOGIN',
+  51: 'LOJA_FINALIZADA_E_VENDENDO',
+  69: 'BOT_DETECTADO',
+}
+
+// Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.
+// (cnpjs_adicionais é OPCIONAL — alinhado com CAMPOS_OBRIGATORIOS de lib/cadastro-recebido.)
+const FASE3_OBRIGATORIOS = ['email_socio', 'faturamento_anual', 'valor_boleto_mensal', 'localizacao_lojas'] as const
+
+function campoPreenchido(v: string | null | undefined): boolean {
+  return !!v && String(v).trim() !== '' && String(v).trim().toLowerCase() !== 'null'
+}
+
+/** True só quando os 4 dados obrigatórios da Fase 3 estão preenchidos no formulário. */
+export function fase3Completa(forms: Record<string, string | null> | null | undefined): boolean {
+  const f = forms ?? {}
+  return FASE3_OBRIGATORIOS.every((k) => campoPreenchido(f[FORM_FIELD_MAP[k]]))
+}
+
+/**
+ * Status CORRETO a partir da oportunidade do Evo.
+ *
+ * O stage 49 "Cadastro Recebido" é AMBÍGUO: o operador move o card pra cá pra
+ * DISPARAR a coleta da Fase 3 (loja pré-aprovada) — nesse momento o cadastro
+ * ainda NÃO está completo. Mapear stage 49 → CADASTRO_RECEBIDO cegamente fazia
+ * a VictorIA dizer "seu cadastro está completo" assim que o lead respondia,
+ * mesmo com os 4 dados da Fase 3 ainda vazios (bug Smartmania/Loja Claro).
+ *
+ * Regra: stage 49 só é CADASTRO_RECEBIDO quando a Fase 3 está completa; enquanto
+ * faltar dado, o lead permanece INTERESSADO (Fase 3 em andamento → VictorIA segue
+ * coletando, sem falsa conclusão).
+ */
+export function statusFromOpp(
+  opp: { fkStage?: number; formsdata?: Record<string, string | null> | null } | null | undefined,
+): string | null {
+  const stage = Number(opp?.fkStage)
+  const mapped = STAGE_TO_STATUS[stage] ?? null
+  if (mapped === 'CADASTRO_RECEBIDO' && !fase3Completa(opp?.formsdata)) {
+    return 'INTERESSADO'
+  }
+  return mapped
+}
+
+/**
+ * Consulta a etapa ATUAL da oportunidade no Evo e devolve o status mapeado.
+ * Retorna null se a opp não existir, a etapa não for do funil AIVA (pipeline 15)
+ * ou a chamada falhar (fail-open — quem chama mantém o status do Supabase).
+ */
+/**
+ * Chave de telefone pra casar Supabase × Evo (formatos variados: com/sem 55,
+ * com/sem o 9º dígito). Mesma normalização usada no painel.
+ */
+export function chaveTelefone(s: string | null | undefined): string {
+  let d = (s ?? '').replace(/\D/g, '')
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2)
+  if (d.length === 11) d = d.slice(0, 2) + d.slice(3)
+  return d
+}
+
+/**
+ * Conjunto de telefones (chaveTelefone) que estão numa etapa específica do funil
+ * AIVA no Evo. UMA chamada à API, não uma por lead.
+ *
+ * Serve pra automações que precisam da ETAPA REAL e não do status do Supabase —
+ * os dois divergem de propósito: um lead na etapa "Cadastro Recebido" carrega
+ * status INTERESSADO enquanto a Fase 3 não fecha (regra do statusFromOpp). Sem
+ * este filtro, uma cadência que busca por status pegaria leads de outra etapa
+ * e mandaria mensagem duplicada (bug real 2026-07-20: o reengajamento ia tocar
+ * 26 leads que a cobrança de Cadastro Recebido já tinha contatado no mesmo dia).
+ */
+export async function telefonesNaEtapa(stageId: number): Promise<Set<string>> {
+  const opps = await getPipeOpportunities(PIPELINE_AIVA)
+  const set = new Set<string>()
+  for (const o of opps) {
+    if (Number(o.fkStage) !== stageId) continue
+    const k = chaveTelefone(o.mainphone)
+    if (k) set.add(k)
+  }
+  return set
+}
+
+export async function getStatusAtualNoEvo(opportunityId: number): Promise<string | null> {
+  try {
+    const opp = await getOpportunity(opportunityId)
+    return statusFromOpp(opp as { fkStage?: number; formsdata?: Record<string, string | null> | null })
+  } catch {
+    return null
+  }
 }
 
 /**
