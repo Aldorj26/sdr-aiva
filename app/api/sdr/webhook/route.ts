@@ -294,14 +294,26 @@ export async function POST(req: NextRequest) {
         base64: img.buffer.toString('base64'),
         mimeType: img.mimeType || mimeType || 'image/jpeg',
       }
-      conteudo = '[LEAD_ENVIOU_IMAGEM]' // marker pro histórico/auditoria
+      // Marcador COM o fileId → o painel gera o link do Evo e exibe a imagem
+      // (o link tem token que expira, então guardamos só o id e resolvemos na hora).
+      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]`
       console.log(`Imagem recebida e baixada — fileId: ${fileId}, mimeType: ${imagemPraClaude.mimeType}, ${img.buffer.byteLength} bytes`)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       console.error(`Erro ao baixar imagem fileId=${fileId}: ${errMsg}`)
-      // Fallback: marca como imagem sem conteúdo — VictorIA pede em texto via prompt
-      conteudo = '[LEAD_ENVIOU_IMAGEM]'
+      // Fallback: marca a imagem (com id, ainda dá pra ver no painel) — VictorIA
+      // pede em texto via prompt já que não conseguiu ler o conteúdo.
+      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]`
     }
+  }
+
+  // Arquivo não-imagem (PDF, documento) sem legenda. ANTES caía no
+  // 'sem_conteudo' abaixo e era DESCARTADO — documentos de aprovação (RG,
+  // certificado MEI, extrato bancário) se perdiam. Agora salva um marcador com
+  // o fileId e o mimeType, e o painel mostra um link de download.
+  if (!conteudo.trim() && fileId && fileId > 0) {
+    conteudo = `[LEAD_ENVIOU_ARQUIVO:${fileId}:${mimeType || 'application/octet-stream'}]`
+    console.log(`Arquivo recebido — fileId: ${fileId}, mimeType: ${mimeType}`)
   }
 
   if (!conteudo.trim()) {

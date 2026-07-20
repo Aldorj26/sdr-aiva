@@ -17,6 +17,7 @@ interface Lead {
   data_ultimo_contato: string | null
   acionar_humano: boolean
   observacoes: string | null
+  instrucao_silvia: string | null
   criado_em: string
   webhook_lock_at: string | null
 }
@@ -28,6 +29,48 @@ interface Mensagem {
   template_hsm: string | null
   enviado_em: string
   avaliacao: 'boa' | 'ruim' | null
+}
+
+// Renderiza o conteúdo de uma mensagem. Marcadores de mídia (gravados pelo
+// webhook com o fileId do Evo) viram imagem ou link de arquivo, resolvidos pelo
+// proxy /api/leads/media/<fileId>. Qualquer outra coisa é texto normal.
+function MensagemConteudo({ conteudo }: { conteudo: string }) {
+  const img = conteudo.match(/^\[LEAD_ENVIOU_IMAGEM:(\d+)\]$/)
+  if (img) {
+    const src = `/api/leads/media/${img[1]}`
+    return (
+      <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+        <img
+          src={src}
+          alt="Imagem enviada pelo lojista"
+          style={{ maxWidth: '100%', maxHeight: 320, borderRadius: '0.5rem', display: 'block' }}
+        />
+      </a>
+    )
+  }
+
+  const arq = conteudo.match(/^\[LEAD_ENVIOU_ARQUIVO:(\d+):([^\]]*)\]$/)
+  if (arq) {
+    const [, id, mime] = arq
+    const isPdf = mime.includes('pdf')
+    return (
+      <a
+        href={`/api/leads/media/${id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent)', fontWeight: 600 }}
+      >
+        {isPdf ? '📄' : '📎'} Abrir arquivo{isPdf ? ' (PDF)' : ''}
+      </a>
+    )
+  }
+
+  // Marcador antigo sem fileId (mídia recebida antes do fix) — não dá pra recuperar.
+  if (conteudo === '[LEAD_ENVIOU_IMAGEM]') {
+    return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>🖼️ imagem enviada (sem link — anterior à atualização)</span>
+  }
+
+  return <div>{conteudo}</div>
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -52,12 +95,22 @@ export default function LeadDrawer() {
   const [replyText, setReplyText] = useState('')
   const [replying, setReplying] = useState(false)
 
+  // Estado do painel de "Enviar info pendente" (mensagem manual sem contexto/IA)
+  const [showInfo, setShowInfo] = useState(false)
+  const [infoText, setInfoText] = useState('')
+  const [sendingInfo, setSendingInfo] = useState(false)
+
   // Estado do painel de edição
   const [showEdit, setShowEdit] = useState(false)
   const [editNome, setEditNome] = useState('')
   const [editCidade, setEditCidade] = useState('')
   const [editObs, setEditObs] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Estado do painel de instrução para VictorIA
+  const [showInstrucao, setShowInstrucao] = useState(false)
+  const [instrucaoText, setInstrucaoText] = useState('')
+  const [savingInstrucao, setSavingInstrucao] = useState(false)
 
   async function refreshDrawer() {
     if (!leadId) return
@@ -116,6 +169,37 @@ export default function LeadDrawer() {
       window.alert(`Erro: ${err}`)
     } finally {
       setReplying(false)
+    }
+  }
+
+  // Envia uma informação pendente — mensagem manual do operador, SEM contexto/IA.
+  // Abre nova interação: texto livre se janela aberta; template HSM 21 se cliente frio.
+  async function sendInfoPendente() {
+    if (!leadId || !infoText.trim()) return
+    setSendingInfo(true)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'send-info', mensagem: infoText.trim() }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        window.alert(`Erro: ${json.error ?? 'desconhecido'}`)
+        return
+      }
+      const via =
+        json.modo === 'hsm'
+          ? 'via template (cliente estava frio — a conversa foi reaberta)'
+          : 'como texto livre (janela aberta)'
+      window.alert(`✅ Informação enviada ${via}.`)
+      setInfoText('')
+      setShowInfo(false)
+      await refreshDrawer()
+    } catch (err) {
+      window.alert(`Erro: ${err}`)
+    } finally {
+      setSendingInfo(false)
     }
   }
 
@@ -245,6 +329,8 @@ export default function LeadDrawer() {
       setEditNome('')
       setEditCidade('')
       setEditObs('')
+      setShowInstrucao(false)
+      setInstrucaoText('')
       return
     }
     setLoading(true)
@@ -256,6 +342,7 @@ export default function LeadDrawer() {
           return
         }
         setData(json)
+        setInstrucaoText((json.lead?.instrucao_silvia as string | null) ?? '')
       })
       .catch(() => setData(null))
       .finally(() => setLoading(false))
@@ -350,6 +437,13 @@ export default function LeadDrawer() {
               </ActionBtn>
               <ActionBtn
                 disabled={busy || replying}
+                onClick={() => { setShowInstrucao((v) => !v); setShowReply(false); setShowEdit(false) }}
+                color="#c084fc"
+              >
+                {showInstrucao ? '✕ Cancelar' : `🧠 Instrução${instrucaoText ? ' ●' : ''}`}
+              </ActionBtn>
+              <ActionBtn
+                disabled={busy || replying}
                 onClick={() => runAction({ type: 'pause', hours: 24 }, 'Pausar esse lead por 24h?')}
                 color="#a78bfa"
               >
@@ -377,6 +471,13 @@ export default function LeadDrawer() {
                 color="#60a5fa"
               >
                 ⏩ Follow-up agora
+              </ActionBtn>
+              <ActionBtn
+                disabled={busy || replying || sendingInfo}
+                onClick={() => { setShowInfo((v) => !v); setShowReply(false); setShowEdit(false); setShowInstrucao(false); setInfoText('') }}
+                color="#a78bfa"
+              >
+                ✉️ Enviar info
               </ActionBtn>
               {data.lead.webhook_lock_at && (
                 <ActionBtn
@@ -461,6 +562,70 @@ export default function LeadDrawer() {
               </div>
             )}
 
+            {/* Painel de "Enviar info pendente" — mensagem manual sem IA/contexto */}
+            {showInfo && (
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                }}
+              >
+                <div style={{ color: '#6d28d9', fontSize: '0.78rem', fontWeight: 700 }}>
+                  Enviar informação pendente (mensagem manual — sem IA/contexto)
+                </div>
+                <div style={{ color: '#7c6f9c', fontSize: '0.72rem' }}>
+                  Cliente frio? Vai por template (vira “Olá [nome], [sua mensagem]” e reabre a conversa). Janela aberta? Vai como texto livre.
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <textarea
+                    value={infoText}
+                    onChange={(e) => setInfoText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendInfoPendente()
+                    }}
+                    placeholder="Ex.: ficou pendente o comprovante de endereço da loja — pode me enviar por aqui? (Ctrl+Enter envia)"
+                    rows={3}
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-elev)',
+                      border: '1px solid #ddd6fe',
+                      color: 'var(--text)',
+                      padding: '0.5rem 0.7rem',
+                      borderRadius: 6,
+                      fontFamily: 'inherit',
+                      fontSize: '0.85rem',
+                      resize: 'vertical',
+                    }}
+                  />
+                  <button
+                    onClick={sendInfoPendente}
+                    disabled={sendingInfo || !infoText.trim()}
+                    style={{
+                      background: sendingInfo ? 'var(--border-strong)' : '#8b5cf6',
+                      border: 'none',
+                      color: '#fff',
+                      padding: '0.5rem 0.9rem',
+                      borderRadius: 6,
+                      cursor: sendingInfo || !infoText.trim() ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      opacity: !infoText.trim() ? 0.5 : 1,
+                    }}
+                  >
+                    {sendingInfo ? 'Enviando...' : 'Enviar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Painel de edição do lead */}
             {showEdit && (
               <div
@@ -531,6 +696,104 @@ export default function LeadDrawer() {
                     }}
                   >
                     {saving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Painel de instrução para VictorIA */}
+            {showInstrucao && (
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  background: '#160d20',
+                  border: '1px solid #7e22ce',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                }}
+              >
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#c084fc' }}>
+                  🧠 Instrução pontual para a VictorIA — injetada no prompt nas próximas respostas deste lead. Deixe vazio para remover.
+                </p>
+                <textarea
+                  value={instrucaoText}
+                  onChange={(e) => setInstrucaoText(e.target.value)}
+                  placeholder='Ex: "Lead é dono de 3 lojas, foco em volume" ou "Já conhece a AIVA, pule o pitch básico"'
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    background: 'var(--bg-elev)',
+                    border: '1px solid #4a1272',
+                    color: 'var(--text)',
+                    padding: '0.5rem',
+                    borderRadius: 6,
+                    fontFamily: 'inherit',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  {instrucaoText && (
+                    <button
+                      onClick={async () => {
+                        setSavingInstrucao(true)
+                        try {
+                          await fetch(`/api/leads/${leadId}/action`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'update-instrucao', instrucao: '' }),
+                          })
+                          setInstrucaoText('')
+                          await refreshDrawer()
+                        } finally { setSavingInstrucao(false) }
+                      }}
+                      disabled={savingInstrucao}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #7e22ce',
+                        color: '#c084fc',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      Limpar
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      setSavingInstrucao(true)
+                      try {
+                        const res = await fetch(`/api/leads/${leadId}/action`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ type: 'update-instrucao', instrucao: instrucaoText }),
+                        })
+                        const json = await res.json()
+                        if (!res.ok) { window.alert(`Erro: ${json.error ?? 'desconhecido'}`); return }
+                        setShowInstrucao(false)
+                        await refreshDrawer()
+                      } catch (err) {
+                        window.alert(`Erro: ${err}`)
+                      } finally { setSavingInstrucao(false) }
+                    }}
+                    disabled={savingInstrucao}
+                    style={{
+                      background: '#4a1272',
+                      border: '1px solid #c084fc',
+                      color: '#c084fc',
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      opacity: savingInstrucao ? 0.5 : 1,
+                    }}
+                  >
+                    {savingInstrucao ? 'Salvando...' : 'Salvar'}
                   </button>
                 </div>
               </div>
@@ -622,7 +885,7 @@ export default function LeadDrawer() {
                           📢 HSM: {m.template_hsm}
                         </div>
                       )}
-                      <div>{m.conteudo}</div>
+                      <MensagemConteudo conteudo={m.conteudo} />
                       <div
                         style={{
                           display: 'flex',
