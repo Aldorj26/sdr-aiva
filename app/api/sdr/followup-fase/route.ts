@@ -1,13 +1,14 @@
 /**
  * followup-fase/route.ts
  *
- * Cron diário que monitora leads em duas fases críticas sem resposta há 24h+:
+ * Cron diário que monitora leads em fase crítica sem resposta há 24h+:
  *
- *   COLETANDO_COMPLEMENTO — VictorIA está coletando os 5 dados restantes.
- *   Lead sumiu → reabre janela 24h com template de retomada.
- *
- *   ANALISE_AIVA — Link da CAF foi enviado, lead precisa concluir
+ *   EM_ANALISE_AIVA — Link da CAF foi enviado, lead precisa concluir
  *   o cadastro + biometria facial. Cobra a conclusão.
+ *
+ * NOTA: COLETANDO_COMPLEMENTO foi deprecated em 28/05/2026 — colapsou em
+ * INTERESSADO (alinhamento com funil Evo). Leads INTERESSADO sem resposta
+ * são tratados pelo /nudge (3–24h) e /followup (D+3/D+7/D+14).
  *
  * Usa o template HSM AIVA_REATIVACAO_TEMPLATE_ID ("Follow Up Aiva" — template 21)
  * com miolo contextualizado gerado pelo Claude via gerarMioloRetomada().
@@ -65,7 +66,7 @@ function hasPausa(obs: string | null): boolean {
 // ─── Fallback de miolo (caso Claude falhe) ─────────────────────────────────────
 
 function mioloFallback(status: string): string {
-  return status === 'ANALISE_AIVA'
+  return status === 'EM_ANALISE_AIVA'
     ? 'ainda dá pra finalizar o cadastro na plataforma. consegue acessar o link e completar a biometria?'
     : 'ainda dá pra continuar o cadastro. consegue retornar pra finalizarmos?'
 }
@@ -73,12 +74,24 @@ function mioloFallback(status: string): string {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  // Autenticação
-  const secret =
+  // Autenticação — aceita os 3 formatos:
+  //  1) Authorization: Bearer <CRON_SECRET>  ← é ESTE que o Vercel Cron envia
+  //  2) Authorization: Bearer <WEBHOOK_SECRET>
+  //  3) x-internal-secret / ?secret=          ← formato legado (chamada manual)
+  //
+  // Bug 2026-07-20: a rota só aceitava (3), então o cron diário levava 401 desde
+  // sempre — nenhum lead em EM_ANALISE_AIVA jamais recebeu cobrança do CAF
+  // (0 marcadores [FOLLOWUP_FASE:] na base inteira).
+  const auth = req.headers.get('authorization') ?? ''
+  const secretLegado =
     req.headers.get('x-internal-secret') ??
     req.nextUrl.searchParams.get('secret') ??
     ''
-  if (secret !== process.env.WEBHOOK_SECRET) {
+  const autorizado =
+    auth === `Bearer ${process.env.CRON_SECRET}` ||
+    auth === `Bearer ${process.env.WEBHOOK_SECRET}` ||
+    secretLegado === process.env.WEBHOOK_SECRET
+  if (!autorizado) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
@@ -99,12 +112,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'fora_horario_comercial', horasBRT })
   }
 
-  // Busca leads elegíveis: COLETANDO_COMPLEMENTO ou ANALISE_AIVA, sem resposta há 24h+
+  // Busca leads elegíveis: EM_ANALISE_AIVA sem resposta há 24h+
   const limite24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')
     .select('id, nome, telefone, status, observacoes, evotalks_chat_id, produto')
-    .in('status', ['COLETANDO_COMPLEMENTO', 'ANALISE_AIVA'])
+    .in('status', ['EM_ANALISE_AIVA'])
     .lt('data_ultimo_contato', limite24h)
     .neq('produto', 'TRIAGEM')
     .order('data_ultimo_contato', { ascending: true })
@@ -154,8 +167,9 @@ export async function GET(req: NextRequest) {
           `Precisa de atenção manual.`
         try {
           if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+          if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
         } catch (alertErr) {
-          console.error(`[followup-fase] alerta Nei falhou para ${lead.telefone}:`, alertErr)
+          console.error(`[followup-fase] alerta humanos falhou para ${lead.telefone}:`, alertErr)
         }
         await supabaseAdmin
           .from('sdr_leads')
@@ -199,7 +213,7 @@ export async function GET(req: NextRequest) {
 
       // Salva no histórico: marker (pra audit) + texto completo (pra Claude ter contexto)
       const textoCompleto = `Olá ${nomeReal}, ${miolo}`
-      const labelFase = lead.status === 'ANALISE_AIVA' ? 'cobrança CAF' : 'retomada cadastro'
+      const labelFase = lead.status === 'EM_ANALISE_AIVA' ? 'cobrança CAF' : 'retomada cadastro'
       await supabaseAdmin.from('sdr_mensagens').insert([
         {
           lead_id: lead.id,
