@@ -55,7 +55,7 @@ const ORDEM_PEDIDO = [
   'valor_boleto_mensal', 'faturamento_anual',
 ]
 
-export function pedidoAmigavel(faltandoKeys: string[]): string {
+function pedidoAmigavel(faltandoKeys: string[]): string {
   const escolhido = ORDEM_PEDIDO.find((k) => faltandoKeys.includes(k)) ?? faltandoKeys[0]
   return PEDIDO_AMIGAVEL[escolhido] ?? 'os dados que faltam pra concluir o cadastro'
 }
