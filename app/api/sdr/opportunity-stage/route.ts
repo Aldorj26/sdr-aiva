@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg } from '@/lib/text'
 
 /**
  * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
@@ -161,11 +161,69 @@ export async function POST(req: NextRequest) {
 
   const stageNum = Number(destStageId)
 
+  // ─── Aviso Aldo + Nei nas etapas pós-aprovação (pedido do Aldo 2026-07-16) ───
+  // Roda ANTES dos handlers específicos de propósito: cada bloco abaixo pode
+  // retornar cedo (telefone ausente, template não configurado, erro de API) e
+  // aí o aviso nunca sairia. Aqui o alerta é o primeiro efeito — se a etapa
+  // mudou, vocês ficam sabendo, aconteça o que acontecer depois.
+  // Dedupe por marcador [ALERTA_ETAPA:<stage>] nas observações: se o Evo
+  // reenviar o webhook da mesma etapa, não repete o aviso.
+  const ETAPAS_AVISO: Record<number, { emoji: string; label: string }> = {
+    [STAGES.EM_ANALISE_AIVA]: { emoji: '🔎', label: 'Em Análise AIVA' },
+    [STAGES.TREINAR]: { emoji: '🎓', label: 'Treinar' },
+    [STAGES.LOGIN]: { emoji: '🔑', label: 'Login' },
+    [STAGES.LOJA_FINALIZADA_E_VENDENDO]: { emoji: '🏆', label: 'Loja Finalizada e Vendendo' },
+  }
+  const etapaAviso = ETAPAS_AVISO[stageNum]
+  if (etapaAviso) {
+    try {
+      const oppAviso = await getOpportunity(Number(opportunityId))
+      const formsAviso = (oppAviso.formsdata ?? {}) as Record<string, string | null>
+      const telAviso = normalizePhoneBR((oppAviso.mainphone ?? formsAviso['db8569f0'] ?? '').toString())
+      const tituloOpp = typeof oppAviso.title === 'string' ? oppAviso.title.split('—')[0].trim() : ''
+
+      const { data: leadAviso } = telAviso
+        ? await supabaseAdmin
+            .from('sdr_leads')
+            .select('id, nome, cidade, observacoes')
+            .eq('telefone', telAviso)
+            .maybeSingle()
+        : { data: null }
+
+      const marcador = `[ALERTA_ETAPA:${stageNum}]`
+      const jaAvisou = (leadAviso?.observacoes ?? '').includes(marcador)
+
+      if (!jaAvisou) {
+        const nomeLoja = leadAviso?.nome && leadAviso.nome !== 'Loja' ? leadAviso.nome : tituloOpp || 'Loja'
+        const msg =
+          `${etapaAviso.emoji} *${nomeLoja}* (${telAviso || 'telefone n/d'}${leadAviso?.cidade ? ` — ${leadAviso.cidade}` : ''})\n` +
+          `Movida para *${etapaAviso.label}* no funil AIVA.`
+        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+
+        if (leadAviso?.id) {
+          // Limpa marcadores de etapas anteriores pra permitir novo aviso se o
+          // card voltar e avançar de novo, e grava o da etapa atual.
+          const obsLimpa = (leadAviso.observacoes ?? '').replace(/\s*\[ALERTA_ETAPA:\d+\]\s*/g, ' ').trim()
+          await supabaseAdmin
+            .from('sdr_leads')
+            .update({ observacoes: `${marcador} ${obsLimpa}`.trim() })
+            .eq('id', leadAviso.id)
+        }
+        console.log(`[aviso-etapa] ${etapaAviso.label} avisado p/ ${telAviso} (opp #${opportunityId})`)
+      } else {
+        console.log(`[aviso-etapa] ${etapaAviso.label} já avisado p/ ${telAviso} — sem repetir`)
+      }
+    } catch (err) {
+      console.error(`[aviso-etapa] falha ao avisar etapa ${stageNum} (opp #${opportunityId}):`, err)
+    }
+  }
+
   // Stage 49 — Cadastro Recebido (manual) → dispara HSM "Complete o Cadastro".
   //
   // Fluxo: operador/Eduardo aprovou a pré-análise e move manualmente o card de
   // Pré Aprovação (54) → Cadastro Recebido (49). Isso reabre a janela WhatsApp
-  // via HSM template 20 e muda o status do lead pra COLETANDO_COMPLEMENTO, pra
+  // via HSM template 20 e muda o status do lead pra INTERESSADO, pra
   // VictorIA retomar a conversa e coletar os 5 dados restantes.
   //
   // OBS: o HubSpot NÃO é mais disparado aqui — agora é disparado só quando a
@@ -188,12 +246,12 @@ export async function POST(req: NextRequest) {
         .eq('telefone', telefone)
         .maybeSingle()
 
-      // Idempotência: se o lead já passou da Fase 3 (CADASTRO_COMPLETO/ANALISE_AIVA/
-      // TREINAMENTO), NÃO re-dispara o HSM 20 nem volta o status pra COLETANDO_COMPLEMENTO.
+      // Idempotência: se o lead já passou da Fase 3 (CADASTRO_RECEBIDO/EM_ANALISE_AIVA/
+      // TREINAMENTO), NÃO re-dispara o HSM 20 nem volta o status pra INTERESSADO.
       // Bug que isso resolve: Nei moveu o card no Evo Talks → CRM trigger disparou
       // stage 49 de novo → re-enviou HSM "Complete o Cadastro" duplicado pro lead
       // que já completou tudo.
-      const STATUS_JA_PASSOU_FASE3 = ['CADASTRO_COMPLETO', 'ANALISE_AIVA', 'TREINAMENTO']
+      const STATUS_JA_PASSOU_FASE3 = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR']
       if (lead?.id && STATUS_JA_PASSOU_FASE3.includes(lead.status)) {
         console.log(`Stage 49 ignorado — lead ${telefone} já está em ${lead.status} (passou da Fase 3). Opp #${opportunityId}.`)
         return NextResponse.json({
@@ -226,12 +284,12 @@ export async function POST(req: NextRequest) {
       const chatId49 = tplResult49.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
       await sendTextsAfterTemplate(telefone, [avisoComplementoMsg], chatId49)
 
-      // Muda status do lead pra COLETANDO_COMPLEMENTO (se o lead existir no Supabase)
+      // Muda status do lead pra INTERESSADO (se o lead existir no Supabase)
       if (lead?.id) {
         await supabaseAdmin
           .from('sdr_leads')
           .update({
-            status: 'COLETANDO_COMPLEMENTO',
+            status: 'INTERESSADO',
             data_ultimo_contato: new Date().toISOString(),
           })
           .eq('id', lead.id)
@@ -269,11 +327,11 @@ export async function POST(req: NextRequest) {
         console.error('Falha ao alertar humanos sobre stage 49:', err)
       }
 
-      console.log(`Template Complete o Cadastro enviado: opp #${opportunityId} → ${telefone}, status → COLETANDO_COMPLEMENTO`)
+      console.log(`Template Complete o Cadastro enviado: opp #${opportunityId} → ${telefone}, status → INTERESSADO`)
       return NextResponse.json({
         ok: true,
         template_enviado: true,
-        status_atualizado: 'COLETANDO_COMPLEMENTO',
+        status_atualizado: 'INTERESSADO',
       })
     } catch (err) {
       console.error('Erro ao disparar template Complete o Cadastro:', err)
@@ -340,7 +398,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Stage 50 — Em Análise CAF → dispara template de aprovação AIVA
-  if (stageNum === STAGES.EM_ANALISE) {
+  if (stageNum === STAGES.EM_ANALISE_AIVA) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
       const forms = (opp.formsdata ?? {}) as Record<string, string | null>
@@ -417,17 +475,17 @@ export async function POST(req: NextRequest) {
           },
         ])
 
-        // Muda status para ANALISE_AIVA — VictorIA passa a responder nessa fase
+        // Muda status para EM_ANALISE_AIVA — VictorIA passa a responder nessa fase
         // e o cron followup-fase monitora se o lead concluiu o cadastro CAF.
         await supabaseAdmin
           .from('sdr_leads')
           .update({
-            status: 'ANALISE_AIVA',
+            status: 'EM_ANALISE_AIVA',
             data_ultimo_contato: new Date().toISOString(),
           })
           .eq('id', lead.id)
 
-        console.log(`Lead ${telefone}: status atualizado → ANALISE_AIVA (stage 50 EM_ANALISE)`)
+        console.log(`Lead ${telefone}: status atualizado → EM_ANALISE_AIVA (stage 50 EM_ANALISE)`)
       }
 
       // Complementa planilha AIVA APROVAÇÃO com os dados completos (12 campos).
@@ -449,7 +507,7 @@ export async function POST(req: NextRequest) {
           localizacao_lojas:     forms['e0099280'],
           possui_outra_financeira: forms['e07d62f0'],
           cnpjs_adicionais:      forms['e0f66380'],
-          status: 'ANALISE_AIVA',
+          status: 'EM_ANALISE_AIVA',
           opportunity_id: String(opportunityId),
         })
         console.log(`Google Sheets complementado: opp #${opportunityId} → stage 50`)
@@ -458,7 +516,7 @@ export async function POST(req: NextRequest) {
       }
 
       console.log(`Template link cadastro + aviso matriz enviados: opp #${opportunityId} → ${telefone}`)
-      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, google_sheets: true, status_atualizado: 'ANALISE_AIVA', telefone })
+      return NextResponse.json({ ok: true, template_enviado: true, aviso_matriz_enviado: true, google_sheets: true, status_atualizado: 'EM_ANALISE_AIVA', telefone })
     } catch (err) {
       console.error('Erro ao enviar template de aprovação:', err)
       return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })
@@ -468,10 +526,10 @@ export async function POST(req: NextRequest) {
   // Stage 70 — Treinar → dispara template [AIVA] TREINAMENTO (id 25) + envia
   // links de reunião online, materiais e formulário de cadastro dos funcionários.
   //
-  // Fluxo: Nei move o card de ANALISE_AIVA → Treinar após a loja ser aprovada
+  // Fluxo: Nei move o card de EM_ANALISE_AIVA → Treinar após a loja ser aprovada
   // pela AIVA. O template HSM reabre a janela WhatsApp e os textos seguintes
   // entregam os 3 links necessários pro lojista dar início ao treinamento.
-  if (stageNum === STAGES.TREINA) {
+  if (stageNum === STAGES.TREINAR) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
       const forms = (opp.formsdata ?? {}) as Record<string, string | null>
@@ -491,74 +549,98 @@ export async function POST(req: NextRequest) {
 
       const nomeContato = normalizaNome(forms['da6ddf70']) || normalizaNome(lead?.nome ?? null) || 'Lojista'
 
-      // Template HSM 25 — [AIVA] TREINAMENTO
-      // {{Nome do Cliente}} = nome do sócio
-      const templateId = Number(process.env.AIVA_TREINAMENTO_TEMPLATE_ID ?? 0)
-      if (!templateId) {
-        console.warn(`AIVA_TREINAMENTO_TEMPLATE_ID não configurado — template Treinamento não enviado (opp #${opportunityId})`)
-        return NextResponse.json({ ok: false, erro: 'template_treinamento_nao_configurado' })
-      }
-
-      const tplResult = await sendTemplate(telefone, templateId, [nomeContato])
-
-      // Textos complementares — enviados logo após o template HSM.
-      // 3 mensagens: reunião (Meet+calendário), materiais (Drive), cadastro funcionários (Forms).
-      // Centralizado em buildAvisoTreinamentoMsgs pra reuso no reforço via webhook (Caminho 2).
-      const [msgReuniao, msgMateriais, msgCadastro] = buildAvisoTreinamentoMsgs()
-
-      await sendTextsAfterTemplate(telefone, [msgReuniao, msgMateriais, msgCadastro], tplResult.chatId)
+      // Template HSM 69 — [AIVA] Treinamento Completo (UTILITY, aprovado).
+      // Substitui o antigo fluxo "template 28 + 3 textos livres": os links
+      // (reunião, materiais e cadastro) agora vão DENTRO do HSM, então entregam
+      // mesmo com a janela de 24h FECHADA (lead frio). Não dependemos mais de
+      // texto livre nem de reforço na resposta pra entregar os links.
+      //
+      // O template tem 5 variáveis de corpo ({{1}}..{{5}}):
+      //   {{1}} = Nome do Cliente (dinâmico)
+      //   {{2}}..{{5}} = texto fixo (treinamento, reunião, materiais, cadastro)
+      // Enviar menos que 5 causa #131008 (Meta: "parameter is missing text value").
+      const TREINAMENTO_TEMPLATE_ID = 69
+      await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
+        nomeContato,
+        '📅 Treinamento ao vivo: geralmente quintas-feiras às 9h30. Confirme o horário com a nossa equipe.',
+        '🔗 Reunião: https://meet.google.com/hqn-vcrr-dxo',
+        '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
+        '📝 Cadastro dos funcionários (libera o acesso da equipe ao sistema AIVA): https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform',
+      ])
 
       // Atualiza status no Supabase e registra histórico
       if (lead?.id) {
         await supabaseAdmin
           .from('sdr_leads')
           .update({
-            status: 'TREINAMENTO',
+            status: 'TREINAR',
             data_ultimo_contato: new Date().toISOString(),
           })
           .eq('id', lead.id)
 
-        await supabaseAdmin.from('sdr_mensagens').insert([
-          {
-            lead_id: lead.id,
-            direcao: 'out',
-            conteudo: `[Template [AIVA] TREINAMENTO enviado — ${nomeContato}]`,
-            template_hsm: 'aiva_treinamento',
-          },
-          { lead_id: lead.id, direcao: 'out', conteudo: msgReuniao },
-          { lead_id: lead.id, direcao: 'out', conteudo: msgMateriais },
-          { lead_id: lead.id, direcao: 'out', conteudo: msgCadastro },
-        ])
-
-        // Caminho 2: se janela 24h fechada, marca flag pra reforço futuro
-        const janelaAberta = await janela24hAberta(lead.id)
-        if (!janelaAberta) {
-          await marcarAvisoPendente(lead.id, 'AVISO_70_PENDENTE')
-        }
+        await supabaseAdmin.from('sdr_mensagens').insert({
+          lead_id: lead.id,
+          direcao: 'out',
+          conteudo: `[Template [AIVA] Treinamento Completo enviado — ${nomeContato}]`,
+          template_hsm: 'aiva_treinamento_completo',
+        })
       }
 
-      // Alerta Aldo + Nei sobre o início do treinamento
-      try {
-        const msg =
-          `🎓 *${lead?.nome ?? nomeContato}* (${telefone}) entrou em Treinamento.\n` +
-          `Template HSM 25 disparado — links de reunião, materiais e formulário de funcionários enviados.`
-        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
-        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
-      } catch (err) {
-        console.error('Falha ao alertar humanos sobre stage 70:', err)
-      }
+      // (O aviso 🎓 pro Aldo/Nei já saiu no bloco ETAPAS_AVISO, no topo do handler
+      // — antes de qualquer validação que pudesse abortar. Não repetir aqui.)
 
       console.log(`Template Treinamento + links enviados: opp #${opportunityId} → ${telefone}, status → TREINAMENTO`)
       return NextResponse.json({
         ok: true,
         template_enviado: true,
         links_enviados: true,
-        status_atualizado: 'TREINAMENTO',
+        status_atualizado: 'TREINAR',
         telefone,
       })
     } catch (err) {
       console.error('Erro ao disparar template Treinamento:', err)
       return NextResponse.json({ ok: false, erro: 'template_error' }, { status: 500 })
+    }
+  }
+
+  // Stage 51 — Loja Finalizada e Vendendo → inicia o RELÓGIO da Consultoria de Vendas.
+  // NÃO conversa agora: a loja acabou de ativar e ainda não vendeu. Só registra a
+  // data de entrada; o cron /api/sdr/consultoria-vendas dispara a 1ª abordagem em
+  // D+7 e depois a cada 15 dias (4 toques no total). Marca [CONSULTORIA_INICIO] e
+  // [CONSULTORIA_COUNT:0] em observacoes (idempotente — não reinicia se já existe).
+  if (stageNum === STAGES.LOJA_FINALIZADA_E_VENDENDO) {
+    try {
+      const opp = await getOpportunity(Number(opportunityId))
+      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
+
+      if (!telefone) {
+        return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
+      }
+
+      const { data: lead } = await supabaseAdmin
+        .from('sdr_leads')
+        .select('id, observacoes')
+        .eq('telefone', telefone)
+        .maybeSingle()
+
+      if (lead?.id) {
+        const obsAtual = lead.observacoes ?? ''
+        const jaIniciou = /\[CONSULTORIA_INICIO:/.test(obsAtual)
+        const novaObs = jaIniciou
+          ? obsAtual
+          : `${obsAtual.trim()} [CONSULTORIA_INICIO:${new Date().toISOString()}] [CONSULTORIA_COUNT:0]`.trim()
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ status: 'LOJA_FINALIZADA_E_VENDENDO', observacoes: novaObs })
+          .eq('id', lead.id)
+        console.log(`Stage 51: relógio da consultoria ${jaIniciou ? 'já existia' : 'iniciado'} p/ ${telefone} (opp #${opportunityId})`)
+      }
+
+      return NextResponse.json({ ok: true, consultoria: 'relogio_registrado', telefone })
+    } catch (err) {
+      console.error('Erro ao registrar consultoria (stage 51):', err)
+      return NextResponse.json({ ok: false, erro: 'consultoria_error' }, { status: 500 })
     }
   }
 
