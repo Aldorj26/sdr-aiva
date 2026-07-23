@@ -27,13 +27,19 @@ const ROTULO: Record<string, string> = {
   'ℹ️': 'Info',
 }
 
-async function getAlertas(tipo?: string): Promise<Alerta[]> {
+async function getAlertas(tipo?: string, busca?: string): Promise<Alerta[]> {
   let q = supabaseAdmin
     .from('sdr_alertas')
     .select('id, tipo, mensagem, entregue, criado_em')
     .order('criado_em', { ascending: false })
     .limit(200)
   if (tipo) q = q.eq('tipo', tipo)
+  if (busca && busca.trim()) {
+    // Busca no texto do alerta — cobre sócio, telefone, email, loja, CNPJ, cidade etc.
+    // Escapa % e _ pra não virarem curinga do LIKE.
+    const termo = busca.trim().replace(/[%_]/g, (m) => `\\${m}`)
+    q = q.ilike('mensagem', `%${termo}%`)
+  }
   const { data } = await q
   return (data ?? []) as Alerta[]
 }
@@ -56,17 +62,21 @@ function fmt(iso: string): string {
 export default async function AlertasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>
+  searchParams: Promise<{ tipo?: string; q?: string }>
 }) {
   const sp = await searchParams
-  const [alertas, contagens] = await Promise.all([getAlertas(sp.tipo), getContagens()])
+  const [alertas, contagens] = await Promise.all([getAlertas(sp.tipo, sp.q), getContagens()])
 
   const chip = (label: string, tipo?: string, count?: number) => {
     const ativo = (sp.tipo ?? '') === (tipo ?? '')
+    const params = new URLSearchParams()
+    if (tipo) params.set('tipo', tipo)
+    if (sp.q) params.set('q', sp.q)
+    const href = params.toString() ? `/alertas?${params.toString()}` : '/alertas'
     return (
       <Link
         key={tipo ?? 'todos'}
-        href={tipo ? `/alertas?tipo=${encodeURIComponent(tipo)}` : '/alertas'}
+        href={href}
         style={{
           textDecoration: 'none',
           fontSize: '0.8rem',
@@ -103,6 +113,47 @@ export default async function AlertasPage({
           Histórico dos avisos enviados pro WhatsApp do Nei e do Aldo — registrado aqui pra acompanhamento. Últimos 200.
         </p>
       </header>
+
+      {/* Busca no conteúdo do alerta (sócio, telefone, email, loja, CNPJ, cidade...) */}
+      <form action="/alertas" method="get" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        {sp.tipo && <input type="hidden" name="tipo" value={sp.tipo} />}
+        <input
+          type="text"
+          name="q"
+          defaultValue={sp.q ?? ''}
+          placeholder="Buscar por sócio, telefone, email, loja, CNPJ, cidade…"
+          style={{
+            flex: 1, background: 'var(--bg-elev)', border: '1px solid var(--border-strong)',
+            color: 'var(--text)', padding: '0.5rem 0.75rem', borderRadius: 8, fontFamily: 'inherit', fontSize: '0.85rem',
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            background: 'var(--accent)', border: 'none', color: '#fff', padding: '0.5rem 1rem',
+            borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 600,
+          }}
+        >
+          Buscar
+        </button>
+        {sp.q && (
+          <Link
+            href={sp.tipo ? `/alertas?tipo=${encodeURIComponent(sp.tipo)}` : '/alertas'}
+            style={{
+              display: 'flex', alignItems: 'center', padding: '0.5rem 0.75rem', borderRadius: 8,
+              border: '1px solid var(--border-strong)', background: 'var(--bg-elev)', color: 'var(--text-muted)',
+              textDecoration: 'none', fontSize: '0.8rem',
+            }}
+          >
+            ✕ Limpar
+          </Link>
+        )}
+      </form>
+      {sp.q && (
+        <p style={{ margin: '0 0 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+          {alertas.length} resultado(s) para “{sp.q}”
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         {chip('Todos')}
