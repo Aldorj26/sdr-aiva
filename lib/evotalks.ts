@@ -508,17 +508,47 @@ export async function sendToGoogleSheets(data: {
  *  - Callers existentes que ignoram o retorno continuam funcionando igual
  *    (fire-and-forget), mas agora a falha fica visivel.
  */
+// Extrai o "tipo" do alerta a partir do emoji inicial da mensagem (🟡, ✅, 🔔...).
+function tipoAlerta(message: string): string {
+  const m = message.trim().match(/^(\p{Emoji}|\p{Emoji_Presentation}|[←-⯿])/u)
+  return m ? m[1] : '•'
+}
+
+// Registra o alerta na tabela sdr_alertas (pra aparecer no painel, além do
+// WhatsApp). Dedup: alertHuman é chamado 2x por alerta (Nei + Aldo) com a MESMA
+// mensagem em ~ms — só grava uma vez (checa se mensagem idêntica entrou nos
+// últimos 20s). Best-effort: falha aqui nunca derruba o envio do alerta.
+async function registrarAlerta(message: string, entregue: boolean): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import('@/lib/supabase')
+    const { data: jaTem } = await supabaseAdmin
+      .from('sdr_alertas')
+      .select('id')
+      .eq('mensagem', message)
+      .gte('criado_em', new Date(Date.now() - 20000).toISOString())
+      .limit(1)
+      .maybeSingle()
+    if (jaTem) return
+    await supabaseAdmin.from('sdr_alertas').insert({ tipo: tipoAlerta(message), mensagem: message, entregue })
+  } catch {
+    // ignora — registro no painel é secundário ao envio
+  }
+}
+
 export async function alertHuman(
   number: string,
   message: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     await sendText(number, message)
+    await registrarAlerta(message, true)
     return { ok: true }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)
     const errStack = err instanceof Error ? err.stack : undefined
     console.error(`[ALERT_FAILED] number=${number} error=${errMsg}`, errStack)
+    // Registra no painel mesmo tendo falhado o envio (marcado como não entregue).
+    await registrarAlerta(message, false)
     // Persiste em webhook_debug (tabela ja existe — usada por opportunity-stage)
     // pra historico auditavel das falhas. Se a tabela nao existir ou der erro
     // de permissao, ignoramos silenciosamente — o log do console ja capturou.

@@ -26,6 +26,7 @@ const SECTIONS: NavSection[] = [
     label: 'Performance',
     items: [
       { label: 'Funil de conversão', href: '/funil', icon: '📈' },
+      { label: 'Alertas', href: '/alertas', icon: '🔔' },
       { label: 'Consumo de tokens', href: '/metricas/tokens', icon: '🪙' },
     ],
   },
