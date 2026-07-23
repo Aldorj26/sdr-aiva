@@ -22,7 +22,7 @@ import {
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
-import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg } from '@/lib/text'
+import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, formatarDadosLead } from '@/lib/text'
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 
@@ -491,7 +491,7 @@ export async function POST(req: NextRequest) {
           `📞 ${telNormalizado}\n` +
           `📩 Primeira msg:\n"${msgPreview}"\n\n` +
           `A VictorIA já se apresentou e vai conversando enquanto vocês não assumem.\n` +
-          `→ Acessa o painel pra ver/responder direto: sdr-agente.vercel.app`
+          `→ Acessa o painel pra ver/responder direto: sdr-aiva.vercel.app`
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
       } catch (err) {
@@ -1638,10 +1638,16 @@ export async function POST(req: NextRequest) {
     return suprime
   }
 
+  // Dados coletados frescos (acumulado + o que chegou nesta volta) — pros alertas
+  // detalhados que o Nei usa pra acompanhar sem abrir o painel (pedido do Aldo 22/07).
+  const dadosAlerta = { ...dadosAcumulados, ...((resposta.dados_coletados as Record<string, string>) ?? {}) }
+
   if (resposta.novo_status === 'PRE_APROVACAO' && lead.status !== 'PRE_APROVACAO' && !regressaoFalsa('PRE_APROVACAO')) {
+    const detalhe = formatarDadosLead(dadosAlerta)
     const msg =
       `🟡 *${lead.nome}* (${lead.telefone} — ${lead.cidade ?? 'cidade n/d'}) qualificado p/ pré-aprovação.\n` +
-      `7 dados coletados pela VictorIA. Mover pra Cadastro Recebido no Evo Talks quando aprovar.`
+      (detalhe ? `\n${detalhe}\n` : '') +
+      `\n➡️ Mover pra Cadastro Recebido no Evo Talks quando aprovar.`
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)
   } else if (cadastroCompletoConfirmado) {
@@ -1650,9 +1656,11 @@ export async function POST(req: NextRequest) {
     // CRM (§13) que agora tem o guard `lead.status !== 'CADASTRO_RECEBIDO'` — ou seja,
     // só true numa transição REAL. Sem re-alerta a cada msg espontânea pós-cadastro
     // (bug corrigido 2026-07-09 — Imports Store: 9 alertas duplicados em 6 minutos).
+    const detalhe = formatarDadosLead(dadosAlerta)
     const msg =
       `✅ *${lead.nome}* (${lead.telefone} — ${lead.cidade ?? 'cidade n/d'}) completou o cadastro!\n` +
-      `12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.`
+      (detalhe ? `\n${detalhe}\n` : '') +
+      `\n📤 12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.`
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)
   } else if (
@@ -1679,10 +1687,13 @@ export async function POST(req: NextRequest) {
     // a cada msg trivial do lead ("Ok") e o 🔔 re-disparava com aviso confuso. O lead já
     // está no filtro "Aguardando humano" do painel; quando o Nei clica "Atendido"
     // (acionar_humano=false), um novo acionamento volta a alertar normalmente.
+    const detalhe = formatarDadosLead(dadosAlerta)
     const msg =
-      `🔔 *${lead.nome}* (${lead.telefone}) precisa de atendimento humano.\n` +
-      `Motivo: ${resposta.motivo_humano ?? 'não especificado'}\n` +
-      `Última mensagem: "${conteudo}"`
+      `🔔 *${lead.nome}* (${lead.telefone}${lead.cidade ? ` — ${lead.cidade}` : ''}) precisa de atendimento humano.\n` +
+      `📌 Etapa: ${lead.status}\n` +
+      `❓ Motivo: ${resposta.motivo_humano ?? 'não especificado'}\n` +
+      `💬 Última mensagem do lojista: "${conteudo}"` +
+      (detalhe ? `\n\n${detalhe}` : '')
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
     if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
   }

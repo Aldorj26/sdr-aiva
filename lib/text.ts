@@ -217,3 +217,37 @@ export function removeFonesNaoOficiais(
 
   return { texto, removidos }
 }
+
+// ─── Formatação de dados coletados pra alertas do Nei/Aldo ────────────────────
+// Deixa os alertas 🟡 (pré-aprovação) e ✅ (cadastro completo) DETALHADOS — como
+// o alerta 📋 de colaboradores que o Aldo curtiu — pra o Nei acompanhar sem abrir
+// o painel. Mostra só os campos que existem, na ordem do funil.
+const LABEL_DADOS: Array<[string, string]> = [
+  ['nome_socio', '👤 Sócio'],
+  ['telefone_socio', '📱 Telefone'],
+  ['email_socio', '📧 Email'],
+  ['nome_varejo', '🏪 Loja'],
+  ['cnpj_matriz', '🏢 CNPJ matriz'],
+  ['cnpjs_adicionais', '🏢 CNPJs adicionais'],
+  ['regiao_varejo', '📍 Região/Cidade'],
+  ['localizacao_lojas', '📍 Localização das lojas'],
+  ['numero_lojas', '🔢 Nº de lojas'],
+  ['faturamento_anual', '💰 Faturamento anual'],
+  ['valor_boleto_mensal', '💵 Venda mensal no crediário'],
+  ['possui_outra_financeira', '💳 Outra financeira'],
+]
+
+/**
+ * Formata os dados coletados de um lead num bloco legível pra alerta de WhatsApp.
+ * Só inclui campos preenchidos. Retorna '' se não houver nada.
+ */
+export function formatarDadosLead(dados: Record<string, string | null | undefined>): string {
+  const linhas: string[] = []
+  for (const [chave, label] of LABEL_DADOS) {
+    const v = dados[chave]
+    if (v && String(v).trim() && String(v).trim().toLowerCase() !== 'null') {
+      linhas.push(`${label}: ${String(v).trim()}`)
+    }
+  }
+  return linhas.join('\n')
+}
