@@ -82,7 +82,7 @@ export default function SearchBar() {
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por nome, telefone ou cidade…"
+          placeholder="Buscar por nome, telefone, cidade, sócio, email, CNPJ, faturamento…"
           style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
         />
       </form>

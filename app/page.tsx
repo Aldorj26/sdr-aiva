@@ -87,8 +87,14 @@ async function getRecentLeads(
   }
 
   if (q && q.trim()) {
-    const term = q.trim()
-    query = query.or(`nome.ilike.%${term}%,telefone.ilike.%${term}%,cidade.ilike.%${term}%`)
+    // Remove vírgula/parênteses: quebrariam a sintaxe do .or() do PostgREST.
+    const term = q.trim().replace(/[(),]/g, ' ').trim()
+    // Busca em nome/telefone/cidade E nas observacoes — que guardam todos os dados
+    // coletados ([DADOS_COLETADOS:nome_socio=…|email_socio=…|cnpj_matriz=…|…]),
+    // então cobre sócio, email, CNPJ, faturamento, região, nº lojas etc.
+    query = query.or(
+      `nome.ilike.%${term}%,telefone.ilike.%${term}%,cidade.ilike.%${term}%,observacoes.ilike.%${term}%`,
+    )
   }
   const { data } = await query
   return data ?? []
