@@ -49,19 +49,29 @@ function MensagemConteudo({ conteudo }: { conteudo: string }) {
     )
   }
 
-  const arq = conteudo.match(/^\[LEAD_ENVIOU_ARQUIVO:(\d+):([^\]]*)\]$/)
+  // [LEAD_ENVIOU_ARQUIVO:<id>:<mime>:<nome>] — o nome é opcional (marcadores
+  // antigos não têm) e vai por último porque pode conter ':'.
+  const arq = conteudo.match(/^\[LEAD_ENVIOU_ARQUIVO:(\d+):([^:\]]*):?([^\]]*)\]$/)
   if (arq) {
-    const [, id, mime] = arq
+    const [, id, mime, nomeArq] = arq
     const isPdf = mime.includes('pdf')
+    const rotulo = isPdf ? 'Abrir documento (PDF)' : 'Abrir arquivo'
     return (
-      <a
-        href={`/api/leads/media/${id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent)', fontWeight: 600 }}
-      >
-        {isPdf ? '📄' : '📎'} Abrir arquivo{isPdf ? ' (PDF)' : ''}
-      </a>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+        <a
+          href={`/api/leads/media/${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent)', fontWeight: 600, textDecoration: 'underline' }}
+        >
+          {isPdf ? '📄' : '📎'} {rotulo}
+        </a>
+        {nomeArq && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+            {nomeArq}
+          </span>
+        )}
+      </div>
     )
   }
 

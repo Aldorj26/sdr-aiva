@@ -142,7 +142,7 @@ export async function POST(
           // pra o painel exibir a imagem/arquivo que FOI ENVIADO pelo operador).
           const marcador = anexo.mimeType.startsWith('image/')
             ? `[LEAD_ENVIOU_IMAGEM:${fileId}]`
-            : `[LEAD_ENVIOU_ARQUIVO:${fileId}:${anexo.mimeType}]`
+            : `[LEAD_ENVIOU_ARQUIVO:${fileId}:${anexo.mimeType}:${(anexo.fileName ?? '').replace(/\]/g, '')}]`
           await supabaseAdmin.from('sdr_mensagens').insert(
             texto
               ? [

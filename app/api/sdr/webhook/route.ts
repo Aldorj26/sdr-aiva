@@ -190,6 +190,14 @@ export async function POST(req: NextRequest) {
     payloadMessageObj?.mimeType ?? payloadMessageObj?.file_mimetype ??
     payload.mimeType ?? '',
   )
+  // Nome do arquivo — exibido no painel junto do link (formato pedido pelo Aldo
+  // 23/07, inspirado no painel Parcelex). Tira ']' pra não quebrar o marcador.
+  const fileName: string = asStr(
+    messageObj.fileName ?? messageObj.file_name ?? messageFileObj?.fileName ??
+    payloadMessageObj?.fileName ?? payloadMessageObj?.file_name ??
+    payload.fileName ?? '',
+  ).replace(/\]/g, '')
+
   const isAudio = !!fileId && fileId > 0 && (
     mimeType.startsWith('audio/') ||
     mimeType === 'application/ogg' ||
@@ -312,8 +320,10 @@ export async function POST(req: NextRequest) {
   // certificado MEI, extrato bancário) se perdiam. Agora salva um marcador com
   // o fileId e o mimeType, e o painel mostra um link de download.
   if (!conteudo.trim() && fileId && fileId > 0) {
-    conteudo = `[LEAD_ENVIOU_ARQUIVO:${fileId}:${mimeType || 'application/octet-stream'}]`
-    console.log(`Arquivo recebido — fileId: ${fileId}, mimeType: ${mimeType}`)
+    // Formato: [LEAD_ENVIOU_ARQUIVO:<id>:<mime>:<nome>] — o nome vai por último
+    // (pode conter ':') e o painel mostra link + nome, estilo painel Parcelex.
+    conteudo = `[LEAD_ENVIOU_ARQUIVO:${fileId}:${mimeType || 'application/octet-stream'}:${fileName}]`
+    console.log(`Arquivo recebido — fileId: ${fileId}, mimeType: ${mimeType}, nome: ${fileName}`)
   }
 
   if (!conteudo.trim()) {
