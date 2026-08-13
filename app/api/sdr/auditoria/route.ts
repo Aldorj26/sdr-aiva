@@ -16,9 +16,9 @@ export const maxDuration = 60
  * discrepância acumulada e auto-correção em massa é arriscada.
  *
  * Discrepâncias detectadas:
- *   1. Lead INTERESSADO/AGUARDANDO/FORMULARIO_ENVIADO no Supabase
+ *   1. Lead INTERESSADO/AGUARDANDO/CADASTRO_RECEBIDO no Supabase
  *      mas opp no CRM está em SEM_RESPOSTA / BOT_DETECTADO / fechada.
- *   2. Lead FORMULARIO_ENVIADO no Supabase mas SEM opp aberta no CRM.
+ *   2. Lead CADASTRO_RECEBIDO no Supabase mas SEM opp aberta no CRM.
  *   3. Opp aberta no CRM (pipeline 15) com mainphone mas sem lead no Supabase.
  *
  * Auth: Bearer WEBHOOK_SECRET (igual outros crons)
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const { data: leads, error: dbErr } = await supabaseAdmin
     .from('sdr_leads')
     .select('id, nome, telefone, status, evotalks_opportunity_id, criado_em')
-    .in('status', ['INTERESSADO', 'AGUARDANDO', 'FORMULARIO_ENVIADO', 'DISPARO_REALIZADO'])
+    .in('status', ['INTERESSADO', 'AGUARDANDO', 'CADASTRO_RECEBIDO', 'INICIO'])
 
   if (dbErr) {
     return NextResponse.json({ ok: false, ts, error: 'supabase', detail: dbErr.message }, { status: 500 })
@@ -97,8 +97,8 @@ export async function POST(req: NextRequest) {
     const phone = (lead.telefone ?? '').replace(/\D/g, '')
     const opp = oppByPhone.get(phone)
     if (!opp) {
-      // 3b. Lead em FORMULARIO_ENVIADO mas sem opp aberta no CRM
-      if (lead.status === 'FORMULARIO_ENVIADO') {
+      // 3b. Lead em CADASTRO_RECEBIDO mas sem opp aberta no CRM
+      if (lead.status === 'CADASTRO_RECEBIDO') {
         discrepancias.push({
           tipo: 'lead_formulario_sem_opp',
           leadId: lead.id,
@@ -143,8 +143,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 3d. Zona morta — leads parados aguardando ação manual do time
-  //   AGUARDANDO_APROVACAO > 48h → Eduardo não aprovou/reprovou ainda
-  //   CADASTRO_COMPLETO    >  6h → Nei não moveu pra Em Análise CAF ainda
+  //   PRE_APROVACAO > 48h → Eduardo não aprovou/reprovou ainda
+  //   CADASTRO_RECEBIDO    >  6h → Nei não moveu pra Em Análise CAF ainda
   const limite48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
   const limite6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
 
@@ -152,8 +152,8 @@ export async function POST(req: NextRequest) {
     .from('sdr_leads')
     .select('id, nome, telefone, status, data_ultimo_contato')
     .or(
-      `and(status.eq.AGUARDANDO_APROVACAO,data_ultimo_contato.lt.${limite48h}),` +
-      `and(status.eq.CADASTRO_COMPLETO,data_ultimo_contato.lt.${limite6h})`
+      `and(status.eq.PRE_APROVACAO,data_ultimo_contato.lt.${limite48h}),` +
+      `and(status.eq.CADASTRO_RECEBIDO,data_ultimo_contato.lt.${limite6h})`
     )
     .order('data_ultimo_contato', { ascending: true })
 
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     const msParado = Date.now() - new Date(lead.data_ultimo_contato).getTime()
     const horasParado = Math.floor(msParado / (1000 * 60 * 60))
     discrepancias.push({
-      tipo: lead.status === 'AGUARDANDO_APROVACAO'
+      tipo: lead.status === 'PRE_APROVACAO'
         ? 'zona_morta_aguardando_aprovacao'
         : 'zona_morta_cadastro_completo',
       leadId: lead.id,
@@ -186,23 +186,27 @@ export async function POST(req: NextRequest) {
       zona_morta_cadastro: discrepancias.filter((d) => d.tipo === 'zona_morta_cadastro_completo').length,
     }
 
-    // Mensagem geral pra Aldo (discrepâncias CRM + zona morta)
-    if (aldoNumber) {
+    // Resumo geral (discrepâncias CRM + zona morta) — Aldo + Nei
+    {
       const linhas = [`[Auditoria SDR AIVA] ${discrepancias.length} divergência(s) encontradas:`]
       if (cnt.opp_morta_lead_vivo) linhas.push(`- ${cnt.opp_morta_lead_vivo} leads ativos com opp morta no CRM`)
-      if (cnt.lead_formulario_sem_opp) linhas.push(`- ${cnt.lead_formulario_sem_opp} leads FORMULARIO_ENVIADO sem opp`)
+      if (cnt.lead_formulario_sem_opp) linhas.push(`- ${cnt.lead_formulario_sem_opp} leads CADASTRO_RECEBIDO sem opp`)
       if (cnt.opp_orfa) linhas.push(`- ${cnt.opp_orfa} opps no CRM sem lead correspondente`)
-      if (cnt.zona_morta_aguardando) linhas.push(`- ${cnt.zona_morta_aguardando} leads em AGUARDANDO_APROVACAO há mais de 48h (Eduardo não agiu)`)
-      if (cnt.zona_morta_cadastro) linhas.push(`- ${cnt.zona_morta_cadastro} leads com CADASTRO_COMPLETO há mais de 6h (Nei não moveu pro CRM)`)
-      const r = await alertHuman(aldoNumber, linhas.join('\n'))
-      alertaEnviado = r.ok
+      if (cnt.zona_morta_aguardando) linhas.push(`- ${cnt.zona_morta_aguardando} leads em PRE_APROVACAO há mais de 48h (Eduardo não agiu)`)
+      if (cnt.zona_morta_cadastro) linhas.push(`- ${cnt.zona_morta_cadastro} leads com CADASTRO_RECEBIDO há mais de 6h (Nei não moveu pro CRM)`)
+      const texto = linhas.join('\n')
+      if (aldoNumber) {
+        const r = await alertHuman(aldoNumber, texto)
+        alertaEnviado = r.ok
+      }
+      if (neiNumber) await alertHuman(neiNumber, texto)
     }
 
-    // Alerta específico pra Nei sobre leads em zona morta que precisam de ação manual
+    // Alerta de ação (leads em zona morta) — Nei + Aldo
     const zonaMortaNei: Discrepancia[] = discrepancias.filter(
       (d) => d.tipo === 'zona_morta_aguardando_aprovacao' || d.tipo === 'zona_morta_cadastro_completo'
     )
-    if (zonaMortaNei.length > 0 && neiNumber) {
+    if (zonaMortaNei.length > 0) {
       const aguardando = zonaMortaNei.filter((d) => d.tipo === 'zona_morta_aguardando_aprovacao')
       const cadastro = zonaMortaNei.filter((d) => d.tipo === 'zona_morta_cadastro_completo')
 
@@ -224,10 +228,12 @@ export async function POST(req: NextRequest) {
         if (cadastro.length > 5) linhasNei.push(`  ...e mais ${cadastro.length - 5}`)
       }
 
+      const textoNei = linhasNei.join('\n')
       try {
-        await alertHuman(neiNumber, linhasNei.join('\n'))
+        if (neiNumber) await alertHuman(neiNumber, textoNei)
+        if (aldoNumber) await alertHuman(aldoNumber, textoNei)
       } catch (err) {
-        console.error('[auditoria] falha ao alertar Nei sobre zona morta:', err)
+        console.error('[auditoria] falha ao alertar humanos sobre zona morta:', err)
       }
     }
   }

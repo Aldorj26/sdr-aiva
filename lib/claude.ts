@@ -3,7 +3,7 @@ import Groq, { toFile } from 'groq-sdk'
 import { AIVA_SYSTEM_PROMPT } from '@/prompts/aiva'
 import { TRIAGEM_SYSTEM_PROMPT } from '@/prompts/triagem'
 import type { Mensagem } from '@/lib/supabase'
-import { removeFonesNaoOficiais } from '@/lib/text'
+import { removeFonesNaoOficiais, contextoDeData } from '@/lib/text'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -79,6 +79,50 @@ REGRAS DURAS:
     .trim()
 
   // Garante uma linha só (a sanitização do sendTemplate também cobre) e tira aspas.
+  return txt.replace(/\s*\n+\s*/g, ' ').replace(/^["']|["']$/g, '').trim()
+}
+
+/**
+ * Resumo do problema pro registro de CHAMADO na planilha (aba Chamados —
+ * pedido do Aldo 2026-08-05). A frase crua do lojista ("tá dando erro") não
+ * diz nada pro Edu/Nei; este helper lê a conversa recente e produz 1-2 frases
+ * objetivas: o que trava, em que ponto do fluxo, e contexto relevante.
+ */
+export async function resumirProblemaChamado(
+  historico: Mensagem[],
+  statusLead: string,
+): Promise<string> {
+  const convo = historico
+    .slice(-14)
+    .map((m) => `${m.direcao === 'in' ? 'Lojista' : 'VictorIA'}: ${m.conteudo}`)
+    .join('\n')
+
+  const system = `Você é analista de suporte da operação AIVA (crediário pra lojas de celular). Abaixo vem a conversa recente de um lojista que relatou um PROBLEMA no sistema/portal.
+
+Escreva o registro do chamado: um resumo OBJETIVO de 1 a 2 frases do problema, pra equipe técnica resolver.
+
+REGRAS:
+- Diga O QUE está travando/falhando e EM QUE PONTO (login, senha, biometria, cadastro CAF, link, app...), usando só o que está na conversa.
+- Inclua contexto útil se houver (desde quando, o que já tentou, mensagem de erro citada).
+- Etapa do lead no funil: ${statusLead} — use se ajudar a situar.
+- Sem saudação, sem opinião, sem solução — só o problema. Máximo 2 frases.
+- Responda SOMENTE com o texto do resumo.`
+
+  const resp = await callClaudeWithRetry(
+    {
+      model: 'claude-sonnet-4-5',
+      max_tokens: 250,
+      system,
+      messages: [{ role: 'user', content: `Conversa:\n${convo}` }],
+    },
+    'resumoChamado',
+  )
+
+  const txt = resp.content
+    .filter((c): c is Anthropic.TextBlock => c.type === 'text')
+    .map((c) => c.text)
+    .join(' ')
+    .trim()
   return txt.replace(/\s*\n+\s*/g, ' ').replace(/^["']|["']$/g, '').trim()
 }
 
@@ -306,6 +350,21 @@ export async function transcreverAudio(
  * da instrução de fase — impede a VictorIA de re-perguntar dados já salvos
  * em observacoes mas que não aparecem mais no histórico por limitação de janela.
  */
+// Bloco anexado à instrução da fase quando o lead está com TRAVA DE QSA
+// (sem sócio na Receita, política 2026-08-03): retido em Em Análise AIVA até
+// regularizar o quadro societário com o contador.
+const DOCS_PENDENTES_BLOCO =
+  `\n\n[TRAVA DE QUADRO SOCIETÁRIO (QSA) ATIVA — REGRA OBRIGATÓRIA]\n` +
+  `A consulta do CNPJ deste lead na Receita Federal está SEM quadro societário (QSA) — e o sistema da AIVA exige sócio registrado pra concluir a aprovação. Ele está RETIDO nesta etapa até regularizar.\n` +
+  `Como agir:\n` +
+  `- NÃO envie o link de onboarding/CAF nem fale em "concluir cadastro e biometria" — o portal travaria. O foco é a REGULARIZAÇÃO.\n` +
+  `- Oriente com naturalidade: ele deve procurar O CONTADOR dele pra regularizar a situação societária do CNPJ.\n` +
+  `- Motivos comuns (explique se perguntar): atraso na sincronização entre a Junta Comercial e a Receita; erro de cadastro/digitação no DBE; alteração contratual ainda em análise na Junta Comercial do estado dele; divergência cadastral (ex.: CPF de sócio irregular na Receita).\n` +
+  `- Como resolver (com o contador): acompanhar o protocolo no site da Junta Comercial DO ESTADO da empresa; aguardar alguns dias e emitir novo Comprovante de Inscrição (cartão CNPJ); solicitar retificação via DBE no Coletor Nacional (portal REDESIM) se houver erro; CPF irregular se resolve direto na Receita.\n` +
+  `- Quando ele AVISAR que regularizou, o SISTEMA re-consulta a Receita automaticamente na hora — você não precisa prometer prazos; diga que é só avisar por aqui que você confere.\n` +
+  `- Se ele demonstrar frustração, acolha: é burocracia comum, resolve com o contador, e o cadastro dele já está completo do nosso lado — assim que o QSA aparecer, segue direto.\n` +
+  `[FIM TRAVA QSA]`
+
 function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string, string>): string | null {
   // Monta o bloco de dados já coletados (se houver) para prefixar qualquer instrução de fase
   let dadosBlock = ''
@@ -322,13 +381,13 @@ function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string
   }
 
   if (statusAtual === 'EM_ANALISE_AIVA') {
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/onboarding/full).\nEle precisa: acessar o link, preencher 7 etapas com dados da empresa e fazer reconhecimento facial (CAF) ao final.\nSeu papel agora:\n- Verificar se ele concluiu o cadastro e a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas, biometria no final)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n- Se tiver dificuldade: ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM).\nEXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/).\nEle precisa: acessar o link, preencher 7 etapas com dados da empresa e fazer reconhecimento facial (CAF) ao final.\nSeu papel agora:\n- Verificar se ele concluiu o cadastro e a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas, biometria no final)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n- Se tiver dificuldade: ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM).\nEXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'CADASTRO_RECEBIDO') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = CADASTRO_RECEBIDO. Ele JÁ COMPLETOU TODOS os 12 dados de qualificação (Fase 1 + Fase 3) e está aguardando o time mover pra próxima etapa (Em Análise CAF, Treinar, etc.).\nNUNCA pergunte dados de qualificação novamente (CNPJ, faturamento, lojas, email, etc.) — todos já foram coletados.\nO lead provavelmente está perguntando sobre:\n- Treinamento (próxima data, link Meet, materiais)\n- Login / liberação do sistema AIVA\n- Cadastro de funcionários (link do Forms)\n- Dúvidas operacionais (como vender, fluxo do crediário)\nResponda do que SOUBER pela seção PÓS-APROVAÇÃO. Se for dúvida específica que você não sabe (login travado, prazo, problema técnico) → acionar_humano = true, motivo_humano = "duvida_pos_cadastro: [contexto]".\nRetorne SEMPRE novo_status = "CADASTRO_RECEBIDO" (não regrida pra INTERESSADO ou outras fases anteriores).\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'TREINAR') {
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = TREINAR. Ele já foi aprovado, completou o cadastro CAF e foi movido pra etapa de treinamento. Já recebeu HSM com link Meet, Drive de materiais e formulário de cadastro de funcionários.\nNUNCA pergunte dados de qualificação novamente — todos já foram coletados.\nO lead provavelmente está perguntando sobre:\n- Próxima data do treinamento (geralmente quintas 9h30)\n- Link do Meet (https://meet.google.com/hqn-vcrr-dxo)\n- Materiais de apoio (link Drive)\n- Formulário de cadastro dos funcionários\n- Login / acesso ao sistema AIVA pós-treinamento\nResponda do que SOUBER. Se for dúvida específica que você não sabe → acionar_humano = true, motivo_humano = "duvida_treinamento: [contexto]".\nRetorne SEMPRE novo_status = "TREINAR" (não regrida pra fases anteriores).\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = TREINAR. Ele já foi aprovado, completou o cadastro CAF e foi movido pra etapa de treinamento. Já recebeu HSM com link Meet, Drive de materiais e o pedido dos dados dos colaboradores.\nNUNCA pergunte dados de qualificação novamente — todos já foram coletados.\n⚠️ PRIORIDADE DESTA FASE — ACESSOS DA EQUIPE: se os dados dos colaboradores (nome completo, CPF, e-mail, telefone de cada um) ainda NÃO foram coletados e confirmados nesta conversa, PEÇA proativamente (fluxo "coleta de colaboradores" do prompt) — sem esses dados os acessos não saem. NUNCA envie link de formulário pro lojista — a coleta é 100% pelo chat e o sistema lança automaticamente.\nO lead provavelmente está perguntando sobre:\n- Treinamento: REGRA IMPORTANTE — ele NÃO precisa esperar a live de quinta. Pode assistir o vídeo Curso_Treinamento na pasta de materiais AGORA e já começar a operar. A live (quintas 9h30) é opcional/reforço.\n- Link do Meet (https://meet.google.com/hqn-vcrr-dxo)\n- Materiais de apoio (link Drive)\n- Cadastro dos colaboradores (você coleta no chat)\n- Login / acesso ao sistema AIVA\nResponda do que SOUBER. Se for dúvida específica que você não sabe → acionar_humano = true, motivo_humano = "duvida_treinamento: [contexto]".\nRetorne SEMPRE novo_status = "TREINAR" (não regrida pra fases anteriores).\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'LOGIN') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = LOGIN. A loja JÁ foi aprovada e passou pelo treinamento; agora está na etapa de LOGIN — o time da AIVA está liberando/enviou o ACESSO (login e senha) ao sistema AIVA.\nNUNCA pergunte dados de qualificação — tudo já foi coletado. NÃO fale mais de treinamento como se fosse o foco; o foco AGORA é o acesso.\nComo agir:\n- Se o lead não trouxe um assunto específico, pergunte PROATIVAMENTE se ele já recebeu o login e a senha e se conseguiu acessar o sistema AIVA. Ex: "Vi que seu acesso está sendo liberado! Você já recebeu seu login e senha do sistema AIVA e conseguiu entrar?"\n- Se ele já recebeu e está tudo certo → comemore e ofereça ajuda pra começar a vender (use a seção PÓS-APROVAÇÃO / materiais).\n- Se NÃO recebeu o login/senha, ou recebeu mas não consegue acessar (não funciona, esqueceu, deu erro) → isso é informação interna da AIVA: oriente a resolver pelo CHAT DENTRO da plataforma AIVA (seção SUPORTE PÓS-VENDA, situação A). NÃO invente login/senha e NÃO acione Nei/Aldo pra isso.\n- Dúvida de "como fazer" (emitir boleto, usar relatório) → mande a pasta de materiais (Drive).\nRetorne SEMPRE novo_status = "LOGIN" (não regrida pra fases anteriores).\n[FIM INSTRUÇÃO DO SISTEMA]`
@@ -608,6 +667,7 @@ export async function processarMensagem(
   dadosAcumulados?: Record<string, string>,
   imagem?: { base64: string; mimeType: string } | null,
   instrucaoSilvia?: string | null,
+  docsPendentes?: boolean,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -669,7 +729,12 @@ export async function processarMensagem(
   // histórico é longo. Isso impede de voltar pra fase anterior.
   // (Vem DEPOIS do envelope <mensagem_lead> — fica fora dele, como instrução real.)
   const status = statusAtual ?? 'INTERESSADO'
-  const faseInstrucao = buildFaseInstrucao(status, dadosAcumulados)
+  let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados)
+  // Docs do sem-sócio pendentes → cobra em QUALQUER fase (sobrepõe o "não
+  // peça dados" das fases de espera). Anexado mesmo sem instrução de fase.
+  if (docsPendentes) {
+    faseInstrucao = `${faseInstrucao ?? ''}${DOCS_PENDENTES_BLOCO}`.trim()
+  }
   if (faseInstrucao) {
     const ultima = messages[messages.length - 1]
     if (ultima.role === 'user' && typeof ultima.content === 'string') {
@@ -714,26 +779,71 @@ export async function processarMensagem(
 
   // Seleciona o prompt base por produto. Default AIVA — TRIAGEM é usado pra leads
   // inbound puros (telefone novo que entrou em contato sem prospecção prévia).
+  //
+  // PROMPT CACHING: o cache da Anthropic é por PREFIXO — qualquer byte diferente
+  // invalida tudo dali pra frente. Por isso o prompt base vai IMUTÁVEL (os
+  // marcadores {{nome}} e {{status_atual}} ficam literais no texto) e os valores
+  // reais entram no bloco dinâmico final, DEPOIS dos breakpoints. Assim o mesmo
+  // cache serve todos os leads.
   const promptBase = produto === 'TRIAGEM' ? TRIAGEM_SYSTEM_PROMPT : AIVA_SYSTEM_PROMPT
-  let systemPrompt = promptBase
-    .replaceAll('{{nome}}', nomeDoLead)
-    .replaceAll('{{status_atual}}', status)
+
+  const systemBlocks: Anthropic.TextBlockParam[] = [
+    { type: 'text', text: promptBase, cache_control: { type: 'ephemeral' } },
+  ]
 
   // Ciclo de aprendizado: injeta as correções da curadoria como few-shot.
   // Só pro fluxo AIVA (TRIAGEM é outro agente, com curadoria própria no futuro).
+  // Breakpoint próprio: quando a curadoria adiciona uma correção, invalida só
+  // este bloco — o cache do prompt base (o grosso dos ~20k tokens) sobrevive.
   if (produto !== 'TRIAGEM') {
-    systemPrompt += await getCorrecoesParaPrompt()
+    const correcoes = await getCorrecoesParaPrompt()
+    if (correcoes.trim()) {
+      systemBlocks.push({ type: 'text', text: correcoes, cache_control: { type: 'ephemeral' } })
+    }
   }
+
+  // Bloco dinâmico (varia por lead/turno) — sempre por último e SEM cache_control.
+  // A DATA vem aqui de propósito: fora do cache, senão congelaria no dia em que o
+  // bloco foi cacheado e voltaria a mentir.
+  const { hojeExtenso, quartaAcesso, tercaCorte } = contextoDeData()
+  let blocoDinamico = `## HOJE (referência obrigatória de data)
+
+- Agora: **${hojeExtenso}** (horário de Brasília)
+- Corte para os acessos (terça, fim do dia): **${tercaCorte}**
+- Liberação dos acessos (quarta-feira): **${quartaAcesso}**
+
+⚠️ Estas datas já estão CALCULADAS e são as ÚNICAS válidas. **NÃO refaça a conta, não
+some nem subtraia dias, não deduza dia da semana.** Se o lojista perguntar quando sai o
+acesso, a resposta é exatamente ${quartaAcesso}. Se ele citar outra data, corrija com essa.
+Você não tem relógio nem calendário próprio — a única fonte de data é este bloco. Errar
+data aqui já fez a gente prometer acesso pra um dia que não existia.
+
+⚠️ Se o lojista citar uma data qualquer, **não diga que dia da semana ela cai, nem se é
+"amanhã", "hoje" ou "semana que vem"** — você não sabe, e já errou isso ("15/08 é amanhã,
+sexta-feira", quando era sábado). Apenas responda com a data oficial acima.
+
+## DADOS DESTA CONVERSA
+
+Valores reais dos marcadores usados nas instruções acima:
+- {{nome}} = ${nomeDoLead}
+- {{status_atual}} = ${status}
+
+Onde as instruções acima citarem {{nome}} ou {{status_atual}}, use esses valores.`
 
   // Instrução pontual do operador — alta prioridade, injetada por último.
   if (instrucaoSilvia?.trim()) {
-    systemPrompt += `\n\n---\n\n## INSTRUÇÃO DO OPERADOR (prioridade alta)\n\n${instrucaoSilvia.trim()}\n\nSiga essa instrução nas próximas respostas para este lead.`
+    blocoDinamico += `\n\n---\n\n## INSTRUÇÃO DO OPERADOR (prioridade alta)\n\n${instrucaoSilvia.trim()}\n\nSiga essa instrução nas próximas respostas para este lead.`
   }
+
+  systemBlocks.push({ type: 'text', text: blocoDinamico })
 
   const response = await callClaudeWithRetry({
     model: 'claude-sonnet-4-5',
-    max_tokens: 1024,
-    system: systemPrompt,
+    // 3000 (era 1024): respostas com motivo_humano longo — ex. lista de
+    // colaboradores de várias lojas (caso Zé do Celular 2026-08-05) — estouravam
+    // o teto e o JSON vinha truncado/inválido, derrubando o turno inteiro.
+    max_tokens: 3000,
+    system: systemBlocks,
     messages,
   }, 'processarMensagem')
 

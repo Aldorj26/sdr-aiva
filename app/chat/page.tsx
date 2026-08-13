@@ -2,42 +2,46 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
+interface Msg { role: 'user' | 'assistant'; content: string }
+interface Resposta {
+  mensagem?: string
+  novo_status?: string
+  acionar_humano?: boolean
+  motivo_humano?: string | null
+  dados_coletados?: Record<string, string | null>
+  error?: string
 }
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([])
+// Fases da conversa real — o status define qual instrução de fase a VictorIA recebe.
+const FASES = [
+  { valor: 'INTERESSADO', rotulo: 'Fase 1 — Qualificação (7 dados)' },
+  { valor: 'PRE_APROVACAO', rotulo: 'Fase 2 — Pré-aprovação (espera)' },
+  { valor: 'CADASTRO_RECEBIDO', rotulo: 'Fase 3 — Cadastro (5 dados)' },
+  { valor: 'EM_ANALISE_AIVA', rotulo: 'Em Análise AIVA (onboarding)' },
+]
+
+export default function ChatSimuladorPage() {
+  const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [nome, setNome] = useState('')
-  const [started, setStarted] = useState(false)
+  const [fase, setFase] = useState('INTERESSADO')
   const [loading, setLoading] = useState(false)
-  const messagesEnd = useRef<HTMLDivElement>(null)
+  const [ultimoStatus, setUltimoStatus] = useState<string | null>(null)
+  const [humano, setHumano] = useState(false)
+  const [motivo, setMotivo] = useState<string | null>(null)
+  const [dados, setDados] = useState<Record<string, string>>({})
+  const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const nameRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
-  useEffect(() => {
-    if (started) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    } else {
-      setTimeout(() => nameRef.current?.focus(), 100)
-    }
-  }, [started])
-
-  async function handleSend() {
+  async function enviar() {
     if (!input.trim() || loading) return
-
-    const userMsg: Message = { role: 'user', content: input.trim() }
-    const updated = [...messages, userMsg]
-    setMessages(updated)
+    const userMsg: Msg = { role: 'user', content: input.trim() }
+    const atualizado = [...messages, userMsg]
+    setMessages(atualizado)
     setInput('')
     setLoading(true)
-
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -45,314 +49,145 @@ export default function ChatPage() {
         body: JSON.stringify({
           mensagem: userMsg.content,
           historico: messages,
-          nome: nome || 'Visitante',
+          nome: nome.trim() || undefined,
+          status: fase,
+          dados,
         }),
       })
-      const data = await res.json()
-      if (data.mensagem) {
-        setMessages([...updated, { role: 'assistant', content: data.mensagem }])
+      const data = (await res.json()) as Resposta
+      setMessages([...atualizado, { role: 'assistant', content: data.mensagem ?? data.error ?? 'Erro ao processar.' }])
+      if (data.novo_status) setUltimoStatus(data.novo_status)
+      if (typeof data.acionar_humano === 'boolean') setHumano(data.acionar_humano)
+      setMotivo(data.motivo_humano ?? null)
+      if (data.dados_coletados) {
+        const novos = Object.fromEntries(
+          Object.entries(data.dados_coletados).filter(([, v]) => v && v !== 'null') as [string, string][],
+        )
+        if (Object.keys(novos).length) setDados((d) => ({ ...d, ...novos }))
       }
     } catch {
-      setMessages([...updated, { role: 'assistant', content: 'Erro ao processar. Tente novamente.' }])
+      setMessages([...atualizado, { role: 'assistant', content: 'Erro de rede. Tenta de novo?' }])
     } finally {
       setLoading(false)
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }
 
-  if (!started) {
-    return (
-      <>
-        <style>{globalStyles}</style>
-        <main className="container">
-          <div className="start-box">
-            <div className="logo">A</div>
-            <h1 className="title">VictorIA — AIVA</h1>
-            <p className="subtitle">Chat direto com o agente SDR</p>
-            <input
-              ref={nameRef}
-              className="name-input"
-              placeholder="Seu nome (simula o lead)"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && nome.trim() && setStarted(true)}
-              autoFocus
-            />
-            <button
-              className="start-btn"
-              onClick={() => nome.trim() && setStarted(true)}
-              disabled={!nome.trim()}
-            >
-              Iniciar conversa
-            </button>
-          </div>
-        </main>
-      </>
-    )
+  function reiniciar() {
+    setMessages([]); setUltimoStatus(null); setHumano(false); setMotivo(null); setDados({}); setInput('')
+    setTimeout(() => inputRef.current?.focus(), 100)
   }
 
+  const dadosLista = Object.entries(dados)
+
   return (
-    <>
-      <style>{globalStyles}</style>
-      <main className="container">
-        <div className="header">
-          <div className="header-left">
-            <div className="header-avatar">A</div>
+    <div className="sim-wrap">
+      <style>{css}</style>
+      <div className="sim-card">
+        <header className="sim-head">
+          <div className="sim-head-left">
+            <div className="sim-avatar">V</div>
             <div>
-              <div className="header-title">VictorIA — AIVA</div>
-              <div className="header-status">Online</div>
+              <div className="sim-title">VictorIA — Simulador</div>
+              <div className="sim-sub">Teste a conversa do agente (não toca no banco nem no WhatsApp)</div>
             </div>
           </div>
-          <span className="badge">Lead: {nome}</span>
-        </div>
+          <div className="sim-head-right">
+            <select className="sim-fase" value={fase} onChange={(e) => { setFase(e.target.value) }} title="Fase da conversa simulada">
+              {FASES.map((f) => <option key={f.valor} value={f.valor}>{f.rotulo}</option>)}
+            </select>
+            <input className="sim-nome" placeholder="Nome do lojista (opcional)" value={nome} onChange={(e) => setNome(e.target.value)} />
+            <button className="sim-reset" onClick={reiniciar} title="Reiniciar conversa">↺ Reiniciar</button>
+            <a className="sim-voltar" href="/">← Painel</a>
+          </div>
+        </header>
 
-        <div className="chat-area">
+        <div className="sim-body">
           {messages.length === 0 && (
-            <div className="empty-state">
-              Envie uma mensagem para iniciar a conversa com a VictorIA
+            <div className="sim-empty">
+              Comece a conversa como se fosse um lojista. Ex.: <em>&ldquo;oi, vi o anúncio de vocês&rdquo;</em><br />
+              A VictorIA vai qualificar, tirar dúvidas e coletar os dados — igual no WhatsApp.<br />
+              <span className="sim-empty-dica">Use o seletor de fase pra testar cada etapa do funil.</span>
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} className={m.role === 'user' ? 'bubble-user' : 'bubble-assistant'}>
-              <span className="bubble-label">{m.role === 'user' ? nome : 'VictorIA'}</span>
-              <p className="bubble-text">{m.content}</p>
-            </div>
+            <div key={i} className={m.role === 'user' ? 'sim-msg-user' : 'sim-msg-ia'}>{m.content}</div>
           ))}
-          {loading && (
-            <div className="bubble-assistant">
-              <span className="bubble-label">VictorIA</span>
-              <p className="bubble-text">
-                <span className="typing">
-                  <span className="dot" />
-                  <span className="dot" />
-                  <span className="dot" />
-                </span>
-              </p>
-            </div>
-          )}
-          <div ref={messagesEnd} />
+          {loading && <div className="sim-msg-ia sim-typing">VictorIA está digitando…</div>}
+          <div ref={endRef} />
         </div>
 
-        <div className="input-area">
+        {(ultimoStatus || humano || dadosLista.length > 0) && (
+          <div className="sim-status">
+            {ultimoStatus && <span className="sim-badge">status: <b>{ultimoStatus}</b></span>}
+            {humano && <span className="sim-badge sim-badge-red">🔔 acionaria humano{motivo ? `: ${motivo}` : ''}</span>}
+            {dadosLista.map(([k, v]) => (
+              <span key={k} className="sim-badge sim-badge-dado" title={`${k}: ${v}`}>{k}: <b>{v.length > 24 ? v.slice(0, 24) + '…' : v}</b></span>
+            ))}
+          </div>
+        )}
+
+        <div className="sim-input-row">
           <input
             ref={inputRef}
-            className="chat-input"
-            placeholder="Digite uma mensagem..."
+            className="sim-input"
+            placeholder="Escreva como o lojista… (Enter envia)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => e.key === 'Enter' && enviar()}
             disabled={loading}
             autoFocus
           />
-          <button className="send-btn" onClick={handleSend} disabled={loading || !input.trim()}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          </button>
+          <button className="sim-send" onClick={enviar} disabled={loading || !input.trim()}>Enviar</button>
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   )
 }
 
-const globalStyles = `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; background: #0a0a0a; }
-  .app-main { margin-left: 0 !important; }
-
-  .container {
-    max-width: 600px;
-    margin: 0 auto;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    background: #0a0a0a;
-    color: #ededed;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+const css = `
+  .sim-wrap { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: var(--bg); }
+  .sim-card {
+    width: min(820px, 100%); height: min(84dvh, 760px); display: flex; flex-direction: column;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-hover);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif; color: var(--text);
   }
+  .sim-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 12px 16px; background: var(--bg-elev-2); border-bottom: 1px solid var(--border); }
+  .sim-head-left { display: flex; align-items: center; gap: 10px; }
+  .sim-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; }
+  .sim-title { font-size: 14px; font-weight: 700; }
+  .sim-sub { font-size: 11px; color: var(--text-muted); }
+  .sim-head-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sim-fase, .sim-nome { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text); font-size: 12.5px; outline: none; }
+  .sim-fase:focus, .sim-nome:focus { border-color: var(--accent); }
+  .sim-reset, .sim-voltar { font-size: 12px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-strong);
+    background: var(--bg-elev); color: var(--text-dim); cursor: pointer; text-decoration: none; }
+  .sim-reset:hover, .sim-voltar:hover { border-color: var(--accent); color: var(--accent); }
 
-  .start-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    gap: 16px;
-    padding: 24px;
-  }
+  .sim-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+  .sim-empty { color: var(--text-muted); font-size: 13px; line-height: 1.7; text-align: center; margin-top: 24px; }
+  .sim-empty-dica { font-size: 12px; opacity: .8; }
 
-  .logo {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #16a34a, #059669);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px; font-weight: bold; color: #fff;
-  }
+  .sim-msg-user { align-self: flex-end; max-width: 78%; background: var(--accent); color: #fff;
+    border-radius: 14px 14px 4px 14px; padding: 9px 13px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .sim-msg-ia { align-self: flex-start; max-width: 82%; background: var(--bg-elev); border: 1px solid var(--border); color: var(--text);
+    border-radius: 14px 14px 14px 4px; padding: 9px 13px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; box-shadow: var(--shadow); }
+  .sim-typing { color: var(--text-muted); font-style: italic; }
 
-  .title { font-size: 24px; font-weight: 700; }
-  .subtitle { color: #888; font-size: 14px; }
+  .sim-status { display: flex; gap: 8px; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--bg-elev-2); flex-wrap: wrap; max-height: 92px; overflow-y: auto; }
+  .sim-badge { font-size: 11.5px; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+  .sim-badge b { color: var(--accent); }
+  .sim-badge-red { color: var(--red, #ef4444); border-color: var(--red, #ef4444); }
+  .sim-badge-dado b { color: var(--text); font-weight: 600; }
 
-  .name-input {
-    width: 100%;
-    max-width: 320px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid #333;
-    background: #141414;
-    color: #fff;
-    font-size: 16px;
-    outline: none;
-    caret-color: #16a34a;
-    transition: border-color 0.2s;
-  }
-  .name-input:focus { border-color: #16a34a; }
-
-  .start-btn {
-    padding: 14px 36px;
-    border-radius: 12px;
-    border: none;
-    background: #16a34a;
-    color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .start-btn:hover:not(:disabled) { background: #15803d; }
-  .start-btn:disabled { opacity: 0.4; cursor: default; }
-
-  .header {
-    padding: 12px 16px;
-    border-bottom: 1px solid #1a1a1a;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #111;
-    flex-shrink: 0;
-  }
-
-  .header-left { display: flex; align-items: center; gap: 10px; }
-
-  .header-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #16a34a, #059669);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: bold; color: #fff;
-  }
-
-  .header-title { font-size: 15px; font-weight: 600; }
-  .header-status { font-size: 11px; color: #4ade80; }
-
-  .badge {
-    background: #14532d;
-    padding: 4px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    color: #4ade80;
-    white-space: nowrap;
-  }
-
-  .chat-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .empty-state {
-    text-align: center;
-    color: #555;
-    font-size: 14px;
-    margin-top: 40px;
-  }
-
-  .bubble-user {
-    align-self: flex-end;
-    background: #14532d;
-    border-radius: 18px 18px 4px 18px;
-    padding: 8px 14px;
-    max-width: 85%;
-    word-break: break-word;
-  }
-
-  .bubble-assistant {
-    align-self: flex-start;
-    background: #161616;
-    border-radius: 18px 18px 18px 4px;
-    padding: 8px 14px;
-    max-width: 85%;
-    border: 1px solid #262626;
-    word-break: break-word;
-  }
-
-  .bubble-label { font-size: 10px; color: #666; display: block; margin-bottom: 2px; }
-  .bubble-text { margin: 0; line-height: 1.5; font-size: 15px; white-space: pre-wrap; }
-
-  .typing { display: inline-flex; gap: 4px; align-items: center; height: 20px; }
-  .dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #555;
-    animation: bounce 1.4s infinite ease-in-out both;
-  }
-  .dot:nth-child(1) { animation-delay: -0.32s; }
-  .dot:nth-child(2) { animation-delay: -0.16s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
-  }
-
-  .input-area {
-    padding: 10px 12px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-    border-top: 1px solid #1a1a1a;
-    display: flex;
-    gap: 8px;
-    background: #111;
-    flex-shrink: 0;
-  }
-
-  .chat-input {
-    flex: 1;
-    padding: 12px 16px;
-    border-radius: 24px;
-    border: 1px solid #333;
-    background: #1a1a1a;
-    color: #fff;
-    font-size: 16px;
-    outline: none;
-    caret-color: #16a34a;
-    transition: border-color 0.2s;
-    min-width: 0;
-  }
-  .chat-input:focus { border-color: #16a34a; }
-  .chat-input:disabled { opacity: 0.5; }
-
-  .send-btn {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: #16a34a;
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: background 0.2s;
-  }
-  .send-btn:hover:not(:disabled) { background: #15803d; }
-  .send-btn:disabled { opacity: 0.3; cursor: default; }
-
-  @media (max-width: 640px) {
-    .container { max-width: 100%; }
-    .header { padding: 10px 12px; }
-    .chat-area { padding: 12px; }
-    .bubble-user, .bubble-assistant { max-width: 90%; }
-  }
+  .sim-input-row { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); background: var(--bg-elev); }
+  .sim-input { flex: 1; min-width: 0; padding: 11px 15px; border-radius: 22px; border: 1px solid var(--border-strong);
+    background: var(--bg-elev); color: var(--text); font-size: 14px; outline: none; caret-color: var(--accent); }
+  .sim-input::placeholder { color: var(--text-muted); }
+  .sim-input:focus { border-color: var(--accent); }
+  .sim-send { padding: 0 20px; border-radius: 22px; border: none; cursor: pointer; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
+  .sim-send:hover:not(:disabled) { background: var(--accent-2); }
+  .sim-send:disabled { opacity: .4; cursor: default; }
 `

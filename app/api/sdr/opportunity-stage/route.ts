@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, buildMsgTravaQsa } from '@/lib/text'
 
 /**
  * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
@@ -55,7 +55,7 @@ async function janela24hAberta(leadId: string): Promise<boolean> {
  *
  * Formato: [AVISO_50_PENDENTE:ISO] ou [AVISO_70_PENDENTE:ISO]
  */
-async function marcarAvisoPendente(leadId: string, codigo: 'AVISO_49_PENDENTE' | 'AVISO_50_PENDENTE' | 'AVISO_70_PENDENTE'): Promise<void> {
+async function marcarAvisoPendente(leadId: string, codigo: 'AVISO_49_PENDENTE' | 'AVISO_50_PENDENTE' | 'AVISO_70_PENDENTE' | 'AVISO_70KIT_PENDENTE'): Promise<void> {
   const { data: lead } = await supabaseAdmin
     .from('sdr_leads')
     .select('observacoes')
@@ -291,6 +291,9 @@ export async function POST(req: NextRequest) {
           .update({
             status: 'INTERESSADO',
             data_ultimo_contato: new Date().toISOString(),
+            // Operador moveu o card = atendimento feito → limpa a flag de
+            // "aguardando humano" (senão o lead fica eterno na fila do Nei)
+            acionar_humano: false,
           })
           .eq('id', lead.id)
 
@@ -432,9 +435,37 @@ export async function POST(req: NextRequest) {
       // Busca o lead ANTES do template pra ter o chatId disponível pros textos seguintes
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
-        .select('id, evotalks_chat_id')
+        .select('id, nome, evotalks_chat_id, observacoes')
         .eq('telefone', telefone)
         .maybeSingle()
+
+      // TRAVA DE QSA (política 2026-08-03): lead sem sócio na Receita fica
+      // RETIDO nesta etapa — em vez do link de cadastro CAF (que travaria no
+      // portal), envia a orientação de regularizar o QSA com o contador.
+      const obsTrava = lead?.observacoes ?? ''
+      if (lead?.id && obsTrava.includes('[TRAVA_QSA]') && !obsTrava.includes('[TRAVA_QSA_OK')) {
+        const msgTrava = buildMsgTravaQsa(normalizaNome(lead.nome ?? null))
+        let entregue = false
+        try {
+          await sendText(telefone, msgTrava, lead.evotalks_chat_id)
+          entregue = true
+          await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: msgTrava })
+        } catch (err) {
+          console.error(`[TRAVA_QSA] Envio direto falhou pra ${telefone} (janela fechada?) — reforço na próxima resposta`, err)
+        }
+        const marcador = entregue ? `[TRAVA_QSA_MSG:${new Date().toISOString()}]` : '[TRAVA_QSA_PENDENTE]'
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({
+            status: 'EM_ANALISE_AIVA',
+            data_ultimo_contato: new Date().toISOString(),
+            acionar_humano: false,
+            observacoes: `${obsTrava.trim()} ${marcador}`.trim(),
+          })
+          .eq('id', lead.id)
+        console.log(`[TRAVA_QSA] Stage 50 — orientação do contador ${entregue ? 'enviada' : 'pendente'} pra ${telefone}`)
+        return NextResponse.json({ ok: true, trava_qsa: entregue ? 'orientacao_enviada' : 'orientacao_pendente' })
+      }
 
       // Dispara HSM de aprovação. Template 15 "(CAMPANHA) Link de Cadastro" tem
       // 1 variável {{1}} que carrega todo o conteúdo do meio (incluindo o link).
@@ -482,6 +513,7 @@ export async function POST(req: NextRequest) {
           .update({
             status: 'EM_ANALISE_AIVA',
             data_ultimo_contato: new Date().toISOString(),
+            acionar_humano: false, // card avançou = humano já atendeu
           })
           .eq('id', lead.id)
 
@@ -562,10 +594,10 @@ export async function POST(req: NextRequest) {
       const TREINAMENTO_TEMPLATE_ID = 69
       await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
-        '📅 Treinamento ao vivo: geralmente quintas-feiras às 9h30. Confirme o horário com a nossa equipe.',
+        '🎓 Treinamento: assista o vídeo Curso_Treinamento na pasta de materiais e já pode começar a operar — sem precisar esperar. Se preferir ao vivo, tem turma às quintas 9h30.',
         '🔗 Reunião: https://meet.google.com/hqn-vcrr-dxo',
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
-        '📝 Cadastro dos funcionários (libera o acesso da equipe ao sistema AIVA): https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform',
+        '📝 Acessos da equipe: me responde aqui com os dados de cada pessoa que vai usar o sistema (nome completo, CPF, e-mail e telefone) que eu mesma já faço o cadastro pra você — rapidinho e sem formulário!',
       ])
 
       // Atualiza status no Supabase e registra histórico
@@ -575,6 +607,7 @@ export async function POST(req: NextRequest) {
           .update({
             status: 'TREINAR',
             data_ultimo_contato: new Date().toISOString(),
+            acionar_humano: false, // card avançou = humano já atendeu
           })
           .eq('id', lead.id)
 
@@ -584,6 +617,28 @@ export async function POST(req: NextRequest) {
           conteudo: `[Template [AIVA] Treinamento Completo enviado — ${nomeContato}]`,
           template_hsm: 'aiva_treinamento_completo',
         })
+
+        // Kit pós-fechamento (curadoria 2026-07-27): resumo comercial (taxa 12%,
+        // regra dos 15%, repasse D+2, zero inadimplência) + próximos passos.
+        // Texto livre → só entrega com a janela 24h aberta; se fechada, marca
+        // flag e o webhook reenvia quando o lead responder (Caminho 2).
+        try {
+          const kitMsg = buildKitPosFechamentoMsg(nomeContato)
+          const janelaAberta = await janela24hAberta(lead.id)
+          if (janelaAberta) {
+            await sendText(telefone, kitMsg)
+            await supabaseAdmin.from('sdr_mensagens').insert({
+              lead_id: lead.id,
+              direcao: 'out',
+              conteudo: kitMsg,
+            })
+            console.log(`Lead ${lead.id}: kit pós-fechamento enviado (janela aberta)`)
+          } else {
+            await marcarAvisoPendente(lead.id, 'AVISO_70KIT_PENDENTE')
+          }
+        } catch (err) {
+          console.error(`Lead ${lead.id}: falha ao enviar kit pós-fechamento:`, err)
+        }
       }
 
       // (O aviso 🎓 pro Aldo/Nei já saiu no bloco ETAPAS_AVISO, no topo do handler
@@ -632,7 +687,7 @@ export async function POST(req: NextRequest) {
           : `${obsAtual.trim()} [CONSULTORIA_INICIO:${new Date().toISOString()}] [CONSULTORIA_COUNT:0]`.trim()
         await supabaseAdmin
           .from('sdr_leads')
-          .update({ status: 'LOJA_FINALIZADA_E_VENDENDO', observacoes: novaObs })
+          .update({ status: 'LOJA_FINALIZADA_E_VENDENDO', observacoes: novaObs, acionar_humano: false })
           .eq('id', lead.id)
         console.log(`Stage 51: relógio da consultoria ${jaIniciou ? 'já existia' : 'iniciado'} p/ ${telefone} (opp #${opportunityId})`)
       }

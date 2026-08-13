@@ -316,6 +316,7 @@ export interface PipelineOpportunity {
   fkStage: number
   responsableid: number
   status: number
+  tags: number[]
 }
 
 /**
@@ -346,6 +347,7 @@ export async function getPipeOpportunities(
     fkStage: (o.fkStage as number) ?? 0,
     responsableid: (o.responsableid as number) ?? 0,
     status: (o.status as number) ?? 0,
+    tags: Array.isArray(o.tags) ? (o.tags as unknown[]).map(Number).filter(Boolean) : [],
   }))
 }
 
@@ -690,6 +692,7 @@ export const TAG_IDS = {
   INBOUND: 77,            // aplicada em toda opp criada a partir de lead inbound (TRIAGEM)
   ODRES: 79,              // lojista que já usa o crediário da Odres (transferido pro funil 19)
   UME: 7,                 // lojista que já usa a UME — já é cliente AIVA (transferido pro funil 19)
+  SEM_SOCIO: 80,          // empresário individual (Receita sem quadro societário) — fluxo de documentos
 } as const
 
 // ─── Funil 19 "Leads de Campanha AIVA" (etapa "Parcelex" 84) ────────────────────
@@ -707,6 +710,10 @@ const STAGE_FUNIL19_DESTINO = 84  // etapa "Parcelex" — destino final
 export interface SystemTag {
   id: number
   name: string
+  /** Cor de fundo definida no painel do Evo (ex.: "#00752b"). */
+  bgcolor: string
+  /** Cor do texto definida no painel do Evo (ex.: "#fff"). */
+  fgcolor: string
 }
 
 export async function getTags(): Promise<SystemTag[]> {
@@ -725,7 +732,37 @@ export async function getTags(): Promise<SystemTag[]> {
   return data.map((t) => ({
     id: (t.id as number) ?? 0,
     name: (t.name as string) ?? '',
+    bgcolor: (t.bgcolor as string) || '#6b7280',
+    fgcolor: (t.fgcolor as string) || '#fff',
   }))
+}
+
+/**
+ * Catálogo de etiquetas (id → nome + cores) pra replicar no painel as tags que
+ * aparecem nas oportunidades do Evo — que chegam só como IDs numéricos.
+ *
+ * Cache em memória de 10 min: a listagem do painel renderiza dezenas de chips
+ * por página e o catálogo quase nunca muda (só quando alguém cria/renomeia tag
+ * no painel do Evo). Fail-soft: se o Evo estiver fora, devolve o último
+ * catálogo conhecido; se nunca carregou, devolve mapa vazio e os chips somem
+ * (nunca quebram a página).
+ */
+const TAG_CATALOG_TTL_MS = 10 * 60 * 1000
+let tagCatalogCache: { at: number; mapa: Map<number, SystemTag> } | null = null
+
+export async function getTagCatalog(): Promise<Map<number, SystemTag>> {
+  if (tagCatalogCache && Date.now() - tagCatalogCache.at < TAG_CATALOG_TTL_MS) {
+    return tagCatalogCache.mapa
+  }
+  try {
+    const tags = await getTags()
+    const mapa = new Map(tags.map((t) => [t.id, t]))
+    tagCatalogCache = { at: Date.now(), mapa }
+    return mapa
+  } catch (err) {
+    console.warn('[getTagCatalog] falhou:', err instanceof Error ? err.message : err)
+    return tagCatalogCache?.mapa ?? new Map()
+  }
 }
 
 /**
@@ -785,6 +822,29 @@ export async function addOpportunityTags(
  *
  * Fail-soft: erros são logados mas não propagados (não trava o fluxo do painel).
  */
+/**
+ * Adiciona UMA tag preservando as existentes (updateOpportunity SUBSTITUI o
+ * array inteiro — então busca as atuais, mescla e reescreve).
+ * Fail-soft: erros são logados mas não propagados.
+ */
+export async function mergeOpportunityTag(
+  opportunityId: number,
+  tagId: number
+): Promise<void> {
+  try {
+    const opp = await getOpportunity(opportunityId)
+    const atuais = (opp.tags as number[] | undefined) ?? []
+    if (atuais.includes(tagId)) return // já tem — nada a fazer
+    await post<{ id: number }>('/int/updateOpportunity', {
+      id: opportunityId,
+      tags: [...atuais, tagId],
+    })
+    console.log(`CRM: Tag ${tagId} adicionada à oportunidade #${opportunityId} (agora ${JSON.stringify([...atuais, tagId])})`)
+  } catch (err) {
+    console.error(`CRM: falha ao mesclar tag ${tagId} na opp #${opportunityId}:`, err)
+  }
+}
+
 export async function removeOpportunityTag(
   opportunityId: number,
   tagId: number

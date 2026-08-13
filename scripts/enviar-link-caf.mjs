@@ -13,13 +13,13 @@ const leads = [
     telefone: '5541998574000',
     loja: 'Playcell',
     mensagem:
-      'Carlos, pra finalizar a ativação da AIVA na sua loja, é só completar o cadastro da CAF (documentação do sócio) neste link:\n\nhttps://retail-onboarding-hub.vercel.app/onboarding/full\n\nSão poucos passos e leva uns 5 minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀',
+      'Carlos, pra finalizar a ativação da AIVA na sua loja, é só completar o cadastro da CAF (documentação do sócio) neste link:\n\nhttps://retail-onboarding-hub.vercel.app/\n\nSão poucos passos e leva uns 5 minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀',
   },
   {
     telefone: '5511975759781',
     loja: 'Maricell',
     mensagem:
-      'Marilya, pra finalizar a ativação da AIVA nas suas 2 lojas, é só completar o cadastro da CAF (documentação da sócia) neste link:\n\nhttps://retail-onboarding-hub.vercel.app/onboarding/full\n\nSão poucos passos e leva uns 5 minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀',
+      'Marilya, pra finalizar a ativação da AIVA nas suas 2 lojas, é só completar o cadastro da CAF (documentação da sócia) neste link:\n\nhttps://retail-onboarding-hub.vercel.app/\n\nSão poucos passos e leva uns 5 minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀',
   },
 ]
 

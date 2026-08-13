@@ -16,6 +16,7 @@ const ROTULO: Record<string, string> = {
   '🟡': 'Pré-aprovação',
   '✅': 'Cadastro completo',
   '📋': 'Dados de colaborador',
+  '📇': 'Já é da base Odres/UME',
   '🔔': 'Atendimento humano',
   '🆕': 'Novo lead inbound',
   '🎓': 'Treinar',
@@ -24,6 +25,10 @@ const ROTULO: Record<string, string> = {
   '🏆': 'Loja vendendo',
   '🚨': 'Travado / urgente',
   '🔕': 'Reengajamento esgotado',
+  '⏰': 'SLA de liberação',
+  '🛠': 'Erro de portal',
+  '🚩': 'Loja sem operar',
+  '🧾': 'Consulta CNPJ',
   'ℹ️': 'Info',
 }
 

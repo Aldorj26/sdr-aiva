@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/sdr/followup",
-      "schedule": "0 14 * * *"
+      "schedule": "0 14,17,20 * * 1-5"
     },
     {
       "path": "/api/sdr/nudge",
@@ -43,6 +43,18 @@
     {
       "path": "/api/sdr/auto-reprocess",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/sdr/check-primeira-venda",
+      "schedule": "0 13 * * 2"
+    },
+    {
+      "path": "/api/sdr/regua-saida",
+      "schedule": "30 13 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/fila-humano",
+      "schedule": "0 11 * * 1-5"
     }
   ]
 }

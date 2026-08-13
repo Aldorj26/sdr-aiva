@@ -159,8 +159,15 @@ export async function GET(req: NextRequest) {
 
       const count = getFollowupCount(lead.observacoes)
 
-      // Após MAX_FOLLOWUPS sem resposta: escala pro Nei e para de tentar
+      // Após MAX_FOLLOWUPS sem resposta: escala pro Nei UMA VEZ e para de tentar.
+      // O marcador [ESCALADO_FASE] impede a re-escalação diária que religava
+      // acionar_humano em massa e lotava a fila do Nei (bug 2026-07-31).
       if (count >= MAX_FOLLOWUPS) {
+        if ((lead.observacoes ?? '').includes('[ESCALADO_FASE')) {
+          ignorados++
+          resultados.push({ telefone: lead.telefone, status: lead.status, acao: 'ja_escalado' })
+          continue
+        }
         const msg =
           `⏰ *${lead.nome}* (${lead.telefone}) está em *${lead.status}* há mais de 24h ` +
           `e já recebeu ${count} follow-up${count > 1 ? 's' : ''} automático${count > 1 ? 's' : ''} sem resposta.\n` +
@@ -173,7 +180,11 @@ export async function GET(req: NextRequest) {
         }
         await supabaseAdmin
           .from('sdr_leads')
-          .update({ acionar_humano: true, data_proximo_followup: null })
+          .update({
+            acionar_humano: true,
+            data_proximo_followup: null,
+            observacoes: `${(lead.observacoes ?? '').trim()} [ESCALADO_FASE:${new Date().toISOString()}] followup_sem_resposta_em_analise`.trim(),
+          })
           .eq('id', lead.id)
 
         escalados++

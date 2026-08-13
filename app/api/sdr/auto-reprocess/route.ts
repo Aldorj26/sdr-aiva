@@ -27,6 +27,58 @@ export async function POST(req: NextRequest) {
   let falha = 0
   const processados: string[] = []
 
+  // ─── Estratégia 0: retry limitado de erro transitório da Claude ───────────
+  // Leads marcados [REPROCESS_PENDENTE:n] (a IA falhou) — re-dispara com a última
+  // msg do lojista. O webhook conta as tentativas e escala pro humano se esgotar
+  // (MAX_RETRY). Header x-auto-reprocess evita refazer fallback/alerta a cada tentativa.
+  const { data: pendentes } = await supabaseAdmin
+    .from('sdr_leads')
+    .select('id, nome, telefone')
+    .like('observacoes', '%[REPROCESS_PENDENTE:%')
+    .limit(20)
+
+  for (const lead of pendentes ?? []) {
+    try {
+      const { data: lastIn } = await supabaseAdmin
+        .from('sdr_mensagens')
+        .select('conteudo')
+        .eq('lead_id', lead.id)
+        .eq('direcao', 'in')
+        .order('enviado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!lastIn?.conteudo) continue
+
+      const res = await fetch(`${baseUrl}/api/sdr/webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': process.env.WEBHOOK_SECRET ?? '',
+          'x-auto-reprocess': 'true',
+        },
+        body: JSON.stringify({
+          event: 'messages.upsert',
+          data: {
+            key: { fromMe: false, remoteJid: `${lead.telefone}@s.whatsapp.net` },
+            message: { conversation: lastIn.conteudo },
+          },
+        }),
+      })
+      const data = await res.json()
+      processados.push(lead.telefone)
+      if (data.ok) {
+        console.log(`Auto-reprocess [pendente]: ${lead.nome} (${lead.telefone}) — recuperado`)
+        sucesso++
+      } else {
+        console.log(`Auto-reprocess [pendente]: ${lead.telefone} — ainda falhando (tentativa ${data.tentativas ?? '?'})`)
+        falha++
+      }
+    } catch (err) {
+      console.error(`Auto-reprocess [pendente]: erro ${lead.telefone}:`, err)
+    }
+    await new Promise(r => setTimeout(r, 1500))
+  }
+
   // ─── Estratégia 1: leads travados no Supabase ─────────────────────────────
   const { data: stuck } = await supabaseAdmin.rpc('get_stuck_leads')
 

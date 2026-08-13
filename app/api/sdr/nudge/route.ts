@@ -26,7 +26,7 @@ function stripInternalMarkers(msgs: Mensagem[]): Mensagem[] {
  * Roda a cada hora via Vercel Cron.
  *
  * Detecta pausa pela última mensagem em sdr_mensagens (não por data_ultimo_contato),
- * cobrindo leads em DISPARO_REALIZADO, INTERESSADO e AGUARDANDO.
+ * cobrindo leads em INICIO, INTERESSADO e AGUARDANDO.
  */
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
@@ -54,13 +54,14 @@ export async function POST(req: NextRequest) {
 
   // Busca leads que podem receber nudge:
   // — Exclui status finais/em espera (OPT_OUT, descartados, cadastros finalizados)
-  // — AGUARDANDO_APROVACAO: lead aguarda aprovação interna, não deve ser cutucado
-  // — CADASTRO_COMPLETO / FORMULARIO_ENVIADO: fluxo encerrado, humano assumiu
+  // — PRE_APROVACAO / EM_ANALISE_AIVA / TREINAR / LOGIN / LOJA_FINALIZADA_E_VENDENDO:
+  //   lead já passou da qualificação, não deve ser cutucado pela VictorIA
+  // — CADASTRO_RECEBIDO: fluxo SDR encerrado, humano assumiu
   // O filtro real de "parado há 3h+" é feito no loop via sdr_mensagens
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')
     .select('*')
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","FORMULARIO_ENVIADO","AGUARDANDO_APROVACAO","CADASTRO_COMPLETO","BOT_DETECTADO")')
+    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","PRE_APROVACAO","CADASTRO_RECEBIDO","EM_ANALISE_AIVA","TREINAR","LOGIN","LOJA_FINALIZADA_E_VENDENDO","BOT_DETECTADO")')
 
   if (error) {
     console.error('Erro ao buscar leads para nudge:', error)
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
     try {
       const mensagensRaw = await getMensagens(lead.id, 10)
       // Remove marcadores internos ([Template X enviado]) — confundem a VictorIA
-      // sobre a fase atual, especialmente em COLETANDO_COMPLEMENTO.
+      // sobre a fase atual.
       const mensagens = stripInternalMarkers(mensagensRaw)
 
       // Sem conversa real (só template inicial ou sem msgs) — pula
@@ -140,12 +141,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Gera nudge contextual via Claude usando o histórico.
-      // Para COLETANDO_COMPLEMENTO, instrução específica de Fase 3 — o buildFaseInstrucao
-      // vai injetar a instrução de fase no user message, então só precisamos adicionar
-      // o contexto de que o lead parou de responder e qual dado ainda falta.
-      const nudgeInstrucao = lead.status === 'COLETANDO_COMPLEMENTO'
-        ? '[INSTRUÇÃO DO SISTEMA: O lead parou de responder durante o preenchimento do cadastro (Fase 3). Envie UMA mensagem curta e gentil lembrando que falta concluir o preenchimento. Olhe o histórico, identifique qual dado ainda não foi informado e pergunte especificamente por ele. Seja breve e amigável — máximo 2 linhas.]'
-        : '[INSTRUÇÃO DO SISTEMA: O lead parou de responder há mais de 3 horas. Envie UMA mensagem curta e natural de follow-up para retomar a conversa. Não repita informações já ditas. Seja breve e direto — máximo 2 linhas. Retome a última pergunta de forma diferente ou ofereça ajuda.]'
+      const nudgeInstrucao = '[INSTRUÇÃO DO SISTEMA: O lead parou de responder há mais de 3 horas. Envie UMA mensagem curta e natural de follow-up para retomar a conversa. Não repita informações já ditas. Seja breve e direto — máximo 2 linhas. Retome a última pergunta de forma diferente ou ofereça ajuda. Se o lead estava no meio do preenchimento de cadastro, identifique qual dado falta e pergunte especificamente por ele.]'
 
       const resposta = await processarMensagem(nudgeInstrucao, mensagens, lead.nome, lead.status)
 

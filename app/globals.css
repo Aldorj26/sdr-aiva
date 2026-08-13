@@ -409,19 +409,89 @@ h2 {
   gap: 1rem;
 }
 
+/* ─── Mobile (menu hambúrguer + ajustes de tela pequena) ─────────────── */
+/* Barra fixa e botão ☰ só existem visualmente no mobile */
+.mobile-topbar {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 1000px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
   .app-main {
     margin-left: 0;
+    padding-top: 52px; /* altura da mobile-topbar */
   }
-  .sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+
+  .mobile-topbar {
+    display: flex;
     align-items: center;
-    border-right: none;
+    gap: 0.6rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    padding: 0 0.75rem;
+    background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
+    z-index: 60;
+  }
+  .mobile-menu-btn {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    font-size: 1.05rem;
+    line-height: 1;
+    padding: 0.45rem 0.65rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .mobile-topbar-logo {
+    height: 26px;
+    width: auto;
+  }
+  .mobile-topbar-title {
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* Sidebar vira gaveta off-canvas */
+  .sidebar {
+    top: 52px;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    box-shadow: none;
+    z-index: 70;
+    width: min(300px, 84vw);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 30px rgba(16, 24, 40, 0.25);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 52px 0 0 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 65;
+  }
+
+  /* Tabelas: rolagem horizontal própria, sem estourar a página */
+  main table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  main table th,
+  main table td {
+    white-space: nowrap;
   }
 }
 
@@ -430,7 +500,17 @@ h2 {
     grid-template-columns: 1fr;
   }
   main {
-    padding: 1.5rem 1rem 3rem;
+    padding: 1.25rem 0.9rem 3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.25rem;
+  }
+  /* Cards de estatística: 2 por linha no celular */
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

@@ -4,7 +4,8 @@ import LeadDrawer from './_components/LeadDrawer'
 import ClickableRow from './_components/ClickableRow'
 import TimelineRow from './_components/TimelineRow'
 import SearchBar from './_components/SearchBar'
-import { getPipeOpportunities, PIPELINE_AIVA } from '@/lib/evotalks'
+import { getPipeOpportunities, getTagCatalog, PIPELINE_AIVA } from '@/lib/evotalks'
+import TagChips, { type TagChip } from './_components/TagChips'
 
 // Dinâmico pra suportar ?q= e ?status= sem cache
 export const dynamic = 'force-dynamic'
@@ -39,7 +40,7 @@ async function getRecentLeads(
 
   let query = supabaseAdmin
     .from('sdr_leads')
-    .select('id, nome, telefone, cidade, status, data_ultimo_contato, importante, acionar_humano')
+    .select('id, nome, telefone, cidade, status, data_ultimo_contato, importante, acionar_humano, status_alterado_em')
     .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
     .limit(limite)
 
@@ -92,9 +93,19 @@ async function getRecentLeads(
     // Busca em nome/telefone/cidade E nas observacoes — que guardam todos os dados
     // coletados ([DADOS_COLETADOS:nome_socio=…|email_socio=…|cnpj_matriz=…|…]),
     // então cobre sócio, email, CNPJ, faturamento, região, nº lojas etc.
-    query = query.or(
-      `nome.ilike.%${term}%,telefone.ilike.%${term}%,cidade.ilike.%${term}%,observacoes.ilike.%${term}%`,
-    )
+    const condicoes = [
+      `nome.ilike.%${term}%`,
+      `telefone.ilike.%${term}%`,
+      `cidade.ilike.%${term}%`,
+      `observacoes.ilike.%${term}%`,
+    ]
+    // CNPJ/CPF/telefone colado COM pontuação (00.000.000/0001-00): no banco
+    // esses valores vivem só com dígitos — busca também a versão limpa.
+    const soDigitos = term.replace(/\D/g, '')
+    if (soDigitos.length >= 8 && soDigitos !== term) {
+      condicoes.push(`telefone.ilike.%${soDigitos}%`, `observacoes.ilike.%${soDigitos}%`)
+    }
+    query = query.or(condicoes.join(','))
   }
   const { data } = await query
   return data ?? []
@@ -117,10 +128,23 @@ async function getAgora() {
       .select('id', { count: 'exact', head: true })
       .eq('acionar_humano', true)
       .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO")'),
+    // Pausados: só conta pausa AINDA VIGENTE de lead ativo. Marcadores
+    // [PAUSA_ATE:] vencidos ficavam pra sempre (bug Smarting/Clinicell
+    // 2026-07-29: descartados em maio ainda contavam como pausados).
     supabaseAdmin
       .from('sdr_leads')
-      .select('id', { count: 'exact', head: true })
-      .like('observacoes', '%[PAUSA_ATE:%'),
+      .select('observacoes')
+      .like('observacoes', '%[PAUSA_ATE:%')
+      .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","BOT_DETECTADO","ODRES","UME")')
+      .then((res) => {
+        const agora = Date.now()
+        const vigentes = (res.data ?? []).filter((r) => {
+          const ate = (r.observacoes ?? '').match(/\[PAUSA_ATE:([^\]]+)\]/)?.[1]
+          const t = ate ? Date.parse(ate) : NaN
+          return !Number.isNaN(t) && t > agora
+        })
+        return { count: vigentes.length }
+      }),
     supabaseAdmin
       .from('sdr_leads')
       .select('id', { count: 'exact', head: true })
@@ -261,17 +285,33 @@ function chaveTel(s: string | null | undefined): string {
 interface EtapaEvo {
   id: number
   label: string
+  /** Etiquetas da oportunidade no Evo, já resolvidas (nome + cores). */
+  tags: TagChip[]
 }
 
 // Busca as oportunidades abertas do funil AIVA e devolve mapa chaveTel → etapa.
 // Falha de rede/API não quebra a página — devolve mapa vazio (mostra "—").
+//
+// As etiquetas vêm na MESMA resposta (só como IDs numéricos), então resolver os
+// nomes/cores custa só a leitura do catálogo — que é cacheada por 10 min.
 async function getEtapasEvo(): Promise<Record<string, EtapaEvo>> {
   try {
-    const opps = await getPipeOpportunities(PIPELINE_AIVA)
+    const [opps, catalogo] = await Promise.all([
+      getPipeOpportunities(PIPELINE_AIVA),
+      getTagCatalog(),
+    ])
     const mapa: Record<string, EtapaEvo> = {}
     for (const o of opps) {
       const k = chaveTel(o.mainphone)
-      if (k) mapa[k] = { id: o.fkStage, label: STAGE_LABEL[o.fkStage] ?? `Etapa ${o.fkStage}` }
+      if (!k) continue
+      mapa[k] = {
+        id: o.fkStage,
+        label: STAGE_LABEL[o.fkStage] ?? `Etapa ${o.fkStage}`,
+        tags: o.tags
+          .map((id) => catalogo.get(id))
+          .filter((t): t is NonNullable<typeof t> => !!t)
+          .map((t) => ({ id: t.id, name: t.name, bgcolor: t.bgcolor, fgcolor: t.fgcolor })),
+      }
     }
     return mapa
   } catch (e) {
@@ -562,7 +602,14 @@ export default async function Page({
           </tr>
         </thead>
         <tbody>
-          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean; acionar_humano: boolean }) => (
+          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean; acionar_humano: boolean; status_alterado_em: string | null }) => {
+            // SLA de liberação: lojas em TREINAR/LOGIN paradas 3+ dias ganham
+            // badge "⏱ Xd parado" (curadoria 2026-07-27 — queixa nº 1 do funil).
+            const diasParado =
+              ['TREINAR', 'LOGIN'].includes(l.status) && l.status_alterado_em
+                ? Math.floor((Date.now() - new Date(l.status_alterado_em).getTime()) / 86400000)
+                : 0
+            return (
             <ClickableRow key={l.telefone} leadId={l.id}>
               <td>
                 {l.importante && <span style={{ color: '#f59e0b', marginRight: 4 }} title="Importante (3+ lojas)">★</span>}
@@ -586,6 +633,30 @@ export default async function Page({
                     🔔 humano
                   </span>
                 )}
+                {diasParado >= 3 && (
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: '#ef444422',
+                      color: '#ef4444',
+                      border: '1px solid #ef444444',
+                      borderRadius: 4,
+                      padding: '1px 5px',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`Sem avanço de etapa há ${diasParado} dias — aguardando liberação/treinamento`}
+                  >
+                    ⏱ {diasParado}d parado
+                  </span>
+                )}
+                {/* Etiquetas da oportunidade no Evo. A tag AIVA (69) está em
+                    100% dos cards do funil, então vira ruído na tabela — some
+                    aqui e continua visível no drawer. */}
+                <TagChips
+                  tags={(etapasEvo[chaveTel(l.telefone)]?.tags ?? []).filter((t) => t.id !== 69)}
+                  max={3}
+                />
               </td>
               <td style={{ color: 'var(--text-dim)' }}>{l.telefone}</td>
               <td style={{ color: 'var(--text-dim)' }}>{etapasEvo[chaveTel(l.telefone)]?.label ?? '—'}</td>
@@ -595,7 +666,8 @@ export default async function Page({
                   : '—'}
               </td>
             </ClickableRow>
-          ))}
+            )
+          })}
         </tbody>
       </table>
 

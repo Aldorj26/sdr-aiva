@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
 import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
+import { normalizaNome, nomeSaudacao, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
 
 type Action =
   | { type: 'pause'; hours: number }
@@ -15,6 +15,8 @@ type Action =
       type: 'send-info'
       mensagem: string
       anexo?: { fileName: string; mimeType: string; base64: string; width?: number; height?: number }
+      // Vários arquivos numa tacada (2026-08-04) — `anexo` singular mantido por compatibilidade
+      anexos?: Array<{ fileName: string; mimeType: string; base64: string; width?: number; height?: number }>
     }
   | { type: 'reprocess' }
   | { type: 'approve' }
@@ -31,7 +33,7 @@ export async function POST(
 
   const { data: lead, error: leadErr } = await supabaseAdmin
     .from('sdr_leads')
-    .select('observacoes, telefone, evotalks_chat_id, nome, evotalks_opportunity_id')
+    .select('observacoes, telefone, evotalks_chat_id, nome, evotalks_opportunity_id, status, produto, instrucao_silvia')
     .eq('id', id)
     .maybeSingle()
   if (leadErr || !lead) {
@@ -96,7 +98,9 @@ export async function POST(
   // com o texto do operador no {{2}} (reabre a conversa). NÃO passa pela VictorIA.
   if (action.type === 'send-info') {
     const texto = action.mensagem?.trim() ?? ''
-    const anexo = action.anexo
+    // Normaliza: lista de anexos (novo) ou o anexo singular (legado) — na ordem enviada
+    const anexos = action.anexos?.length ? action.anexos : action.anexo ? [action.anexo] : []
+    const anexo = anexos[0]
     // Com anexo, o texto pode ser vazio (vira só a mídia). Sem anexo, exige texto.
     if (!texto && !anexo) return NextResponse.json({ error: 'mensagem_vazia' }, { status: 400 })
 
@@ -127,30 +131,34 @@ export async function POST(
     if (janelaRow) {
       try {
         if (anexo) {
-          // Sobe o arquivo pro Evo e envia como mídia com o texto de legenda.
+          // Sobe os arquivos pro Evo e envia como mídia — o texto vai de legenda
+          // no PRIMEIRO; os demais seguem na sequência, sem legenda.
           const chatId = lead.evotalks_chat_id ? Number(lead.evotalks_chat_id) : await getOpenChatId(lead.telefone)
           if (!chatId) throw new Error('chat_aberto_nao_encontrado')
-          const fileId = await uploadFileToEvo({
-            fileName: anexo.fileName,
-            mimeType: anexo.mimeType,
-            base64: anexo.base64,
-            width: anexo.width,
-            height: anexo.height,
-          })
-          await sendFileToChat(chatId, fileId, texto)
-          // Registra no histórico com o marcador de mídia (mesmo formato do inbound,
-          // pra o painel exibir a imagem/arquivo que FOI ENVIADO pelo operador).
-          const marcador = anexo.mimeType.startsWith('image/')
-            ? `[LEAD_ENVIOU_IMAGEM:${fileId}]`
-            : `[LEAD_ENVIOU_ARQUIVO:${fileId}:${anexo.mimeType}:${(anexo.fileName ?? '').replace(/\]/g, '')}]`
-          await supabaseAdmin.from('sdr_mensagens').insert(
-            texto
-              ? [
-                  { lead_id: id, direcao: 'out', conteudo: `[Anexo enviado (manual via painel)] ${texto}` },
-                  { lead_id: id, direcao: 'out', conteudo: marcador },
-                ]
-              : [{ lead_id: id, direcao: 'out', conteudo: marcador }]
-          )
+          const registros: Array<{ lead_id: string; direcao: string; conteudo: string }> = []
+          if (texto) registros.push({ lead_id: id, direcao: 'out', conteudo: `[Anexo enviado (manual via painel)] ${texto}` })
+          for (let iAx = 0; iAx < anexos.length; iAx++) {
+            const ax = anexos[iAx]
+            const fileId = await uploadFileToEvo({
+              fileName: ax.fileName,
+              mimeType: ax.mimeType,
+              base64: ax.base64,
+              width: ax.width,
+              height: ax.height,
+            })
+            await sendFileToChat(chatId, fileId, iAx === 0 ? texto : '')
+            // Marcador de mídia no histórico (mesmo formato do inbound — o painel
+            // exibe a imagem/arquivo que FOI ENVIADO pelo operador).
+            registros.push({
+              lead_id: id,
+              direcao: 'out',
+              conteudo: ax.mimeType.startsWith('image/')
+                ? `[LEAD_ENVIOU_IMAGEM:${fileId}]`
+                : `[LEAD_ENVIOU_ARQUIVO:${fileId}:${ax.mimeType}:${(ax.fileName ?? '').replace(/\]/g, '')}]`,
+            })
+            if (iAx < anexos.length - 1) await new Promise((r) => setTimeout(r, 400))
+          }
+          await supabaseAdmin.from('sdr_mensagens').insert(registros)
         } else {
           // Janela aberta, sem anexo → texto livre exato (sem template)
           await sendText(lead.telefone, texto, lead.evotalks_chat_id)
@@ -176,7 +184,9 @@ export async function POST(
     if (!templateId) {
       return NextResponse.json({ error: 'template_reativacao_nao_configurado' }, { status: 500 })
     }
-    const nomeBase = normalizaNome(lead.nome) ?? 'lojista'
+    // Saudação usa o nome do SÓCIO (lead.nome é o nome do varejo — "Tudo Celular"
+    // virava "Olá Tudo,"). Cai pro nome da loja só se não houver sócio coletado.
+    const nomeBase = nomeSaudacao(lead.nome, lead.observacoes)
     try {
       await sendTemplate(lead.telefone, templateId, [nomeBase, texto])
     } catch (err) {
@@ -431,7 +441,14 @@ export async function POST(
 
       let resposta
       try {
-        resposta = await processarMensagem(instrucao, mensagens, lead.nome ?? 'Lojista')
+        // Passa status/produto/instrução do operador — assim o combo "escrever
+        // instrução no drawer → Follow-up agora" gera a mensagem já seguindo a
+        // instrução (ex.: pedir dados dos colaboradores), na fase certa.
+        resposta = await processarMensagem(
+          instrucao, mensagens, lead.nome ?? 'Lojista',
+          lead.status ?? undefined, lead.produto ?? undefined,
+          undefined, null, lead.instrucao_silvia ?? null,
+        )
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`[lead-action] force-followup Claude falhou id=${id}: ${msg}`)
@@ -484,7 +501,7 @@ export async function POST(
     // `lead.nome` cadastrado (que costuma ser o nome da loja, não da pessoa —
     // 77% da base sofre disso). Se o histórico não der confiança, usa o
     // fallback normalizado mesmo (comportamento anterior).
-    const nomeStored = normalizaNome(lead.nome) ?? 'lojista'
+    const nomeStored = nomeSaudacao(lead.nome, lead.observacoes)
     let nomeBase: string
     try {
       nomeBase = await extrairNomeRealDoHistorico(mensagens, nomeStored)
@@ -585,8 +602,17 @@ export async function POST(
       break
     }
     case 'mark-descartado': {
+      // Descarte MANUAL (botão do painel) = definitivo. O carimbo
+      // [DESCARTADO_MANUAL] impede o sync-from-evo de reviver o lead só porque
+      // o card continua parado no funil (pedido do Aldo 2026-08-03 — leads
+      // "já usamos AIVA" descartados voltavam pra fila dias depois). Reverter:
+      // mover o card no Evo pra uma etapa ativa (webhook de stage revive) ou
+      // ajuste direto no banco.
       updates.status = 'DESCARTADO'
       updates.data_proximo_followup = null
+      updates.acionar_humano = false
+      const baseDesc = (lead.observacoes ?? '').replace(/\s*\[DESCARTADO_MANUAL:[^\]]+\]/g, '').trim()
+      updates.observacoes = `${baseDesc} [DESCARTADO_MANUAL:${new Date().toISOString()}]`.trim()
       break
     }
     case 'mark-atendido': {

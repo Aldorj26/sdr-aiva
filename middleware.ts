@@ -31,14 +31,19 @@ export const config = {
   // - arquivos estáticos (favicon, etc)
   matcher: [
     '/',
+    '/chat',
+    '/api/chat',
     '/campanha',
     '/campanhas',
     '/curadoria',
     '/funil',
     '/alertas',
+    '/registros',
     '/metricas/:path*',
     '/api/leads/:path*',
     '/api/curadoria/:path*',
+    '/api/registros',
+    '/api/atalhos-info',
     '/api/assistente',
   ],
 }

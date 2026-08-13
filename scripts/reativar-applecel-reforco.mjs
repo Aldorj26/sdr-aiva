@@ -18,12 +18,12 @@ const lead = {
 // Mesmo padrão do action/route.ts → APROVACAO_TEMPLATE_VAR
 const TEMPLATE_VAR =
   ', sua loja foi aprovada pela Aiva! Preencha esse seu cadastro atraves do link ' +
-  'https://retail-onboarding-hub.vercel.app/onboarding/full'
+  'https://retail-onboarding-hub.vercel.app/'
 
 const REFORCO_MSG =
   `Débora, passando pra reforçar aqui: seu cadastro da AppleCel tá quase lá — ` +
   `falta só você preencher a CAF (documentação do sócio) pelo link:\n\n` +
-  `https://retail-onboarding-hub.vercel.app/onboarding/full\n\n` +
+  `https://retail-onboarding-hub.vercel.app/\n\n` +
   `São uns 5 minutinhos e a gente consegue liberar a AIVA nas 3 lojas (São Jerônimo, Charqueadas e Capão da Canoa). ` +
   `Assim que você concluir, a análise da Aiva sai em até 24h e a gente já agenda a ativação. ` +
   `Qualquer dúvida no preenchimento, pode me chamar por aqui mesmo que te oriento. 🚀`

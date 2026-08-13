@@ -17,7 +17,7 @@ const lead = {
 // Mesmo padrão do action/route.ts → APROVACAO_TEMPLATE_VAR
 const TEMPLATE_VAR =
   ', sua loja foi aprovada pela Aiva! Preencha esse seu cadastro atraves do link ' +
-  'https://retail-onboarding-hub.vercel.app/onboarding/full'
+  'https://retail-onboarding-hub.vercel.app/'
 
 const CNPJ_MSG =
   `Claro, Matheus! Compartilho aqui o CNPJ:\n\n` +

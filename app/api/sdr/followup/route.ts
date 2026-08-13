@@ -31,9 +31,38 @@ const PROXIMA_ETAPA: Record<number, { etapa: number; diasAte: number } | null> =
   14: null,                       // D+14 → descarta
 }
 
+// Teto de envios por execução. A cadência ficou parada de 21/07 a 10/08 (o cron
+// respondia 405 — ver GET abaixo), então acumulou ~2.000 leads com follow-up
+// vencido. Sem teto, a primeira rodada tentaria mandar tudo de uma vez: estouraria
+// o tempo da função no meio (estado indefinido) e jogaria 2.000 HSM no WhatsApp
+// num único minuto — risco de qualidade do número na Meta. Com 150/dia (a meta
+// diária da operação) a fila drena em ~2 semanas. Override: ?max=N.
+const MAX_POR_RODADA = 150
+
+// A função morre em 300s. Medido em 10/08/2026 na primeira rodada real: 3,9s por
+// lead (são ~6 chamadas ao Evo por envio), ou seja 150 leads pediriam ~580s. O lote
+// foi cortado no meio aos 77 envios, sem resposta e sem log de quantos faltaram.
+// Com esta parada por tempo o lote encerra sozinho antes do limite, devolve o
+// balanço e o resto fica pra próxima rodada.
+export const maxDuration = 300
+const CORTE_TEMPO_MS = 240_000
+
+// O Vercel Cron dispara GET. Sem este handler a rota respondia 405 e a cadência
+// D+3/D+7/D+14 NUNCA rodava pelo cron — bug encontrado em 10/08/2026: 2.084 leads
+// presos em INICIO só com o disparo inicial, D+7 e D+14 com ZERO envios na história.
+// Mesmo defeito que já tinha sido corrigido no sync-from-evo.
+export async function GET(req: NextRequest) {
+  return POST(req)
+}
+
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
-  if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}`) {
+  // CRON_SECRET: é o que o Vercel Cron manda no Authorization. Só WEBHOOK_SECRET
+  // não bastava — mesmo com o GET, o cron levaria 401.
+  if (
+    auth !== `Bearer ${process.env.WEBHOOK_SECRET}` &&
+    auth !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
@@ -44,17 +73,65 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'fim_de_semana', quando: rotuloHorario() })
   }
 
-  const leads = await getLeadsForFollowup()
+  const url = new URL(req.url)
+  const dry = url.searchParams.get('dry') === 'true'
+  const max = Math.max(1, Number(url.searchParams.get('max')) || MAX_POR_RODADA)
 
-  if (!leads.length) {
+  const fila = await getLeadsForFollowup()
+
+  if (!fila.length) {
     return NextResponse.json({ ok: true, processados: 0, mensagem: 'Nenhum lead para follow-up' })
+  }
+
+  // Mesma ordem da consulta (ver getLeadsForFollowup): etapa primeiro — D+3 (a leva
+  // que veio da etapa Início, sem segundo toque) na frente do D+7 — e, dentro da
+  // etapa, o vencido há mais tempo primeiro. Reordenar aqui com outro critério
+  // desfaria a prioridade vinda do banco.
+  fila.sort((a, b) => {
+    if (a.etapa_cadencia !== b.etapa_cadencia) return a.etapa_cadencia - b.etapa_cadencia
+    const da = a.data_proximo_followup ? new Date(a.data_proximo_followup).getTime() : 0
+    const db = b.data_proximo_followup ? new Date(b.data_proximo_followup).getTime() : 0
+    return da - db
+  })
+  const leads = fila.slice(0, max)
+  const restantes = fila.length - leads.length
+
+  if (dry) {
+    const porEtapa: Record<number, number> = {}
+    for (const l of fila) porEtapa[l.etapa_cadencia] = (porEtapa[l.etapa_cadencia] ?? 0) + 1
+    return NextResponse.json({
+      ok: true,
+      dry: true,
+      fila_total: fila.length,
+      enviaria_agora: leads.length,
+      restariam: restantes,
+      por_etapa: porEtapa,
+      amostra: leads.slice(0, 5).map((l) => ({
+        telefone: l.telefone,
+        etapa: `D+${l.etapa_cadencia}`,
+        vencido_em: l.data_proximo_followup,
+      })),
+    })
   }
 
   let sucesso = 0
   let falha = 0
   let invalidos = 0
+  let processados = 0
+  let pararPorTempo = false
+  const inicio = Date.now()
 
   for (const lead of leads) {
+    // Encerra o lote antes do limite da função (ver CORTE_TEMPO_MS). Sair aqui é
+    // seguro: cada lead é enviado E atualizado dentro da mesma volta, então quem
+    // não foi processado continua na fila intacto pra próxima rodada.
+    if (Date.now() - inicio > CORTE_TEMPO_MS) {
+      pararPorTempo = true
+      console.warn(`[followup] parando por tempo: ${processados}/${leads.length} processados`)
+      break
+    }
+    processados++
+
     const etapa = lead.etapa_cadencia
     const template = TEMPLATES[etapa]
 
@@ -127,5 +204,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, processados: leads.length, sucesso, falha, invalidos })
+  const naoProcessados = leads.length - processados
+  console.log(
+    `[followup] ${sucesso} enviados, ${falha} falhas, ${invalidos} inválidos em ` +
+      `${((Date.now() - inicio) / 1000).toFixed(0)}s — ${restantes + naoProcessados} ainda na fila` +
+      (pararPorTempo ? ' (lote encerrado por tempo)' : ''),
+  )
+  return NextResponse.json({
+    ok: true,
+    processados,
+    sucesso,
+    falha,
+    invalidos,
+    parou_por_tempo: pararPorTempo,
+    duracao_s: Number(((Date.now() - inicio) / 1000).toFixed(1)),
+    fila_total: fila.length,
+    restantes: restantes + naoProcessados,
+  })
 }

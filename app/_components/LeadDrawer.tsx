@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import TagChips, { type TagChip } from './TagChips'
 
 interface Lead {
   id: string
@@ -94,10 +95,40 @@ const STATUS_COLOR: Record<string, string> = {
   DESCARTADO: '#94a3b8',
 }
 
+// Textos prontos do "Enviar info" — os pedidos que o Nei mais repete.
+// Desde 2026-07-31 vivem na tabela sdr_atalhos_info (editáveis pelo próprio
+// painel: ajustar texto, criar atalho novo com link, excluir). Sem saudação:
+// o envio frio (HSM) já prefixa "Olá [nome],".
+interface AtalhoInfo {
+  id: string
+  rotulo: string
+  texto: string
+}
+
 export default function LeadDrawer() {
   const [leadId, setLeadId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<{ lead: Lead; mensagens: Mensagem[] } | null>(null)
+  const [data, setData] = useState<{ lead: Lead; mensagens: Mensagem[]; totalMensagens?: number; etapaEvo?: string | null; tagsEvo?: TagChip[] } | null>(null)
+
+  // Abre a conversa já rolada no FIM (última mensagem à vista) — pedido do
+  // Aldo 2026-07-31. Âncora + scrollIntoView: rola o ancestral certo, seja o
+  // drawer inteiro ou só a área de mensagens. Só no primeiro carregamento de
+  // cada lead: refreshs posteriores não puxam a tela do operador.
+  const fimConversaRef = useRef<HTMLDivElement | null>(null)
+  const ultimoLeadRolado = useRef<string | null>(null)
+  useEffect(() => {
+    if (!data?.lead?.id || data.mensagens.length === 0) return
+    if (ultimoLeadRolado.current === data.lead.id) return
+    ultimoLeadRolado.current = data.lead.id
+    // Tentativas repetidas no ~1,5s inicial: mídias das mensagens (imagens do
+    // Evo) carregam depois do render e crescem o conteúdo — um scroll único
+    // rodava cedo demais e a conversa abria no topo.
+    const rolar = () => fimConversaRef.current?.scrollIntoView({ block: 'end' })
+    requestAnimationFrame(() => requestAnimationFrame(rolar))
+    // sem cleanup de propósito: um refresh de data não pode cancelar os timers
+    // (a âncora some ao fechar o drawer, então disparo tardio é no-op seguro)
+    ;[150, 400, 800, 1500].forEach((ms) => setTimeout(rolar, ms))
+  }, [data])
   const [busy, setBusy] = useState(false)
 
   // Estado do painel de resposta manual
@@ -109,7 +140,46 @@ export default function LeadDrawer() {
   const [showInfo, setShowInfo] = useState(false)
   const [infoText, setInfoText] = useState('')
   const [sendingInfo, setSendingInfo] = useState(false)
-  const [infoAnexo, setInfoAnexo] = useState<File | null>(null)
+  const [infoAnexos, setInfoAnexos] = useState<File[]>([])
+
+  // Atalhos de texto pronto (tabela sdr_atalhos_info) + modo edição
+  const [atalhos, setAtalhos] = useState<AtalhoInfo[]>([])
+  const [editAtalhos, setEditAtalhos] = useState(false)
+  const [savingAtalho, setSavingAtalho] = useState(false)
+
+  async function carregarAtalhos() {
+    try {
+      const res = await fetch('/api/atalhos-info')
+      const j = await res.json()
+      if (j.atalhos) setAtalhos(j.atalhos)
+    } catch { /* atalhos são conveniência — falha não bloqueia o Enviar info */ }
+  }
+
+  async function salvarAtalho(a: AtalhoInfo) {
+    if (!a.rotulo.trim() || !a.texto.trim()) return
+    setSavingAtalho(true)
+    try {
+      await fetch('/api/atalhos-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: a.id || undefined, rotulo: a.rotulo, texto: a.texto }),
+      })
+      await carregarAtalhos()
+    } finally {
+      setSavingAtalho(false)
+    }
+  }
+
+  async function excluirAtalho(id: string) {
+    if (!id) { setAtalhos((xs) => xs.filter((x) => x.id !== id)); return }
+    setSavingAtalho(true)
+    try {
+      await fetch(`/api/atalhos-info?id=${id}`, { method: 'DELETE' })
+      await carregarAtalhos()
+    } finally {
+      setSavingAtalho(false)
+    }
+  }
 
   // Estado do painel de edição
   const [showEdit, setShowEdit] = useState(false)
@@ -209,16 +279,23 @@ export default function LeadDrawer() {
 
   async function sendInfoPendente() {
     if (!leadId) return
-    if (!infoText.trim() && !infoAnexo) return
-    // Limite de segurança: o body vai em JSON pro serverless (teto ~4,5 MB no Vercel).
-    if (infoAnexo && infoAnexo.size > 3 * 1024 * 1024) {
-      window.alert('Arquivo muito grande (máx. 3 MB). Comprima ou envie direto pelo WhatsApp.')
+    if (!infoText.trim() && infoAnexos.length === 0) return
+    // Limite de segurança: o body vai em JSON pro serverless (teto ~4,5 MB no
+    // Vercel) — cada arquivo até 3 MB e o CONJUNTO até 3 MB também.
+    const grande = infoAnexos.find((f) => f.size > 3 * 1024 * 1024)
+    if (grande) {
+      window.alert(`"${grande.name}" é muito grande (máx. 3 MB por arquivo). Comprima ou envie direto pelo WhatsApp.`)
+      return
+    }
+    const totalBytes = infoAnexos.reduce((s, f) => s + f.size, 0)
+    if (totalBytes > 3 * 1024 * 1024) {
+      window.alert('O conjunto de anexos passou de 3 MB. Envie em duas levas.')
       return
     }
     setSendingInfo(true)
     try {
       const body: Record<string, unknown> = { type: 'send-info', mensagem: infoText.trim() }
-      if (infoAnexo) body.anexo = await lerAnexo(infoAnexo)
+      if (infoAnexos.length > 0) body.anexos = await Promise.all(infoAnexos.map(lerAnexo))
       const res = await fetch(`/api/leads/${leadId}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -231,13 +308,13 @@ export default function LeadDrawer() {
       }
       const via =
         json.modo === 'anexo'
-          ? 'com o anexo (janela aberta)'
+          ? `com ${infoAnexos.length > 1 ? `os ${infoAnexos.length} anexos` : 'o anexo'} (janela aberta)`
           : json.modo === 'hsm'
             ? 'via template (cliente estava frio — a conversa foi reaberta)'
             : 'como texto livre (janela aberta)'
       window.alert(`✅ Informação enviada ${via}.`)
       setInfoText('')
-      setInfoAnexo(null)
+      setInfoAnexos([])
       setShowInfo(false)
       await refreshDrawer()
     } catch (err) {
@@ -518,7 +595,7 @@ export default function LeadDrawer() {
               </ActionBtn>
               <ActionBtn
                 disabled={busy || replying || sendingInfo}
-                onClick={() => { setShowInfo((v) => !v); setShowReply(false); setShowEdit(false); setShowInstrucao(false); setInfoText('') }}
+                onClick={() => { setShowInfo((v) => !v); setShowReply(false); setShowEdit(false); setShowInstrucao(false); setInfoText(''); setEditAtalhos(false); carregarAtalhos() }}
                 color="#a78bfa"
               >
                 ✉️ Enviar info
@@ -626,6 +703,98 @@ export default function LeadDrawer() {
                 <div style={{ color: '#7c6f9c', fontSize: '0.72rem' }}>
                   Cliente frio? Vai por template (vira “Olá [nome], [sua mensagem]” e reabre a conversa). Janela aberta? Vai como texto livre.
                 </div>
+                {/* Atalhos de texto pronto — clique preenche o campo. Editáveis
+                    pelo ⚙️ (tabela sdr_atalhos_info): ajustar texto, criar novo
+                    (com link), excluir. */}
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {atalhos.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => setInfoText(a.texto)}
+                      title={a.texto}
+                      style={{
+                        background: infoText === a.texto ? '#ede9fe' : 'var(--bg-elev)',
+                        border: '1px solid #c4b5fd',
+                        color: '#6d28d9',
+                        padding: '0.25rem 0.55rem',
+                        borderRadius: 999,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {a.rotulo}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setEditAtalhos((v) => !v)}
+                    title="Editar atalhos (textos prontos)"
+                    style={{
+                      background: editAtalhos ? '#ede9fe' : 'transparent',
+                      border: '1px dashed #c4b5fd',
+                      color: '#7c6f9c',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: 999,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '0.72rem',
+                    }}
+                  >
+                    ⚙️ {editAtalhos ? 'fechar edição' : 'editar atalhos'}
+                  </button>
+                </div>
+
+                {/* Editor de atalhos — o Nei ajusta os textos, cria novos e exclui */}
+                {editAtalhos && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px dashed #c4b5fd', borderRadius: 8, padding: '0.6rem' }}>
+                    <div style={{ color: '#7c6f9c', fontSize: '0.7rem' }}>
+                      Edite o nome/texto e clique 💾 pra gravar (vale pra todos os leads). Links podem ir direto no texto.
+                    </div>
+                    {atalhos.map((a, i) => (
+                      <div key={a.id || `novo-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <input
+                            value={a.rotulo}
+                            onChange={(e) => setAtalhos((xs) => xs.map((x, j) => (j === i ? { ...x, rotulo: e.target.value } : x)))}
+                            placeholder="Nome do atalho (ex.: 🔗 Link novo)"
+                            style={{ flex: 1, background: 'var(--bg-elev)', border: '1px solid #ddd6fe', color: 'var(--text)', padding: '0.3rem 0.5rem', borderRadius: 6, fontFamily: 'inherit', fontSize: '0.76rem', fontWeight: 600 }}
+                          />
+                          <button
+                            onClick={() => salvarAtalho(a)}
+                            disabled={savingAtalho || !a.rotulo.trim() || !a.texto.trim()}
+                            title="Gravar atalho"
+                            style={{ background: '#8b5cf6', border: 'none', color: '#fff', padding: '0.3rem 0.6rem', borderRadius: 6, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600, opacity: savingAtalho || !a.rotulo.trim() || !a.texto.trim() ? 0.5 : 1 }}
+                          >
+                            💾
+                          </button>
+                          <button
+                            onClick={() => excluirAtalho(a.id)}
+                            disabled={savingAtalho}
+                            title="Excluir atalho"
+                            style={{ background: 'transparent', border: '1px solid #fca5a5', color: '#dc2626', padding: '0.3rem 0.55rem', borderRadius: 6, cursor: 'pointer', fontSize: '0.76rem' }}
+                          >
+                            🗑
+                          </button>
+                        </div>
+                        <textarea
+                          value={a.texto}
+                          onChange={(e) => setAtalhos((xs) => xs.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+                          placeholder="Texto da mensagem (sem 'Olá fulano' — a saudação entra sozinha no envio frio)"
+                          rows={2}
+                          style={{ background: 'var(--bg-elev)', border: '1px solid #ddd6fe', color: 'var(--text)', padding: '0.35rem 0.5rem', borderRadius: 6, fontFamily: 'inherit', fontSize: '0.76rem', resize: 'vertical' }}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setAtalhos((xs) => [...xs, { id: '', rotulo: '', texto: '' }])}
+                      disabled={savingAtalho}
+                      style={{ alignSelf: 'flex-start', background: 'transparent', border: '1px dashed #c4b5fd', color: '#6d28d9', padding: '0.3rem 0.7rem', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.76rem', fontWeight: 600 }}
+                    >
+                      ＋ Novo atalho
+                    </button>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                   <textarea
                     value={infoText}
@@ -649,19 +818,19 @@ export default function LeadDrawer() {
                   />
                   <button
                     onClick={sendInfoPendente}
-                    disabled={sendingInfo || (!infoText.trim() && !infoAnexo)}
+                    disabled={sendingInfo || (!infoText.trim() && infoAnexos.length === 0)}
                     style={{
                       background: sendingInfo ? 'var(--border-strong)' : '#8b5cf6',
                       border: 'none',
                       color: '#fff',
                       padding: '0.5rem 0.9rem',
                       borderRadius: 6,
-                      cursor: sendingInfo || (!infoText.trim() && !infoAnexo) ? 'not-allowed' : 'pointer',
+                      cursor: sendingInfo || (!infoText.trim() && infoAnexos.length === 0) ? 'not-allowed' : 'pointer',
                       fontFamily: 'inherit',
                       fontSize: '0.82rem',
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
-                      opacity: !infoText.trim() && !infoAnexo ? 0.5 : 1,
+                      opacity: !infoText.trim() && infoAnexos.length === 0 ? 0.5 : 1,
                     }}
                   >
                     {sendingInfo ? 'Enviando...' : 'Enviar'}
@@ -684,29 +853,38 @@ export default function LeadDrawer() {
                       padding: '0.35rem 0.6rem',
                     }}
                   >
-                    📎 Anexar arquivo
+                    📎 Anexar arquivos
                     <input
                       type="file"
                       accept="image/*,application/pdf"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e) => setInfoAnexo(e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const novos = Array.from(e.target.files ?? [])
+                        // Acumula com os já escolhidos (sem duplicar nome+tamanho)
+                        setInfoAnexos((atual) => {
+                          const chaves = new Set(atual.map((f) => `${f.name}|${f.size}`))
+                          return [...atual, ...novos.filter((f) => !chaves.has(`${f.name}|${f.size}`))]
+                        })
+                        e.target.value = ''
+                      }}
                     />
                   </label>
-                  {infoAnexo && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text)' }}>
-                      {infoAnexo.type.startsWith('image/') ? '🖼️' : '📄'} {infoAnexo.name}
-                      <span style={{ color: 'var(--text-muted)' }}>({(infoAnexo.size / 1024).toFixed(0)} KB)</span>
+                  {infoAnexos.map((f, i) => (
+                    <span key={`${f.name}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text)', background: 'var(--bg-elev)', border: '1px solid #ddd6fe', borderRadius: 999, padding: '0.2rem 0.55rem' }}>
+                      {f.type.startsWith('image/') ? '🖼️' : '📄'} {f.name}
+                      <span style={{ color: 'var(--text-muted)' }}>({(f.size / 1024).toFixed(0)} KB)</span>
                       <button
-                        onClick={() => setInfoAnexo(null)}
+                        onClick={() => setInfoAnexos((xs) => xs.filter((_, j) => j !== i))}
                         style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.85rem', padding: 0 }}
                         title="Remover anexo"
                       >
                         ✕
                       </button>
                     </span>
-                  )}
+                  ))}
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', width: '100%' }}>
-                    Anexo só é entregue com a conversa aberta (lojista respondeu nas últimas 24h). Máx. 3 MB.
+                    Anexos só são entregues com a conversa aberta (lojista respondeu nas últimas 24h). O texto vai de legenda no primeiro arquivo. Máx. 3 MB no total.
                   </span>
                 </div>
               </div>
@@ -902,7 +1080,32 @@ export default function LeadDrawer() {
                   </span>
                 }
               />
-              <Row label="Etapa" value={`D+${data.lead.etapa_cadencia}`} />
+              <Row
+                label="Etapa funil (Evo)"
+                value={
+                  <span style={{ fontWeight: 600 }}>
+                    {data.etapaEvo ?? '—'}
+                    {data.etapaEvo === 'Cadastro recebido' && data.lead.status === 'INTERESSADO' && (
+                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                        {' '}· VictorIA coletando dados complementares (Fase 3)
+                      </span>
+                    )}
+                  </span>
+                }
+              />
+              {/* Etiquetas do card no Evo — replicadas com nome e cor de lá.
+                  Só aparece a linha se o card tiver alguma. */}
+              {data.tagsEvo && data.tagsEvo.length > 0 && (
+                <Row
+                  label="Etiquetas (Evo)"
+                  value={
+                    <span style={{ display: 'inline-flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                      <TagChips tags={data.tagsEvo} size="md" />
+                    </span>
+                  }
+                />
+              )}
+              <Row label="Cadência" value={`D+${data.lead.etapa_cadencia}`} />
               <Row
                 label="Último contato"
                 value={
@@ -936,7 +1139,12 @@ export default function LeadDrawer() {
             </div>
 
             <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--text-dim)' }}>
-              Histórico de mensagens ({data.mensagens.length})
+              Histórico de mensagens ({data.totalMensagens ?? data.mensagens.length})
+              {data.totalMensagens != null && data.totalMensagens > data.mensagens.length && (
+                <span style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>
+                  — exibindo as {data.mensagens.length} mais recentes
+                </span>
+              )}
             </h3>
             <div>
               {data.mensagens.length === 0 && (
@@ -1027,6 +1235,8 @@ export default function LeadDrawer() {
                   </div>
                 )
               })}
+              {/* âncora do fim da conversa — alvo do auto-scroll de abertura */}
+              <div ref={fimConversaRef} />
             </div>
           </div>
         )}

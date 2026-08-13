@@ -128,6 +128,7 @@ export default function CampanhaForm() {
   const [produto, setProduto] = useState<'AIVA' | 'SINGLO'>('AIVA')
   const [loading, setLoading] = useState(false)
   const [resultado, setResultado] = useState<Resultado | null>(null)
+  const [progresso, setProgresso] = useState('')
 
   // Parsing memoizado: roda só quando o texto muda.
   const leadsParsed = useMemo(() => parseInput(textoColado), [textoColado])
@@ -148,23 +149,65 @@ export default function CampanhaForm() {
     }
     setLoading(true)
     setResultado(null)
+    setProgresso('')
+
+    // Dispara em LOTES (cada um cabe no tempo da função — antes, 100+ leads num
+    // request só estouravam o limite e a Vercel devolvia texto de erro, que o
+    // painel tentava ler como JSON → "Unexpected token 'A'..."). Cada lote é um
+    // request curto; resultados são agregados e a resposta é lida de forma robusta.
+    const CHUNK = 20
+    const total = leadsParsed.length
+    const agregado = {
+      ok: true,
+      total,
+      sucesso: 0,
+      falha: 0,
+      invalidos: 0,
+      resultados: [] as Array<{ telefone: string; ok: boolean; erro?: string; lead_id?: string }>,
+    }
+    let lotesComErro = 0
+
     try {
-      const res = await fetch('/api/leads/send-campaign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leads: leadsParsed,
-          nome, // default usado se um lead vier sem nome
-          cidade, // default usado se um lead vier sem cidade
-          produto,
-        }),
-      })
-      const data = await res.json()
-      setResultado(data)
+      for (let i = 0; i < total; i += CHUNK) {
+        const lote = leadsParsed.slice(i, i + CHUNK)
+        setProgresso(`Disparando ${Math.min(i + lote.length, total)}/${total}…`)
+        let data: Partial<typeof agregado> & { error?: string } = {}
+        try {
+          const res = await fetch('/api/leads/send-campaign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leads: lote, nome, cidade, produto }),
+          })
+          // Lê como TEXTO e tenta parsear — se vier página de erro (timeout), não quebra.
+          const txt = await res.text()
+          try { data = JSON.parse(txt) }
+          catch { data = { error: `lote ${res.status}: resposta não-JSON` } }
+        } catch (err) {
+          data = { error: err instanceof Error ? err.message : String(err) }
+        }
+
+        if (data.error) {
+          lotesComErro++
+        } else {
+          agregado.sucesso += data.sucesso ?? 0
+          agregado.falha += data.falha ?? 0
+          agregado.invalidos += data.invalidos ?? 0
+          if (Array.isArray(data.resultados)) agregado.resultados.push(...data.resultados)
+        }
+      }
+
+      if (lotesComErro > 0 && agregado.resultados.length === 0) {
+        setResultado({ error: `Falha no disparo (${lotesComErro} lote(s) sem resposta). Tente novamente.` })
+      } else {
+        agregado.ok = lotesComErro === 0
+        agregado.falha += lotesComErro * CHUNK // estimativa dos lotes que não voltaram
+        setResultado(agregado)
+      }
     } catch (err) {
       setResultado({ error: err instanceof Error ? err.message : String(err) })
     } finally {
       setLoading(false)
+      setProgresso('')
     }
   }
 
@@ -357,7 +400,7 @@ export default function CampanhaForm() {
               opacity: stats.total === 0 ? 0.5 : 1,
             }}
           >
-            {loading ? 'Disparando...' : `Disparar para ${stats.total || 0} leads`}
+            {loading ? (progresso || 'Disparando...') : `Disparar para ${stats.total || 0} leads`}
           </button>
           {loading && (
             <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>

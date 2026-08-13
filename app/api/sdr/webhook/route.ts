@@ -15,14 +15,19 @@ import {
 } from '@/lib/supabase'
 import {
   sendText, alertHuman, downloadAudio,
-  createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, transferirParaFunil19, STAGES, TAG_IDS,
+  createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, mergeOpportunityTag, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
   getOpportunity, getStatusAtualNoEvo, getChatMessages, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
-import { processarMensagem, transcreverAudio, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
-import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, formatarDadosLead } from '@/lib/text'
+import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
+import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, buildMsgTravaQsa, formatarDadosLead } from '@/lib/text'
+import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker } from '@/lib/cnpj'
+import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado } from '@/lib/manual-docs'
+import { capturarColaborador } from '@/lib/colab-rede-seguranca'
+import { extrairCnpjs } from '@/lib/pre-cadastro-form'
+import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido, type Colaborador } from '@/lib/colaborador-form'
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 
@@ -722,7 +727,8 @@ export async function POST(req: NextRequest) {
     const aviso49Pendente = obs.includes('[AVISO_49_PENDENTE')
     const aviso50Pendente = obs.includes('[AVISO_50_PENDENTE')
     const aviso70Pendente = obs.includes('[AVISO_70_PENDENTE')
-    if (aviso49Pendente || aviso50Pendente || aviso70Pendente) {
+    const aviso70KitPendente = obs.includes('[AVISO_70KIT_PENDENTE')
+    if (aviso49Pendente || aviso50Pendente || aviso70Pendente || aviso70KitPendente) {
       try {
         const nomeContato = normalizaNome(lead.nome) || 'Lojista'
         const msgsPraReenviar: string[] = []
@@ -734,6 +740,9 @@ export async function POST(req: NextRequest) {
         }
         if (aviso70Pendente) {
           msgsPraReenviar.push(...buildAvisoTreinamentoMsgs())
+        }
+        if (aviso70KitPendente) {
+          msgsPraReenviar.push(buildKitPosFechamentoMsg(nomeContato))
         }
         for (const msg of msgsPraReenviar) {
           try {
@@ -749,6 +758,7 @@ export async function POST(req: NextRequest) {
           .replace(/\[AVISO_49_PENDENTE:[^\]]+\]\s*/g, '')
           .replace(/\[AVISO_50_PENDENTE:[^\]]+\]\s*/g, '')
           .replace(/\[AVISO_70_PENDENTE:[^\]]+\]\s*/g, '')
+          .replace(/\[AVISO_70KIT_PENDENTE:[^\]]+\]\s*/g, '')
           .trim()
         await supabaseAdmin
           .from('sdr_leads')
@@ -762,13 +772,321 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 8b². GUIA DE VENDAS — link clicável e encaminhável (pedido do Aldo 2026-07-31)
+    // O HSM do guia leva a URL como TEXTO (parâmetro de template não vira link
+    // no WhatsApp). Na PRIMEIRA resposta do lojista após receber o aviso
+    // ([GUIA_VENDAS_ENVIADO] sem [GUIA_LINK_OK]), manda uma mensagem separada
+    // só com o link — clicável e pronta pro dono encaminhar pra equipe.
+    {
+      const obsGuia = lead.observacoes ?? ''
+      if (obsGuia.includes('[GUIA_VENDAS_ENVIADO') && !obsGuia.includes('[GUIA_LINK_OK]')) {
+        try {
+          const msgGuia =
+            `🎓 *Treinamento de Vendas no Crediário — AIVA × Track*\n` +
+            `👉 https://sdr-aiva.vercel.app/treinamento-vendas.html\n\n` +
+            `Encaminha essa mensagem pra sua equipe estudar — no final tem prova e certificado pra cada vendedor! 😉`
+          await sendText(lead.telefone, msgGuia, lead.evotalks_chat_id)
+          await saveMensagem(lead.id, 'out', msgGuia)
+          const novaObsGuia = `${obsGuia.trim()} [GUIA_LINK_OK]`.trim()
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObsGuia }).eq('id', lead.id)
+          lead.observacoes = novaObsGuia
+          console.log(`[GUIA_VENDAS] Link encaminhável enviado pra ${lead.telefone}`)
+        } catch (err) {
+          console.error(`[GUIA_VENDAS] Falha ao enviar link pra ${lead.telefone}:`, err)
+        }
+      }
+    }
+
+    // 8b³. TRAVA DE QSA — reforço da orientação + destrava (política 2026-08-03)
+    // Lead sem sócio retido em Em Análise:
+    //  a) Se a orientação do contador ficou pendente (janela fechada quando o
+    //     Nei moveu o card), envia agora que o lead respondeu.
+    //  b) Se o lead avisa que REGULARIZOU, re-consulta a Receita na hora:
+    //     QSA apareceu → destrava, confirma pro lojista e avisa o Nei;
+    //     ainda vazio → a VictorIA explica (nota de sistema injetada no turno).
+    let conteudoParaClaude = conteudoEfetivo
+    {
+      const obsTrava = lead.observacoes ?? ''
+      if (obsTrava.includes('[TRAVA_QSA_PENDENTE]')) {
+        try {
+          const msgTrava = buildMsgTravaQsa(normalizaNome(lead.nome))
+          await sendText(lead.telefone, msgTrava, lead.evotalks_chat_id)
+          await saveMensagem(lead.id, 'out', msgTrava)
+          const obsSemPend = obsTrava.replace(/\s*\[TRAVA_QSA_PENDENTE\]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim()
+          const novaObsTrava = `${obsSemPend} [TRAVA_QSA_MSG:${new Date().toISOString()}]`.trim()
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObsTrava }).eq('id', lead.id)
+          lead.observacoes = novaObsTrava
+          console.log(`[TRAVA_QSA] Orientação do contador reforçada pra ${lead.telefone}`)
+        } catch (err) {
+          console.error(`[TRAVA_QSA] Falha no reforço da orientação pra ${lead.telefone}:`, err)
+        }
+      }
+
+      if (
+        (lead.observacoes ?? '').includes('[TRAVA_QSA]') &&
+        /regulariz|resolvid|resolveu|atualizad|arrumad|arrumou|j[áa]\s*consta|apareceu|contador\s*(fez|resolveu|atualizou|arrumou)/i.test(conteudoEfetivo)
+      ) {
+        const cnpjTrava = ((lead.observacoes ?? '').match(/\[CNPJ_RECEITA:cnpj=(\d{14})/)?.[1]) ??
+          ((lead.observacoes ?? '').match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
+        if (cnpjTrava.length === 14) {
+          try {
+            const infoRecheck = await consultarCNPJ(cnpjTrava)
+            if (infoRecheck && infoRecheck.qsaCount > 0) {
+              // ✅ Destravou: atualiza marcadores, confirma pro lojista e encerra o turno
+              const obsAtualT = lead.observacoes ?? ''
+              const novaObs = obsAtualT
+                .replace(/\[CNPJ_RECEITA:[^\]]*\]\s*/g, '')
+                .replace(/\s*\[TRAVA_QSA\]\s*/g, ' ')
+                .replace(/\s*\[TRAVA_QSA_MSG:[^\]]+\]\s*/g, ' ')
+                .replace(/\s{2,}/g, ' ')
+                .trim()
+              const obsFinal = `${novaObs} ${cnpjInfoMarker(infoRecheck)} [TRAVA_QSA_OK:${new Date().toISOString()}]`.trim()
+              await supabaseAdmin.from('sdr_leads').update({ observacoes: obsFinal }).eq('id', lead.id)
+              const msgOk =
+                `Ótima notícia! 🎉 Acabei de consultar aqui e o quadro societário do seu CNPJ *já está atualizado* na Receita Federal.\n\n` +
+                `Pode deixar que já aviso o time pra dar sequência na sua aprovação — qualquer novidade te retorno por aqui!`
+              await sendText(lead.telefone, msgOk, lead.evotalks_chat_id)
+              await saveMensagem(lead.id, 'out', msgOk)
+              const alertaOk =
+                `🔓 *QSA REGULARIZADO — ${lead.nome}* (${lead.telefone})\n` +
+                `O lojista regularizou o quadro societário (${infoRecheck.qsaCount} sócio${infoRecheck.qsaCount > 1 ? 's' : ''} na Receita agora). ` +
+                `A trava foi removida — pode seguir com a aprovação/CAF.`
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alertaOk)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alertaOk)
+              console.log(`[TRAVA_QSA] ${lead.telefone} destravado — QSA com ${infoRecheck.qsaCount} sócio(s)`)
+              return NextResponse.json({ ok: true, trava_qsa: 'destravado' })
+            }
+            // Ainda sem QSA → informa a VictorIA via nota de sistema neste turno
+            conteudoParaClaude =
+              `${conteudoEfetivo}\n[NOTA DO SISTEMA: o lojista indicou que regularizou, e a Receita foi RE-CONSULTADA agora — o quadro societário AINDA NÃO consta. Informe com gentileza que ainda não aparece na consulta, que a sincronização Junta→Receita pode levar alguns dias, e sugira confirmar com o contador se o processo foi concluído.]`
+            console.log(`[TRAVA_QSA] ${lead.telefone} re-checado — QSA ainda vazio`)
+          } catch (err) {
+            console.error(`[TRAVA_QSA] Falha na re-consulta da Receita pra ${lead.telefone}:`, err)
+          }
+        }
+      }
+    }
+
+    // 8c. Detector de ERRO DE PORTAL (curadoria 2026-07-27)
+    // Lead pós-cadastro relatando erro/travamento no portal UME (biometria,
+    // "sistema pede sócio", senha incorreta, link quebrado...) → alerta 🛠
+    // imediato pro time. A VictorIA não resolve erro de sistema — sem esse
+    // alerta a queixa morria na conversa. Cooldown de 24h por lead (sdr_alertas).
+    const STATUS_POS_CADASTRO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+    if (STATUS_POS_CADASTRO.includes(lead.status) && conteudoEfetivo) {
+      const txt = conteudoEfetivo
+      // "erro"/travou/biometria sozinhos já bastam; "não consigo/funciona" só
+      // conta se vier com contexto de portal (evita falso positivo tipo
+      // "não consigo nesse horário" falando do treinamento).
+      const erroForte = /\berro\b|travou|travando|senha incorreta|biometria|\bbug\b/i.test(txt)
+      const naoConsigo = /n[ãa]o (?:consigo|consegui|t[ôo] conseguindo|est(?:ou|á) conseguindo|funciona|deixa)/i.test(txt)
+      const contextoPortal = /cadastr|acess|login|senha|entrar|sistema|\bsite\b|\bapp\b|aplicativo|painel|plataforma|foto|finalizar|avan[çc]ar|\blink\b/i.test(txt)
+
+      // ALGO QUE NÃO CHEGA (Carlos Celulares 11/08/2026): "o SMS não está chegando"
+      // não tem "erro" nem "não consigo", então passava batido — e é queixa de
+      // sistema igual às outras: a biometria não conclui sem o SMS.
+      const naoChega =
+        /n[ãa]o (?:chegou|chega|est[áa] chegando|recebi|recebo|veio|vem)/i.test(txt) &&
+        /\bsms\b|c[óo]digo|\blink\b|e-?mail|acesso|senha|biometria|token/i.test(txt)
+
+      // FINANCEIRO / REPASSE (Conecta Cell 10-11/08/2026): repasse de venda que
+      // não caiu é reclamação de sistema pro lojista — some no chat se não virar
+      // chamado. Foi o caso que escalou até ameaça de parar de vender.
+      // "prazo" sozinho fica de fora: "Qual o prazo de pagamento?" é pergunta, não
+      // queixa — precisa de sinal explícito de atraso/não-recebimento.
+      const financeiro =
+        /repasse|pagamento|transfer[êe]ncia|dep[óo]sito/i.test(txt) &&
+        /n[ãa]o (?:caiu|recebi|foi|chegou|pagou|veio)|atras|pendente|ultrapass|sem retorno|n[ãa]o consta/i.test(txt)
+
+      // RECLAMAÇÃO DE APROVAÇÃO (Tech Point 07/08/2026: "Não aprovou nada").
+      // Regra deliberadamente estreita — na amostra de 6 semanas, a maioria das
+      // frases com "não aprova" era PERGUNTA sobre a política ("não aprova MEI?",
+      // "aprova negativado?"), não queixa. Por isso três travas juntas:
+      //   1. só loja que JÁ está vendendo (quem ainda nem operou não tem o que reclamar);
+      //   2. pergunta não conta (termina em "?");
+      //   3. exige resultado ruim explícito — nada/ninguém/nenhum/só reprova.
+      const reclamacaoAprovacao =
+        lead.status === 'LOJA_FINALIZADA_E_VENDENDO' &&
+        !/\?\s*$/.test(txt.trim()) &&
+        /n[ãa]o (?:aprov(?:a|ou|aram)|passou|passa) (?:nada|ningu[ée]m|nenhum|nenhuma)|nenhuma aprova|nunca aprova|s[óo] (?:reprova|recusa|nega)|clientes? n[ãa]o (?:aprova|aprovam|aprovou)|aprova[çc][ãa]o (?:muito )?baixa|reprov(?:ou|a) (?:tudo|todos)|recus(?:ou|a) (?:tudo|todos)/i.test(txt)
+
+      if (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal)) {
+        try {
+          const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          const { data: jaAlertou } = await supabaseAdmin
+            .from('sdr_alertas')
+            .select('id')
+            .like('mensagem', '%ERRO DE PORTAL%')
+            .like('mensagem', `%${lead.telefone}%`)
+            .gte('criado_em', cutoff24h)
+            .limit(1)
+            .maybeSingle()
+          if (!jaAlertou) {
+            const alerta =
+              `🛠 *POSSÍVEL ERRO DE PORTAL/SISTEMA*\n\n` +
+              `🏪 ${lead.nome}\n` +
+              `📞 ${lead.telefone}\n` +
+              `📌 Status: ${lead.status}\n\n` +
+              `💬 "${txt.slice(0, 300)}"\n\n` +
+              `Se for erro do portal UME, abrir chamado com a AIVA (Eduardo).`
+            if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+            if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            console.log(`[ERRO_PORTAL] Alerta disparado pra ${lead.telefone} (status ${lead.status})`)
+            // Aba "Chamados" da planilha (pedido do Aldo 2026-08-05): registro
+            // formal do problema pro Edu/Nei resolverem (coluna Resolvido = X
+            // manual). Mesmo dedupe de 24h do alerta — 1 chamado por queixa.
+            // O "Problema Relatado" é um RESUMO gerado da conversa (a frase
+            // crua do lojista — "tá dando erro" — não diz nada); se o resumo
+            // falhar, cai na frase crua.
+            try {
+              const cnpjChamado =
+                String(dadosAcumulados?.cnpj_matriz ?? '').replace(/\D/g, '') ||
+                ((lead.observacoes ?? '').match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
+              let problemaResumo = ''
+              try {
+                problemaResumo = await resumirProblemaChamado(historico, lead.status)
+              } catch (errRes) {
+                console.error(`[ERRO_PORTAL] Resumo do chamado falhou pra ${lead.telefone}:`, errRes)
+              }
+              await registrarChamado({
+                loja: lead.nome,
+                telefone: lead.telefone,
+                cnpj: cnpjChamado || null,
+                problema: (problemaResumo || txt).slice(0, 400),
+              })
+              console.log(`[ERRO_PORTAL] Chamado registrado na planilha pra ${lead.telefone}`)
+            } catch (errCh) {
+              console.error(`[ERRO_PORTAL] Falha ao registrar chamado pra ${lead.telefone}:`, errCh)
+            }
+          }
+        } catch (err) {
+          console.error(`[ERRO_PORTAL] Falha no detector pra ${lead.telefone}:`, err)
+        }
+      }
+    }
+
+    // 8d. Detector de LOJA FINALIZADA SEM OPERAR (curadoria 2026-07-27)
+    // Loja na etapa final do funil revelando que NUNCA operou ("não tenho
+    // login", "ainda não vendemos", "não começamos") → alerta 🚩 pro time
+    // reclassificar o card e destravar. Cooldown de 7 dias por lead.
+    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO' && conteudoEfetivo) {
+      const semOperar =
+        /(?:ainda\s+)?n[ãa]o\s+(?:vendi|vendemos|come[çc](?:ei|amos|ou)|iniciamos|operamos|opero)|nenhuma venda|sem vender|n[ãa]o (?:recebi|tenho|chegou) (?:o |a |meu )?(?:login|acesso|senha|c[óo]digo)|aguardando (?:o |a )?(?:acesso|login|libera[çc][ãa]o)|n[ãa]o (?:fiz|fizemos|participei) (?:o |do )?treinamento/i
+          .test(conteudoEfetivo)
+      if (semOperar) {
+        try {
+          const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          const { data: jaAlertou } = await supabaseAdmin
+            .from('sdr_alertas')
+            .select('id')
+            .like('mensagem', '%LOJA FINALIZADA SEM OPERAR%')
+            .like('mensagem', `%${lead.telefone}%`)
+            .gte('criado_em', cutoff7d)
+            .limit(1)
+            .maybeSingle()
+          if (!jaAlertou) {
+            const alerta =
+              `🚩 *LOJA FINALIZADA SEM OPERAR*\n\n` +
+              `🏪 ${lead.nome}\n` +
+              `📞 ${lead.telefone}\n` +
+              `📌 Etapa no funil: Loja Finalizada e Vendendo\n\n` +
+              `💬 "${conteudoEfetivo.slice(0, 300)}"\n\n` +
+              `A loja está na etapa final mas indica que ainda não opera. ` +
+              `Verificar o que travou (acesso/treinamento) e reclassificar o card se preciso.`
+            if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+            if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            console.log(`[CHECK_VENDA] Loja finalizada sem operar detectada: ${lead.telefone}`)
+          }
+        } catch (err) {
+          console.error(`[CHECK_VENDA] Falha no detector pra ${lead.telefone}:`, err)
+        }
+      }
+    }
+
+    // 8e. FLUXO DE DOCUMENTOS (empresa sem sócio) — encaminha mídias pro Drive.
+    // Varre o HISTÓRICO (não só o fileId do request atual): em bursts o turno de
+    // uma mídia pode ser absorvido pelo lock e ela ficaria de fora (caso
+    // Macinplace: selfie nunca subiu). Idempotência via [DOCS_UP:id1,id2] em
+    // observacoes — o mesmo arquivo reenviado pelo lead não sobe de novo (caso
+    // Macinplace: CNH 3× no Drive). Best-effort: falha não interrompe o fluxo.
+    if ((lead.observacoes ?? '').includes('[DOCS_SEM_SOCIO]')) {
+      try {
+        const obsDocs = lead.observacoes ?? ''
+        const jaEnviados = new Set(
+          (obsDocs.match(/\[DOCS_UP:([\d,]+)\]/)?.[1] ?? '').split(',').filter(Boolean),
+        )
+        // Mídias do lead no histórico + a do request atual (pode ainda não estar lá)
+        const pendentes = new Map<string, { mime: string; nome: string }>()
+        for (const m of historicoRaw) {
+          if (m.direcao !== 'in') continue
+          for (const mm of (m.conteudo ?? '').matchAll(/\[LEAD_ENVIOU_IMAGEM:(\d+)\]/g)) {
+            if (!jaEnviados.has(mm[1])) pendentes.set(mm[1], { mime: '', nome: '' })
+          }
+          for (const mm of (m.conteudo ?? '').matchAll(/\[LEAD_ENVIOU_ARQUIVO:(\d+):([^:\]]*):([^\]]*)\]/g)) {
+            if (!jaEnviados.has(mm[1])) pendentes.set(mm[1], { mime: mm[2], nome: mm[3] })
+          }
+        }
+        if (fileId && fileId > 0 && !jaEnviados.has(String(fileId))) {
+          pendentes.set(String(fileId), {
+            mime: mimeType || '',
+            nome: fileName && fileName !== 'undefined' ? fileName : '',
+          })
+        }
+        const cnpjLead = obsDocs.match(/cnpj_matriz=(\d{14})/)?.[1] ?? ''
+        const enviadosAgora: string[] = []
+        for (const [idStr, info] of pendentes) {
+          try {
+            const arq = await downloadAudio(Number(idStr)) // downloader genérico do Evo
+            const mime = arq.mimeType || info.mime || 'application/octet-stream'
+            // Áudio é conversa (já transcrito no fluxo normal), não documento
+            if (mime.startsWith('audio/')) {
+              enviadosAgora.push(idStr)
+              continue
+            }
+            const ext = mime.includes('pdf') ? '.pdf' : mime.includes('png') ? '.png' : mime.includes('jpe') ? '.jpg' : ''
+            const nomeArq = info.nome && info.nome !== 'undefined' ? info.nome : `documento-${idStr}${ext}`
+            const urlDrive = await enviarDocParaDrive({
+              loja: lead.nome,
+              cnpj: cnpjLead,
+              telefone: lead.telefone,
+              nomeArquivo: nomeArq,
+              mimeType: mime,
+              base64: arq.buffer.toString('base64'),
+            })
+            if (urlDrive) {
+              enviadosAgora.push(idStr)
+              console.log(`[MANUAL_DOCS] Doc ${idStr} do lead ${lead.telefone} salvo no Drive: ${urlDrive}`)
+            }
+          } catch (err) {
+            // id fica fora do marcador → nova tentativa no próximo turno do lead
+            console.error(`[MANUAL_DOCS] Falha ao encaminhar mídia ${idStr} pro Drive:`, err)
+          }
+        }
+        if (enviadosAgora.length) {
+          const todos = [...jaEnviados, ...enviadosAgora]
+          const novaObs = obsDocs.includes('[DOCS_UP:')
+            ? obsDocs.replace(/\[DOCS_UP:[\d,]*\]/, `[DOCS_UP:${todos.join(',')}]`)
+            : `${obsDocs} [DOCS_UP:${todos.join(',')}]`.trim()
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObs }).eq('id', lead.id)
+          lead.observacoes = novaObs // remonte de observacoes lá embaixo parte daqui
+        }
+      } catch (err) {
+        console.error(`[MANUAL_DOCS] Falha na varredura de docs pro Drive (${lead.telefone}):`, err)
+      }
+    }
+
     // 9. Processa com Claude (VictorIA)
     // Passa o status atual pra Claude saber em qual fase do fluxo está
     // (Fase 1 = INTERESSADO, Fase 2 = PRE_APROVACAO, Fase 3 = INTERESSADO).
     // O produto determina o prompt: AIVA (default) ou TRIAGEM (lead inbound puro).
     let resposta
     try {
-      resposta = await processarMensagem(conteudoEfetivo, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia)
+      // Trava de QSA ativa (sem sócio, política 2026-08-03)? Injeta o bloco de
+      // contexto pra VictorIA orientar o contador na fase Em Análise.
+      const travaQsa =
+        (lead.observacoes ?? '').includes('[TRAVA_QSA]') &&
+        lead.status === 'EM_ANALISE_AIVA'
+      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, travaQsa)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined
@@ -997,6 +1315,161 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ═══ VALIDAÇÃO AUTOMÁTICA DO CNPJ (fluxo definido pelo Aldo 2026-07-27) ═══
+  // Roda ANTES do envio da resposta, no turno em que o cnpj_matriz chega:
+  //   1) Base AIVA/Odres (aiva_base_cnpjs) → já é cliente? mensagem oficial
+  //      da Odres + funil 19 + encerra. NÃO consulta Receita (evita conflito).
+  //   2) Receita (BrasilAPI):
+  //      - idade < 1 ano  → NAO_QUALIFICADO automático + mensagem educada
+  //      - situação ≠ ATIVA → alerta pro time (sem mudar status)
+  //      - sem sócio → pede os 5 documentos (fluxo Drive + planilha Manual)
+  let cnpjInfoNovo: import('@/lib/cnpj').CNPJInfo | null = null
+  let pedirDocsSemSocio = false
+  {
+    const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
+    const jaConsultado = (lead.observacoes ?? '').includes(`[CNPJ_RECEITA:cnpj=${cnpjPraChecar}`)
+    if (cnpjPraChecar.length === 14 && !jaConsultado && resposta.novo_status !== 'ODRES' && resposta.novo_status !== 'UME') {
+      // 1) Base AIVA/Odres
+      let naBaseAiva = false
+      try {
+        const { data: naBase } = await supabaseAdmin
+          .from('aiva_base_cnpjs')
+          .select('cnpj, nome')
+          .eq('cnpj', cnpjPraChecar)
+          .maybeSingle()
+        if (naBase) {
+          naBaseAiva = true
+          console.log(`[BASE_AIVA] CNPJ ${cnpjPraChecar} já está na base (${naBase.nome ?? '?'}) → fluxo ODRES automático`)
+          resposta.novo_status = 'ODRES'
+          try {
+            // 📇 (e não 📋): o emoji inicial define o TIPO na página /alertas —
+            // 📋 é o filtro "Dados de colaborador" e colidia (bug 2026-07-29).
+            const alerta =
+              `📇 *LEAD JÁ É DA BASE AIVA/ODRES*\n\n` +
+              `🏪 ${lead.nome}\n` +
+              `📞 ${lead.telefone}\n` +
+              `🏢 CNPJ: ${cnpjPraChecar}\n` +
+              `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
+              `Barrado automaticamente: a VictorIA já enviou a mensagem oficial da Odres e a oportunidade vai pro funil de integração. Nenhuma ação necessária.`
+            if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+            if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+          } catch (errAlerta) {
+            console.error('[BASE_AIVA] Falha no alerta:', errAlerta)
+          }
+        }
+      } catch (err) {
+        console.error(`[BASE_AIVA] Falha na checagem do CNPJ ${cnpjPraChecar}:`, err)
+      }
+
+      // 2) Receita — só se NÃO for cliente da base
+      if (!naBaseAiva) {
+        try {
+          const consulta = await consultarCNPJDetalhado(cnpjPraChecar)
+          cnpjInfoNovo = consulta.info
+
+          // CNPJ que a Receita não conhece NÃO passa (bug ICONNECT 11/08/2026).
+          // É recém-aberto (logo, reprovado pela regra de 1 ano) ou digitado
+          // errado — nos dois casos, pré-aprovar é o pior desfecho: o lojista
+          // avança, empaca no portal da AIVA e volta reclamando. Não desqualifico
+          // direto porque pode ser erro de digitação, e NAO_QUALIFICADO faria o
+          // webhook ignorar a correção dele. Então: segura, pergunta e chama humano.
+          if (!consulta.info && (consulta.status === 'nao_encontrado' || consulta.status === 'invalido')) {
+            const ehInvalido = consulta.status === 'invalido'
+            resposta.novo_status = 'INTERESSADO'
+            resposta.acionar_humano = true
+            resposta.motivo_humano =
+              `${ehInvalido ? 'cnpj_invalido' : 'cnpj_nao_encontrado_na_receita'} | ${lead.nome} | CNPJ ${cnpjPraChecar}`
+            resposta.mensagem = ehInvalido
+              ? // DV não fecha: é digitação errada, quase certeza. Pede de novo sem
+                // acusar o lojista e sem falar em reprovação — o número pode estar certo no papel.
+                `Obrigada! 😊 Tentei validar o CNPJ ${cnpjPraChecar} aqui e ele não passou na verificação — parece que algum dígito ficou trocado ou faltando.\n\n` +
+                `Pode conferir no cartão CNPJ e me mandar de novo? São 14 números. Assim que chegar certinho eu valido na hora e seguimos! 🙌`
+              : `Obrigada, ${normalizaNome(lead.nome) || 'tudo bem'}! 😊 Consultei o CNPJ ${cnpjPraChecar} na Receita e ele ainda não aparece na base — isso costuma acontecer quando o CNPJ foi aberto há pouco tempo.\n\n` +
+                `Só pra eu conferir: o número está certinho? Se tiver algum dígito trocado, me manda de novo que eu valido na hora.\n\n` +
+                `Se estiver certo mesmo, é porque a empresa é bem recente — e hoje a AIVA pede CNPJ com pelo menos 1 ano de abertura. Nesse caso eu guardo seu contato e, assim que completar 1 ano, a gente segue o cadastro na hora! 🙌`
+            const alerta = ehInvalido
+              ? `🧾 *CNPJ INVÁLIDO (não passa no dígito verificador)*\n\n` +
+                `🏪 ${lead.nome}\n📞 ${lead.telefone}\n🏢 CNPJ informado: ${cnpjPraChecar}\n\n` +
+                `Esse número não é um CNPJ válido — erro de digitação ou inventado.\n` +
+                `A VictorIA NÃO pré-aprovou: pediu o número correto. Nada a fazer por ora.`
+              : `🧾 *CNPJ NÃO ENCONTRADO NA RECEITA*\n\n` +
+                `🏪 ${lead.nome}\n📞 ${lead.telefone}\n🏢 CNPJ: ${cnpjPraChecar}\n\n` +
+                `A consulta pública não achou esse CNPJ. Provável empresa recém-aberta (reprovaria pela regra de 1 ano) ou número digitado errado.\n` +
+                `A VictorIA NÃO pré-aprovou: pediu confirmação do número e o lead está aguardando. Confiram se cabe exceção.`
+            if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+            if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            console.log(`[CNPJ] ${cnpjPraChecar} ${consulta.status} — pré-aprovação bloqueada`)
+          }
+
+          if (cnpjInfoNovo) {
+            const info = cnpjInfoNovo
+            const cabecalho =
+              `🏪 ${lead.nome}\n` +
+              `📞 ${lead.telefone}\n` +
+              `🏢 CNPJ: ${info.cnpj}\n` +
+              (info.razaoSocial ? `📄 Razão social: ${info.razaoSocial}\n` : '') +
+              (info.abertura ? `📅 Abertura: ${info.abertura.split('-').reverse().join('/')}${info.idadeAnos != null ? ` (${info.idadeAnos} anos)` : ''}\n` : '') +
+              (info.cnaeDescricao ? `🏷️ Atividade: ${info.cnaeDescricao}\n` : '')
+
+            if (info.idadeAnos != null && info.idadeAnos < 1) {
+              // Regra de corte: CNPJ < 1 ano → desqualifica na hora, mensagem educada
+              resposta.novo_status = 'NAO_QUALIFICADO'
+              resposta.acionar_humano = false
+              resposta.motivo_humano = null
+              resposta.mensagem =
+                `Obrigada pelas informações! 😊 Fiz a verificação aqui e o CNPJ informado tem menos de 1 ano de abertura — e hoje, pra cadastrar na AIVA, precisamos de CNPJ com pelo menos 1 ano.\n\n` +
+                `Assim que a loja completar 1 ano de CNPJ, é só me chamar aqui que seguimos com o cadastro na hora, combinado? Vou deixar seu contato guardado! 🙌`
+              const alerta =
+                `🧾 *CNPJ REPROVADO — MENOS DE 1 ANO*\n\n` + cabecalho +
+                `\n🚫 Desqualificado automaticamente (regra de corte). A VictorIA já respondeu com a mensagem educada. Nenhuma ação necessária.`
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            } else {
+              const atencao: string[] = []
+              if (info.situacao && info.situacao !== 'ATIVA') {
+                atencao.push(`🚫 Situação cadastral: *${info.situacao}*`)
+              }
+              if (info.qsaCount === 0) {
+                pedirDocsSemSocio = true // política 2026-08-03: marca [TRAVA_QSA] — retido em Em Análise até regularizar QSA
+                atencao.push(`⚠️ Empresa *sem quadro societário (QSA)* na Receita — lead marcado com TRAVA: a qualificação segue normal, mas ele fica RETIDO na etapa Em Análise AIVA até regularizar com o contador (a orientação é enviada quando o card entrar em Em Análise).`)
+              }
+              if (atencao.length > 0) {
+                const alerta = `🧾 *CONSULTA CNPJ (Receita) — ATENÇÃO*\n\n` + cabecalho + `\n${atencao.join('\n')}`
+                if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+                if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+              }
+            }
+            console.log(`[CNPJ] ${cnpjPraChecar}: idade=${info.idadeAnos} situacao=${info.situacao} socios=${info.qsaCount}`)
+          }
+        } catch (err) {
+          console.error(`[CNPJ] Falha na consulta pra ${lead.telefone}:`, err)
+        }
+      }
+    }
+  }
+
+  // Leads cujo CNPJ foi consultado FORA do chat (backfill de 27/07) escapavam
+  // do fluxo de documentos: o "jaConsultado" pulava o gatilho junto (bug
+  // Magnífica 2026-07-29 — socios=0 na Receita e nenhum pedido de docs).
+  // Deriva do MARCADOR: Receita diz sem sócio + fase pré/em análise + trava
+  // ainda não marcada → marca [TRAVA_QSA] neste turno. Legados que JÁ
+  // completaram os docs manuais ([LINHA_MANUAL_OK]) seguem o caminho antigo.
+  {
+    const FASES_TRAVA = ['INTERESSADO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA']
+    const obsLead = lead.observacoes ?? ''
+    if (
+      !pedirDocsSemSocio &&
+      FASES_TRAVA.includes(lead.status) &&
+      /\[CNPJ_RECEITA:[^\]]*socios=0[^\]]*\]/.test(obsLead) &&
+      !obsLead.includes('[TRAVA_QSA') &&
+      !obsLead.includes('[LINHA_MANUAL_OK]') &&
+      !['ODRES', 'UME', 'NAO_QUALIFICADO', 'OPT_OUT'].includes(resposta.novo_status)
+    ) {
+      pedirDocsSemSocio = true
+      console.log(`[CNPJ] ${lead.telefone}: sem sócio via marcador → [TRAVA_QSA] aplicada`)
+    }
+  }
+
   // Lojista já usa Odres/UME → envia a mensagem OFICIAL (texto fixo, verbatim),
   // ignorando o que a IA gerou. A transferência da opp pro funil 19 acontece depois (§13).
   if (resposta.novo_status === 'ODRES') {
@@ -1052,6 +1525,11 @@ export async function POST(req: NextRequest) {
     await saveMensagem(lead.id, 'out', resposta.mensagem)
   }
 
+  // 11b. (política 2026-08-03) Sem sócio NÃO dispara mais pedido de documentos
+  // manuais — o lead segue a qualificação normal e fica RETIDO em Em Análise
+  // AIVA ([TRAVA_QSA]); a orientação do contador é enviada quando o Nei mover
+  // o card pra Em Análise (opportunity-stage) ou no reforço do Caminho 2.
+
   // 12. Atualiza status e chatId se ainda não tiver
   const updates: Record<string, unknown> = {
     status: resposta.novo_status,
@@ -1090,9 +1568,15 @@ export async function POST(req: NextRequest) {
         (m) =>
           !m.startsWith('[DADOS_COLETADOS:') &&
           !m.startsWith('[BOT_TROCAS:') &&
-          m !== '[BOT_REATIVAR]',
+          m !== '[BOT_REATIVAR]' &&
+          // Consulta nova da Receita substitui a antiga (se houver)
+          !(cnpjInfoNovo && m.startsWith('[CNPJ_RECEITA:')),
       )
     const partes: string[] = [...marcadores]
+    if (cnpjInfoNovo) partes.push(cnpjInfoMarker(cnpjInfoNovo))
+    // Trava de QSA (sem sócio, política 2026-08-03) → marcador persistente:
+    // lead fica retido em Em Análise AIVA até regularizar o quadro societário.
+    if (pedirDocsSemSocio && !obsPrev.includes('[TRAVA_QSA')) partes.push('[TRAVA_QSA]')
 
     if (autoDetected && !obsPrev.includes('[AUTO_DETECTED')) {
       partes.push(`[AUTO_DETECTED:${new Date().toISOString()}]`)
@@ -1129,6 +1613,7 @@ export async function POST(req: NextRequest) {
   }
 
   await supabaseAdmin.from('sdr_leads').update(updates).eq('id', lead.id)
+
 
   // 12b. Nome do lead SEMPRE reflete o nome_varejo qualificado pela VictorIA —
   // mesmo nome que vai pro título da opp do Evo (linha ~1189). Assim painel e Evo
@@ -1273,6 +1758,15 @@ export async function POST(req: NextRequest) {
             console.log(`CRM: Erro ao adicionar tag Importante na oportunidade #${oppId}:`, err)
           }
         }
+      }
+
+      // Empresa sem sócio detectada na Receita (neste turno) → tag "Sem Socio"
+      // (id 80) na oportunidade, pro Nei/Edu enxergarem o fluxo de documentos
+      // direto no card do Evo (pedido do Aldo 2026-07-28). mergeOpportunityTag
+      // preserva as tags existentes (AIVA/INBOUND) — updateOpportunity substitui
+      // o array inteiro, então NUNCA usar addOpportunityTags com uma tag só aqui.
+      if (pedirDocsSemSocio) {
+        await mergeOpportunityTag(oppId, TAG_IDS.SEM_SOCIO)
       }
 
       // NOTA (29/05/2026): a etiqueta "Atend Humano" no Evo foi DESCONTINUADA.
@@ -1444,6 +1938,9 @@ export async function POST(req: NextRequest) {
           || /\b(uma|[úu]nica|so uma|s[óo] uma)\b/.test(numLojasRaw)
         if (ehLojaUnica && !valorF3(camposObrigatorios.cnpjs_adicionais)) {
           dadosMergedF3.cnpjs_adicionais = 'não possui'
+          // Espelha em dados_coletados → dadosAlerta/planilha Atendimentos saem
+          // com "não possui" em vez de vazio (bug SpeedCell 2026-07-28).
+          resposta.dados_coletados = { ...((resposta.dados_coletados as Record<string, string | null>) ?? {}), cnpjs_adicionais: 'não possui' }
           console.log(`[webhook] loja única → cnpjs_adicionais = "não possui" automaticamente — opp #${oppId}`)
         }
 
@@ -1460,6 +1957,7 @@ export async function POST(req: NextRequest) {
         const NEG_CNPJ = /(s[óo]\s+(es[ts]e|essa)|apenas\s+es[ts]e|somente\s+es[ts]e|[ée]\s+es[ts]e\s+mesmo|es[ts]e\s+mesmo|n[ãa]o\s+(tenho|possuo|h[áa]|tem)|nenhum|sem\s+outro)/i
         if (faltantes.length === 1 && faltantes[0] === 'cnpjs_adicionais' && NEG_CNPJ.test(conteudo ?? '')) {
           dadosMergedF3.cnpjs_adicionais = 'não possui'
+          resposta.dados_coletados = { ...((resposta.dados_coletados as Record<string, string | null>) ?? {}), cnpjs_adicionais: 'não possui' }
           console.log(`[webhook] cnpjs_adicionais auto-preenchido "não possui" (resposta negativa do lead) — opp #${oppId}`)
           faltantes = Object.entries(camposObrigatorios)
             .filter(([, c]) => !valorF3(c))
@@ -1550,19 +2048,30 @@ export async function POST(req: NextRequest) {
             console.error(`Erro ao sincronizar formulário Evo Talks — opp #${oppId}:`, err)
           }
 
-          cadastroCompletoConfirmado = true
-
-          // Grava a flag de idempotência do ✅ e garante o status final coerente.
-          // Relê observacoes do banco (o write geral §12 já gravou os dados frescos
-          // deste turno) pra prependar a flag sem perder nada. Na entrada por dados
-          // (modelo retornou INTERESSADO), este update é quem promove o status.
+          // TRAVA ATÔMICA da conclusão (bug SpeedCell 2026-07-28: dois turnos
+          // seguidos completaram — o auto "não possui" da loja única fechou os
+          // 12 no turno da cidade E o turno do "somente esse" fechou de novo,
+          // duplicando HubSpot/planilha/alerta). A checagem antiga do
+          // [CAD_ALERTADO] (leitura no início vs escrita no fim) não era
+          // atômica. Agora a flag é gravada com condição NO BANCO: só UM turno
+          // consegue — quem perder sai do bloco sem efeitos colaterais.
           const { data: obsRowCad } = await supabaseAdmin
             .from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
           const obsCad = (obsRowCad?.observacoes ?? '').replace(/\s*\[CAD_ALERTADO\]\s*/g, ' ').trim()
-          await supabaseAdmin
+          const { data: claim } = await supabaseAdmin
             .from('sdr_leads')
             .update({ status: 'CADASTRO_RECEBIDO', observacoes: `[CAD_ALERTADO] ${obsCad}`.trim() })
             .eq('id', lead.id)
+            .not('observacoes', 'like', '%[CAD_ALERTADO]%')
+            .select('id')
+          if (!claim || claim.length === 0) {
+            // Outro turno já reivindicou a conclusão — só garante o status e sai.
+            console.log(`[cadastro-completo] opp #${oppId}: conclusão já reivindicada por turno anterior — sem re-disparo.`)
+            resposta.novo_status = 'CADASTRO_RECEBIDO'
+            return NextResponse.json({ ok: true, dedup: 'cadastro_ja_concluido' })
+          }
+
+          cadastroCompletoConfirmado = true
           resposta.novo_status = 'CADASTRO_RECEBIDO'
 
           await addOpportunityNote(oppId, `Cadastro completo (12 dados) coletado pela VictorIA. Enviado pro HubSpot.`)
@@ -1585,6 +2094,7 @@ export async function POST(req: NextRequest) {
           } catch (err) {
             console.error(`Erro ao complementar Google Sheets — opp #${oppId}:`, err)
           }
+
         }
       } else if (resposta.novo_status === 'NAO_QUALIFICADO') {
         await addOpportunityNote(oppId, `Lead não qualificado: ${resposta.motivo_humano ?? 'sem perfil'}`)
@@ -1652,6 +2162,43 @@ export async function POST(req: NextRequest) {
   // detalhados que o Nei usa pra acompanhar sem abrir o painel (pedido do Aldo 22/07).
   const dadosAlerta = { ...dadosAcumulados, ...((resposta.dados_coletados as Record<string, string>) ?? {}) }
 
+  // Fluxo de documentos (sem sócio) COMPLETO → registra a linha na aba "Manual"
+  // da planilha AIVA APROVAÇÃO (razão social/endereço/fantasia vêm da Receita;
+  // CPF e dados bancários o Edu completa a partir dos docs na pasta do Drive).
+  if (resposta.motivo_humano === 'documentos_sem_socio_completos' && !(lead.observacoes ?? '').includes('[LINHA_MANUAL_OK]')) {
+    try {
+      const cnpjLead = String(dadosAlerta.cnpj_matriz ?? '').replace(/\D/g, '') ||
+        ((lead.observacoes ?? '').match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
+      const infoReceita = cnpjLead.length === 14 ? await consultarCNPJ(cnpjLead) : null
+      const okLinha = await enviarLinhaManual({
+        signer_name: dadosAlerta.nome_socio ?? null,
+        signer_email: dadosAlerta.email_socio ?? null,
+        razao_social: infoReceita?.razaoSocial ?? null,
+        endereco: infoReceita?.endereco ?? null,
+        cnpj: cnpjLead || null,
+        nome_varejo: dadosAlerta.nome_varejo ?? lead.nome,
+        // Nome fantasia dito pelo lojista vence o da Receita (muitas vezes vazio lá)
+        fantasia: (dadosAlerta as Record<string, string>).nome_fantasia ?? infoReceita?.nomeFantasia ?? null,
+        telefone: lead.telefone,
+        link_pasta: 'https://drive.google.com/drive/folders/1yAtSYdjDISW2SX965f925KjMBTMHD2gp',
+        cpf: (dadosAlerta as Record<string, string>).cpf_responsavel ?? null,
+        banco_codigo: (dadosAlerta as Record<string, string>).banco_codigo ?? null,
+        banco_agencia: (dadosAlerta as Record<string, string>).banco_agencia ?? null,
+        banco_conta: (dadosAlerta as Record<string, string>).banco_conta ?? null,
+        banco_digito: (dadosAlerta as Record<string, string>).banco_digito ?? null,
+      })
+      if (okLinha) {
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ observacoes: `${(updates.observacoes as string | null) ?? lead.observacoes ?? ''} [LINHA_MANUAL_OK]`.trim() })
+          .eq('id', lead.id)
+        console.log(`[MANUAL_DOCS] Linha da aba Manual registrada pra ${lead.telefone}`)
+      }
+    } catch (err) {
+      console.error(`[MANUAL_DOCS] Falha ao registrar linha Manual pra ${lead.telefone}:`, err)
+    }
+  }
+
   if (resposta.novo_status === 'PRE_APROVACAO' && lead.status !== 'PRE_APROVACAO' && !regressaoFalsa('PRE_APROVACAO')) {
     const detalhe = formatarDadosLead(dadosAlerta)
     const msg =
@@ -1667,12 +2214,61 @@ export async function POST(req: NextRequest) {
     // só true numa transição REAL. Sem re-alerta a cada msg espontânea pós-cadastro
     // (bug corrigido 2026-07-09 — Imports Store: 9 alertas duplicados em 6 minutos).
     const detalhe = formatarDadosLead(dadosAlerta)
+    // CNPJs pro formulário de pré-cadastro: o form é da AIVA e exige login,
+    // então não dá pra enviar automático. Os links pré-preenchidos ficam no
+    // PAINEL (/registros) — o alerta só aponta pra lá (decisão Aldo 2026-07-28,
+    // substituindo o bloco de links no WhatsApp).
+    const qtdCnpjsForm =
+      extrairCnpjs(String(dadosAlerta.cnpj_matriz ?? '')).length +
+      extrairCnpjs(String(dadosAlerta.cnpjs_adicionais ?? '')).filter(
+        (c) => !extrairCnpjs(String(dadosAlerta.cnpj_matriz ?? '')).includes(c),
+      ).length
+    const linksForm = qtdCnpjsForm > 0
+      ? `\n📝 *${qtdCnpjsForm} CNPJ(s) pra lançar no pré-cadastro* — links já preenchidos no painel:\nhttps://sdr-aiva.vercel.app/registros`
+      : ''
     const msg =
       `✅ *${lead.nome}* (${lead.telefone} — ${lead.cidade ?? 'cidade n/d'}) completou o cadastro!\n` +
       (detalhe ? `\n${detalhe}\n` : '') +
-      `\n📤 12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.`
+      `\n📤 12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.\n` +
+      linksForm
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)
+
+    // Registro na aba "Atendimentos" da planilha AIVA APROVAÇÃO: CNPJ matriz,
+    // adicionais e data/hora em que os CNPJs foram liberados pro pré-cadastro.
+    if (linksForm) {
+      try {
+        const cnpjMatriz = String(dadosAlerta.cnpj_matriz ?? '')
+        const cnpjsAdd = String(dadosAlerta.cnpjs_adicionais ?? '')
+        await registrarAtendimento({
+          loja: lead.nome,
+          telefone: lead.telefone,
+          cnpj_matriz: cnpjMatriz || null,
+          cnpjs_adicionais: cnpjsAdd || null,
+          qtd: extrairCnpjs(cnpjMatriz).length + extrairCnpjs(cnpjsAdd).length,
+          opportunity_id: lead.evotalks_opportunity_id ?? null,
+        })
+      } catch (err) {
+        console.error(`[ATENDIMENTOS] Falha ao registrar ${lead.telefone}:`, err)
+      }
+
+      // Espelho no painel (/registros, aba "CNPJs registrados na base"):
+      // uma linha por CNPJ, com checkbox "enviado" pro Nei controlar por lá.
+      try {
+        const leadRef = { lead_id: lead.id, loja: lead.nome, telefone: lead.telefone }
+        const matriz = extrairCnpjs(String(dadosAlerta.cnpj_matriz ?? ''))
+        const adicionais = extrairCnpjs(String(dadosAlerta.cnpjs_adicionais ?? '')).filter((c) => !matriz.includes(c))
+        const linhas = [
+          ...matriz.map((c) => ({ cnpj: c, tipo: 'matriz' })),
+          ...adicionais.map((c) => ({ cnpj: c, tipo: 'adicional' })),
+        ].map((r) => ({ ...r, ...leadRef }))
+        if (linhas.length > 0) {
+          await supabaseAdmin.from('sdr_registros_cnpj').upsert(linhas, { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
+        }
+      } catch (err) {
+        console.error(`[REGISTROS] Falha ao espelhar CNPJs de ${lead.telefone}:`, err)
+      }
+    }
   } else if (
     resposta.motivo_humano?.startsWith('dados_colaborador_coletados') &&
     !(lead.observacoes ?? '').includes('dados_colaborador_coletados')
@@ -1682,12 +2278,160 @@ export async function POST(req: NextRequest) {
     // ANTES do 🔔: não depende da transição do acionar_humano (que engoliria o
     // aviso se o lead já estivesse marcado). Dedupe: o motivo do turno anterior
     // fica nas observações — se já contém o marcador, não re-alerta.
+    // Lançamento AUTOMÁTICO no Google Form "Colaborador AIVA" (2026-07-28):
+    // o form aceita POST anônimo (testado), então cada colaborador com dados
+    // completos é enviado direto — o Nei só confere. Idempotência por CPF via
+    // [COLAB_FORM:cpf1,cpf2] em observacoes. Quem falhar/vier incompleto ganha
+    // link pré-preenchido no alerta pro lançamento manual.
+    let blocoForm = ''
+    try {
+      const nomeLojaForm = lead.nome
+      const { validos, incompletos } = parseColaboradores(resposta.motivo_humano)
+      const jaEnviados: string[] = ((lead.observacoes ?? '').match(/\[COLAB_FORM:([^\]]+)\]/)?.[1] ?? '')
+        .split(',').map((c) => c.trim()).filter(Boolean)
+      const pendentes = validos.filter((c) => !jaEnviados.includes(c.cpf))
+
+      const lancados: string[] = []
+      const falharam: Colaborador[] = []
+      for (const colab of pendentes) {
+        const ok = await enviarColaboradorAoForm(nomeLojaForm, colab)
+        if (ok) {
+          lancados.push(colab.cpf)
+          // Espelha o lançamento na aba "Senhas" da planilha AIVA APROVAÇÃO
+          // (Senha/Enviado ficam pro time preencher quando a AIVA liberar).
+          await registrarSenhaColab({
+            loja: nomeLojaForm,
+            cnpj_loja: colab.cnpjLoja,
+            nome: colab.nome,
+            cpf: colab.cpf,
+            email: colab.email,
+            telefone: colab.telefone,
+          })
+        } else {
+          falharam.push(colab)
+        }
+        // Espelho no painel (/registros, aba "Colaboradores das Lojas") —
+        // registra TODO envio tentado, com form_ok dizendo se entrou.
+        try {
+          await supabaseAdmin.from('sdr_registros_colab').upsert(
+            [{
+              lead_id: lead.id,
+              loja: nomeLojaForm,
+              telefone_lead: lead.telefone,
+              cnpj_loja: colab.cnpjLoja,
+              nome: colab.nome,
+              cpf: colab.cpf,
+              email: colab.email,
+              telefone: colab.telefone,
+              form_ok: ok,
+            }],
+            { onConflict: 'lead_id,cpf' },
+          )
+        } catch (err) {
+          console.error(`[REGISTROS] Falha ao espelhar colaborador ${colab.cpf}:`, err)
+        }
+        await new Promise((r) => setTimeout(r, 400))
+      }
+
+      if (lancados.length > 0) {
+        const { data: obsRowColab } = await supabaseAdmin
+          .from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+        const obsColab = (obsRowColab?.observacoes ?? '')
+        const todos = [...new Set([...jaEnviados, ...lancados])]
+        const obsLimpa = obsColab.replace(/\s*\[COLAB_FORM:[^\]]*\]\s*/g, ' ').trim()
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ observacoes: `${obsLimpa} [COLAB_FORM:${todos.join(',')}]`.trim() })
+          .eq('id', lead.id)
+      }
+
+      const partesForm: string[] = []
+      if (lancados.length > 0) {
+        partesForm.push(`✅ *${lancados.length} colaborador(es) JÁ LANÇADO(S) automaticamente no formulário de acesso* (indicação: Parceria Track). Nada a digitar — só acompanhar a liberação.`)
+      }
+      if (falharam.length > 0) {
+        partesForm.push(
+          `⚠️ ${falharam.length} falhou(aram) no envio automático — lançar pelo link (já vem preenchido, é só enviar):\n` +
+            falharam.map((c) => `• ${c.nome}\n${linkColaboradorPreenchido(nomeLojaForm, c)}`).join('\n'),
+        )
+      }
+      if (incompletos > 0) {
+        partesForm.push(`⚠️ ${incompletos} colaborador(es) com dados incompletos/inválidos — conferir na conversa e lançar manualmente.`)
+      }
+      if (validos.length === 0 && incompletos === 0) {
+        // Parse não reconheceu NADA — nunca falhar em silêncio (bug Diana Upstore
+        // 2026-07-29: formato fora do padrão passou batido sem aviso).
+        partesForm.push(`⚠️ NÃO consegui interpretar os dados automaticamente — conferir a conversa e lançar manualmente no formulário.`)
+      }
+      if (partesForm.length > 0) blocoForm = `\n\n${partesForm.join('\n\n')}`
+      console.log(`[COLAB_FORM] ${lead.telefone}: ${lancados.length} lançado(s), ${falharam.length} falha(s), ${incompletos} incompleto(s)`)
+    } catch (err) {
+      console.error(`[COLAB_FORM] Erro no lançamento pra ${lead.telefone}:`, err)
+    }
+
     const msg =
       `📋 *${lead.nome}* (${lead.telefone}) mandou dados de colaborador(es) pra cadastrar na plataforma:\n\n` +
-      `${resposta.motivo_humano}\n\n` +
-      `(Dados completos também na conversa — painel ou Evo Talks.)`
+      `${resposta.motivo_humano}` +
+      blocoForm +
+      `\n\n(Dados completos também na conversa — painel ou Evo Talks.)`
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
     if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+  } else if (
+    ['TREINAR', 'LOGIN'].includes(lead.status) &&
+    capturarColaborador(conteudoEfetivo, dadosAcumulados?.cpf_responsavel as string | undefined)
+  ) {
+    // ─── REDE DE SEGURANÇA — colaborador que a VictorIA não emitiu ───────────
+    // Em 04-10/08/2026 sete colaboradores de 4 lojas mandaram nome+CPF+e-mail+
+    // telefone e a VictorIA não retornou "dados_colaborador_coletados" — ficaram
+    // sem acesso e ninguém viu. Ajustar o prompt melhorou, mas não garantiu
+    // (o cenário da WL Elétron continuou falhando em teste). Aqui a captura é
+    // determinística: regex + CPF válido, sem depender do julgamento do modelo.
+    const capturado = capturarColaborador(conteudoEfetivo, dadosAcumulados?.cpf_responsavel as string | undefined)!
+    try {
+      const { data: jaTem } = await supabaseAdmin
+        .from('sdr_registros_colab').select('id').eq('lead_id', lead.id).eq('cpf', capturado.cpf).maybeSingle()
+      const jaNoMarcador = (lead.observacoes ?? '').includes(capturado.cpf)
+
+      if (!jaTem && !jaNoMarcador) {
+        const cnpj = String(dadosAcumulados?.cnpj_matriz ?? '').replace(/\D/g, '')
+        const colab = {
+          cnpjMatriz: cnpj, cnpjLoja: cnpj,
+          nome: capturado.nome, cpf: capturado.cpf, email: capturado.email, telefone: capturado.telefone,
+        }
+        const formOk = cnpj.length === 14 ? await enviarColaboradorAoForm(lead.nome, colab) : false
+        if (formOk) {
+          await registrarSenhaColab({
+            loja: lead.nome, cnpj_loja: cnpj, nome: colab.nome,
+            cpf: colab.cpf, email: colab.email, telefone: colab.telefone,
+          })
+        }
+        await supabaseAdmin.from('sdr_registros_colab').upsert([{
+          lead_id: lead.id, loja: lead.nome, telefone_lead: lead.telefone, cnpj_loja: cnpj,
+          nome: colab.nome, cpf: colab.cpf, email: colab.email, telefone: colab.telefone, form_ok: formOk,
+        }], { onConflict: 'lead_id,cpf' })
+
+        const { data: obsRow } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+        const obsAtual = obsRow?.observacoes ?? ''
+        const antigos = (obsAtual.match(/\[COLAB_FORM:([^\]]+)\]/)?.[1] ?? '').split(",").map((s: string) => s.trim()).filter(Boolean)
+        const todos = [...new Set([...antigos, capturado.cpf])]
+        await supabaseAdmin.from('sdr_leads')
+          .update({ observacoes: `${obsAtual.replace(/\s*\[COLAB_FORM:[^\]]*\]\s*/g, ' ').trim()} [COLAB_FORM:${todos.join(',')}]`.trim() })
+          .eq('id', lead.id)
+
+        const aviso =
+          `🛟 *COLABORADOR CAPTURADO PELA REDE DE SEGURANÇA*\n\n` +
+          `🏪 ${lead.nome}\n📞 ${lead.telefone}\n\n` +
+          `👤 ${colab.nome}\n🆔 CPF: ${colab.cpf}\n📧 ${colab.email}\n📱 ${colab.telefone}\n\n` +
+          (formOk
+            ? `✅ Lançado no formulário de acesso e na planilha. Nada a fazer — só confira se o nome saiu certinho.`
+            : `⚠️ NÃO foi lançado no formulário${cnpj.length === 14 ? '' : ' (lead sem CNPJ matriz nos dados)'} — precisa de lançamento manual.`)
+        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+        console.log(`[REDE_COLAB] ${lead.telefone}: ${colab.nome} (${colab.cpf}) capturado — form_ok=${formOk}`)
+      }
+    } catch (err) {
+      console.error(`[REDE_COLAB] Falha ao capturar colaborador de ${lead.telefone}:`, err)
+    }
   } else if (resposta.acionar_humano && !autoDetected && !lead.acionar_humano) {
     // Auto-detectado não alerta humanos (seria spam a cada msg do bot do outro lado).
     // O lead fica visível no filtro /?aguardando_humano=true do painel se quiserem revisar.

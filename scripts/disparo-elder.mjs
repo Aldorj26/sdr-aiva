@@ -10,7 +10,7 @@ const TELEFONE = '5545988139336'
 const NOME = 'Elder'
 const LINK_MSG =
   `${NOME}, pra finalizar a ativação da AIVA na sua loja, é só completar o cadastro da CAF (documentação do sócio) neste link:\n\n` +
-  `https://retail-onboarding-hub.vercel.app/onboarding/full\n\n` +
+  `https://retail-onboarding-hub.vercel.app/\n\n` +
   `São poucos passos e leva uns 5 minutinhos. Qualquer dúvida durante o preenchimento, pode me chamar aqui. 🚀`
 
 async function post(path, body) {

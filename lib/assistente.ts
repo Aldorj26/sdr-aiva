@@ -2,6 +2,21 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getClient } from '@/lib/claude'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASSISTENTE_SYSTEM_PROMPT } from '@/prompts/assistente'
+import { getPipeOpportunities, getOpportunity, STAGE_TO_STATUS, PIPELINE_AIVA } from '@/lib/evotalks'
+
+// Rótulos das etapas do funil AIVA no Evo (fonte da verdade da ETAPA)
+const ETAPA_LABEL: Record<number, string> = {
+  66: 'Início',
+  47: 'Interessado',
+  53: 'Interessado (Sem resposta)',
+  54: 'Pré-Aprovação',
+  49: 'Cadastro Recebido',
+  50: 'Em Análise AIVA',
+  70: 'Treinar',
+  71: 'Login',
+  51: 'Loja Finalizada e Vendendo',
+  69: 'Bot Detectado',
+}
 
 const MODEL = 'claude-sonnet-4-5'
 const MAX_ITERACOES = 8
@@ -56,6 +71,24 @@ const TOOLS: Anthropic.Tool[] = [
         limite: { type: 'number', description: 'Qtde de mensagens (padrão 30, máx 60).' },
       },
       required: ['lead_id'],
+    },
+  },
+  {
+    name: 'funil_evo',
+    description:
+      'Consulta AO VIVO o funil AIVA no Evo Talks (fonte da verdade da ETAPA). Retorna a contagem de cards abertos por etapa E a comparação com o painel: leads cujo status no painel diverge da etapa atual do card no Evo. Use sempre que a pergunta envolver etapas do funil, totais por etapa ou consistência painel×Evo.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'lead_no_evo',
+    description:
+      'Compara UM lead específico entre o painel e o Evo (fonte da verdade): etapa atual do card, título, tags e status do painel, com flag de divergência. Passe o telefone (só dígitos) do lead.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        telefone: { type: 'string', description: 'Telefone do lead (só dígitos, com DDI 55).' },
+      },
+      required: ['telefone'],
     },
   },
   {
@@ -122,6 +155,96 @@ async function executarFerramenta(nome: string, input: Record<string, unknown>):
         // LIMIT duro: embrulha de novo com limit
         const limpo = sql.trim().replace(/;+\s*$/g, '')
         return rodarSqlReadonly(`select * from (${limpo}) _q limit ${MAX_LINHAS}`)
+      }
+      case 'funil_evo': {
+        // Etapas AO VIVO no Evo + divergências com o painel (Evo = fonte da verdade)
+        const opps = await getPipeOpportunities(PIPELINE_AIVA)
+        const abertas = opps.filter((o) => o.status === 0)
+        const porEtapa: Record<string, number> = {}
+        for (const o of abertas) {
+          const rotulo = ETAPA_LABEL[o.fkStage] ?? `etapa_${o.fkStage}`
+          porEtapa[rotulo] = (porEtapa[rotulo] ?? 0) + 1
+        }
+        // Mapa opp_id → status do painel (paginado — PostgREST corta em 1000)
+        const statusPorOpp = new Map<string, { status: string; nome: string; telefone: string }>()
+        let from = 0
+        while (true) {
+          const { data, error } = await supabaseAdmin
+            .from('sdr_leads')
+            .select('nome, telefone, status, evotalks_opportunity_id')
+            .not('evotalks_opportunity_id', 'is', null)
+            .range(from, from + 999)
+          if (error) return `ERRO ao ler painel: ${error.message}`
+          for (const l of data ?? []) {
+            if (l.evotalks_opportunity_id) statusPorOpp.set(String(l.evotalks_opportunity_id), l)
+          }
+          if (!data || data.length < 1000) break
+          from += 1000
+        }
+        // Divergência REAL: status do painel ≠ esperado pela etapa. Exceção BY
+        // DESIGN: etapa 49 (Cadastro Recebido) com status INTERESSADO é normal —
+        // é a Fase 3, VictorIA coletando os 5 dados complementares.
+        const ehDivergente = (o: (typeof abertas)[number]) => {
+          const lead = statusPorOpp.get(String(o.id))
+          if (!lead) return false
+          const esperado = STAGE_TO_STATUS[o.fkStage]
+          if (!esperado || lead.status === esperado) return false
+          if (o.fkStage === 49 && lead.status === 'INTERESSADO') return false
+          return true
+        }
+        let semLeadNoPainel = 0
+        const divergentes: Array<Record<string, string>> = []
+        for (const o of abertas) {
+          const lead = statusPorOpp.get(String(o.id))
+          if (!lead) { semLeadNoPainel++; continue }
+          if (ehDivergente(o) && divergentes.length < 20) {
+            divergentes.push({
+              loja: lead.nome, telefone: lead.telefone,
+              etapa_evo: ETAPA_LABEL[o.fkStage] ?? String(o.fkStage),
+              status_painel: lead.status, status_esperado: STAGE_TO_STATUS[o.fkStage],
+            })
+          }
+        }
+        const totalDivergentes = abertas.filter(ehDivergente).length
+        const json = JSON.stringify({
+          consultado_em: new Date().toISOString(),
+          fonte_da_verdade: 'Evo Talks (funil 15) — consulta ao vivo',
+          cards_abertos_por_etapa: porEtapa,
+          total_cards_abertos: abertas.length,
+          divergencias_painel_vs_evo: totalDivergentes,
+          exemplos_divergentes: divergentes,
+          cards_sem_lead_no_painel: semLeadNoPainel,
+        })
+        return json.length > MAX_CHARS_RESULTADO ? json.slice(0, MAX_CHARS_RESULTADO) + '… [truncado]' : json
+      }
+      case 'lead_no_evo': {
+        const tel = String(input.telefone ?? '').replace(/\D/g, '')
+        if (tel.length < 8) return 'ERRO: telefone inválido'
+        const { data: lead } = await supabaseAdmin
+          .from('sdr_leads')
+          .select('nome, telefone, status, acionar_humano, data_ultimo_contato, evotalks_opportunity_id, observacoes')
+          .like('telefone', `%${tel}%`)
+          .limit(1)
+          .maybeSingle()
+        if (!lead) return 'Lead não encontrado no painel com esse telefone.'
+        if (!lead.evotalks_opportunity_id) {
+          return JSON.stringify({ painel: lead, evo: null, aviso: 'Lead sem oportunidade vinculada no Evo.' })
+        }
+        const opp = await getOpportunity(Number(lead.evotalks_opportunity_id))
+        const stageNum = Number(opp.fkStage)
+        const etapaEvo = ETAPA_LABEL[stageNum] ?? `etapa_${opp.fkStage}`
+        const esperado = STAGE_TO_STATUS[stageNum]
+        // Etapa 49 + INTERESSADO = Fase 3 em coleta (by design, não é divergência)
+        const fase3EmColeta = stageNum === 49 && lead.status === 'INTERESSADO'
+        return JSON.stringify({
+          consultado_em: new Date().toISOString(),
+          painel: { nome: lead.nome, telefone: lead.telefone, status: lead.status, acionar_humano: lead.acionar_humano, ultimo_contato: lead.data_ultimo_contato },
+          evo: { opp_id: lead.evotalks_opportunity_id, etapa: etapaEvo, titulo: opp.title, tags: opp.tags ?? [] },
+          divergencia: fase3EmColeta ? false : esperado ? lead.status !== esperado : false,
+          ...(fase3EmColeta ? { nota_fase3: 'Etapa Cadastro Recebido + status INTERESSADO = Fase 3 em coleta (comportamento normal).' } : {}),
+          status_esperado_pela_etapa: esperado ?? 'sem mapeamento',
+          nota: 'Evo é a fonte da verdade da ETAPA; o status do painel deveria acompanhar.',
+        })
       }
       default:
         return `ERRO: ferramenta desconhecida ${nome}`

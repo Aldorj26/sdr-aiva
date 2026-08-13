@@ -90,20 +90,26 @@ export async function POST(req: NextRequest) {
     const opps: OppFromEvo[] = await evoRes.json()
 
     // ─── 2. Carrega TODOS os leads AIVA do Supabase de uma vez (paginado) ──
-    const leadsMap = new Map<string, { id: string; status: string }>()
+    const leadsMap = new Map<string, { id: string; status: string; descartadoManual: boolean }>()
     {
       let from = 0
       const page = 1000
       while (true) {
         const { data, error } = await supabaseAdmin
           .from('sdr_leads')
-          .select('id, status, evotalks_opportunity_id')
+          .select('id, status, evotalks_opportunity_id, observacoes')
           .eq('produto', 'AIVA')
           .not('evotalks_opportunity_id', 'is', null)
           .range(from, from + page - 1)
         if (error) throw error
         for (const l of data ?? []) {
-          if (l.evotalks_opportunity_id) leadsMap.set(l.evotalks_opportunity_id, { id: l.id, status: l.status })
+          if (l.evotalks_opportunity_id) {
+            leadsMap.set(l.evotalks_opportunity_id, {
+              id: l.id,
+              status: l.status,
+              descartadoManual: (l.observacoes ?? '').includes('[DESCARTADO_MANUAL'),
+            })
+          }
         }
         if (!data || data.length < page) break
         from += page
@@ -127,6 +133,10 @@ export async function POST(req: NextRequest) {
       const lead = leadsMap.get(String(opp.id))
       if (!lead) { notInDb++; continue }
       if (lead.status === novoStatus) { skipped++; continue }
+      // Descarte MANUAL (botão do painel) é definitivo: o sync NÃO revive o
+      // lead só porque o card ficou parado no funil. Reverter = mover o card
+      // no Evo (webhook de stage) ou ajuste manual (2026-08-03).
+      if (lead.descartadoManual && lead.status === 'DESCARTADO') { skipped++; continue }
 
       if (!idsParaUpdate[novoStatus]) idsParaUpdate[novoStatus] = []
       idsParaUpdate[novoStatus].push(lead.id)

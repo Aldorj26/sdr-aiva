@@ -4,6 +4,22 @@
  * - Capitaliza a primeira letra, resto minúsculas
  * - Retorna null se for inválido (vazio, curto, só números, repetido, palavra de teste)
  */
+/**
+ * Nome pra saudação de mensagem/HSM: prioriza o NOME DO SÓCIO coletado pela
+ * VictorIA ([DADOS_COLETADOS:nome_socio=...]) e só cai pro nome da loja se não
+ * houver sócio. Motivo: lead.nome guarda o nome do VAREJO ("Tudo Celular"), e
+ * o normalizaNome corta no primeiro token — a saudação virava "Olá Tudo,".
+ * (bug reportado pelo Aldo em 28/07 no lead Tudo Celular)
+ */
+export function nomeSaudacao(
+  nomeLead: string | null | undefined,
+  observacoes: string | null | undefined,
+  fallback = 'lojista',
+): string {
+  const socio = (observacoes ?? '').match(/nome_socio=([^|\]]+)/)?.[1] ?? null
+  return normalizaNome(socio) || normalizaNome(nomeLead) || fallback
+}
+
 export function normalizaNome(raw: string | null | undefined): string | null {
   if (!raw) return null
   const trimmed = raw.trim()
@@ -36,13 +52,53 @@ export function normalizaNome(raw: string | null | undefined): string | null {
  */
 export const APROVACAO_TEMPLATE_VAR =
   ', sua loja foi aprovada pela Aiva! Preencha esse seu cadastro atraves do link ' +
-  'https://retail-onboarding-hub.vercel.app/onboarding/full'
+  'https://retail-onboarding-hub.vercel.app/'
 
 /**
  * Calcula a próxima quinta-feira às 09:30 BRT (12:30 UTC).
  * Se hoje for quinta, pega a quinta da semana que vem.
  * Treinamento dura 1h (09:30 às 10:30 BRT).
  */
+/**
+ * Contexto temporal pro prompt. A VictorIA não tem noção de "hoje" — sem isso ela
+ * INVENTA data (caso Carlos Celulares 12/08/2026: prometeu os acessos pra
+ * "quarta, dia 15/01"; 15/01 é outro mês e 15/08 caía num sábado).
+ *
+ * Devolve tudo mastigado — dia da semana, data e a próxima quarta de liberação
+ * já calculada pela regra do corte de terça — pra ela não precisar fazer conta.
+ */
+export function contextoDeData(): {
+  hojeExtenso: string
+  quartaAcesso: string
+  tercaCorte: string
+  hojeISO: string
+} {
+  const agoraBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  const dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+  const dd = (n: number) => String(n).padStart(2, '0')
+  const fmt = (d: Date) => `${dd(d.getDate())}/${dd(d.getMonth() + 1)}/${d.getFullYear()}`
+
+  // Corte: até TERÇA fim do dia sai na quarta desta semana; de quarta em diante,
+  // vai pra quarta seguinte.
+  const diaSemana = agoraBRT.getDay() // 0=dom … 3=qua
+  const quarta = new Date(agoraBRT)
+  const faltam = diaSemana <= 2 ? 3 - diaSemana : 3 + (7 - diaSemana)
+  quarta.setDate(agoraBRT.getDate() + faltam)
+
+  // a terça do corte é sempre a véspera da quarta de liberação — entregue pronta
+  // pro prompt, porque quando a VictorIA fazia essa conta sozinha ela errava
+  // (respondeu "terça 19/08, quarta 20/08" com a quarta correta sendo 19/08).
+  const terca = new Date(quarta)
+  terca.setDate(quarta.getDate() - 1)
+
+  return {
+    hojeExtenso: `${dias[diaSemana]}, ${fmt(agoraBRT)}, ${dd(agoraBRT.getHours())}:${dd(agoraBRT.getMinutes())}`,
+    quartaAcesso: fmt(quarta),
+    tercaCorte: fmt(terca),
+    hojeISO: `${agoraBRT.getFullYear()}-${dd(agoraBRT.getMonth() + 1)}-${dd(agoraBRT.getDate())}`,
+  }
+}
+
 export function proximaQuintaFeira09h30(): { start: string; end: string } {
   const agora = new Date()
   const diaSemanaUTC = agora.getUTCDay() // 0=dom, 4=qui
@@ -76,10 +132,10 @@ export function buildAvisoTreinamentoMsgs(): string[] {
     `&location=${encodeURIComponent('https://meet.google.com/hqn-vcrr-dxo')}`
 
   const msgReuniao =
-    `📅 *Treinamento ao vivo:*\n` +
-    `Os treinamentos acontecem geralmente nas *quintas-feiras às 9h30*. Confirme o horário com nossa equipe.\n\n` +
-    `🔗 Link da reunião:\n` +
-    `👉 meet.google.com/hqn-vcrr-dxo\n\n` +
+    `🎓 *Treinamento:*\n` +
+    `Você já pode fazer o treinamento AGORA: é só assistir o vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem). Terminou, já pode começar a operar — sem esperar. 🚀\n\n` +
+    `Se preferir participar ao vivo, também temos turma nas *quintas-feiras às 9h30*:\n` +
+    `🔗 👉 meet.google.com/hqn-vcrr-dxo\n\n` +
     `📲 *Adicionar ao seu calendário:*\n` +
     `👉 ${calendarLink}`
 
@@ -89,12 +145,54 @@ export function buildAvisoTreinamentoMsgs(): string[] {
     `👉 https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing`
 
   const msgCadastro =
-    `📝 *Cadastro dos funcionários:*\n` +
-    `Para liberar o acesso da equipe da sua loja ao sistema AIVA, preencha este formulário:\n` +
-    `👉 https://docs.google.com/forms/d/1_3QtZtSjOFVh3zQVpwkNW0JatI3T0F4pG5t-O90cKcA/viewform\n\n` +
-    `Qualquer dúvida é só chamar aqui! 😊`
+    `📝 *Acessos da equipe:*\n` +
+    `Pra liberar o acesso de quem vai usar o sistema AIVA, me responde aqui com os dados de cada pessoa:\n` +
+    `• Nome completo\n• CPF\n• E-mail\n• Telefone\n\n` +
+    `Pode mandar tudo junto ou um por vez — eu mesma faço o cadastro pra você, sem formulário! 😊`
 
   return [msgReuniao, msgMateriais, msgCadastro]
+}
+
+/**
+ * Trava de quadro societário (QSA) — política 2026-08-03: lead sem sócio na
+ * Receita fica RETIDO em Em Análise AIVA até regularizar com o contador.
+ * Enviada quando o Nei move o card pra Em Análise (opportunity-stage) ou no
+ * reforço do Caminho 2. Roteiro NACIONAL (Junta Comercial do estado do lead).
+ */
+export function buildMsgTravaQsa(nome: string | null): string {
+  const saudacao = nome ? `${nome}, ` : ''
+  return (
+    `${saudacao}seu cadastro chegou na etapa de análise, mas encontrei um ponto que precisa da sua atenção antes de seguirmos: ` +
+    `a consulta do seu CNPJ na Receita Federal está *sem o quadro societário (QSA)* — e o sistema da AIVA exige essa informação pra concluir a aprovação.\n\n` +
+    `Isso é mais comum do que parece e costuma ser simples de resolver. Recomendo falar com o *seu contador* e verificar estes pontos:\n\n` +
+    `1️⃣ Se houve registro ou alteração recente na empresa, o processo pode estar em análise na *Junta Comercial do seu estado* — dá pra acompanhar o protocolo no site da Junta\n` +
+    `2️⃣ Pode ser só *atraso de sincronização* entre a Junta e a Receita — em alguns dias, emitir um novo Comprovante de Inscrição (cartão CNPJ) já mostra o quadro atualizado\n` +
+    `3️⃣ Se houver *erro nos dados informados* (ex.: no DBE), o contador solicita a retificação pelo Coletor Nacional (portal REDESIM)\n` +
+    `4️⃣ *Divergência de CPF* de sócio se regulariza direto na Receita Federal\n\n` +
+    `Assim que estiver regularizado, me avisa por aqui que eu confiro na Receita na hora e seguimos com a sua aprovação! 😊`
+  )
+}
+
+/**
+ * Kit pós-fechamento (curadoria 2026-07-27) — enviado quando o lead entra no
+ * stage TREINAR, logo após o HSM 69. Responde ANTES as dúvidas que a curadoria
+ * mostrou que os lojistas fazem DEPOIS de fechar (taxa, precificação, repasse)
+ * e deixa claro o que esperar até a primeira venda.
+ */
+export function buildKitPosFechamentoMsg(nome: string): string {
+  return (
+    `${nome}, enquanto o treinamento não acontece, aqui vai um resumo de como funciona a parceria — pra você já ficar por dentro de tudo: 👇\n\n` +
+    `💰 *Taxa:* 12% por venda aprovada — única cobrança. Sem mensalidade e sem custo de ativação.\n` +
+    `🏷️ *Precificação:* na venda parcelada, o valor do aparelho pode ser acrescido em até *15%* sobre o seu preço à vista (explicado no vídeo do curso, na pasta de materiais).\n` +
+    `💵 *Repasse:* você recebe à vista, em até *2 dias úteis* após a venda.\n` +
+    `🛡️ *Inadimplência:* risco *zero* pra você — a AIVA assume 100%. Se o cliente atrasar, o problema é dela, não seu.\n` +
+    `📲 *Pro seu cliente:* parcelamento em 6x, 9x ou 12x no boleto, com aprovação em ~2 minutos.\n\n` +
+    `*Próximos passos:*\n` +
+    `1️⃣ Assista o *Curso_Treinamento* na pasta de materiais — terminou, já pode operar, sem esperar (a reunião ao vivo de quinta 9h30 é opcional)\n` +
+    `2️⃣ Me manda por aqui os dados dos seus funcionários (nome completo, CPF, e-mail e telefone de cada um) que eu cadastro os acessos pra você\n` +
+    `3️⃣ Recebendo o login, é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
+    `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
+  )
 }
 
 /**
@@ -228,6 +326,7 @@ const LABEL_DADOS: Array<[string, string]> = [
   ['email_socio', '📧 Email'],
   ['nome_varejo', '🏪 Loja'],
   ['cnpj_matriz', '🏢 CNPJ matriz'],
+  ['tempo_cnpj', '📅 Tempo de CNPJ'],
   ['cnpjs_adicionais', '🏢 CNPJs adicionais'],
   ['regiao_varejo', '📍 Região/Cidade'],
   ['localizacao_lojas', '📍 Localização das lojas'],
@@ -235,6 +334,13 @@ const LABEL_DADOS: Array<[string, string]> = [
   ['faturamento_anual', '💰 Faturamento anual'],
   ['valor_boleto_mensal', '💵 Venda mensal no crediário'],
   ['possui_outra_financeira', '💳 Outra financeira'],
+  // Fluxo sem sócio (coletados no chat — vão pra aba Manual da planilha)
+  ['cpf_responsavel', '🧾 CPF do responsável'],
+  ['nome_fantasia', '🏷️ Nome fantasia'],
+  ['banco_codigo', '🏦 Banco (código)'],
+  ['banco_agencia', '🏦 Agência'],
+  ['banco_conta', '🏦 Conta'],
+  ['banco_digito', '🏦 Dígito da conta'],
 ]
 
 /**

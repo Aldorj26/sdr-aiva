@@ -2,20 +2,36 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
+// ─── Status do lead — espelham as etapas do funil AIVA no Evo Talks ──────────
+// REFATORADO 2026-05-28: nomes agora batem 1:1 com stages do Evo Talks.
+// Evo é a fonte da verdade; sync Evo → Supabase mantém alinhamento.
+//
+// Stages do funil AIVA (pipeline 15):
+//   66 INICIO → 47 INTERESSADO → 53 SEM_RESPOSTA → 54 PRE_APROVACAO →
+//   49 CADASTRO_RECEBIDO → 50 EM_ANALISE_AIVA → 70 TREINAR → 71 LOGIN →
+//   51 LOJA_FINALIZADA_E_VENDENDO. Side: 69 BOT_DETECTADO.
+//
+// Status NÃO presentes no funil Evo (Supabase-only — fora do funil ativo):
+//   OPT_OUT, NAO_QUALIFICADO, DESCARTADO, AGUARDANDO
 export type LeadStatus =
-  | 'DISPARO_REALIZADO'
-  | 'INTERESSADO'
-  | 'FORMULARIO_ENVIADO' // legacy — não usado no fluxo novo, mantido pra leads antigos
-  | 'SEM_RESPOSTA'
-  | 'OPT_OUT'
-  | 'NAO_QUALIFICADO'
-  | 'AGUARDANDO'
-  | 'DESCARTADO'
-  | 'BOT_DETECTADO' // número respondido por chatbot/atendimento automático sem acesso ao decisor
-  | 'AGUARDANDO_APROVACAO' // 7 dados coletados, no stage 54 esperando análise
-  | 'COLETANDO_COMPLEMENTO' // operador moveu pro stage 49, coletando 5 dados restantes
-  | 'CADASTRO_COMPLETO'    // 12 dados coletados, HubSpot disparado
-  | 'ANALISE_AIVA'         // stage 50 (Em Análise CAF) — link de onboarding enviado, aguardando lead concluir cadastro + biometria
+  // Etapas espelhadas do Evo Talks pipeline 15
+  | 'INICIO'                    // stage 66 — disparo HSM enviado, aguardando resposta
+  | 'INTERESSADO'               // stage 47 — lead respondeu, em qualificação/coleta
+  | 'SEM_RESPOSTA'              // stage 53 — sem resposta, em cadência de followup
+  | 'PRE_APROVACAO'             // stage 54 — 7 dados coletados, aguardando análise inicial
+  | 'CADASTRO_RECEBIDO'         // stage 49 — 12 dados completos, pronto pra Eduardo (AIVA)
+  | 'EM_ANALISE_AIVA'           // stage 50 — link CAF/biometria enviado, aguardando lead
+  | 'TREINAR'                   // stage 70 — loja aprovada, em treinamento
+  | 'LOGIN'                     // stage 71 — credenciais enviadas, login pendente
+  | 'LOJA_FINALIZADA_E_VENDENDO' // stage 51 — loja ativa vendendo (estado final positivo)
+  | 'BOT_DETECTADO'             // stage 69 — atendimento automatizado detectado
+  | 'ODRES'                     // lojista já usa Odres — transferido pro funil 19/84
+  | 'UME'                       // lojista já usa UME (= já é AIVA) — transferido pro funil 19/84
+  // Estados Supabase-only (fora do funil Evo)
+  | 'OPT_OUT'                   // lead pediu pra não receber mais contato
+  | 'NAO_QUALIFICADO'           // fora do perfil (não vende celular, etc)
+  | 'AGUARDANDO'                // lead pediu pra retomar depois
+  | 'DESCARTADO'                // saiu do funil após cadência sem engajamento
 
 export interface Lead {
   id: string
@@ -34,8 +50,10 @@ export interface Lead {
   acionar_humano: boolean
   importante: boolean
   observacoes: string | null
+  instrucao_silvia: string | null
   criado_em: string
   webhook_lock_at: string | null
+  status_alterado_em: string | null
 }
 
 export interface Mensagem {
@@ -147,6 +165,34 @@ export async function getLeadByTelefone(telefone: string): Promise<Lead | null> 
   return (data as Lead) ?? null
 }
 
+/**
+ * Busca TODOS os leads AIVA com as colunas pedidas, paginando de 1000 em 1000.
+ *
+ * O PostgREST limita cada resposta a 1000 linhas (max-rows) e o `.limit(5000)`
+ * NÃO vence esse teto — retornava só os 1000 primeiros. Sem paginar, o mapa
+ * telefone→lead da aba Clientes/Funil ficava incompleto e a maioria das linhas
+ * não abria o lead ao clicar. Aqui percorremos todas as páginas via `.range()`.
+ */
+export async function selectAllAivaLeads<T = Record<string, unknown>>(columns: string): Promise<T[]> {
+  const PAGE = 1000
+  const out: T[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabaseAdmin
+      .from('sdr_leads')
+      .select(columns)
+      .eq('produto', 'AIVA')
+      .range(from, from + PAGE - 1)
+    if (error) {
+      console.error('[selectAllAivaLeads] erro:', error.message)
+      break
+    }
+    if (!data || data.length === 0) break
+    out.push(...(data as T[]))
+    if (data.length < PAGE) break
+  }
+  return out
+}
+
 export async function getLeadByChatId(chatId: string): Promise<Lead | null> {
   const { data, error } = await supabaseAdmin
     .from('sdr_leads')
@@ -174,22 +220,50 @@ export async function updateLeadStatus(
 
 export async function getLeadsForFollowup(): Promise<Lead[]> {
   const now = new Date().toISOString()
-  const { data, error } = await supabaseAdmin
+
+  // (1) Cadência normal — leads aguardando follow-up D+3/D+7/D+14.
+  // Lead escalado para humano fica fora (acionar_humano=false) — evita a VictorIA
+  // mandar follow-up por cima de uma conversa que um humano assumiu.
+  // ORDER explícito: o PostgREST corta em 1.000 linhas por padrão e, sem ordenação,
+  // a fatia que volta é arbitrária. Com a fila acumulada (~2.100 leads vencidos em
+  // 10/08/2026), isso faria o teto por rodada pegar leads aleatórios.
+  //
+  // PRIORIDADE POR ETAPA (decisão do Aldo 10/08/2026): etapa_cadencia ASC coloca o
+  // D+3 na frente do D+7. O D+3 é a leva que veio da etapa Início — 1.396 lojas que
+  // só receberam o disparo inicial e nunca tiveram um segundo toque. Elas saem
+  // primeiro; a leva antiga em D+7 (maio/junho, já contatada 2x) espera. Dentro de
+  // cada etapa, quem está vencido há mais tempo vai na frente.
+  const { data: normais, error: errNormais } = await supabaseAdmin
     .from('sdr_leads')
     .select('*')
     .lte('data_proximo_followup', now)
-    .in('status', ['DISPARO_REALIZADO', 'SEM_RESPOSTA'])
-    // Lead escalado para humano fica fora da cadência automática — evita a
-    // VictorIA mandar follow-up por cima de uma conversa que um humano assumiu.
-    // Volta à cadência quando o operador clica "Atendido" (acionar_humano=false).
+    .in('status', ['INICIO', 'SEM_RESPOSTA'])
     .eq('acionar_humano', false)
+    .order('etapa_cadencia', { ascending: true })
+    .order('data_proximo_followup', { ascending: true })
+    .limit(1000)
 
-  if (error) {
-    console.error('Erro ao buscar leads para follow-up:', error)
-    return []
+  if (errNormais) {
+    console.error('Erro ao buscar leads para follow-up:', errNormais)
   }
 
-  return (data ?? []) as Lead[]
+  // (2) Reativação de contas paradas em bot — SOMENTE as marcadas [BOT_REATIVAR]
+  // (agendadas pelo webhook depois de esgotar as 10 tentativas de furar o bot).
+  // O marcador é obrigatório de propósito: contas antigas de BOT_DETECTADO que têm
+  // data_proximo_followup herdada da cadência NÃO devem ser reativadas em massa.
+  const { data: botReativar, error: errBot } = await supabaseAdmin
+    .from('sdr_leads')
+    .select('*')
+    .lte('data_proximo_followup', now)
+    .eq('status', 'BOT_DETECTADO')
+    .eq('acionar_humano', false)
+    .like('observacoes', '%[BOT_REATIVAR]%')
+
+  if (errBot) {
+    console.error('Erro ao buscar contas de bot para reativação:', errBot)
+  }
+
+  return [...((normais ?? []) as Lead[]), ...((botReativar ?? []) as Lead[])]
 }
 
 // ─── Helpers de mensagens ─────────────────────────────────────────────────────

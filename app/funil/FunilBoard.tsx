@@ -11,26 +11,23 @@ export interface LeadCard {
   acionar_humano: boolean
 }
 
-// Etapas ativas do funil, na ordem de progressão.
+// Etapas REAIS do pipeline 15 da Evo, na ordem de progressão (mesma fonte do
+// briefing das 5h). As chaves batem com STAGE_TO_STATUS de lib/evotalks.
 const ETAPAS: { status: string; label: string; cor: string }[] = [
-  { status: 'DISPARO_REALIZADO', label: 'Disparo feito', cor: '#64748b' },
-  { status: 'SEM_RESPOSTA', label: 'Sem resposta', cor: '#d97706' },
+  { status: 'INICIO', label: 'Início', cor: '#64748b' },
   { status: 'INTERESSADO', label: 'Interessado', cor: '#16a34a' },
-  { status: 'AGUARDANDO_APROVACAO', label: 'Pré-aprovação', cor: '#0891b2' },
-  { status: 'COLETANDO_COMPLEMENTO', label: 'Coletando cadastro', cor: '#2563eb' },
-  { status: 'CADASTRO_COMPLETO', label: 'Cadastro completo', cor: '#7c3aed' },
-  { status: 'ANALISE_AIVA', label: 'Em análise AIVA', cor: '#c026d3' },
-  { status: 'TREINAMENTO', label: 'Treinamento', cor: '#059669' },
+  { status: 'SEM_RESPOSTA', label: 'Sem resposta', cor: '#d97706' },
+  { status: 'PRE_APROVACAO', label: 'Pré Aprovação', cor: '#0891b2' },
+  { status: 'CADASTRO_RECEBIDO', label: 'Cadastro Recebido', cor: '#2563eb' },
+  { status: 'EM_ANALISE_AIVA', label: 'Em Análise AIVA', cor: '#c026d3' },
+  { status: 'TREINAR', label: 'Treinar', cor: '#059669' },
+  { status: 'LOGIN', label: 'Login', cor: '#7c3aed' },
+  { status: 'LOJA_FINALIZADA_E_VENDENDO', label: 'Loja Finalizada e Vendendo', cor: '#15803d' },
 ]
 
-// Etapas fora do fluxo ativo (encerradas / negativas).
+// Fora do fluxo ativo (etapa da Evo, mas não é progressão de venda).
 const ETAPAS_FORA: { status: string; label: string; cor: string }[] = [
-  { status: 'AGUARDANDO', label: 'Aguardando', cor: '#7c3aed' },
-  { status: 'FORMULARIO_ENVIADO', label: 'Formulário enviado', cor: '#2563eb' },
-  { status: 'NAO_QUALIFICADO', label: 'Não qualificado', cor: '#dc2626' },
-  { status: 'OPT_OUT', label: 'Opt-out', cor: '#dc2626' },
   { status: 'BOT_DETECTADO', label: 'Bot detectado', cor: '#94a3b8' },
-  { status: 'DESCARTADO', label: 'Descartado', cor: '#94a3b8' },
 ]
 
 const CARDS_POR_COLUNA = 40
