@@ -8,7 +8,7 @@ import { callClaudeWithRetry } from '@/lib/claude'
 // Números autorizados como admin
 const ADMIN_NUMBERS = [
   process.env.ALDO_WHATSAPP ?? '5547996085000',
-  process.env.NEI_WHATSAPP ?? '5548991555655',
+  process.env.NEI_WHATSAPP ?? '5548999155655',
 ]
 
 /**
