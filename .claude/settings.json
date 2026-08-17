@@ -2,18 +2,36 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "Bash(curl *)",
-      "Bash(python3 *)",
-      "Bash(jq *)",
-      "Bash(node *)",
-      "Bash(date *)",
-      "Bash(command *)",
-      "Bash(echo *)",
-      "Bash(cat *)",
-      "Bash(if *)",
-      "Bash(printf *)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(jq:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(awk:*)",
+      "Bash(ls:*)",
+      "Bash(date:*)",
+      "Bash(command:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(if:*)",
+      "Bash(printf:*)",
       "WebFetch(domain:sdr-agente.vercel.app)",
       "WebFetch(domain:sdr-aiva.vercel.app)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/check-cron-get.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Checando handler GET das rotas de cron..."
+          }
+        ]
+      }
     ]
   },
   "sandbox": {

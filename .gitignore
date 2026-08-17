@@ -10,4 +10,5 @@ CLAUDE.md
 
 .claude/*
 !.claude/settings.json
+!.claude/agents/
 .tmp/
