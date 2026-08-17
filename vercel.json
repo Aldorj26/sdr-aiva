@@ -13,10 +13,6 @@
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/sdr/followup",
-      "schedule": "0 14,17,20 * * 1-5"
-    },
-    {
       "path": "/api/sdr/nudge",
       "schedule": "0 15 * * *"
     },
