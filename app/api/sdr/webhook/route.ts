@@ -1581,6 +1581,14 @@ export async function POST(req: NextRequest) {
     if (autoDetected && !obsPrev.includes('[AUTO_DETECTED')) {
       partes.push(`[AUTO_DETECTED:${new Date().toISOString()}]`)
     }
+    // CAF concluído pelo lojista → marcador DURÁVEL. O motivo_humano é texto
+    // SOLTO e é substituído a cada turno (só o que está em [colchetes] sobrevive
+    // ao remonte acima) — por isso "cadastro_caf_confirmado" só existia nos leads
+    // cujo ÚLTIMO motivo tinha sido esse: 7 de 47 confirmações reais. Sem este
+    // marcador não dá pra contar quem preencheu a biometria (card do painel).
+    if (resposta.motivo_humano === 'cadastro_caf_confirmado' && !obsPrev.includes('[CAF_OK')) {
+      partes.push(`[CAF_OK:${new Date().toISOString()}]`)
+    }
     // Contador de tentativas de furar o bot. Enquanto tentando, persiste n; ao forçar
     // BOT_DETECTADO, some (não regrava) pra que a reativação comece com contador zerado.
     if (autoDetected && !forcarBotDetectado) {

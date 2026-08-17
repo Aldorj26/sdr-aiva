@@ -29,9 +29,11 @@ async function getRecentLeads(
   disparoDia?: string,
   etapa?: string,
   inbound?: string,
+  cadastroCompleto?: string,
+  cafPreenchido?: string,
 ) {
   const temFiltro = Boolean(
-    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa || inbound,
+    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa || inbound || cadastroCompleto || cafPreenchido,
   )
 
   // Filtro por etapa do Evo é aplicado em memória (a etapa não está no banco),
@@ -78,6 +80,14 @@ async function getRecentLeads(
       .lt('webhook_lock_at', umMinutoAtras)
   }
 
+  // Drill-down dos cards novos — mesmos critérios do getAgora().
+  if (cadastroCompleto === 'true') {
+    query = query.eq('status', 'CADASTRO_RECEBIDO').like('observacoes', '%[CAD_ALERTADO]%')
+  }
+  if (cafPreenchido === 'true') {
+    query = query.eq('status', 'EM_ANALISE_AIVA').like('observacoes', '%[CAF_OK%')
+  }
+
   // Filtro por dia de disparo (formato YYYY-MM-DD em BRT, vem do /campanhas)
   if (disparoDia && /^\d{4}-\d{2}-\d{2}$/.test(disparoDia)) {
     const startBrt = new Date(`${disparoDia}T00:00:00-03:00`)
@@ -117,7 +127,7 @@ async function getAgora() {
   const umMinutoAtras = new Date(now.getTime() - 60 * 1000).toISOString()
   const fimDoDia = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
 
-  const [conversasAtivas, aguardandoHumano, pausados, lockTravado, followupsHoje] = await Promise.all([
+  const [conversasAtivas, aguardandoHumano, pausados, lockTravado, followupsHoje, cadastroCompleto, cafPreenchido] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id', { count: 'exact', head: true })
@@ -155,6 +165,26 @@ async function getAgora() {
       .select('id', { count: 'exact', head: true })
       .lte('data_proximo_followup', fimDoDia)
       .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","FORMULARIO_ENVIADO")'),
+    // Cadastro completo AGUARDANDO o Nei mover pra Em Análise AIVA.
+    // [CAD_ALERTADO] é gravado no exato momento em que os 12 dados fecham
+    // (webhook §13, trava atômica) — é o sinal de "cadastro concluído".
+    // Filtra por status pra mostrar só quem ainda espera ação, não o acumulado.
+    supabaseAdmin
+      .from('sdr_leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('produto', 'AIVA')
+      .eq('status', 'CADASTRO_RECEBIDO')
+      .like('observacoes', '%[CAD_ALERTADO]%'),
+    // CAF preenchido AGUARDANDO aprovação da AIVA (Eduardo).
+    // [CAF_OK:] é gravado quando o lojista confirma a biometria. Não usar o
+    // motivo_humano "cadastro_caf_confirmado": ele é texto solto e o webhook o
+    // substitui a cada turno (sobrevivia em 7 de 47 casos reais).
+    supabaseAdmin
+      .from('sdr_leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('produto', 'AIVA')
+      .eq('status', 'EM_ANALISE_AIVA')
+      .like('observacoes', '%[CAF_OK%'),
   ])
 
   return {
@@ -163,6 +193,8 @@ async function getAgora() {
     pausados: pausados.count ?? 0,
     lockTravado: lockTravado.count ?? 0,
     followupsHoje: followupsHoje.count ?? 0,
+    cadastroCompleto: cadastroCompleto.count ?? 0,
+    cafPreenchido: cafPreenchido.count ?? 0,
   }
 }
 
@@ -450,6 +482,8 @@ export default async function Page({
     disparo_dia?: string
     etapa?: string
     inbound?: string
+    cadastro_completo?: string
+    caf_preenchido?: string
   }>
 }) {
   const sp = await searchParams
@@ -466,6 +500,8 @@ export default async function Page({
       sp.disparo_dia,
       sp.etapa,
       sp.inbound,
+      sp.cadastro_completo,
+      sp.caf_preenchido,
     ),
     getAgora(),
     getPrecisamAtendimento(),
@@ -490,7 +526,9 @@ export default async function Page({
       sp.lock_travado ||
       sp.disparo_dia ||
       sp.etapa ||
-      sp.inbound,
+      sp.inbound ||
+      sp.cadastro_completo ||
+      sp.caf_preenchido,
   )
   const total = metricas.reduce((s: number, m: { total: number }) => s + Number(m.total), 0)
 
@@ -569,6 +607,20 @@ export default async function Page({
           hint="próximo_followup ≤ hoje"
           color="var(--accent)"
           href="/?followup_hoje=true"
+        />
+        <Card
+          label="Cadastro completo"
+          value={agora.cadastroCompleto}
+          hint="12 dados — mover p/ Em Análise"
+          color={agora.cadastroCompleto > 0 ? 'var(--green)' : 'var(--text-muted)'}
+          href="/?cadastro_completo=true"
+        />
+        <Card
+          label="CAF preenchido"
+          value={agora.cafPreenchido}
+          hint="biometria ok — aguarda AIVA"
+          color={agora.cafPreenchido > 0 ? 'var(--accent)' : 'var(--text-muted)'}
+          href="/?caf_preenchido=true"
         />
         <Card
           label="Lock travado"
