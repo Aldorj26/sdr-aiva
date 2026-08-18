@@ -212,7 +212,10 @@ export default function LeadDrawer() {
       })
       const json = await res.json()
       if (!res.ok) {
-        window.alert(`Erro: ${json.error ?? 'desconhecido'}`)
+        // `detalhe` traz a explicação em português quando a rota tem uma
+        // (ex.: card fora do funil AIVA no Evo) — sem isso o painel mostrava
+        // só o código do erro, que não diz ao operador o que fazer.
+        window.alert(json.detalhe ?? `Erro: ${json.error ?? 'desconhecido'}`)
         return
       }
       setLeadId(null)
@@ -336,7 +339,10 @@ export default function LeadDrawer() {
       })
       const json = await res.json()
       if (!res.ok) {
-        window.alert(`Erro: ${json.error ?? 'desconhecido'}`)
+        // `detalhe` traz a explicação em português quando a rota tem uma
+        // (ex.: card fora do funil AIVA no Evo) — sem isso o painel mostrava
+        // só o código do erro, que não diz ao operador o que fazer.
+        window.alert(json.detalhe ?? `Erro: ${json.error ?? 'desconhecido'}`)
         return
       }
       // Feedback explícito do modo que rodou — operador precisa saber se foi
@@ -391,7 +397,10 @@ export default function LeadDrawer() {
       })
       const json = await res.json()
       if (!res.ok) {
-        window.alert(`Erro: ${json.error ?? 'desconhecido'}`)
+        // `detalhe` traz a explicação em português quando a rota tem uma
+        // (ex.: card fora do funil AIVA no Evo) — sem isso o painel mostrava
+        // só o código do erro, que não diz ao operador o que fazer.
+        window.alert(json.detalhe ?? `Erro: ${json.error ?? 'desconhecido'}`)
         return
       }
       setShowEdit(false)
@@ -618,13 +627,28 @@ export default function LeadDrawer() {
                   ✓ Atendido
                 </ActionBtn>
               )}
-              <ActionBtn
-                disabled={busy || replying}
-                onClick={() => runAction({ type: 'mark-descartado' }, 'Marcar esse lead como DESCARTADO?')}
-                color="#ef4444"
-              >
-                ✖ Descartar
-              </ActionBtn>
+              {data.lead.status === 'DESCARTADO' ? (
+                <ActionBtn
+                  disabled={busy || replying}
+                  onClick={() =>
+                    runAction(
+                      { type: 'reativar' },
+                      'Reativar esse lead? Ele sai de DESCARTADO e volta para a etapa em que o card está no Evo.',
+                    )
+                  }
+                  color="#4ade80"
+                >
+                  ↺ Reativar
+                </ActionBtn>
+              ) : (
+                <ActionBtn
+                  disabled={busy || replying}
+                  onClick={() => runAction({ type: 'mark-descartado' }, 'Marcar esse lead como DESCARTADO?')}
+                  color="#ef4444"
+                >
+                  ✖ Descartar
+                </ActionBtn>
+              )}
             </div>
 
             {/* Painel de resposta manual */}

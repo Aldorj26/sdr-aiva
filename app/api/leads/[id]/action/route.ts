@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
-import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId } from '@/lib/evotalks'
+import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId, getOpportunity, statusFromOpp } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
 import { normalizaNome, nomeSaudacao, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
 
@@ -9,6 +9,7 @@ type Action =
   | { type: 'unpause' }
   | { type: 'force-followup' }
   | { type: 'mark-descartado' }
+  | { type: 'reativar' }
   | { type: 'unlock' }
   | { type: 'send-manual'; mensagem: string }
   | {
@@ -613,6 +614,55 @@ export async function POST(
       updates.acionar_humano = false
       const baseDesc = (lead.observacoes ?? '').replace(/\s*\[DESCARTADO_MANUAL:[^\]]+\]/g, '').trim()
       updates.observacoes = `${baseDesc} [DESCARTADO_MANUAL:${new Date().toISOString()}]`.trim()
+      break
+    }
+    case 'reativar': {
+      // Desfaz o descarte manual. É o caminho de volta que faltava: o
+      // [DESCARTADO_MANUAL] é justamente o que impede o sync-from-evo de
+      // reviver o lead, então sem remover o carimbo ele voltaria a DESCARTADO.
+      //
+      // O status de volta vem do EVO, não é chutado — lá está a etapa real do
+      // card.
+      //
+      // Se o card foi movido pra FORA do funil AIVA (etapa que não está no
+      // STAGE_TO_STATUS — outro pipeline, descarte, pós-venda), a reativação é
+      // BLOQUEADA em vez de cair num fallback: trazer o lead pra INTERESSADO
+      // ressuscitaria no painel alguém que o operador acabou de tirar do funil
+      // no CRM. Quem manda é o Evo — então o caminho é mover o card lá primeiro.
+      // (Caso real 18/08: Sophia Celulares e Gorila Smart foram pro stage 67,
+      // fora do pipeline 15, durante a limpeza do Nei.)
+      let statusVolta = 'INTERESSADO'
+      let origem = 'sem_opp'
+      if (lead.evotalks_opportunity_id) {
+        let doEvo: string | null = null
+        try {
+          const opp = await getOpportunity(Number(lead.evotalks_opportunity_id))
+          doEvo = statusFromOpp(opp as { fkStage?: number; formsdata?: Record<string, string | null> | null })
+        } catch (err) {
+          console.warn(`[reativar] Falha ao consultar opp do lead ${id}:`, err)
+          return NextResponse.json(
+            { error: 'evo_indisponivel', detalhe: 'Não consegui confirmar a etapa do card no Evo. Tente de novo em instantes.' },
+            { status: 502 },
+          )
+        }
+        if (!doEvo) {
+          return NextResponse.json(
+            {
+              error: 'card_fora_do_funil',
+              detalhe:
+                'O card desse lead não está em nenhuma etapa do funil AIVA no Evo. ' +
+                'Mova o card no Evo para a etapa correta primeiro — o painel segue o Evo.',
+            },
+            { status: 409 },
+          )
+        }
+        statusVolta = doEvo
+        origem = 'evo'
+      }
+      updates.status = statusVolta
+      updates.observacoes =
+        (lead.observacoes ?? '').replace(/\s*\[DESCARTADO_MANUAL:[^\]]+\]/g, '').trim() || null
+      console.log(`[reativar] Lead ${id}: DESCARTADO → ${statusVolta} (origem: ${origem})`)
       break
     }
     case 'mark-atendido': {
