@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
-import { statusFromOpp } from '@/lib/evotalks'
+import { statusFromOpp, emFase3, MARCADOR_FASE3 } from '@/lib/evotalks'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     const opps: OppFromEvo[] = await evoRes.json()
 
     // ─── 2. Carrega TODOS os leads AIVA do Supabase de uma vez (paginado) ──
-    const leadsMap = new Map<string, { id: string; status: string; descartadoManual: boolean }>()
+    const leadsMap = new Map<string, { id: string; status: string; descartadoManual: boolean; observacoes: string }>()
     {
       let from = 0
       const page = 1000
@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
               id: l.id,
               status: l.status,
               descartadoManual: (l.observacoes ?? '').includes('[DESCARTADO_MANUAL'),
+              observacoes: l.observacoes ?? '',
             })
           }
         }
@@ -123,6 +124,8 @@ export async function POST(req: NextRequest) {
     let unmapped = 0
     const erros: string[] = []
     const idsParaUpdate: Record<string, string[]> = {} // status → [lead ids]
+    const marcarFase3: string[] = []
+    const desmarcarFase3: { id: string; observacoes: string }[] = []
 
     for (const opp of opps) {
       // statusFromOpp trata o stage 49 (Cadastro Recebido) pela completude real
@@ -132,6 +135,18 @@ export async function POST(req: NextRequest) {
 
       const lead = leadsMap.get(String(opp.id))
       if (!lead) { notInDb++; continue }
+
+      // Marcador de Fase 3 — avaliado ANTES do skip por status igual.
+      // Os leads presos na Fase 3 já estão em INTERESSADO, então `novoStatus`
+      // bate com o atual e o `continue` abaixo os pularia pra sempre. Este
+      // bloco é o que autocorrige a base existente (e limpa quem saiu do 49).
+      const temMarcador = lead.observacoes.includes(MARCADOR_FASE3)
+      if (emFase3(opp) && !temMarcador) {
+        marcarFase3.push(lead.id)
+      } else if (!emFase3(opp) && temMarcador) {
+        desmarcarFase3.push({ id: lead.id, observacoes: lead.observacoes })
+      }
+
       if (lead.status === novoStatus) { skipped++; continue }
       // Descarte MANUAL (botão do painel) é definitivo: o sync NÃO revive o
       // lead só porque o card ficou parado no funil. Reverter = mover o card
@@ -164,6 +179,36 @@ export async function POST(req: NextRequest) {
         continue
       }
       updated += ids.length
+    }
+
+    // ─── 2b. Marcador de Fase 3 ────────────────────────────────────────────
+    // observacoes é texto append-only: não dá pra fazer batch update com valor
+    // único, então vai um por lead. O volume é baixo (dezenas), porque só entra
+    // aqui quem MUDOU de condição — quem já está marcado não reaparece.
+    let fase3Marcados = 0
+    let fase3Desmarcados = 0
+    for (const id of marcarFase3) {
+      const { data: atual } = await supabaseAdmin
+        .from('sdr_leads').select('observacoes').eq('id', id).maybeSingle()
+      const obs = atual?.observacoes ?? ''
+      if (obs.includes(MARCADOR_FASE3)) continue
+      const { error } = await supabaseAdmin
+        .from('sdr_leads')
+        .update({ observacoes: `${obs} ${MARCADOR_FASE3}${new Date().toISOString()}]`.trim() })
+        .eq('id', id)
+      if (error) { erros.push(`marcar fase3 ${id}: ${error.message}`); continue }
+      fase3Marcados++
+    }
+    for (const { id } of desmarcarFase3) {
+      const { data: atual } = await supabaseAdmin
+        .from('sdr_leads').select('observacoes').eq('id', id).maybeSingle()
+      const obs = atual?.observacoes ?? ''
+      const limpo = obs.replace(/\s*\[FASE3_DESDE:[^\]]*\]/g, '').trim()
+      if (limpo === obs) continue
+      const { error } = await supabaseAdmin
+        .from('sdr_leads').update({ observacoes: limpo }).eq('id', id)
+      if (error) { erros.push(`desmarcar fase3 ${id}: ${error.message}`); continue }
+      fase3Desmarcados++
     }
 
     // ─── 3. Migração legacy ────────────────────────────────────────────────
@@ -222,6 +267,7 @@ export async function POST(req: NextRequest) {
       duracao_ms: Date.now() - inicio,
       opps_total: opps.length,
       sync: { updated, skipped, notInDb, unmapped },
+      fase3: { marcados: fase3Marcados, desmarcados: fase3Desmarcados },
       legacy: legacyMigrated,
       pos_venda_removidos: posVendaRemovidos,
       erros: erros.slice(0, 10),

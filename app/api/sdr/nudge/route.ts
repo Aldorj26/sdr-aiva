@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, saveMensagem, getMensagens, type Lead, type Mensagem } from '@/lib/supabase'
-import { sendText } from '@/lib/evotalks'
+import { sendText, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { processarMensagem } from '@/lib/claude'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
@@ -143,7 +143,14 @@ export async function POST(req: NextRequest) {
       // Gera nudge contextual via Claude usando o histórico.
       const nudgeInstrucao = '[INSTRUÇÃO DO SISTEMA: O lead parou de responder há mais de 3 horas. Envie UMA mensagem curta e natural de follow-up para retomar a conversa. Não repita informações já ditas. Seja breve e direto — máximo 2 linhas. Retome a última pergunta de forma diferente ou ofereça ajuda. Se o lead estava no meio do preenchimento de cadastro, identifique qual dado falta e pergunte especificamente por ele.]'
 
-      const resposta = await processarMensagem(nudgeInstrucao, mensagens, lead.nome, lead.status)
+      // emFase3 (último arg) é obrigatório aqui: sem ele o lead APROVADO recebe
+      // cutucada com enquadramento de Fase 1 e a VictorIA volta a oferecer
+      // pré-aprovação — o mesmo bug que o marcador resolve no webhook.
+      const nudgeEmFase3 = (lead.observacoes ?? '').includes(MARCADOR_FASE3)
+      const resposta = await processarMensagem(
+        nudgeInstrucao, mensagens, lead.nome, lead.status,
+        undefined, undefined, undefined, undefined, undefined, nudgeEmFase3,
+      )
 
       await sendText(lead.telefone, resposta.mensagem)
       await saveMensagem(lead.id, 'out', resposta.mensagem)

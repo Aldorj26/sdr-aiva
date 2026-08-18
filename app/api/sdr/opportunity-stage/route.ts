@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES } from '@/lib/evotalks'
+import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, buildMsgTravaQsa } from '@/lib/text'
 
@@ -240,9 +240,11 @@ export async function POST(req: NextRequest) {
       }
 
       // Busca o lead no Supabase pra pegar nome + id + chatId + status
+      // (observacoes é necessário pra anexar o marcador de Fase 3 sem apagar
+      // os marcadores já existentes — o campo é append-only na prática)
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
-        .select('id, nome, evotalks_chat_id, status')
+        .select('id, nome, evotalks_chat_id, status, observacoes')
         .eq('telefone', telefone)
         .maybeSingle()
 
@@ -286,11 +288,21 @@ export async function POST(req: NextRequest) {
 
       // Muda status do lead pra INTERESSADO (se o lead existir no Supabase)
       if (lead?.id) {
+        // O status volta pra INTERESSADO (o cadastro ainda não está completo),
+        // mas isso o torna indistinguível de um lead de Fase 1. O marcador
+        // preserva a informação de que ele JÁ FOI APROVADO — é o que faz a
+        // VictorIA parar de reoferecer "pré-aprovação" a quem já passou dela.
+        const obsAtual = lead.observacoes ?? ''
+        const obsComFase3 = obsAtual.includes(MARCADOR_FASE3)
+          ? obsAtual
+          : `${obsAtual} ${MARCADOR_FASE3}${new Date().toISOString()}]`.trim()
+
         await supabaseAdmin
           .from('sdr_leads')
           .update({
             status: 'INTERESSADO',
             data_ultimo_contato: new Date().toISOString(),
+            observacoes: obsComFase3,
             // Operador moveu o card = atendimento feito → limpa a flag de
             // "aguardando humano" (senão o lead fica eterno na fila do Nei)
             acionar_humano: false,

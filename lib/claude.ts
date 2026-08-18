@@ -365,7 +365,11 @@ const DOCS_PENDENTES_BLOCO =
   `- Se ele demonstrar frustração, acolha: é burocracia comum, resolve com o contador, e o cadastro dele já está completo do nosso lado — assim que o QSA aparecer, segue direto.\n` +
   `[FIM TRAVA QSA]`
 
-function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string, string>): string | null {
+function buildFaseInstrucao(
+  statusAtual: string,
+  dadosAcumulados?: Record<string, string>,
+  emFase3 = false,
+): string | null {
   // Monta o bloco de dados já coletados (se houver) para prefixar qualquer instrução de fase
   let dadosBlock = ''
   if (dadosAcumulados && Object.keys(dadosAcumulados).length > 0) {
@@ -398,6 +402,16 @@ function buildFaseInstrucao(statusAtual: string, dadosAcumulados?: Record<string
   if (statusAtual === 'PRE_APROVACAO') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = PRE_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". NÃO peça dados novos.\nRetorne novo_status = "PRE_APROVACAO" e acionar_humano = false.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
+  // FASE 3 — o lead está em INTERESSADO mas JÁ FOI APROVADO (stage 49 do Evo).
+  // Tem que vir ANTES do branch de Fase 1: os dois compartilham o status
+  // INTERESSADO, e sem esta checagem o lead aprovado cai no texto "Você está na
+  // FASE 1 / NUNCA retorne CADASTRO_RECEBIDO" — que é justamente a saída da
+  // Fase 3. Resultado: ele nunca avança e a VictorIA reoferece "pré-aprovação"
+  // a quem já passou dela (bug Titech, 11→17/08/2026).
+  if (emFase3 && (statusAtual === 'INTERESSADO' || statusAtual === 'AGUARDANDO')) {
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}, mas ele JÁ FOI APROVADO pela AIVA e está na FASE 3 (coleta dos dados complementares).\n⛔ NÃO ofereça pré-aprovação de novo, e NUNCA diga "vou enviar pra aprovação" ou "o time analisa em até 24h" — esse marco JÁ PASSOU. (Se o lojista citar a pré-aprovação que ele recebeu, confirme que já saiu e siga.)\n⛔ NUNCA retorne novo_status = "PRE_APROVACAO" nesta fase — isso joga o lead pra trás e congela a coleta.\nNUNCA pergunte de novo os 7 dados da Fase 1 — todos já foram coletados (estão no bloco de dados acima).\nColete o que ainda falta, UMA pergunta por vez: email_socio, faturamento_anual, valor_boleto_mensal, localizacao_lojas e cnpjs_adicionais.\nSe a loja for única (numero_lojas = 1), cnpjs_adicionais não se aplica — o sistema preenche "não possui" sozinho, não pergunte. Se houver 2+ lojas, PERGUNTE os CNPJs adicionais: sem eles a validação bloqueia o fechamento e o lead volta pra cá em loop.\nRetorne novo_status = "INTERESSADO" enquanto faltar dado, e "CADASTRO_RECEBIDO" só quando TODOS estiverem completos (com acionar_humano = true, motivo_humano = "cadastro_completo").\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
+  }
+
   if (statusAtual === 'INTERESSADO' || statusAtual === 'INICIO' || statusAtual === 'SEM_RESPOSTA') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}. Você está na FASE 1.\nNUNCA retorne "CADASTRO_RECEBIDO" — esse status é da Fase 3 e o lead ainda não foi aprovado pra avançar.\nVocê só pode retornar: "INTERESSADO" (ainda coletando os 7 dados da Fase 1) ou "PRE_APROVACAO" (quando os 7 dados estiverem completos: nome_socio, telefone_socio, nome_varejo, cnpj_matriz, regiao_varejo, numero_lojas, possui_outra_financeira).\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
@@ -668,6 +682,7 @@ export async function processarMensagem(
   imagem?: { base64: string; mimeType: string } | null,
   instrucaoSilvia?: string | null,
   docsPendentes?: boolean,
+  emFase3?: boolean,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -729,7 +744,7 @@ export async function processarMensagem(
   // histórico é longo. Isso impede de voltar pra fase anterior.
   // (Vem DEPOIS do envelope <mensagem_lead> — fica fora dele, como instrução real.)
   const status = statusAtual ?? 'INTERESSADO'
-  let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados)
+  let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true)
   // Docs do sem-sócio pendentes → cobra em QUALQUER fase (sobrepõe o "não
   // peça dados" das fases de espera). Anexado mesmo sem instrução de fase.
   if (docsPendentes) {

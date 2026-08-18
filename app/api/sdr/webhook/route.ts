@@ -18,7 +18,9 @@ import {
   createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, mergeOpportunityTag, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
-  getOpportunity, getStatusAtualNoEvo, getChatMessages, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
+  getOpportunity, getChatMessages, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
+  statusFromOpp, emFase3,
+  MARCADOR_FASE3,
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
@@ -528,18 +530,36 @@ export async function POST(req: NextRequest) {
   // se divergir, atualizamos o lead (memória + banco) — guards, prompt e
   // contexto passam a usar a fase certa. Fail-open: se o Evo falhar ou a etapa
   // não for do funil AIVA, mantém o status do Supabase.
+  //
+  // A FASE 3 sai da MESMA consulta. O stage 49 com cadastro incompleto vira
+  // status INTERESSADO — igual ao da Fase 1 —, então o status sozinho não diz
+  // se o lead já foi aprovado. Perguntar isso ao Evo aqui (e não ao marcador
+  // em observacoes) mantém a fonte da verdade única e dispensa esperar o sync.
+  // O marcador continua sendo o fallback pro caso do Evo estar fora do ar.
+  let leadEmFase3 = (lead.observacoes ?? '').includes(MARCADOR_FASE3)
   if (lead.evotalks_opportunity_id && lead.produto === 'AIVA') {
-    const statusEvo = await getStatusAtualNoEvo(Number(lead.evotalks_opportunity_id))
-    if (statusEvo && statusEvo !== lead.status) {
-      console.log(
-        `[evo-sync-realtime] Lead ${lead.telefone}: status Supabase=${lead.status} → Evo=${statusEvo}. ` +
-        `Usando o Evo (fonte da verdade).`,
-      )
-      await supabaseAdmin
-        .from('sdr_leads')
-        .update({ status: statusEvo })
-        .eq('id', lead.id)
-      lead.status = statusEvo as typeof lead.status
+    try {
+      const oppAtual = (await getOpportunity(Number(lead.evotalks_opportunity_id))) as {
+        fkStage?: number
+        formsdata?: Record<string, string | null> | null
+      }
+      leadEmFase3 = emFase3(oppAtual)
+      const statusEvo = statusFromOpp(oppAtual)
+      if (statusEvo && statusEvo !== lead.status) {
+        console.log(
+          `[evo-sync-realtime] Lead ${lead.telefone}: status Supabase=${lead.status} → Evo=${statusEvo}. ` +
+          `Usando o Evo (fonte da verdade).`,
+        )
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ status: statusEvo })
+          .eq('id', lead.id)
+        lead.status = statusEvo as typeof lead.status
+      }
+    } catch (err) {
+      // Fail-open (mesma política de antes): mantém o status do Supabase e cai
+      // no marcador pra decidir a Fase 3, em vez de tratar o lead como Fase 1.
+      console.warn(`[evo-sync-realtime] Falha ao consultar opp de ${lead.telefone}:`, err)
     }
   }
 
@@ -1086,7 +1106,9 @@ export async function POST(req: NextRequest) {
       const travaQsa =
         (lead.observacoes ?? '').includes('[TRAVA_QSA]') &&
         lead.status === 'EM_ANALISE_AIVA'
-      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, travaQsa)
+      // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
+      // fallback — o status sozinho não distingue Fase 1 de Fase 3.
+      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, travaQsa, leadEmFase3)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined

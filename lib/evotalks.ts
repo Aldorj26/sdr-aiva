@@ -1051,6 +1051,28 @@ export function statusFromOpp(
   return mapped
 }
 
+/** Stage do Evo que dispara a coleta da Fase 3 ("Cadastro Recebido"). */
+export const STAGE_FASE3 = 49
+
+/**
+ * Marcador durável em sdr_leads.observacoes que diz "este lead está na FASE 3".
+ *
+ * Existe porque `statusFromOpp` colapsa stage 49 + Fase 3 incompleta em
+ * INTERESSADO — o mesmo status da Fase 1. Isso é correto pro FUNIL (o lead não
+ * completou o cadastro), mas apaga a informação de que ele JÁ FOI APROVADO.
+ * Sem esse marcador o `buildFaseInstrucao` trata todo INTERESSADO como Fase 1 e
+ * a VictorIA volta a falar em "pré-aprovação" com quem já passou dela
+ * (bug Titech/5511969589066, 6 dias preso — 21 leads no mesmo estado em 18/08).
+ */
+export const MARCADOR_FASE3 = '[FASE3_DESDE:'
+
+/** True quando a oportunidade está no stage 49 com a Fase 3 ainda incompleta. */
+export function emFase3(
+  opp: { fkStage?: number; formsdata?: Record<string, string | null> | null } | null | undefined,
+): boolean {
+  return Number(opp?.fkStage) === STAGE_FASE3 && !fase3Completa(opp?.formsdata)
+}
+
 /**
  * Consulta a etapa ATUAL da oportunidade no Evo e devolve o status mapeado.
  * Retorna null se a opp não existir, a etapa não for do funil AIVA (pipeline 15)

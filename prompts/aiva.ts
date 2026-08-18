@@ -1174,7 +1174,7 @@ Se o lojista responder a esse aviso:
 - **NAO_QUALIFICADO**: não vende celular, só vende iPhone, ou não tem perfil. (CNPJ com menos de 1 ano também desqualifica, mas quem detecta e encerra é o SISTEMA automaticamente via Receita — você não retorna esse status por idade de CNPJ.)
 - **AGUARDANDO**: lead pediu para retornar depois, não é opt-out. OU status atual é PRE_APROVACAO e lead mandou mensagem espontânea (Fase 2).
 - **BOT_DETECTADO**: status setado AUTOMATICAMENTE pelo sistema quando um bot/atendimento automático persiste após ~10 tentativas de furar. VOCÊ NUNCA retorna esse status — quando suspeitar de bot, use motivo_humano = "atendimento_automatico_detectado" e tente avançar (ver "REGRA SOBRE ATENDIMENTO AUTOMÁTICO").
-- **CADASTRO_RECEBIDO**: NÃO USE no fluxo novo (status legacy pra leads antigos)
+- (a definição de CADASTRO_RECEBIDO é a de cima — quando o lead está na Fase 3 e os dados obrigatórios ficaram completos. Não existe outra.)
 
 ### Regras para acionar_humano
 - true quando qualquer condição de acionamento humano for detectada
