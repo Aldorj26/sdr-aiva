@@ -31,14 +31,17 @@ async function getRecentLeads(
   inbound?: string,
   cadastroCompleto?: string,
   cafPreenchido?: string,
+  descartadosPipeline?: string,
 ) {
   const temFiltro = Boolean(
-    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa || inbound || cadastroCompleto || cafPreenchido,
+    q || status || importante || aguardandoHumano || pausados || followupHoje || lockTravado || disparoDia || etapa || inbound || cadastroCompleto || cafPreenchido || descartadosPipeline,
   )
 
   // Filtro por etapa do Evo é aplicado em memória (a etapa não está no banco),
   // então busca um lote maior pra não perder leads ao filtrar depois.
-  const limite = etapa ? 2000 : temFiltro ? 500 : 10
+  // descartadosPipeline usa o mesmo mecanismo: o cruzamento com o CRM só existe
+  // em memória, e são ~1.1k descartados, então o lote precisa cobrir todos.
+  const limite = etapa || descartadosPipeline === 'true' ? 2000 : temFiltro ? 500 : 10
 
   let query = supabaseAdmin
     .from('sdr_leads')
@@ -87,6 +90,11 @@ async function getRecentLeads(
   if (cafPreenchido === 'true') {
     query = query.eq('status', 'EM_ANALISE_AIVA').like('observacoes', '%[CAF_OK%')
   }
+  // Só o recorte por status aqui; o cruzamento com o pipeline do Evo é feito
+  // em memória na Page (mesmo motivo do filtro por etapa).
+  if (descartadosPipeline === 'true') {
+    query = query.eq('status', 'DESCARTADO').eq('produto', 'AIVA')
+  }
 
   // Filtro por dia de disparo (formato YYYY-MM-DD em BRT, vem do /campanhas)
   if (disparoDia && /^\d{4}-\d{2}-\d{2}$/.test(disparoDia)) {
@@ -119,6 +127,39 @@ async function getRecentLeads(
   }
   const { data } = await query
   return data ?? []
+}
+
+/**
+ * Telefones dos leads DESCARTADO do funil AIVA.
+ *
+ * Serve pro card "Descartados no pipeline": o cruzamento com o CRM é feito na
+ * Page, contra o mapa que getEtapasEvo() já carregou — então o card não custa
+ * nenhuma chamada extra ao Evo. O que sobra do cruzamento são cards mortos
+ * ocupando o kanban: o lead foi descartado aqui mas a oportunidade continua
+ * aberta lá.
+ *
+ * PAGINADO de propósito: o PostgREST corta em 1000 linhas por request mesmo com
+ * .range() maior — um range(0, 4999) devolve 1000 e o card conta sobre uma base
+ * truncada, silenciosamente (eram 1.144 descartados em 18/08/2026). Mesmo
+ * padrão do loop em sync-from-evo.
+ */
+async function getDescartadosTels(): Promise<string[]> {
+  const tels: string[] = []
+  const page = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from('sdr_leads')
+      .select('telefone')
+      .eq('status', 'DESCARTADO')
+      .eq('produto', 'AIVA')
+      .range(from, from + page - 1)
+    if (error) break
+    tels.push(...(data ?? []).map((l) => l.telefone))
+    if (!data || data.length < page) break
+    from += page
+  }
+  return tels
 }
 
 async function getAgora() {
@@ -484,10 +525,11 @@ export default async function Page({
     inbound?: string
     cadastro_completo?: string
     caf_preenchido?: string
+    descartados_pipeline?: string
   }>
 }) {
   const sp = await searchParams
-  const [metricas, leadsRaw, agora, atendimento, quentes, conversasHoje, saude, etapasEvo] = await Promise.all([
+  const [metricas, leadsRaw, agora, atendimento, quentes, conversasHoje, saude, etapasEvo, descartadosTels] = await Promise.all([
     getMetricas(),
     getRecentLeads(
       sp.q,
@@ -502,6 +544,7 @@ export default async function Page({
       sp.inbound,
       sp.cadastro_completo,
       sp.caf_preenchido,
+      sp.descartados_pipeline,
     ),
     getAgora(),
     getPrecisamAtendimento(),
@@ -509,12 +552,20 @@ export default async function Page({
     getConversasHoje(),
     getSaude(),
     getEtapasEvo(),
+    getDescartadosTels(),
   ])
+  // Descartados que AINDA ocupam uma oportunidade aberta no pipeline AIVA.
+  // Cruzamento em memória contra o mapa do Evo — zero chamada extra.
+  // Se o Evo falhar, getEtapasEvo devolve {} e o card mostra 0 (não quebra a página).
+  const descartadosNoPipe = descartadosTels.filter((t) => etapasEvo[chaveTel(t)]).length
+
   // Filtro por etapa do Evo Talks — aplicado em memória (a etapa não está no
   // banco, vem do CRM via getEtapasEvo).
   const leads = sp.etapa
     ? leadsRaw.filter((l) => etapasEvo[chaveTel(l.telefone)]?.id === Number(sp.etapa))
-    : leadsRaw
+    : sp.descartados_pipeline === 'true'
+      ? leadsRaw.filter((l) => etapasEvo[chaveTel(l.telefone)])
+      : leadsRaw
 
   const filtroAtivo = Boolean(
     sp.q ||
@@ -528,7 +579,8 @@ export default async function Page({
       sp.etapa ||
       sp.inbound ||
       sp.cadastro_completo ||
-      sp.caf_preenchido,
+      sp.caf_preenchido ||
+      sp.descartados_pipeline,
   )
   const total = metricas.reduce((s: number, m: { total: number }) => s + Number(m.total), 0)
 
@@ -621,6 +673,13 @@ export default async function Page({
           hint="biometria ok — aguarda AIVA"
           color={agora.cafPreenchido > 0 ? 'var(--accent)' : 'var(--text-muted)'}
           href="/?caf_preenchido=true"
+        />
+        <Card
+          label="Descartados no pipeline"
+          value={descartadosNoPipe}
+          hint="card morto no funil do Evo"
+          color={descartadosNoPipe > 0 ? 'var(--red)' : 'var(--text-muted)'}
+          href="/?descartados_pipeline=true"
         />
         <Card
           label="Lock travado"
