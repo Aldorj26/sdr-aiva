@@ -1365,18 +1365,31 @@ export async function POST(req: NextRequest) {
           .maybeSingle()
         if (naBase) {
           naBaseAiva = true
-          console.log(`[BASE_AIVA] CNPJ ${cnpjPraChecar} já está na base (${naBase.nome ?? '?'}) → fluxo ODRES automático`)
-          resposta.novo_status = 'ODRES'
+          // O slug do Data Studio identifica a financeira: cliente Odres vem
+          // com "odres" no nome (ex: fox-cel---matriz-...-odres-cred-2);
+          // cliente AIVA/UME vem sem marcador. Confirmado com o Aldo em
+          // 19/08/2026 (screenshots do relatório "Aldo&Nei - Checagem de
+          // Cadastro"): 1.047 dos 5.919 CNPJs da base são Odres — os outros
+          // 4.872 são AIVA/UME e recebiam ERRADO a mensagem da Odres.
+          const ehOdres = /odres/i.test(naBase.nome ?? '')
+          console.log(`[BASE_AIVA] CNPJ ${cnpjPraChecar} já está na base (${naBase.nome ?? '?'}) → fluxo ${ehOdres ? 'ODRES' : 'UME (cliente AIVA)'} automático`)
+          resposta.novo_status = ehOdres ? 'ODRES' : 'UME'
           try {
             // 📇 (e não 📋): o emoji inicial define o TIPO na página /alertas —
             // 📋 é o filtro "Dados de colaborador" e colidia (bug 2026-07-29).
-            const alerta =
-              `📇 *LEAD JÁ É DA BASE AIVA/ODRES*\n\n` +
-              `🏪 ${lead.nome}\n` +
-              `📞 ${lead.telefone}\n` +
-              `🏢 CNPJ: ${cnpjPraChecar}\n` +
-              `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
-              `Barrado automaticamente: a VictorIA já enviou a mensagem oficial da Odres e a oportunidade vai pro funil de integração. Nenhuma ação necessária.`
+            const alerta = ehOdres
+              ? `📇 *LEAD JÁ É DA BASE — CLIENTE ODRES*\n\n` +
+                `🏪 ${lead.nome}\n` +
+                `📞 ${lead.telefone}\n` +
+                `🏢 CNPJ: ${cnpjPraChecar}\n` +
+                `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
+                `Barrado automaticamente: a VictorIA enviou o comunicado do Flexphone (parceria AIVA+Odres) e a oportunidade vai pro funil de integração com a tag ODRES. Nenhuma ação necessária.`
+              : `📇 *LEAD JÁ É DA BASE — CLIENTE AIVA/UME*\n\n` +
+                `🏪 ${lead.nome}\n` +
+                `📞 ${lead.telefone}\n` +
+                `🏢 CNPJ: ${cnpjPraChecar}\n` +
+                `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
+                `Barrado automaticamente: a VictorIA enviou a mensagem de quem já é cliente (UME/AIVA) e a oportunidade vai pro funil de integração com a tag UME. Nenhuma ação necessária.`
             if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
             if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
           } catch (errAlerta) {
