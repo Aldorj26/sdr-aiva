@@ -39,11 +39,15 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 
 // Mensagem oficial da Odres — enviada VERBATIM quando o lojista informa que já
 // trabalha com a Odres (novo_status = ODRES). Texto fixo (não parafrasear).
+// Texto aprovado pelo Aldo em 2026-08-19: sem citar a UME (a relação agora é
+// "AIVA e Odres são parceiras" + portal Flexphone), sem prometer prazo no
+// texto (a previsão ~2 meses só sai se o lojista PERGUNTAR — contexto no
+// prompt), e o contato final é do time da ODRES, não nosso.
 const ODRES_MENSAGEM =
-  'Identificamos em nossa base que sua loja já utiliza o crediário da Odres.\n\n' +
-  'A UME, empresa proprietária da AIVA, também é parceira da Odres. Por esse motivo, em breve a sua loja também poderá contar com todas as soluções da AIVA.\n\n' +
-  'Esse processo de integração deve ser concluído nos próximos 1 a 2 meses. Enquanto isso, pedimos apenas um pouco de paciência para que todos os trâmites comerciais e operacionais sejam finalizados.\n\n' +
-  'Em breve entraremos em contato com mais informações. Agradecemos pela compreensão!'
+  'Vimos que sua loja já utiliza o crediário da Odres — ótima notícia, porque a AIVA e a Odres são parceiras.\n\n' +
+  'Estamos criando juntos um portal chamado Flexphone. Nele, sua loja vai fazer uma única consulta e já receber o resultado de qual financeira aprovou o seu cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta.\n\n' +
+  'Você não precisa fazer nenhum cadastro novo agora. Quando o Flexphone estiver disponível, o time da Odres entra em contato com você com o passo a passo.\n\n' +
+  'Agradecemos pela parceria!'
 
 // Mensagem oficial da UME — enviada VERBATIM quando o lojista informa que já
 // trabalha com a UME (novo_status = UME). AIVA é a evolução da UME. Texto fixo.

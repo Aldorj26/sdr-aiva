@@ -61,7 +61,11 @@ export async function POST(req: NextRequest) {
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')
     .select('*')
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","PRE_APROVACAO","CADASTRO_RECEBIDO","EM_ANALISE_AIVA","TREINAR","LOGIN","LOJA_FINALIZADA_E_VENDENDO","BOT_DETECTADO")')
+    // ODRES/UME na exclusão (2026-08-19): sem isso o nudge cutucava o lojista
+    // 3h depois do comunicado Flexphone mandando ele completar o cadastro AIVA
+    // — lead que acabou de ser informado que quem assume é a Odres. A lista
+    // passa a bater com o STATUS_IGNORAR do webhook.
+    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","PRE_APROVACAO","CADASTRO_RECEBIDO","EM_ANALISE_AIVA","TREINAR","LOGIN","LOJA_FINALIZADA_E_VENDENDO","BOT_DETECTADO","ODRES","UME")')
 
   if (error) {
     console.error('Erro ao buscar leads para nudge:', error)
