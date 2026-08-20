@@ -46,8 +46,13 @@ const PEDIDO_AMIGAVEL: Record<string, string> = {
   cnpj_matriz: 'o CNPJ da loja',
   numero_lojas: 'quantas lojas você tem',
   possui_outra_financeira: 'se você já trabalha com outra financeira hoje',
-  valor_boleto_mensal: 'quanto a loja vende por mês no crediário (pode ser por alto)',
-  faturamento_anual: 'quanto a loja fatura por ano (pode ser por alto)',
+  // Copy 2026-08-20: lojista tem receio de passar faturamento/vendas — o pedido
+  // carrega o PORQUÊ e aceita valor aproximado. Vocabulário da FASE (a frase-mãe
+  // diz "sua loja já passou na análise"): aqui é "concluir o credenciamento" /
+  // "liberar o crediário" — NUNCA "concluir a análise" ou "aprovar", que soaria
+  // como se a aprovação não tivesse saído (achado do revisor 20/08).
+  valor_boleto_mensal: 'uma média de quanto a loja vende por mês no parcelado (a AIVA usa pra dimensionar seu credenciamento — pode ser por alto)',
+  faturamento_anual: 'o faturamento anual aproximado da loja (é o que falta pra AIVA concluir seu credenciamento — pode ser por alto)',
 }
 const ORDEM_PEDIDO = [
   'email_socio', 'localizacao_lojas', 'regiao_varejo', 'nome_varejo', 'nome_socio',
@@ -140,7 +145,18 @@ export async function GET(req: NextRequest) {
     // — burocrática e de alta fricção. 19 dos 25 leads da etapa ignoraram os 3
     // toques com ela. Nova abordagem: lidera com o ganho (loja JÁ aprovada) e pede
     // UM dado só, o mais fácil primeiro. O resto a VictorIA coleta na conversa.
-    const pedido = pedidoAmigavel(c.faltandoKeys)
+    // Recusa registrada ([RECUSA_DADO_SENSIVEL], gravada pelo webhook quando o
+    // lojista se nega a passar faturamento/vendas) → o cron NÃO volta a cobrar
+    // esses dois campos por HSM; se só faltarem eles, o caso é do time (o
+    // acionamento humano já saiu no turno da recusa), não da automação.
+    const keysCobraveis = obs.includes('[RECUSA_DADO_SENSIVEL')
+      ? c.faltandoKeys.filter((k) => k !== 'faturamento_anual' && k !== 'valor_boleto_mensal')
+      : c.faltandoKeys
+    if (keysCobraveis.length === 0) {
+      console.log(`[cobranca] ${c.telefone}: só faltam dados recusados — pulado (caso do time)`)
+      continue
+    }
+    const pedido = pedidoAmigavel(keysCobraveis)
     const miolo = `Sua loja já passou na análise da AIVA e falta pouco pra liberar o crediário! Pra destravar, me manda ${pedido}? O resto eu resolvo com você por aqui, leva 1 minutinho. 😊`
     const textoCompleto = `Olá ${nome}, ${miolo}`
     try {

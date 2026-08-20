@@ -1616,6 +1616,16 @@ export async function POST(req: NextRequest) {
     // Trava de QSA (sem sócio, política 2026-08-03) → marcador persistente:
     // lead fica retido em Em Análise AIVA até regularizar o quadro societário.
     if (pedirDocsSemSocio && !obsPrev.includes('[TRAVA_QSA')) partes.push('[TRAVA_QSA]')
+    // Lojista recusou passar faturamento/venda parcelada (regra 2026-08-20).
+    // O marcador faz o cron de cobrança parar de pedir esses campos por HSM —
+    // sem ele a VictorIA para de insistir no chat mas a automação insiste
+    // D+1/D+3/D+7 por fora (achado do revisor).
+    if (
+      String(resposta.motivo_humano ?? '').startsWith('receio_dados_sensiveis') &&
+      !obsPrev.includes('[RECUSA_DADO_SENSIVEL')
+    ) {
+      partes.push(`[RECUSA_DADO_SENSIVEL:${new Date().toISOString()}]`)
+    }
 
     if (autoDetected && !obsPrev.includes('[AUTO_DETECTED')) {
       partes.push(`[AUTO_DETECTED:${new Date().toISOString()}]`)

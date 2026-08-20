@@ -213,6 +213,7 @@ export function buildAvisoColetandoComplementoMsg(nomeContato: string | null): s
     `💳 Valor médio mensal em vendas parceladas (boleto)\n` +
     `📍 Cidades das suas lojas\n` +
     `🏢 Outros CNPJs (matriz/filial), se tiver\n\n` +
+    `São os dados que a AIVA usa pra analisar o perfil da loja e concluir sua aprovação — os valores podem ser aproximados, sem compromisso.\n\n` +
     `Vou te perguntar um por um pra ficar tranquilo. Pode começar? 😊`
   )
 }

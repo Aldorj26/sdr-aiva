@@ -409,7 +409,7 @@ function buildFaseInstrucao(
   // Fase 3. Resultado: ele nunca avança e a VictorIA reoferece "pré-aprovação"
   // a quem já passou dela (bug Titech, 11→17/08/2026).
   if (emFase3 && (statusAtual === 'INTERESSADO' || statusAtual === 'AGUARDANDO')) {
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}, mas ele JÁ FOI APROVADO pela AIVA e está na FASE 3 (coleta dos dados complementares).\n⛔ NÃO ofereça pré-aprovação de novo, e NUNCA diga "vou enviar pra aprovação" ou "o time analisa em até 24h" — esse marco JÁ PASSOU. (Se o lojista citar a pré-aprovação que ele recebeu, confirme que já saiu e siga.)\n⛔ NUNCA retorne novo_status = "PRE_APROVACAO" nesta fase — isso joga o lead pra trás e congela a coleta.\nNUNCA pergunte de novo os 7 dados da Fase 1 — todos já foram coletados (estão no bloco de dados acima).\nColete o que ainda falta, UMA pergunta por vez: email_socio, faturamento_anual, valor_boleto_mensal, localizacao_lojas e cnpjs_adicionais.\nSe a loja for única (numero_lojas = 1), cnpjs_adicionais não se aplica — o sistema preenche "não possui" sozinho, não pergunte. Se houver 2+ lojas, PERGUNTE os CNPJs adicionais: sem eles a validação bloqueia o fechamento e o lead volta pra cá em loop.\nRetorne novo_status = "INTERESSADO" enquanto faltar dado, e "CADASTRO_RECEBIDO" só quando TODOS estiverem completos (com acionar_humano = true, motivo_humano = "cadastro_completo").\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}, mas ele JÁ FOI APROVADO pela AIVA e está na FASE 3 (coleta dos dados complementares).\n⛔ NÃO ofereça pré-aprovação de novo, e NUNCA diga "vou enviar pra aprovação" ou "o time analisa em até 24h" — esse marco JÁ PASSOU. (Se o lojista citar a pré-aprovação que ele recebeu, confirme que já saiu e siga.)\n⛔ NUNCA retorne novo_status = "PRE_APROVACAO" nesta fase — isso joga o lead pra trás e congela a coleta.\nNUNCA pergunte de novo os 7 dados da Fase 1 — todos já foram coletados (estão no bloco de dados acima).\nColete o que ainda falta, UMA pergunta por vez: email_socio, faturamento_anual, valor_boleto_mensal, localizacao_lojas e cnpjs_adicionais.\nAo pedir faturamento_anual ou valor_boleto_mensal, NUNCA pergunte seco: embuta o porquê (a AIVA usa esses dados pra analisar o perfil da loja e concluir a aprovação) e aceite valor aproximado (ver seção "COMO PEDIR OS DADOS SENSÍVEIS" do prompt).\nSe a loja for única (numero_lojas = 1), cnpjs_adicionais não se aplica — o sistema preenche "não possui" sozinho, não pergunte. Se houver 2+ lojas, PERGUNTE os CNPJs adicionais: sem eles a validação bloqueia o fechamento e o lead volta pra cá em loop.\nRetorne novo_status = "INTERESSADO" enquanto faltar dado, e "CADASTRO_RECEBIDO" só quando TODOS estiverem completos (com acionar_humano = true, motivo_humano = "cadastro_completo").\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
 
   if (statusAtual === 'INTERESSADO' || statusAtual === 'INICIO' || statusAtual === 'SEM_RESPOSTA') {
@@ -453,7 +453,7 @@ A estrutura final do template é:
   {{2}} = MIOLO que você vai gerar
 
 REGRAS DO MIOLO:
-- Máximo 100 caracteres
+- Máximo 140 caracteres
 - Em português, tom natural e direto
 - NÃO comece com "oi", "olá", saudação ou nome (o {{1}} já cuida)
 - NÃO inclua assinatura ("Nei", "Track", etc.)
@@ -462,6 +462,7 @@ REGRAS DO MIOLO:
 - Termine com uma pergunta curta tipo "podemos continuar?" / "quer seguir?" / "consegue retornar?"
 - Se a conversa parou esperando o cliente preencher o cadastro CAF, mencione isso
 - Se a conversa parou esperando ele responder uma pergunta sua, retome a pergunta
+- Se o pendente for faturamento ou volume de vendas: diga que é o dado que a AIVA usa pra concluir o credenciamento e que pode ser por alto — nunca peça seco
 
 EXEMPLOS BONS:
 - "ainda dá pra fechar a ativação da AIVA nas suas 3 lojas. consegue retornar pra finalizarmos o cadastro?"
