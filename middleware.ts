@@ -29,13 +29,18 @@ export const config = {
   // - /login (página de login)
   // - /_next/* (assets do Next)
   // - arquivos estáticos (favicon, etc)
+  // ⚠️ Lista EXPLÍCITA: página nova do painel NÃO nasce protegida — precisa
+  // entrar aqui. /clientes ficou meses pública e /desempenho estreou pública
+  // por esse esquecimento (pego em 2026-08-20). Ao criar página, adicione-a.
   matcher: [
     '/',
     '/chat',
     '/api/chat',
     '/campanha',
     '/campanhas',
+    '/clientes',
     '/curadoria',
+    '/desempenho',
     '/funil',
     '/alertas',
     '/registros',
