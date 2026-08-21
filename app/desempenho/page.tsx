@@ -50,7 +50,7 @@ function Card({ label, value, color, href, ativo }: { label: string; value: stri
 export default async function DesempenhoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; filtro?: string; uf?: string; q?: string }>
+  searchParams: Promise<{ mes?: string; filtro?: string; uf?: string; q?: string; sort?: string; dir?: string }>
 }) {
   const sp = await searchParams
 
@@ -89,6 +89,35 @@ export default async function DesempenhoPage({
     )
   }
 
+  // Ordenação por clique no cabeçalho: 1º clique = maior→menor, 2º inverte.
+  const COLUNAS: Record<string, { rotulo: string; campo: keyof Row; numerica: boolean }> = {
+    loja: { rotulo: 'Loja', campo: 'loja', numerica: false },
+    uf: { rotulo: 'UF', campo: 'uf', numerica: false },
+    cidade: { rotulo: 'Cidade', campo: 'cidade', numerica: false },
+    status: { rotulo: 'Status', campo: 'status_consulta', numerica: false },
+    aprovados: { rotulo: 'Aprovados', campo: 'aprovados', numerica: true },
+    vendas: { rotulo: 'Vendas', campo: 'vendas', numerica: true },
+    conv: { rotulo: 'Conv.', campo: 'conversao', numerica: true },
+    valor: { rotulo: 'Valor', campo: 'valor_vendas', numerica: true },
+    ticket: { rotulo: 'Ticket', campo: 'ticket_medio', numerica: true },
+  }
+  const sort = sp.sort && COLUNAS[sp.sort] ? sp.sort : 'valor'
+  const dir = sp.dir === 'asc' ? 'asc' : 'desc'
+  {
+    const { campo, numerica } = COLUNAS[sort]
+    rows = [...rows].sort((a, b) => {
+      const va = a[campo], vb = b[campo]
+      // nulos sempre por último, independente da direção
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      const cmp = numerica
+        ? Number(va) - Number(vb)
+        : String(va).localeCompare(String(vb), 'pt-BR', { sensitivity: 'base' })
+      return dir === 'asc' ? cmp : -cmp
+    })
+  }
+
   const tot = {
     aprovados: todas.reduce((s, r) => s + (r.aprovados ?? 0), 0),
     vendas: todas.reduce((s, r) => s + (r.vendas ?? 0), 0),
@@ -102,6 +131,17 @@ export default async function DesempenhoPage({
     const p = new URLSearchParams()
     if (mes) p.set('mes', mes)
     for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v)
+    return `/desempenho?${p.toString()}`
+  }
+  // Link de ordenação: preserva mês + filtros; clicar na coluna ativa inverte a direção.
+  const qsSort = (col: string) => {
+    const p = new URLSearchParams()
+    if (mes) p.set('mes', mes)
+    if (filtro) p.set('filtro', filtro)
+    if (sp.uf) p.set('uf', sp.uf)
+    if (sp.q) p.set('q', sp.q)
+    p.set('sort', col)
+    p.set('dir', sort === col && dir === 'desc' ? 'asc' : 'desc')
     return `/desempenho?${p.toString()}`
   }
   const atualizadoEm = todas[0]?.atualizado_em
@@ -139,6 +179,8 @@ export default async function DesempenhoPage({
       <form method="get" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem', flexWrap: 'wrap' }}>
         <input type="hidden" name="mes" value={mes} />
         {filtro && <input type="hidden" name="filtro" value={filtro} />}
+        <input type="hidden" name="sort" value={sort} />
+        <input type="hidden" name="dir" value={dir} />
         <input name="q" defaultValue={sp.q ?? ''} placeholder="Buscar loja, cidade ou CNPJ…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 260 }} />
         <select name="uf" defaultValue={sp.uf ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
           <option value="">Todas as UFs</option>
@@ -153,9 +195,22 @@ export default async function DesempenhoPage({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
-              {['Loja', 'UF', 'Cidade', 'Status', 'Aprovados', 'Vendas', 'Conv.', 'Valor', 'Ticket', 'Tend.'].map((h) => (
-                <th key={h} style={{ padding: '0.45rem 0.6rem', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+              {Object.entries(COLUNAS).map(([col, def]) => (
+                <th key={col} style={{ padding: 0, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                  <Link
+                    href={qsSort(col)}
+                    title={sort === col && dir === 'desc' ? 'Ordenar do menor pro maior' : 'Ordenar do maior pro menor'}
+                    style={{
+                      display: 'block', padding: '0.45rem 0.6rem', textDecoration: 'none',
+                      color: sort === col ? 'var(--accent)' : 'var(--text-muted)', fontWeight: sort === col ? 700 : 600,
+                    }}
+                  >
+                    {def.rotulo}
+                    {sort === col ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                  </Link>
+                </th>
               ))}
+              <th style={{ padding: '0.45rem 0.6rem', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Tend.</th>
             </tr>
           </thead>
           <tbody>
