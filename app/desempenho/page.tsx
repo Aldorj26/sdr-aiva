@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import ClickableRow from '../_components/ClickableRow'
+import LeadDrawer from '../_components/LeadDrawer'
 
 // Desempenho dos lojistas ativos na AIVA — snapshot mensal importado do
 // Data Studio "Parceiros - AIVA" (rotina semanal via Chrome do Aldo +
@@ -26,6 +28,43 @@ type Row = {
   sem_operador: boolean
   telefone: string | null
   atualizado_em: string
+}
+
+// Telefone canônico pra casar desempenho ↔ sdr_leads (tira 55 e o 9º dígito),
+// mesmo critério do lib/clientes.ts.
+function chaveTel(s: string | null | undefined): string {
+  let d = (s ?? '').replace(/\D/g, '')
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2)
+  if (d.length === 11) d = d.slice(0, 2) + d.slice(3)
+  return d
+}
+
+// Mapa CNPJ→lead e telefone→lead pra abrir a conversa (LeadDrawer) ao clicar.
+// O CNPJ do lead mora dentro de observacoes (cnpj_matriz=… / [CNPJ_RECEITA:cnpj=…]),
+// então a extração é feita no banco via a RPC read-only assistente_sql — trazer
+// as observacoes inteiras de ~6 mil leads pra cá seria pesado demais por render.
+async function mapasDeLeads(): Promise<{ porCnpj: Map<string, string>; porFone: Map<string, string> }> {
+  const porCnpj = new Map<string, string>()
+  const porFone = new Map<string, string>()
+  try {
+    const q =
+      `select coalesce(jsonb_agg(t), '[]'::jsonb) from (` +
+      `select id, telefone, ` +
+      `substring(observacoes from 'cnpj_matriz=(\\d{14})') as c1, ` +
+      `substring(observacoes from 'CNPJ_RECEITA:cnpj=(\\d{14})') as c2 ` +
+      `from sdr_leads where produto = 'AIVA') t`
+    const { data, error } = await supabaseAdmin.rpc('assistente_sql', { q })
+    if (error) throw error
+    for (const l of (data ?? []) as { id: string; telefone: string; c1: string | null; c2: string | null }[]) {
+      if (l.c1) porCnpj.set(l.c1, l.id)
+      if (l.c2 && !porCnpj.has(l.c2)) porCnpj.set(l.c2, l.id)
+      const k = chaveTel(l.telefone)
+      if (k) porFone.set(k, l.id)
+    }
+  } catch (e) {
+    console.warn('[desempenho] mapa de leads indisponível (drawer desabilitado):', e)
+  }
+  return { porCnpj, porFone }
 }
 
 const fmtBRL = (v: number | null) =>
@@ -145,6 +184,7 @@ export default async function DesempenhoPage({
     return `/desempenho?${p.toString()}`
   }
   const atualizadoEm = todas[0]?.atualizado_em
+  const { porCnpj, porFone } = await mapasDeLeads()
 
   return (
     <main>
@@ -218,10 +258,13 @@ export default async function DesempenhoPage({
               const ant = anterior.get(r.cnpj)
               const tend = ant?.vendas == null || r.vendas == null ? '—' : r.vendas > (ant.vendas ?? 0) ? '▲' : r.vendas < (ant.vendas ?? 0) ? '▼' : '='
               const tendCor = tend === '▲' ? 'var(--green)' : tend === '▼' ? 'var(--red)' : 'var(--text-dim)'
-              return (
-                <tr key={r.cnpj} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.45rem 0.6rem', maxWidth: 280 }}>
-                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.loja ?? r.nome_varejo ?? r.cnpj}</div>
+              const leadId = porCnpj.get(r.cnpj) ?? (r.telefone ? porFone.get(chaveTel(r.telefone)) : undefined) ?? null
+              const celulas = (
+                <>
+                  <td style={{ padding: '0.45rem 0.6rem', maxWidth: 280 }} title={leadId ? 'Abrir a conversa do lead' : 'Loja sem lead no painel (veio direto da AIVA)'}>
+                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {leadId ? '💬 ' : ''}{r.loja ?? r.nome_varejo ?? r.cnpj}
+                    </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{r.cnpj}{r.sem_venda ? ' · sem venda' : ''}{r.sem_consulta ? ' · sem consulta' : ''}{r.sem_operador ? ' · sem operador' : ''}</div>
                   </td>
                   <td style={{ padding: '0.45rem 0.6rem' }}>{r.uf ?? '—'}</td>
@@ -233,7 +276,14 @@ export default async function DesempenhoPage({
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.valor_vendas)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.ticket_medio)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', color: tendCor, textAlign: 'center' }}>{tend}</td>
-                </tr>
+                </>
+              )
+              return leadId ? (
+                <ClickableRow key={r.cnpj} leadId={leadId} style={{ borderBottom: '1px solid var(--border)' }}>
+                  {celulas}
+                </ClickableRow>
+              ) : (
+                <tr key={r.cnpj} style={{ borderBottom: '1px solid var(--border)' }}>{celulas}</tr>
               )
             })}
           </tbody>
@@ -242,6 +292,7 @@ export default async function DesempenhoPage({
       {rows.length === 0 && todas.length > 0 && (
         <p style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>Nenhuma loja com esse filtro.</p>
       )}
+      <LeadDrawer />
     </main>
   )
 }
