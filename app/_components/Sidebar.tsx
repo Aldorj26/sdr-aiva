@@ -23,6 +23,7 @@ const SECTIONS: NavSection[] = [
       { label: 'Registros AIVA', href: '/registros', icon: '📋' },
       { label: 'Alertas', href: '/alertas', icon: '🔔' },
       { label: 'Clientes', href: '/clientes', icon: '🏪' },
+      { label: 'Desempenho', href: '/desempenho', icon: '📈' },
     ],
   },
   {
