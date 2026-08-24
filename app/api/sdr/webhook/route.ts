@@ -2309,22 +2309,37 @@ export async function POST(req: NextRequest) {
         console.error(`[ATENDIMENTOS] Falha ao registrar ${lead.telefone}:`, err)
       }
 
-      // Espelho no painel (/registros, aba "CNPJs registrados na base"):
-      // uma linha por CNPJ, com checkbox "enviado" pro Nei controlar por lá.
-      try {
-        const leadRef = { lead_id: lead.id, loja: lead.nome, telefone: lead.telefone }
-        const matriz = extrairCnpjs(String(dadosAlerta.cnpj_matriz ?? ''))
-        const adicionais = extrairCnpjs(String(dadosAlerta.cnpjs_adicionais ?? '')).filter((c) => !matriz.includes(c))
-        const linhas = [
-          ...matriz.map((c) => ({ cnpj: c, tipo: 'matriz' })),
-          ...adicionais.map((c) => ({ cnpj: c, tipo: 'adicional' })),
-        ].map((r) => ({ ...r, ...leadRef }))
-        if (linhas.length > 0) {
-          await supabaseAdmin.from('sdr_registros_cnpj').upsert(linhas, { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
-        }
-      } catch (err) {
-        console.error(`[REGISTROS] Falha ao espelhar CNPJs de ${lead.telefone}:`, err)
+    }
+
+    // Espelho no painel (/registros, aba "CNPJs registrados na base"):
+    // uma linha por CNPJ, com checkbox "enviado" pro Nei controlar por lá.
+    //
+    // FORA do `if (linksForm)` de propósito (corrigido 2026-08-24): o bloco
+    // vivia dentro dele, e linksForm só é montado quando o pacote DAQUELE TURNO
+    // traz o cnpj_matriz. Quando o turno de conclusão não trazia — o CNPJ já
+    // estava em observacoes, mas não no pacote — o espelho era pulado sem
+    // retentativa: 122 lojas com cadastro completo nunca chegaram ao painel
+    // (caso Solicite Cred 558597418481, backfill em scripts/backfill-registros-cnpj.mjs).
+    // Por isso a fonte agora é dadosAlerta COM FALLBACK pras observacoes, que é
+    // onde o dado é durável.
+    try {
+      const dadosDurables = parseDadosAcumulados(lead.observacoes ?? null)
+      const leadRef = { lead_id: lead.id, loja: lead.nome, telefone: lead.telefone }
+      const matriz = extrairCnpjs(String(dadosAlerta.cnpj_matriz ?? dadosDurables.cnpj_matriz ?? ''))
+      const adicionais = extrairCnpjs(String(dadosAlerta.cnpjs_adicionais ?? dadosDurables.cnpjs_adicionais ?? ''))
+        .filter((c) => !matriz.includes(c))
+      const linhas = [
+        ...matriz.map((c) => ({ cnpj: c, tipo: 'matriz' })),
+        ...adicionais.map((c) => ({ cnpj: c, tipo: 'adicional' })),
+      ].map((r) => ({ ...r, ...leadRef }))
+      if (linhas.length > 0) {
+        await supabaseAdmin.from('sdr_registros_cnpj').upsert(linhas, { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
+        console.log(`[REGISTROS] ${lead.telefone}: ${linhas.length} CNPJ(s) espelhado(s) no painel.`)
+      } else {
+        console.warn(`[REGISTROS] ${lead.telefone}: cadastro concluído mas nenhum CNPJ válido — nada a espelhar.`)
       }
+    } catch (err) {
+      console.error(`[REGISTROS] Falha ao espelhar CNPJs de ${lead.telefone}:`, err)
     }
   } else if (
     resposta.motivo_humano?.startsWith('dados_colaborador_coletados') &&
