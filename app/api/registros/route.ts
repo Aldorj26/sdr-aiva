@@ -7,13 +7,19 @@ import { supabaseAdmin } from '@/lib/supabase'
  * Protegida pelo middleware (cookie do painel).
  */
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as { id?: string; enviado?: boolean } | null
+  const body = (await req.json().catch(() => null)) as
+    | { id?: string; enviado?: boolean; origem?: string }
+    | null
   if (!body?.id || typeof body.enviado !== 'boolean') {
     return NextResponse.json({ error: 'payload_invalido' }, { status: 400 })
   }
+  // origem: 'abriu-form' quando veio do clique no link (marcação otimista);
+  // null quando o operador marcou/desmarcou na mão — inclusive ao CONFIRMAR
+  // um que estava automático, o que "promove" o registro a conferido.
+  const origem = body.enviado && body.origem === 'abriu-form' ? 'abriu-form' : null
   const { error } = await supabaseAdmin
     .from('sdr_registros_cnpj')
-    .update({ enviado: body.enviado })
+    .update({ enviado: body.enviado, origem })
     .eq('id', body.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
