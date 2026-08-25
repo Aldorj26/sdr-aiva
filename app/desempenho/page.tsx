@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import { casaBusca } from '@/lib/text'
 import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
 
@@ -39,30 +40,44 @@ function chaveTel(s: string | null | undefined): string {
   return d
 }
 
-// Mapa CNPJ→lead e telefone→lead pra abrir a conversa (LeadDrawer) ao clicar.
-// O CNPJ do lead mora dentro de observacoes (cnpj_matriz=… / [CNPJ_RECEITA:cnpj=…]),
-// então a extração é feita no banco via a RPC read-only assistente_sql — trazer
-// as observacoes inteiras de ~6 mil leads pra cá seria pesado demais por render.
-async function mapasDeLeads(): Promise<{ porCnpj: Map<string, string>; porFone: Map<string, string> }> {
-  const porCnpj = new Map<string, string>()
-  const porFone = new Map<string, string>()
+// Dados do lead casados por CNPJ e por telefone. Servem pra duas coisas:
+// abrir a conversa ao clicar na linha (LeadDrawer) e alimentar a busca com o
+// que NÃO existe no snapshot do Data Studio — e-mail, nome do sócio e o
+// telefone das lojas que vieram sem ele (58 das 108 em 2026-08).
+// A extração acontece no banco (RPC read-only assistente_sql) porque o CNPJ e o
+// e-mail moram dentro de observacoes; trazer as observacoes inteiras de ~6 mil
+// leads pra cá seria pesado demais por render.
+//
+// ⚠️ Regex em [0-9] e NÃO \d: nesse caminho o Postgres não reconhece \d e
+// devolve null pra tudo — foi o que deixou o mapa de CNPJ vazio desde que a
+// tela nasceu (só abria a conversa quem tinha telefone no snapshot).
+// Corrigido em 25/08/2026.
+type InfoLead = { id: string; telefone: string | null; email: string | null; socio: string | null }
+
+async function mapasDeLeads(): Promise<{ porCnpj: Map<string, InfoLead>; porFone: Map<string, InfoLead> }> {
+  const porCnpj = new Map<string, InfoLead>()
+  const porFone = new Map<string, InfoLead>()
   try {
     const q =
       `select coalesce(jsonb_agg(t), '[]'::jsonb) from (` +
       `select id, telefone, ` +
-      `substring(observacoes from 'cnpj_matriz=(\\d{14})') as c1, ` +
-      `substring(observacoes from 'CNPJ_RECEITA:cnpj=(\\d{14})') as c2 ` +
+      `substring(observacoes from 'cnpj_matriz=([0-9]{14})') as c1, ` +
+      `substring(observacoes from 'CNPJ_RECEITA:cnpj=([0-9]{14})') as c2, ` +
+      `substring(observacoes from 'email_socio=([^|]+)') as email, ` +
+      `substring(observacoes from 'nome_socio=([^|]+)') as socio ` +
       `from sdr_leads where produto = 'AIVA') t`
     const { data, error } = await supabaseAdmin.rpc('assistente_sql', { q })
     if (error) throw error
-    for (const l of (data ?? []) as { id: string; telefone: string; c1: string | null; c2: string | null }[]) {
-      if (l.c1) porCnpj.set(l.c1, l.id)
-      if (l.c2 && !porCnpj.has(l.c2)) porCnpj.set(l.c2, l.id)
+    type LinhaSql = { id: string; telefone: string; c1: string | null; c2: string | null; email: string | null; socio: string | null }
+    for (const l of (data ?? []) as LinhaSql[]) {
+      const info: InfoLead = { id: l.id, telefone: l.telefone, email: l.email, socio: l.socio }
+      if (l.c1) porCnpj.set(l.c1, info)
+      if (l.c2 && !porCnpj.has(l.c2)) porCnpj.set(l.c2, info)
       const k = chaveTel(l.telefone)
-      if (k) porFone.set(k, l.id)
+      if (k) porFone.set(k, info)
     }
   } catch (e) {
-    console.warn('[desempenho] mapa de leads indisponível (drawer desabilitado):', e)
+    console.warn('[desempenho] mapa de leads indisponível (drawer e busca por e-mail desabilitados):', e)
   }
   return { porCnpj, porFone }
 }
@@ -127,6 +142,11 @@ export default async function DesempenhoPage({
     for (const r of (ant ?? []) as Row[]) anterior.set(r.cnpj, r)
   }
 
+  const { porCnpj, porFone } = await mapasDeLeads()
+  // Dados do lead pra uma linha do snapshot: casa por CNPJ e, se não achar,
+  // pelo telefone que veio do Data Studio.
+  const infoDe = (r: Row) => porCnpj.get(r.cnpj) ?? (r.telefone ? porFone.get(chaveTel(r.telefone)) : undefined)
+
   const filtro = sp.filtro ?? ''
   let rows = todas
   if (filtro === 'sem_venda') rows = rows.filter((r) => r.sem_venda)
@@ -134,10 +154,18 @@ export default async function DesempenhoPage({
   if (filtro === 'sem_operador') rows = rows.filter((r) => r.sem_operador)
   if (sp.uf) rows = rows.filter((r) => r.uf === sp.uf)
   if (sp.q) {
-    const q = sp.q.toLowerCase()
-    rows = rows.filter((r) =>
-      [r.nome_varejo, r.loja, r.cidade, r.cnpj].some((v) => String(v ?? '').toLowerCase().includes(q)),
-    )
+    // Mesma busca do /registros (lib/text.ts): ignora acento/caixa e, pra
+    // número, compara só os dígitos — então "52.618.643/0001-05" e
+    // "(47) 99608-5000" acham a linha do mesmo jeito que a versão sem máscara.
+    // Campos do lead (e-mail, sócio, telefone) entram junto: o snapshot do Data
+    // Studio não traz e-mail e deixa 58 das 108 lojas sem telefone.
+    rows = rows.filter((r) => {
+      const info = infoDe(r)
+      return casaBusca(sp.q!, [
+        r.loja, r.nome_varejo, r.cidade, r.uf, r.cnpj, r.status_consulta,
+        r.telefone, info?.telefone, info?.email, info?.socio,
+      ])
+    })
   }
 
   // Ordenação por clique no cabeçalho: 1º clique = maior→menor, 2º inverte.
@@ -196,7 +224,6 @@ export default async function DesempenhoPage({
     return `/desempenho?${p.toString()}`
   }
   const atualizadoEm = todas[0]?.atualizado_em
-  const { porCnpj, porFone } = await mapasDeLeads()
 
   return (
     // Coluna com a altura da tela: cabeçalho/cards/filtros ficam parados e
@@ -237,7 +264,7 @@ export default async function DesempenhoPage({
         {filtro && <input type="hidden" name="filtro" value={filtro} />}
         <input type="hidden" name="sort" value={sort} />
         <input type="hidden" name="dir" value={dir} />
-        <input name="q" defaultValue={sp.q ?? ''} placeholder="Buscar loja, cidade ou CNPJ…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 260 }} />
+        <input name="q" defaultValue={sp.q ?? ''} placeholder="Loja, CNPJ, cidade, UF, telefone, e-mail, sócio, status…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 330 }} />
         <select name="uf" defaultValue={sp.uf ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
           <option value="">Todas as UFs</option>
           {[...new Set(todas.map((r) => r.uf).filter(Boolean))].sort().map((uf) => (
@@ -274,7 +301,7 @@ export default async function DesempenhoPage({
               const ant = anterior.get(r.cnpj)
               const tend = ant?.vendas == null || r.vendas == null ? '—' : r.vendas > (ant.vendas ?? 0) ? '▲' : r.vendas < (ant.vendas ?? 0) ? '▼' : '='
               const tendCor = tend === '▲' ? 'var(--green)' : tend === '▼' ? 'var(--red)' : 'var(--text-dim)'
-              const leadId = porCnpj.get(r.cnpj) ?? (r.telefone ? porFone.get(chaveTel(r.telefone)) : undefined) ?? null
+              const leadId = infoDe(r)?.id ?? null
               const celulas = (
                 <>
                   <td style={{ padding: '0.45rem 0.6rem', maxWidth: 280 }} title={leadId ? 'Abrir a conversa do lead' : 'Loja sem lead no painel (veio direto da AIVA)'}>

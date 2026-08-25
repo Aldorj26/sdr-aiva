@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import { casaBusca as casa } from '@/lib/text'
 import { linkFormPreenchido, formatarCnpj } from '@/lib/pre-cadastro-form'
 import { linkColaboradorPreenchido } from '@/lib/colaborador-form'
 import CheckEnviado from './CheckEnviado'
@@ -30,21 +31,6 @@ function dataBr(iso: string | null): string {
   return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-// Busca: compara sem acento/caixa e, pra número, só os dígitos — assim
-// "52.618.643/0001-05", "52618643" e "5516993400269" acham a mesma linha.
-const norm = (s: unknown) =>
-  String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-const soDigitos = (s: unknown) => String(s ?? '').replace(/\D/g, '')
-
-function casa(termo: string, campos: unknown[]): boolean {
-  const t = norm(termo).trim()
-  if (!t) return true
-  const tDig = soDigitos(termo)
-  return campos.some((c) => {
-    if (norm(c).includes(t)) return true
-    return tDig.length >= 3 && soDigitos(c).includes(tDig)
-  })
-}
 
 export default async function RegistrosPage({
   searchParams,

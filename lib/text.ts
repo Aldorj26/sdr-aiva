@@ -236,7 +236,7 @@ export const FONES_OFICIAIS = [
   '2220290100', // Suporte AIVA cliente final — WhatsApp 22 2029-0100
 ]
 
-const soDigitos = (s: string) => s.replace(/\D/g, '')
+export const soDigitos = (s: unknown) => String(s ?? '').replace(/\D/g, '')
 
 /** Normaliza pra comparação: tira 55 do início e o 9º dígito (celular). */
 function chaveFone(digitos: string): string {
@@ -331,4 +331,27 @@ export function formatarDadosLead(dados: Record<string, string | null | undefine
     }
   }
   return linhas.join('\n')
+}
+
+// ── Busca dos painéis ────────────────────────────────────────────────────────
+// Compara sem acento/caixa e, pra número, só os dígitos — assim
+// "52.618.643/0001-05", "52618643" e "(55) 16 99340-0269" acham a mesma linha.
+// Nasceu em /registros e virou compartilhada quando /desempenho ganhou os
+// mesmos campos de busca (2026-08-25).
+export const normBusca = (s: unknown) =>
+  String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+/**
+ * `true` se o termo casa com QUALQUER um dos campos. Termo vazio casa com tudo.
+ * O casamento por dígitos só vale a partir de 3 dígitos, senão "12" acharia
+ * metade da base por causa de CNPJ/telefone.
+ */
+export function casaBusca(termo: string, campos: unknown[]): boolean {
+  const t = normBusca(termo).trim()
+  if (!t) return true
+  const tDig = soDigitos(termo)
+  return campos.some((c) => {
+    if (normBusca(c).includes(t)) return true
+    return tDig.length >= 3 && soDigitos(c).includes(tDig)
+  })
 }
