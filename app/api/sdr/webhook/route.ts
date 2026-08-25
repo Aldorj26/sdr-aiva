@@ -24,7 +24,7 @@ import {
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
-import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, buildMsgTravaQsa, formatarDadosLead } from '@/lib/text'
+import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker } from '@/lib/cnpj'
 import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado } from '@/lib/manual-docs'
 import { capturarColaborador } from '@/lib/colab-rede-seguranca'
@@ -821,75 +821,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8b³. TRAVA DE QSA — reforço da orientação + destrava (política 2026-08-03)
-    // Lead sem sócio retido em Em Análise:
-    //  a) Se a orientação do contador ficou pendente (janela fechada quando o
-    //     Nei moveu o card), envia agora que o lead respondeu.
-    //  b) Se o lead avisa que REGULARIZOU, re-consulta a Receita na hora:
-    //     QSA apareceu → destrava, confirma pro lojista e avisa o Nei;
-    //     ainda vazio → a VictorIA explica (nota de sistema injetada no turno).
-    let conteudoParaClaude = conteudoEfetivo
-    {
-      const obsTrava = lead.observacoes ?? ''
-      if (obsTrava.includes('[TRAVA_QSA_PENDENTE]')) {
-        try {
-          const msgTrava = buildMsgTravaQsa(normalizaNome(lead.nome))
-          await sendText(lead.telefone, msgTrava, lead.evotalks_chat_id)
-          await saveMensagem(lead.id, 'out', msgTrava)
-          const obsSemPend = obsTrava.replace(/\s*\[TRAVA_QSA_PENDENTE\]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim()
-          const novaObsTrava = `${obsSemPend} [TRAVA_QSA_MSG:${new Date().toISOString()}]`.trim()
-          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObsTrava }).eq('id', lead.id)
-          lead.observacoes = novaObsTrava
-          console.log(`[TRAVA_QSA] Orientação do contador reforçada pra ${lead.telefone}`)
-        } catch (err) {
-          console.error(`[TRAVA_QSA] Falha no reforço da orientação pra ${lead.telefone}:`, err)
-        }
-      }
-
-      if (
-        (lead.observacoes ?? '').includes('[TRAVA_QSA]') &&
-        /regulariz|resolvid|resolveu|atualizad|arrumad|arrumou|j[áa]\s*consta|apareceu|contador\s*(fez|resolveu|atualizou|arrumou)/i.test(conteudoEfetivo)
-      ) {
-        const cnpjTrava = ((lead.observacoes ?? '').match(/\[CNPJ_RECEITA:cnpj=(\d{14})/)?.[1]) ??
-          ((lead.observacoes ?? '').match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
-        if (cnpjTrava.length === 14) {
-          try {
-            const infoRecheck = await consultarCNPJ(cnpjTrava)
-            if (infoRecheck && infoRecheck.qsaCount > 0) {
-              // ✅ Destravou: atualiza marcadores, confirma pro lojista e encerra o turno
-              const obsAtualT = lead.observacoes ?? ''
-              const novaObs = obsAtualT
-                .replace(/\[CNPJ_RECEITA:[^\]]*\]\s*/g, '')
-                .replace(/\s*\[TRAVA_QSA\]\s*/g, ' ')
-                .replace(/\s*\[TRAVA_QSA_MSG:[^\]]+\]\s*/g, ' ')
-                .replace(/\s{2,}/g, ' ')
-                .trim()
-              const obsFinal = `${novaObs} ${cnpjInfoMarker(infoRecheck)} [TRAVA_QSA_OK:${new Date().toISOString()}]`.trim()
-              await supabaseAdmin.from('sdr_leads').update({ observacoes: obsFinal }).eq('id', lead.id)
-              const msgOk =
-                `Ótima notícia! 🎉 Acabei de consultar aqui e o quadro societário do seu CNPJ *já está atualizado* na Receita Federal.\n\n` +
-                `Pode deixar que já aviso o time pra dar sequência na sua aprovação — qualquer novidade te retorno por aqui!`
-              await sendText(lead.telefone, msgOk, lead.evotalks_chat_id)
-              await saveMensagem(lead.id, 'out', msgOk)
-              const alertaOk =
-                `🔓 *QSA REGULARIZADO — ${lead.nome}* (${lead.telefone})\n` +
-                `O lojista regularizou o quadro societário (${infoRecheck.qsaCount} sócio${infoRecheck.qsaCount > 1 ? 's' : ''} na Receita agora). ` +
-                `A trava foi removida — pode seguir com a aprovação/CAF.`
-              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alertaOk)
-              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alertaOk)
-              console.log(`[TRAVA_QSA] ${lead.telefone} destravado — QSA com ${infoRecheck.qsaCount} sócio(s)`)
-              return NextResponse.json({ ok: true, trava_qsa: 'destravado' })
-            }
-            // Ainda sem QSA → informa a VictorIA via nota de sistema neste turno
-            conteudoParaClaude =
-              `${conteudoEfetivo}\n[NOTA DO SISTEMA: o lojista indicou que regularizou, e a Receita foi RE-CONSULTADA agora — o quadro societário AINDA NÃO consta. Informe com gentileza que ainda não aparece na consulta, que a sincronização Junta→Receita pode levar alguns dias, e sugira confirmar com o contador se o processo foi concluído.]`
-            console.log(`[TRAVA_QSA] ${lead.telefone} re-checado — QSA ainda vazio`)
-          } catch (err) {
-            console.error(`[TRAVA_QSA] Falha na re-consulta da Receita pra ${lead.telefone}:`, err)
-          }
-        }
-      }
-    }
+    // (8b³ removido em 2026-08-24: reforço/destrave de QSA existiam só pra
+    // reverter a trava — sem trava, não há o que destravar.)
+    const conteudoParaClaude = conteudoEfetivo
 
     // 8c. Detector de ERRO DE PORTAL (curadoria 2026-07-27)
     // Lead pós-cadastro relatando erro/travamento no portal UME (biometria,
@@ -1105,14 +1039,9 @@ export async function POST(req: NextRequest) {
     // O produto determina o prompt: AIVA (default) ou TRIAGEM (lead inbound puro).
     let resposta
     try {
-      // Trava de QSA ativa (sem sócio, política 2026-08-03)? Injeta o bloco de
-      // contexto pra VictorIA orientar o contador na fase Em Análise.
-      const travaQsa =
-        (lead.observacoes ?? '').includes('[TRAVA_QSA]') &&
-        lead.status === 'EM_ANALISE_AIVA'
       // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
       // fallback — o status sozinho não distingue Fase 1 de Fase 3.
-      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, travaQsa, leadEmFase3)
+      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, undefined, leadEmFase3)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined
@@ -1350,7 +1279,8 @@ export async function POST(req: NextRequest) {
   //      - situação ≠ ATIVA → alerta pro time (sem mudar status)
   //      - sem sócio → pede os 5 documentos (fluxo Drive + planilha Manual)
   let cnpjInfoNovo: import('@/lib/cnpj').CNPJInfo | null = null
-  let pedirDocsSemSocio = false
+  // Sem sócio na Receita — só sinaliza a tag no Evo (trava removida 2026-08-24)
+  let semSocioNaReceita = false
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
     const jaConsultado = (lead.observacoes ?? '').includes(`[CNPJ_RECEITA:cnpj=${cnpjPraChecar}`)
@@ -1469,8 +1399,11 @@ export async function POST(req: NextRequest) {
                 atencao.push(`🚫 Situação cadastral: *${info.situacao}*`)
               }
               if (info.qsaCount === 0) {
-                pedirDocsSemSocio = true // política 2026-08-03: marca [TRAVA_QSA] — retido em Em Análise até regularizar QSA
-                atencao.push(`⚠️ Empresa *sem quadro societário (QSA)* na Receita — lead marcado com TRAVA: a qualificação segue normal, mas ele fica RETIDO na etapa Em Análise AIVA até regularizar com o contador (a orientação é enviada quando o card entrar em Em Análise).`)
+                // TRAVA REMOVIDA em 2026-08-24 (o Nei resolveu com a AIVA): QSA
+                // vazio não retém mais ninguém. A flag segue só pra marcar a tag
+                // "Sem Socio" no card do Evo — informação pro Nei/Edu, não bloqueio.
+                semSocioNaReceita = true
+                atencao.push(`ℹ️ Empresa *sem quadro societário (QSA)* na Receita — apenas informativo: o lead segue o funil normalmente (trava removida em 24/08).`)
               }
               if (atencao.length > 0) {
                 const alerta = `🧾 *CONSULTA CNPJ (Receita) — ATENÇÃO*\n\n` + cabecalho + `\n${atencao.join('\n')}`
@@ -1484,28 +1417,6 @@ export async function POST(req: NextRequest) {
           console.error(`[CNPJ] Falha na consulta pra ${lead.telefone}:`, err)
         }
       }
-    }
-  }
-
-  // Leads cujo CNPJ foi consultado FORA do chat (backfill de 27/07) escapavam
-  // do fluxo de documentos: o "jaConsultado" pulava o gatilho junto (bug
-  // Magnífica 2026-07-29 — socios=0 na Receita e nenhum pedido de docs).
-  // Deriva do MARCADOR: Receita diz sem sócio + fase pré/em análise + trava
-  // ainda não marcada → marca [TRAVA_QSA] neste turno. Legados que JÁ
-  // completaram os docs manuais ([LINHA_MANUAL_OK]) seguem o caminho antigo.
-  {
-    const FASES_TRAVA = ['INTERESSADO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA']
-    const obsLead = lead.observacoes ?? ''
-    if (
-      !pedirDocsSemSocio &&
-      FASES_TRAVA.includes(lead.status) &&
-      /\[CNPJ_RECEITA:[^\]]*socios=0[^\]]*\]/.test(obsLead) &&
-      !obsLead.includes('[TRAVA_QSA') &&
-      !obsLead.includes('[LINHA_MANUAL_OK]') &&
-      !['ODRES', 'UME', 'NAO_QUALIFICADO', 'OPT_OUT'].includes(resposta.novo_status)
-    ) {
-      pedirDocsSemSocio = true
-      console.log(`[CNPJ] ${lead.telefone}: sem sócio via marcador → [TRAVA_QSA] aplicada`)
     }
   }
 
@@ -1564,11 +1475,6 @@ export async function POST(req: NextRequest) {
     await saveMensagem(lead.id, 'out', resposta.mensagem)
   }
 
-  // 11b. (política 2026-08-03) Sem sócio NÃO dispara mais pedido de documentos
-  // manuais — o lead segue a qualificação normal e fica RETIDO em Em Análise
-  // AIVA ([TRAVA_QSA]); a orientação do contador é enviada quando o Nei mover
-  // o card pra Em Análise (opportunity-stage) ou no reforço do Caminho 2.
-
   // 12. Atualiza status e chatId se ainda não tiver
   const updates: Record<string, unknown> = {
     status: resposta.novo_status,
@@ -1615,7 +1521,6 @@ export async function POST(req: NextRequest) {
     if (cnpjInfoNovo) partes.push(cnpjInfoMarker(cnpjInfoNovo))
     // Trava de QSA (sem sócio, política 2026-08-03) → marcador persistente:
     // lead fica retido em Em Análise AIVA até regularizar o quadro societário.
-    if (pedirDocsSemSocio && !obsPrev.includes('[TRAVA_QSA')) partes.push('[TRAVA_QSA]')
     // Lojista recusou passar faturamento/venda parcelada (regra 2026-08-20).
     // O marcador faz o cron de cobrança parar de pedir esses campos por HSM —
     // sem ele a VictorIA para de insistir no chat mas a automação insiste
@@ -1822,7 +1727,7 @@ export async function POST(req: NextRequest) {
       // direto no card do Evo (pedido do Aldo 2026-07-28). mergeOpportunityTag
       // preserva as tags existentes (AIVA/INBOUND) — updateOpportunity substitui
       // o array inteiro, então NUNCA usar addOpportunityTags com uma tag só aqui.
-      if (pedirDocsSemSocio) {
+      if (semSocioNaReceita) {
         await mergeOpportunityTag(oppId, TAG_IDS.SEM_SOCIO)
       }
 

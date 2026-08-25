@@ -153,32 +153,6 @@ export function buildAvisoTreinamentoMsgs(): string[] {
   return [msgReuniao, msgMateriais, msgCadastro]
 }
 
-/**
- * Trava de quadro societário (QSA) — política 2026-08-03: lead sem sócio na
- * Receita fica RETIDO em Em Análise AIVA até regularizar com o contador.
- * Enviada quando o Nei move o card pra Em Análise (opportunity-stage) ou no
- * reforço do Caminho 2. Roteiro NACIONAL (Junta Comercial do estado do lead).
- */
-export function buildMsgTravaQsa(nome: string | null): string {
-  const saudacao = nome ? `${nome}, ` : ''
-  return (
-    `${saudacao}seu cadastro chegou na etapa de análise, mas encontrei um ponto que precisa da sua atenção antes de seguirmos: ` +
-    `a consulta do seu CNPJ na Receita Federal está *sem o quadro societário (QSA)* — e o sistema da AIVA exige essa informação pra concluir a aprovação.\n\n` +
-    `Isso é mais comum do que parece e costuma ser simples de resolver. Recomendo falar com o *seu contador* e verificar estes pontos:\n\n` +
-    `1️⃣ Se houve registro ou alteração recente na empresa, o processo pode estar em análise na *Junta Comercial do seu estado* — dá pra acompanhar o protocolo no site da Junta\n` +
-    `2️⃣ Pode ser só *atraso de sincronização* entre a Junta e a Receita — em alguns dias, emitir um novo Comprovante de Inscrição (cartão CNPJ) já mostra o quadro atualizado\n` +
-    `3️⃣ Se houver *erro nos dados informados* (ex.: no DBE), o contador solicita a retificação pelo Coletor Nacional (portal REDESIM)\n` +
-    `4️⃣ *Divergência de CPF* de sócio se regulariza direto na Receita Federal\n\n` +
-    `Assim que estiver regularizado, me avisa por aqui que eu confiro na Receita na hora e seguimos com a sua aprovação! 😊`
-  )
-}
-
-/**
- * Kit pós-fechamento (curadoria 2026-07-27) — enviado quando o lead entra no
- * stage TREINAR, logo após o HSM 69. Responde ANTES as dúvidas que a curadoria
- * mostrou que os lojistas fazem DEPOIS de fechar (taxa, precificação, repasse)
- * e deixa claro o que esperar até a primeira venda.
- */
 export function buildKitPosFechamentoMsg(nome: string): string {
   return (
     `${nome}, enquanto o treinamento não acontece, aqui vai um resumo de como funciona a parceria — pra você já ficar por dentro de tudo: 👇\n\n` +

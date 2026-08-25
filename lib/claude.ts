@@ -350,21 +350,6 @@ export async function transcreverAudio(
  * da instrução de fase — impede a VictorIA de re-perguntar dados já salvos
  * em observacoes mas que não aparecem mais no histórico por limitação de janela.
  */
-// Bloco anexado à instrução da fase quando o lead está com TRAVA DE QSA
-// (sem sócio na Receita, política 2026-08-03): retido em Em Análise AIVA até
-// regularizar o quadro societário com o contador.
-const DOCS_PENDENTES_BLOCO =
-  `\n\n[TRAVA DE QUADRO SOCIETÁRIO (QSA) ATIVA — REGRA OBRIGATÓRIA]\n` +
-  `A consulta do CNPJ deste lead na Receita Federal está SEM quadro societário (QSA) — e o sistema da AIVA exige sócio registrado pra concluir a aprovação. Ele está RETIDO nesta etapa até regularizar.\n` +
-  `Como agir:\n` +
-  `- NÃO envie o link de onboarding/CAF nem fale em "concluir cadastro e biometria" — o portal travaria. O foco é a REGULARIZAÇÃO.\n` +
-  `- Oriente com naturalidade: ele deve procurar O CONTADOR dele pra regularizar a situação societária do CNPJ.\n` +
-  `- Motivos comuns (explique se perguntar): atraso na sincronização entre a Junta Comercial e a Receita; erro de cadastro/digitação no DBE; alteração contratual ainda em análise na Junta Comercial do estado dele; divergência cadastral (ex.: CPF de sócio irregular na Receita).\n` +
-  `- Como resolver (com o contador): acompanhar o protocolo no site da Junta Comercial DO ESTADO da empresa; aguardar alguns dias e emitir novo Comprovante de Inscrição (cartão CNPJ); solicitar retificação via DBE no Coletor Nacional (portal REDESIM) se houver erro; CPF irregular se resolve direto na Receita.\n` +
-  `- Quando ele AVISAR que regularizou, o SISTEMA re-consulta a Receita automaticamente na hora — você não precisa prometer prazos; diga que é só avisar por aqui que você confere.\n` +
-  `- Se ele demonstrar frustração, acolha: é burocracia comum, resolve com o contador, e o cadastro dele já está completo do nosso lado — assim que o QSA aparecer, segue direto.\n` +
-  `[FIM TRAVA QSA]`
-
 function buildFaseInstrucao(
   statusAtual: string,
   dadosAcumulados?: Record<string, string>,
@@ -682,7 +667,8 @@ export async function processarMensagem(
   dadosAcumulados?: Record<string, string>,
   imagem?: { base64: string; mimeType: string } | null,
   instrucaoSilvia?: string | null,
-  docsPendentes?: boolean,
+  /** @deprecated trava de QSA removida em 2026-08-24 — parâmetro mantido só pela ordem posicional dos argumentos */
+  _docsPendentesDepreciado?: boolean,
   emFase3?: boolean,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
@@ -748,9 +734,6 @@ export async function processarMensagem(
   let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true)
   // Docs do sem-sócio pendentes → cobra em QUALQUER fase (sobrepõe o "não
   // peça dados" das fases de espera). Anexado mesmo sem instrução de fase.
-  if (docsPendentes) {
-    faseInstrucao = `${faseInstrucao ?? ''}${DOCS_PENDENTES_BLOCO}`.trim()
-  }
   if (faseInstrucao) {
     const ultima = messages[messages.length - 1]
     if (ultima.role === 'user' && typeof ultima.content === 'string') {

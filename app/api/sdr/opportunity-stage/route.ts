@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, buildMsgTravaQsa } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
 
 /**
  * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
@@ -451,33 +451,10 @@ export async function POST(req: NextRequest) {
         .eq('telefone', telefone)
         .maybeSingle()
 
-      // TRAVA DE QSA (política 2026-08-03): lead sem sócio na Receita fica
-      // RETIDO nesta etapa — em vez do link de cadastro CAF (que travaria no
-      // portal), envia a orientação de regularizar o QSA com o contador.
-      const obsTrava = lead?.observacoes ?? ''
-      if (lead?.id && obsTrava.includes('[TRAVA_QSA]') && !obsTrava.includes('[TRAVA_QSA_OK')) {
-        const msgTrava = buildMsgTravaQsa(normalizaNome(lead.nome ?? null))
-        let entregue = false
-        try {
-          await sendText(telefone, msgTrava, lead.evotalks_chat_id)
-          entregue = true
-          await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: msgTrava })
-        } catch (err) {
-          console.error(`[TRAVA_QSA] Envio direto falhou pra ${telefone} (janela fechada?) — reforço na próxima resposta`, err)
-        }
-        const marcador = entregue ? `[TRAVA_QSA_MSG:${new Date().toISOString()}]` : '[TRAVA_QSA_PENDENTE]'
-        await supabaseAdmin
-          .from('sdr_leads')
-          .update({
-            status: 'EM_ANALISE_AIVA',
-            data_ultimo_contato: new Date().toISOString(),
-            acionar_humano: false,
-            observacoes: `${obsTrava.trim()} ${marcador}`.trim(),
-          })
-          .eq('id', lead.id)
-        console.log(`[TRAVA_QSA] Stage 50 — orientação do contador ${entregue ? 'enviada' : 'pendente'} pra ${telefone}`)
-        return NextResponse.json({ ok: true, trava_qsa: entregue ? 'orientacao_enviada' : 'orientacao_pendente' })
-      }
+      // (TRAVA DE QSA removida em 2026-08-24 — o Nei resolveu com a AIVA.
+      // Este bloco LIA o marcador [TRAVA_QSA] e fazia return ANTES do HSM de
+      // aprovação: o lead ficava em Em Análise sem nunca receber o link do CAF.
+      // Sem trava, todo mundo segue direto pro fluxo normal abaixo.)
 
       // Dispara HSM de aprovação. Template 15 "(CAMPANHA) Link de Cadastro" tem
       // 1 variável {{1}} que carrega todo o conteúdo do meio (incluindo o link).

@@ -56,6 +56,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  // ⛔ DESATIVADO em 2026-08-24: a trava de QSA foi removida (o Nei resolveu com
+  // a AIVA) e o fluxo de documentos manuais está aposentado desde 03/08. Este
+  // cron continuava cobrando por HSM os 5 itens (contrato social, selfie,
+  // RG/CNH, dados bancários) de 21 leads legados com [DOCS_SEM_SOCIO] — texto
+  // que o prompt agora PROÍBE a VictorIA de pedir. Cobrar por HSM e negar no
+  // chat é o pior dos dois mundos.
+  //
+  // Guard por env (e não `return` fixo) de propósito: mantém a lógica viva e
+  // permite religar sem deploy — basta COBRANCA_DOCS_ATIVO=true na Vercel.
+  // O agendador externo pode continuar chamando: responde ok e não envia nada.
+  if (process.env.COBRANCA_DOCS_ATIVO !== 'true') {
+    return NextResponse.json({ ok: true, desativado: 'fluxo_docs_sem_socio_aposentado_2026-08-24' })
+  }
+
   const url = new URL(req.url)
   const dry = url.searchParams.get('dry') === 'true'
   const max = Math.min(Number(url.searchParams.get('max')) || 20, 50)
