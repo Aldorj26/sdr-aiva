@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { linkFormPreenchido, formatarCnpj } from '@/lib/pre-cadastro-form'
 import { linkColaboradorPreenchido } from '@/lib/colaborador-form'
 import CheckEnviado from './CheckEnviado'
+import AbrirFormLink from './AbrirFormLink'
 import ClickableRow from '@/app/_components/ClickableRow'
 import LeadDrawer from '@/app/_components/LeadDrawer'
 
@@ -177,7 +178,8 @@ export default async function RegistrosPage({
         <section>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem' }}>
             CNPJs (matriz + adicionais) liberados após o cadastro completo. Clique em <b>Abrir form</b> — o CNPJ já vai
-            preenchido, é só enviar — e marque o ✓ quando lançar. (O form da AIVA exige login, por isso o envio é manual.)
+            preenchido, é só enviar. O ✓ é marcado <b>automaticamente ao abrir</b>; se não chegou a enviar, é só desmarcar.
+            (O form da AIVA exige login, por isso o envio continua manual.)
           </p>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
@@ -188,16 +190,13 @@ export default async function RegistrosPage({
               {cnpjs.map((r) => {
                 const celulas = (
                   <>
-                    <td style={td}><CheckEnviado id={r.id} enviado={r.enviado} /></td>
+                    <td style={td}><CheckEnviado id={r.id} enviado={r.enviado} origem={r.origem} /></td>
                     <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.telefone}</div></td>
                     <td style={{ ...td, fontFamily: 'monospace' }}>{formatarCnpj(r.cnpj)}</td>
                     <td style={td}>{r.tipo === 'matriz' ? '🏢 matriz' : '➕ adicional'}</td>
                     <td style={td}>{dataBr(r.criado_em)}</td>
                     <td style={td}>
-                      <a href={linkFormPreenchido(r.cnpj) ?? '#'} target="_blank"
-                         style={{ color: 'var(--accent)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                        Abrir form ↗
-                      </a>
+                      <AbrirFormLink id={r.id} href={linkFormPreenchido(r.cnpj) ?? '#'} jaEnviado={r.enviado} />
                     </td>
                   </>
                 )
