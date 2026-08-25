@@ -59,7 +59,15 @@ export default async function RegistrosPage({
   const q = (sp.q ?? '').trim()
 
   const [cnpjsQ, colabsQ, docsQ] = await Promise.all([
-    supabaseAdmin.from('sdr_registros_cnpj').select('*').order('criado_em', { ascending: false }).limit(300),
+    // PENDENTES PRIMEIRO (pedido do Aldo 2026-08-24): 'enviado' asc põe false
+    // no topo, então o que falta lançar fica sempre à vista — e o limit de 300
+    // nunca corta um pendente pra caber registro já resolvido.
+    supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('*')
+      .order('enviado', { ascending: true })
+      .order('criado_em', { ascending: false })
+      .limit(300),
     supabaseAdmin.from('sdr_registros_colab').select('*').order('criado_em', { ascending: false }).limit(300),
     supabaseAdmin
       .from('sdr_leads')
