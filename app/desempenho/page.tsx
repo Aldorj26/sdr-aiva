@@ -71,6 +71,18 @@ const fmtBRL = (v: number | null) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 const fmtPct = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)
 
+// Cabeçalho fixo: a linha de títulos acompanha a rolagem da tabela.
+// A borda vem de box-shadow (e não border-bottom) porque com
+// borderCollapse: 'collapse' a borda do <th> fica pra trás quando ele gruda.
+const thFixo: React.CSSProperties = {
+  position: 'sticky',
+  top: 0,
+  zIndex: 2,
+  background: 'var(--bg-elev)',
+  boxShadow: 'inset 0 -1px 0 var(--border)',
+  whiteSpace: 'nowrap',
+}
+
 function Card({ label, value, color, href, ativo }: { label: string; value: string; color?: string; href: string; ativo?: boolean }) {
   return (
     <Link
@@ -187,8 +199,12 @@ export default async function DesempenhoPage({
   const { porCnpj, porFone } = await mapasDeLeads()
 
   return (
-    <main>
-      <header style={{ marginBottom: '1.25rem' }}>
+    // Coluna com a altura da tela: cabeçalho/cards/filtros ficam parados e
+    // só a tabela rola — é o que permite o <thead> sticky colar de verdade
+    // (sticky precisa de um container que role, e o wrapper com overflow
+    // auto só rola se tiver altura limitada).
+    <main style={{ height: '100dvh', display: 'flex', flexDirection: 'column', paddingBottom: '1.25rem', overflow: 'hidden' }}>
+      <header style={{ marginBottom: '1.25rem', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Link href="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: '0.85rem', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-elev)' }}>← Voltar</Link>
           <h1 style={{ margin: 0 }}>Desempenho AIVA</h1>
@@ -205,7 +221,7 @@ export default async function DesempenhoPage({
         </p>
       </header>
 
-      <section style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      <section style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem', flexShrink: 0 }}>
         <Card label="Lojas" value={String(todas.length)} href={qs({})} ativo={!filtro} />
         <Card label="Aprovados" value={tot.aprovados.toLocaleString('pt-BR')} href={qs({})} />
         <Card label="Vendas" value={tot.vendas.toLocaleString('pt-BR')} href={qs({})} />
@@ -216,7 +232,7 @@ export default async function DesempenhoPage({
         <Card label="Sem operador" value={String(tot.semOperador)} color={tot.semOperador > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'sem_operador' })} ativo={filtro === 'sem_operador'} />
       </section>
 
-      <form method="get" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem', flexWrap: 'wrap' }}>
+      <form method="get" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem', flexWrap: 'wrap', flexShrink: 0 }}>
         <input type="hidden" name="mes" value={mes} />
         {filtro && <input type="hidden" name="filtro" value={filtro} />}
         <input type="hidden" name="sort" value={sort} />
@@ -231,12 +247,12 @@ export default async function DesempenhoPage({
         <button type="submit" style={{ padding: '0.45rem 0.9rem', borderRadius: 6, border: '1px solid var(--accent)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>Filtrar</button>
       </form>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
               {Object.entries(COLUNAS).map(([col, def]) => (
-                <th key={col} style={{ padding: 0, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                <th key={col} style={{ ...thFixo, padding: 0 }}>
                   <Link
                     href={qsSort(col)}
                     title={sort === col && dir === 'desc' ? 'Ordenar do menor pro maior' : 'Ordenar do maior pro menor'}
@@ -250,7 +266,7 @@ export default async function DesempenhoPage({
                   </Link>
                 </th>
               ))}
-              <th style={{ padding: '0.45rem 0.6rem', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Tend.</th>
+              <th style={{ ...thFixo, padding: '0.45rem 0.6rem' }}>Tend.</th>
             </tr>
           </thead>
           <tbody>
