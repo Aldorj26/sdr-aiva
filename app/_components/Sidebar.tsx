@@ -24,6 +24,7 @@ const SECTIONS: NavSection[] = [
       { label: 'Alertas', href: '/alertas', icon: '🔔' },
       { label: 'Clientes', href: '/clientes', icon: '🏪' },
       { label: 'Desempenho', href: '/desempenho', icon: '📈' },
+      { label: 'Comissões', href: '/comissoes', icon: '💰' },
     ],
   },
   {

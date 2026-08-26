@@ -83,12 +83,22 @@ export function parsePlanilhaUme(buf: Buffer | ArrayBuffer, nomeArquivo: string)
   const ws = wb.Sheets[nomeAba]
   const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null })
 
-  // ── mês pela linha "Competência" ("Julho 2026" → '2026-07')
+  // ── mês pela linha "Competência". A Carteira traz texto ("Julho 2026");
+  // a FCDL traz a célula como DATA (serial do Excel, ex.: 01/07/2026).
   let mes = ''
   for (const r of rows.slice(0, 12)) {
     if (String(r?.[0] ?? '').trim().toLowerCase() !== 'competência') continue
-    const m = String(r?.[1] ?? '').trim().toLowerCase().match(/^([a-zç]+)[\s/de]*(\d{4})$/)
-    if (m && MESES_PT[m[1]]) mes = `${m[2]}-${MESES_PT[m[1]]}`
+    const v = r?.[1]
+    if (v instanceof Date) {
+      mes = `${v.getUTCFullYear()}-${String(v.getUTCMonth() + 1).padStart(2, '0')}`
+    } else if (typeof v === 'number' && v > 20000 && v < 80000) {
+      // serial do Excel (dias desde 1900) → epoch: (serial − 25569) dias
+      const d = new Date(Math.round((v - 25569) * 86400 * 1000))
+      mes = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    } else {
+      const m = String(v ?? '').trim().toLowerCase().match(/^([a-zç]+)[\s/de]*(\d{4})$/)
+      if (m && MESES_PT[m[1]]) mes = `${m[2]}-${MESES_PT[m[1]]}`
+    }
   }
   if (!mes) throw new Error('Não achei a linha "Competência" com mês/ano no cabeçalho da planilha.')
 
