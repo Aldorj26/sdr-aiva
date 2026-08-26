@@ -312,6 +312,8 @@ export interface PipelineOpportunity {
   id: number
   title: string
   mainphone: string
+  /** Texto livre da opp — no funil 11 carrega "UME_RID: n | CNPJ: xxx". */
+  description: string
   fkPipeline: number
   fkStage: number
   responsableid: number
@@ -343,6 +345,7 @@ export async function getPipeOpportunities(
     id: (o.id as number) ?? 0,
     title: (o.title as string) ?? '',
     mainphone: (o.mainphone as string) ?? '',
+    description: (o.description as string) ?? '',
     fkPipeline: (o.fkPipeline as number) ?? 0,
     fkStage: (o.fkStage as number) ?? 0,
     responsableid: (o.responsableid as number) ?? 0,
@@ -808,6 +811,15 @@ export async function validateTagIds(): Promise<{
  * Define as etiquetas (tags) de uma oportunidade existente.
  * IMPORTANTE: isso SOBRESCREVE as tags atuais — inclua todas as que devem permanecer.
  */
+/**
+ * Sobrescreve SÓ a descrição de uma oportunidade (não envia tags — o
+ * updateOpportunity substitui arrays inteiros). Usado pelo painel de
+ * comissões pra gravar o Retailer ID da UME ("UME_RID: n").
+ */
+export async function updateOpportunityDescription(opportunityId: number, description: string): Promise<void> {
+  await post<{ id: number }>('/int/updateOpportunity', { id: opportunityId, description })
+}
+
 export async function addOpportunityTags(
   opportunityId: number,
   tagIds: number[]
