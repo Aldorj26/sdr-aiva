@@ -46,7 +46,12 @@ let jaTem = 0, gravadas = 0, semCnpj = 0, cnpjForaDoMapa = 0, conflitos = [], fa
 for (const o of contas) {
   const desc = String(o.description ?? '')
   const ridAtual = desc.match(/UME_RID:\s*(\d+)/i)?.[1]
-  let cnpj = desc.match(/CNPJ:\s*(\d{14})/i)?.[1] ?? null
+  // aceita CNPJ com mascara ("39.913.084/0001-90") — contas do lote manual do
+  // Nei (10/08) usam esse formato; a 1a rodada (26/08 14h) so lia o cru e por
+  // isso AppleCel e afins ficaram de fora (apontado pelo Aldo)
+  const brutoCnpj = desc.match(/CNPJ:\s*([\d.\/-]{14,18})/i)?.[1]
+  let cnpj = brutoCnpj ? brutoCnpj.replace(/\D/g, '') : null
+  if (cnpj && cnpj.length !== 14) cnpj = null
   let cnpjVeioDoLead = false
   if (!cnpj) {
     const k = chaveTel(o.mainphone)
