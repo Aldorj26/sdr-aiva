@@ -169,12 +169,17 @@ export function parsePlanilhaUme(buf: Buffer | ArrayBuffer, nomeArquivo: string)
   return { mes, origem, linhas, meta, aviso }
 }
 
-/** Extrai UME_RID e CNPJ da descrição de uma opp do funil 11. */
+/**
+ * Extrai UME_RID e CNPJ da descrição de uma opp do funil 11.
+ * Aceita CNPJ cru (14 dígitos) E formatado ("44.520.850/0001-96") — as contas
+ * criadas manualmente pelo Nei em 10/08 usam o formato com máscara.
+ */
 export function parseDescricaoOpp(desc: string | null | undefined): { umeRid: number | null; cnpj: string | null } {
   const d = desc ?? ''
   const rid = d.match(/UME_RID:\s*(\d+)/i)?.[1]
-  const cnpj = d.match(/CNPJ:\s*(\d{14})/i)?.[1]
-  return { umeRid: rid ? Number(rid) : null, cnpj: cnpj ?? null }
+  const bruto = d.match(/CNPJ:\s*([\d.\/-]{14,18})/i)?.[1]
+  const cnpj = bruto ? bruto.replace(/\D/g, '') : null
+  return { umeRid: rid ? Number(rid) : null, cnpj: cnpj && cnpj.length === 14 ? cnpj : null }
 }
 
 // ── Conferência ───────────────────────────────────────────────────────────────
@@ -226,22 +231,36 @@ export function conferir(
   }
   const desempPorCnpj = new Map(desempenhoMes.map((d) => [d.cnpj, d]))
 
+  // Cada linha do relatório é consumida por UMA conta só. Sem isso, grupos
+  // multi-loja que dividem um Retailer ID (Goat, Caldas, Eletrocel…) e contas
+  // duplicadas (caso Felipe Techcell, 26/08) apareciam 2× como comissionadas,
+  // dobrando a comissão na tela. Prioridade: CNPJ exato > Retailer ID.
   const usadas = new Set<LinhaComissao>()
+  const parsed = contas.map((opp) => ({ opp, ...parseDescricaoOpp(opp.description) }))
+  const relDe = new Map<ContaFunil11, { rel: LinhaComissao; porCnpj: boolean }>()
+
+  // passada 1 — CNPJ exato (a matriz vence as filiais do mesmo RID)
+  for (const p of parsed) {
+    if (!p.cnpj) continue
+    const l = porCnpj.get(p.cnpj)
+    if (l && !usadas.has(l)) { usadas.add(l); relDe.set(p.opp, { rel: l, porCnpj: p.umeRid == null }) }
+  }
+  // passada 2 — Retailer ID nas linhas que sobraram
+  for (const p of parsed) {
+    if (relDe.has(p.opp) || p.umeRid == null) continue
+    const l = porRid.get(p.umeRid)
+    if (l && !usadas.has(l)) { usadas.add(l); relDe.set(p.opp, { rel: l, porCnpj: false }) }
+  }
+
   const out: LinhaConferencia[] = []
-
-  for (const opp of contas) {
-    const { umeRid, cnpj } = parseDescricaoOpp(opp.description)
-    let rel: LinhaComissao | null = null
-    let casouPorCnpj = false
-    if (umeRid != null && porRid.has(umeRid)) rel = porRid.get(umeRid)!
-    else if (cnpj && porCnpj.has(cnpj)) { rel = porCnpj.get(cnpj)!; casouPorCnpj = umeRid == null }
-    if (rel) usadas.add(rel)
-
+  for (const p of parsed) {
+    const hit = relDe.get(p.opp) ?? null
+    const rel = hit?.rel ?? null
     const estado: EstadoConferencia =
-      rel ? 'comissionada' : umeRid != null ? 'sem_venda' : 'sem_rid'
-    const desempenho = cnpj ? (desempPorCnpj.get(cnpj) ?? null) : null
+      rel ? 'comissionada' : p.umeRid != null ? 'sem_venda' : 'sem_rid'
+    const desempenho = p.cnpj ? (desempPorCnpj.get(p.cnpj) ?? null) : null
     const divergencia = !rel && (desempenho?.vendas ?? 0) > 0
-    out.push({ estado, divergencia, casouPorCnpj, opp, umeRid, cnpj, relatorio: rel, desempenho })
+    out.push({ estado, divergencia, casouPorCnpj: hit?.porCnpj ?? false, opp: p.opp, umeRid: p.umeRid, cnpj: p.cnpj, relatorio: rel, desempenho })
   }
 
   // linhas do relatório que não casaram com conta nenhuma
