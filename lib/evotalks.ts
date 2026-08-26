@@ -574,6 +574,13 @@ export async function alertHuman(
 export const PIPELINE_AIVA = 15
 export const PIPELINE_SINGLO = 17
 
+// Funil "Contas fechadas MRR" (pipeline 11) — espelho das lojas que chegam em
+// Loja Finalizada e Vendendo (etapa 51 do funil 15). Pedido do Aldo 26/08/2026.
+// O funil tem UMA etapa só ("Início", 32); as contas UME entram lá por um sync
+// externo (descrição "UME_RID: …"), as AIVA entram por aqui.
+export const PIPELINE_MRR = 11
+export const STAGE_MRR_INICIO = 32
+
 // Stages do funil AIVA (pipeline 15) — IDs reais do Evo Talks.
 // ATUALIZADO 2026-06-03: alinhado com o Kanban real. Antes tinha
 // CAF_PENDENTE:51 / VALIDACAO_CONCLUIDA:52 / TREINA:70 (obsoletos).
@@ -810,6 +817,55 @@ export async function addOpportunityTags(
     tags: tagIds,
   })
   console.log(`CRM: Tags ${tagIds.join(', ')} aplicadas na oportunidade #${opportunityId}`)
+}
+
+/**
+ * Cria a conta-espelho no funil "Contas fechadas MRR" (pipeline 11) pra uma
+ * loja que chegou em Loja Finalizada e Vendendo. Idempotente por telefone:
+ * antes de criar, varre o funil 11 e não duplica se já existe conta com o
+ * mesmo número (as contas do sync UME nascem SEM telefone, então a checagem
+ * definitiva de duplicata contra elas é humana — por isso o título vai limpo).
+ *
+ * Retorna o id da opp criada, ou o id da existente se já havia, ou null se
+ * o telefone veio vazio (sem telefone não há como deduplicar com segurança).
+ */
+export async function criarContaMrr(opts: {
+  titulo: string
+  telefone: string
+  cnpj?: string | null
+  origemOppId?: number | string
+}): Promise<{ id: number; jaExistia: boolean } | null> {
+  const tel = (opts.telefone ?? '').replace(/\D/g, '')
+  if (!tel) return null
+  const chave = (d: string) => {
+    let x = d
+    if (x.startsWith('55') && x.length >= 12) x = x.slice(2)
+    if (x.length === 11) x = x.slice(0, 2) + x.slice(3)
+    return x
+  }
+  const existentes = await getPipeOpportunities(PIPELINE_MRR)
+  const dup = existentes.find((o) => {
+    const d = (o.mainphone ?? '').replace(/\D/g, '')
+    return d && chave(d) === chave(tel)
+  })
+  if (dup) return { id: dup.id, jaExistia: true }
+
+  const titulo = opts.titulo.replace(/\s*[—–-]\s*AIVA\s*$/i, '').trim() || 'Loja AIVA'
+  const id = await createOpportunity({
+    title: titulo,
+    number: tel,
+    pipelineId: PIPELINE_MRR,
+    stageId: STAGE_MRR_INICIO,
+  })
+  const desc = [
+    opts.cnpj ? `CNPJ: ${opts.cnpj}` : null,
+    opts.origemOppId ? `Espelho do funil AIVA (opp #${opts.origemOppId})` : 'Espelho do funil AIVA',
+  ].filter(Boolean).join(' | ')
+  // description + tag AIVA num update só (updateOpportunity SUBSTITUI tags,
+  // mas a opp acabou de nascer sem nenhuma — seguro escrever direto).
+  await post<{ id: number }>('/int/updateOpportunity', { id, description: desc, tags: [TAG_IDS.AIVA] })
+  console.log(`CRM/MRR: conta criada no funil ${PIPELINE_MRR} — #${id} "${titulo}" (${tel})`)
+  return { id, jaExistia: false }
 }
 
 /**

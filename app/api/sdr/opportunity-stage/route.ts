@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { alertHuman, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
+import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
 
@@ -681,7 +681,44 @@ export async function POST(req: NextRequest) {
         console.log(`Stage 51: relógio da consultoria ${jaIniciou ? 'já existia' : 'iniciado'} p/ ${telefone} (opp #${opportunityId})`)
       }
 
-      return NextResponse.json({ ok: true, consultoria: 'relogio_registrado', telefone })
+      // Conta-espelho no funil Contas fechadas MRR (pedido do Aldo 26/08/2026).
+      // Toda loja que chega em Loja Finalizada e Vendendo ganha uma conta no
+      // funil 11. Dupla proteção contra duplicata: marcador [MRR_OPP:id] no
+      // lead e varredura por telefone dentro do criarContaMrr. Fail-soft — a
+      // conta MRR nunca pode derrubar o registro da consultoria acima.
+      let contaMrr: number | null = null
+      try {
+        const jaTemMarcador = /\[MRR_OPP:\d+\]/.test(lead?.observacoes ?? '')
+        if (!jaTemMarcador) {
+          const cnpj =
+            (lead?.observacoes ?? '').match(/cnpj_matriz=([\d.\/-]{14,18})/)?.[1]?.replace(/\D/g, '') ??
+            (lead?.observacoes ?? '').match(/CNPJ_RECEITA:cnpj=(\d{14})/)?.[1] ??
+            (forms['dd2ab580'] ?? '').replace(/\D/g, '') ??
+            null
+          const r = await criarContaMrr({
+            titulo: (opp.title ?? '').toString() || telefone,
+            telefone,
+            cnpj: cnpj && cnpj.length === 14 ? cnpj : null,
+            origemOppId: Number(opportunityId),
+          })
+          if (r) {
+            contaMrr = r.id
+            if (lead?.id) {
+              const { data: leadFresco } = await supabaseAdmin
+                .from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+              await supabaseAdmin
+                .from('sdr_leads')
+                .update({ observacoes: `${(leadFresco?.observacoes ?? '').trim()} [MRR_OPP:${r.id}]`.trim() })
+                .eq('id', lead.id)
+            }
+            console.log(`Stage 51: conta MRR ${r.jaExistia ? 'já existia' : 'criada'} — #${r.id} (opp origem #${opportunityId})`)
+          }
+        }
+      } catch (err) {
+        console.error(`Stage 51: falha ao criar conta MRR pra opp #${opportunityId} (segue sem):`, err)
+      }
+
+      return NextResponse.json({ ok: true, consultoria: 'relogio_registrado', telefone, conta_mrr: contaMrr })
     } catch (err) {
       console.error('Erro ao registrar consultoria (stage 51):', err)
       return NextResponse.json({ ok: false, erro: 'consultoria_error' }, { status: 500 })
