@@ -113,15 +113,22 @@ export default async function ComissoesPage({
   const desempenhoMes = (desempDb ?? []) as DesempenhoMes[]
   const funil11Ok = contasTodas.length > 0
 
+  // O funil 11 é o MRR da Track INTEIRA — tem contas de outros produtos
+  // (Autofix, Unifique, Rankmyapp etc., pedido do Aldo 26/08). Só entram na
+  // conferência as contas com tag UME (7) ou AIVA (69); o resto fica fora do
+  // painel e é contado no aviso do cabeçalho pra exclusão nunca ser silenciosa.
+  const contasEscopo = contasTodas.filter((o) => (o.tags ?? []).includes(TAG_IDS.UME) || (o.tags ?? []).includes(TAG_IDS.AIVA))
+  const foraEscopo = contasTodas.length - contasEscopo.length
+
   const conf = conferir(
-    contasTodas.map((o) => ({ id: o.id, title: o.title, mainphone: o.mainphone, description: o.description })),
+    contasEscopo.map((o) => ({ id: o.id, title: o.title, mainphone: o.mainphone, description: o.description })),
     linhasMes,
     desempenhoMes,
   )
 
   // Aba de cada linha: pelo relatório (fcdl→UME; grupo AIVA→AIVA; senão UME);
   // sem relatório, pela tag da conta no Evo (69 = AIVA).
-  const tagsPorOpp = new Map(contasTodas.map((o) => [o.id, o.tags ?? []]))
+  const tagsPorOpp = new Map(contasEscopo.map((o) => [o.id, o.tags ?? []]))
   const origemDe = (l: LinhaConferencia): string | null =>
     l.relatorio ? ((l.relatorio as LinhaComissao & { origem?: string }).origem ?? 'carteira') : null
   const abaDe = (l: LinhaConferencia): Aba => {
@@ -234,6 +241,7 @@ export default async function ComissoesPage({
           Conferência automática do relatório mensal da UME contra o funil Contas fechadas MRR.
           Loja fora do relatório = sem venda no mês (regra alinhada com a UME em 19/08).
           {!funil11Ok && <span style={{ color: '#dc2626' }}> ⚠️ Funil 11 indisponível agora — só o relatório está sendo mostrado.</span>}
+          {foraEscopo > 0 && <span> · {foraEscopo} contas de outros produtos (sem tag UME/AIVA) fora do painel.</span>}
         </p>
         {avisos.length > 0 && (
           <p style={{ color: '#d97706', fontSize: '0.78rem', margin: '0.3rem 0 0' }}>
