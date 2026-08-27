@@ -240,6 +240,7 @@ export const FONES_OFICIAIS = [
   // segunda entrada o pós-processamento apagava a frase inteira da VictorIA.
   '40202024',
   '5540202024',
+  '1140201990', // Suporte Odres Cred cliente final — WhatsApp (11) 4020-1990 (material Flexfone 27/08)
 ]
 
 export const soDigitos = (s: unknown) => String(s ?? '').replace(/\D/g, '')
