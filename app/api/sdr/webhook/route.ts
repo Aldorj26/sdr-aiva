@@ -746,7 +746,7 @@ export async function POST(req: NextRequest) {
     //
     // - AVISO_49_PENDENTE: lista os 5 dados que faltam coletar (Fase 3)
     // - AVISO_50_PENDENTE: reforço cadastro CAF + biometria facial
-    // - AVISO_70_PENDENTE: link Meet+calendário, Drive, formulário funcionários
+    // - AVISO_70_PENDENTE: link Meet+calendário, Drive, acessos (fluxo 27/08)
     const obs = lead.observacoes ?? ''
     const aviso49Pendente = obs.includes('[AVISO_49_PENDENTE')
     const aviso50Pendente = obs.includes('[AVISO_50_PENDENTE')
@@ -2334,17 +2334,20 @@ export async function POST(req: NextRequest) {
       }
 
       const partesForm: string[] = []
-      if (lancados.length > 0) {
-        partesForm.push(`✅ *${lancados.length} colaborador(es) JÁ LANÇADO(S) automaticamente no formulário de acesso* (indicação: Parceria Track). Nada a digitar — só acompanhar a liberação.`)
-      }
-      if (falharam.length > 0) {
+      // ⛔ REGRA 27/08 (aviso do Edu): o formulário de colaboradores foi
+      // DESATIVADO — o guard em enviarColaboradorAoForm faz tudo cair em
+      // "falharam". O alerta agora orienta o fluxo novo (Live Chat da
+      // plataforma) em vez de mandar lançar num form morto.
+      if (falharam.length > 0 || lancados.length > 0) {
+        const nomes = [...lancados.map((n) => `• ${n}`), ...falharam.map((c) => `• ${c.nome} (CPF ${c.cpf})`)].join('\n')
         partesForm.push(
-          `⚠️ ${falharam.length} falhou(aram) no envio automático — lançar pelo link (já vem preenchido, é só enviar):\n` +
-            falharam.map((c) => `• ${c.nome}\n${linkColaboradorPreenchido(nomeLojaForm, c)}`).join('\n'),
+          `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO pela AIVA — nada foi lançado.\n` +
+            `${nomes}\n` +
+            `➡️ Orientar o SÓCIO a criar esses usuários pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).`,
         )
       }
       if (incompletos > 0) {
-        partesForm.push(`⚠️ ${incompletos} colaborador(es) com dados incompletos/inválidos — conferir na conversa e lançar manualmente.`)
+        partesForm.push(`⚠️ ${incompletos} colaborador(es) com dados incompletos — o sócio cadastra direto no Live Chat da plataforma (fluxo novo 27/08).`)
       }
       if (validos.length === 0 && incompletos === 0) {
         // Parse não reconheceu NADA — nunca falhar em silêncio (bug Diana Upstore
@@ -2407,12 +2410,11 @@ export async function POST(req: NextRequest) {
           .eq('id', lead.id)
 
         const aviso =
-          `🛟 *COLABORADOR CAPTURADO PELA REDE DE SEGURANÇA*\n\n` +
+          `🛟 *COLABORADOR DETECTADO NA CONVERSA*\n\n` +
           `🏪 ${lead.nome}\n📞 ${lead.telefone}\n\n` +
           `👤 ${colab.nome}\n🆔 CPF: ${colab.cpf}\n📧 ${colab.email}\n📱 ${colab.telefone}\n\n` +
-          (formOk
-            ? `✅ Lançado no formulário de acesso e na planilha. Nada a fazer — só confira se o nome saiu certinho.`
-            : `⚠️ NÃO foi lançado no formulário${cnpj.length === 14 ? '' : ' (lead sem CNPJ matriz nos dados)'} — precisa de lançamento manual.`)
+          `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO — nada foi lançado automaticamente. ` +
+          `Orientar o SÓCIO a criar esse usuário pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).`
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
         console.log(`[REDE_COLAB] ${lead.telefone}: ${colab.nome} (${colab.cpf}) capturado — form_ok=${formOk}`)

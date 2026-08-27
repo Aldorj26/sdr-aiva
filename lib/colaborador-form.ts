@@ -1,6 +1,8 @@
 /**
- * lib/colaborador-form.ts — lança colaboradores no Google Form "Colaborador AIVA"
- * (pedido do Aldo 2026-07-28).
+ * lib/colaborador-form.ts — ⛔ FLUXO DESATIVADO EM 2026-08-27 (aviso do Edu/AIVA:
+ * o formulário foi desligado; o sócio cria usuários pelo Live Chat da plataforma).
+ * enviarColaboradorAoForm tem guard e não posta mais. Histórico abaixo:
+ * lançava colaboradores no Google Form "Colaborador AIVA" (pedido do Aldo 2026-07-28).
  *
  * Contexto: pra equipe da loja receber acesso à plataforma AIVA, cada colaborador
  * precisa ser cadastrado no formulário. A VictorIA já coleta esses dados no chat
@@ -91,6 +93,14 @@ export function parseColaboradores(motivo: string): { validos: Colaborador[]; in
 
 /** Envia UM colaborador ao formulário. Retorna true se o Google registrou. */
 export async function enviarColaboradorAoForm(nomeLoja: string, c: Colaborador): Promise<boolean> {
+  // ⛔ DESATIVADO 2026-08-27 (aviso do Edu/AIVA): o formulário de colaboradores
+  // foi desligado — os logins de vendedores agora são solicitados pelo próprio
+  // sócio no Live Chat da plataforma (Cadastrar/Remover Usuário). Este guard
+  // impede POST num form morto se algum fluxo legado ainda emitir o motivo
+  // "dados_colaborador_coletados" (a VictorIA foi instruída a não emitir mais).
+  console.warn(`[COLAB_FORM_DESATIVADO] tentativa de lançar colaborador ${c.nome ?? '?'} (${nomeLoja}) — fluxo aposentado 27/08, nada enviado`)
+  if (true) return false
+
   try {
     const body = new URLSearchParams({
       [ENTRIES.nomeLoja]: nomeLoja,

@@ -26,11 +26,14 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const RE_MOTIVO =
-  /(atendimento_automatico[^|[]*|duvida_[^|[]*|pediu[^|[]*|interesse_[^|[]*|loja_[^|[]*|documentos_[^|[]*|dados_colaborador[^|[]*|qualificacao[^|[]*|cadastro[^|[]*|usuario_[^|[]*|alterac[^|[]*)/i
+  /(acesso_[a-z_]+|atendimento_automatico[^|[]*|duvida_[^|[]*|pediu[^|[]*|interesse_[^|[]*|loja_[^|[]*|documentos_[^|[]*|dados_colaborador[^|[]*|qualificacao[^|[]*|cadastro[^|[]*|usuario_[^|[]*|alterac[^|[]*)/i
 
 type Item = { nome: string; telefone: string; status: string; motivo: string; ultimaMsg: string | null }
 
 function categoria(motivo: string): 'acao' | 'docs' | 'mover' | 'sem_motivo' {
+  // acesso_flexfone_nao_chegou / acesso_colaborador_pendente (regra 27/08): loja
+  // parada sem login — sempre ação vermelha.
+  if (/^acesso_/i.test(motivo.trim())) return 'acao'
   const m = motivo.toLowerCase()
   if (!m.trim()) return 'sem_motivo'
   if (/cadastro_caf_confirmado|cadastro_completo\b/.test(m)) return 'mover'

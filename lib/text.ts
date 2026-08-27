@@ -55,8 +55,8 @@ export const APROVACAO_TEMPLATE_VAR =
   'https://retail-onboarding-hub.vercel.app/'
 
 /**
- * Calcula a próxima quinta-feira às 09:30 BRT (12:30 UTC).
- * Se hoje for quinta, pega a quinta da semana que vem.
+ * (nome histórico) Devolve o PRÓXIMO dia de treinamento — segunda ou quinta,
+ * 09:30 BRT (12:30 UTC). Atualizado 2026-08-27: turmas às segundas E quintas.
  * Treinamento dura 1h (09:30 às 10:30 BRT).
  */
 /**
@@ -100,17 +100,21 @@ export function contextoDeData(): {
 }
 
 export function proximaQuintaFeira09h30(): { start: string; end: string } {
-  const agora = new Date()
-  const diaSemanaUTC = agora.getUTCDay() // 0=dom, 4=qui
-  let diasAteQuinta = (4 - diaSemanaUTC + 7) % 7
-  if (diasAteQuinta === 0) diasAteQuinta = 7
-  const inicio = new Date(agora)
-  inicio.setUTCDate(agora.getUTCDate() + diasAteQuinta)
-  inicio.setUTCHours(12, 30, 0, 0) // 09:30 BRT
-  const fim = new Date(inicio)
-  fim.setUTCHours(13, 30, 0, 0) // 10:30 BRT
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]|\.\d{3}/g, '')
-  return { start: fmt(inicio), end: fmt(fim) }
+  // ATUALIZADO 2026-08-27: treinamentos agora às SEGUNDAS e QUINTAS 9h30–10h30
+  // (aviso do Edu). O nome da função ficou histórico — devolve o PRÓXIMO dia de
+  // treinamento (segunda ou quinta, o que vier primeiro; se hoje é dia de
+  // treino, pega o próximo — o convite é pra próxima turma).
+  const agoraBrt = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const DIAS_TREINO = [1, 4] // segunda, quinta (UTC-3 aplicado acima)
+  for (let add = 1; add <= 7; add++) {
+    const d = new Date(agoraBrt.getTime() + add * 24 * 60 * 60 * 1000)
+    if (DIAS_TREINO.includes(d.getUTCDay())) {
+      const y = d.getUTCFullYear(), m = String(d.getUTCMonth() + 1).padStart(2, '0'), dd = String(d.getUTCDate()).padStart(2, '0')
+      return { start: `${y}${m}${dd}T123000Z`, end: `${y}${m}${dd}T133000Z` }
+    }
+  }
+  // inalcançável (7 dias sempre contêm seg/qui) — fallback defensivo
+  return { start: '', end: '' }
 }
 
 /**
@@ -133,8 +137,8 @@ export function buildAvisoTreinamentoMsgs(): string[] {
 
   const msgReuniao =
     `🎓 *Treinamento:*\n` +
-    `Você já pode fazer o treinamento AGORA: é só assistir o vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem). Terminou, já pode começar a operar — sem esperar. 🚀\n\n` +
-    `Se preferir participar ao vivo, também temos turma nas *quintas-feiras às 9h30*:\n` +
+    `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento de segunda ou quinta.\n\n` +
+    `Se preferir participar ao vivo, temos turmas às *segundas e quintas, das 9h30 às 10h30*:\n` +
     `🔗 👉 meet.google.com/hqn-vcrr-dxo\n\n` +
     `📲 *Adicionar ao seu calendário:*\n` +
     `👉 ${calendarLink}`
@@ -145,10 +149,9 @@ export function buildAvisoTreinamentoMsgs(): string[] {
     `👉 https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing`
 
   const msgCadastro =
-    `📝 *Acessos da equipe:*\n` +
-    `Pra liberar o acesso de quem vai usar o sistema AIVA, me responde aqui com os dados de cada pessoa:\n` +
-    `• Nome completo\n• CPF\n• E-mail\n• Telefone\n\n` +
-    `Pode mandar tudo junto ou um por vez — eu mesma faço o cadastro pra você, sem formulário! 😊`
+    `🔑 *Acessos (regra nova):*\n` +
+    `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n` +
+    `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 48h úteis. 😊`
 
   return [msgReuniao, msgMateriais, msgCadastro]
 }
@@ -162,9 +165,9 @@ export function buildKitPosFechamentoMsg(nome: string): string {
     `🛡️ *Inadimplência:* risco *zero* pra você — a AIVA assume 100%. Se o cliente atrasar, o problema é dela, não seu.\n` +
     `📲 *Pro seu cliente:* aprovação em ~2 minutos, com DUAS financeiras na mesma consulta — pela AIVA o parcelamento é mensal (6x, 9x ou 12x) e, se ela não aprovar, a Odres Cred tenta na hora (bissemanal, 12x ou 18x). Menos venda perdida!\n\n` +
     `*Próximos passos:*\n` +
-    `1️⃣ Assista o *Curso_Treinamento* na pasta de materiais — terminou, já pode operar, sem esperar (a reunião ao vivo de quinta 9h30 é opcional)\n` +
-    `2️⃣ Me manda por aqui os dados dos seus funcionários (nome completo, CPF, e-mail e telefone de cada um) que eu cadastro os acessos pra você\n` +
-    `3️⃣ Recebendo o login, é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
+    `1️⃣ Participa do treinamento ao vivo — turmas às *segundas e quintas, 9h30–10h30* (o vídeo Curso_Treinamento na pasta de materiais adianta tudo)\n` +
+    `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n` +
+    `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 48h úteis). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )
 }
@@ -240,6 +243,8 @@ export const FONES_OFICIAIS = [
   // segunda entrada o pós-processamento apagava a frase inteira da VictorIA.
   '40202024',
   '5540202024',
+  '2140202024',   // mesma linha com DDD 21 (+55 21 4020-2024 — grafia do aviso do Edu 27/08)
+  '552140202024',
   '1140201990', // Suporte Odres Cred cliente final — WhatsApp (11) 4020-1990 (material Flexfone 27/08)
 ]
 

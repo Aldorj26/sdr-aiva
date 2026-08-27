@@ -34,8 +34,9 @@ const FLAG = 'FUP_TREINAR_VENDA'
 // {{2}} do template "Oi {{1}}, tudo bem?" — uma linha só, sem \n (a Meta rejeita
 // quebra de linha em variável). NÃO repete saudação (o corpo já abre com "Oi, tudo bem?").
 const MIOLO =
-  'aqui é a Victoria, da AIVA 🙌 Você já passou pelo treinamento e tá liberado pra vender. ' +
-  'Me conta: já saiu a primeira venda no crediário AIVA? Se ainda não, me diz o que tá faltando que eu te ajudo a destravar 🚀'
+  'aqui é a Victoria, da AIVA 🙌 Seu credenciamento já está na fase de treinamento. ' +
+  'Me conta: seu login já chegou (mensagem do +55 21 4020-2024 no WhatsApp) e já saiu a primeira venda? ' +
+  'Se algo travou, me diz o que tá faltando que eu te ajudo a destravar 🚀'
 
 /** Nome pra saudação: prioriza nome do sócio coletado, depois nome do lead, depois o título da loja. */
 function nomeContato(obs: string | null, leadNome: string | null, oppTitle: string): string {

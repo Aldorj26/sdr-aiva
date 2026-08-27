@@ -583,10 +583,10 @@ export async function POST(req: NextRequest) {
       const TREINAMENTO_TEMPLATE_ID = 69
       await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
-        '🎓 Treinamento: assista o vídeo Curso_Treinamento na pasta de materiais e já pode começar a operar — sem precisar esperar. Se preferir ao vivo, tem turma às quintas 9h30.',
+        '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30 — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
         '🔗 Reunião: https://meet.google.com/hqn-vcrr-dxo',
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
-        '📝 Acessos da equipe: me responde aqui com os dados de cada pessoa que vai usar o sistema (nome completo, CPF, e-mail e telefone) que eu mesma já faço o cadastro pra você — rapidinho e sem formulário!',
+        '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).',
       ])
 
       // Atualiza status no Supabase e registra histórico
