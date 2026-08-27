@@ -373,10 +373,18 @@ async function getEtapasEvo(): Promise<Record<string, EtapaEvo>> {
       getPipeOpportunities(PIPELINE_AIVA),
       getTagCatalog(),
     ])
+    // Ordem de progressão do funil — usada só pra desempate quando DUAS opps
+    // colidem na mesma chaveTel (ex.: Cell Maxx 27/08 — opp real em Loja
+    // Finalizada #12064 com fone sem 9º dígito + duplicata "Loja — AIVA" #12526
+    // em Início com o 9º dígito; a duplicata sobrescrevia e o painel mostrava
+    // "Início"). Em colisão, fica a etapa mais avançada.
+    const STAGE_RANK: Record<number, number> = { 66: 0, 69: 0, 53: 1, 47: 2, 54: 3, 49: 4, 50: 5, 70: 6, 71: 7, 51: 8 }
     const mapa: Record<string, EtapaEvo> = {}
     for (const o of opps) {
       const k = chaveTel(o.mainphone)
       if (!k) continue
+      const atual = mapa[k]
+      if (atual && (STAGE_RANK[atual.id] ?? -1) >= (STAGE_RANK[o.fkStage] ?? -1)) continue
       mapa[k] = {
         id: o.fkStage,
         label: STAGE_LABEL[o.fkStage] ?? `Etapa ${o.fkStage}`,

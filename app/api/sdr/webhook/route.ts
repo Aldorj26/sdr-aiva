@@ -1430,6 +1430,15 @@ export async function POST(req: NextRequest) {
     console.warn(`[TRAVA_ODRES_POS] IA tentou ${resposta.novo_status} pra lead ${lead.telefone} em ${lead.status} — mantendo status atual`)
     resposta.novo_status = lead.status
   }
+  // AGUARDANDO fica FORA de ORDEM_STATUS_FUNIL (nunca é bloqueado pelo guard de
+  // regressão), então a seção "já é cliente AIVA" do prompt conseguia rebaixar um
+  // lead pós-credenciamento pra AGUARDANDO — e no turno seguinte buildFaseInstrucao
+  // não injeta bloco de fase nenhum (achado do revisor 27/08, junto do caso Gold
+  // Case). Pós-credenciamento não regride pra estado de espera.
+  if (resposta.novo_status === 'AGUARDANDO' && STATUS_POS_CREDENCIAMENTO.includes(lead.status)) {
+    console.warn(`[TRAVA_AGUARDANDO_POS] IA tentou AGUARDANDO pra lead ${lead.telefone} em ${lead.status} — mantendo status atual`)
+    resposta.novo_status = lead.status
+  }
 
   // Lojista já usa Odres/UME → envia a mensagem OFICIAL (texto fixo, verbatim),
   // ignorando o que a IA gerou. A transferência da opp pro funil 19 acontece depois (§13).
@@ -2368,7 +2377,11 @@ export async function POST(req: NextRequest) {
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
     if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
   } else if (
-    ['TREINAR', 'LOGIN'].includes(lead.status) &&
+    // LFV incluído em 27/08 (caso Gold Case): lojista despejou dados de vendedor
+    // no chat com a loja já ativa e ninguém foi alertado — a rede só cobria
+    // TREINAR/LOGIN. Hoje a rede não lança nada (form morto), só alerta o time
+    // pra orientar o sócio a usar o Live Chat.
+    ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) &&
     capturarColaborador(conteudoEfetivo, dadosAcumulados?.cpf_responsavel as string | undefined)
   ) {
     // ─── REDE DE SEGURANÇA — colaborador que a VictorIA não emitiu ───────────
