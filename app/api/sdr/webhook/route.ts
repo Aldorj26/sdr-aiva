@@ -1313,7 +1313,7 @@ export async function POST(req: NextRequest) {
                 `📞 ${lead.telefone}\n` +
                 `🏢 CNPJ: ${cnpjPraChecar}\n` +
                 `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
-                `Barrado automaticamente: a VictorIA enviou o comunicado do Flexphone (parceria AIVA+Odres) e a oportunidade vai pro funil de integração com a tag ODRES. Nenhuma ação necessária.`
+                `Barrado automaticamente: a VictorIA enviou o comunicado do Flexfone (parceria AIVA+Odres) e a oportunidade vai pro funil de integração com a tag ODRES. Nenhuma ação necessária.`
               : `📇 *LEAD JÁ É DA BASE — CLIENTE AIVA/UME*\n\n` +
                 `🏪 ${lead.nome}\n` +
                 `📞 ${lead.telefone}\n` +
