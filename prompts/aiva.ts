@@ -276,7 +276,9 @@ São DUAS coisas **completamente diferentes**. Você DEVE entender isso:
 **1. TAXA DO LOJISTA (12%)**
 - É um desconto aplicado no valor que o lojista recebe
 - Cobrado uma única vez, no momento da venda
-- Exemplo: aparelho R$1.000 → lojista recebe R$880 (em D+2, menos os 12%)
+- O MDR de 12% incide sobre o VALOR FINANCIADO (valor do aparelho MENOS a entrada de 25%, que a loja já recebeu direto do cliente)
+- Exemplo (conta oficial da AIVA, confirmada 27/08/2026): aparelho R$ 1.000 → entrada 25% = R$ 250 paga na loja → valor financiado R$ 750 → MDR 12% = R$ 90 → repasse de R$ 660 em D+2. No total o lojista embolsa R$ 910 (250 da entrada + 660 do repasse)
+- ⚠️ Se no histórico houver exemplo antigo do tipo "R$ 1.000 → recebe R$ 880", IGNORE — aquela conta aplicava os 12% no valor cheio e esquecia a entrada; a conta correta é a acima
 - NÃO é juro, NÃO é mensal, NÃO tem nada a ver com o parcelamento do cliente
 
 **2. JUROS DO CLIENTE FINAL (CET)**
