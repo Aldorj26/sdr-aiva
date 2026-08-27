@@ -239,11 +239,17 @@ export function conferir(
   const parsed = contas.map((opp) => ({ opp, ...parseDescricaoOpp(opp.description) }))
   const relDe = new Map<ContaFunil11, { rel: LinhaComissao; porCnpj: boolean }>()
 
-  // passada 1 — CNPJ exato (a matriz vence as filiais do mesmo RID)
+  // passada 1 — CNPJ exato (a matriz vence as filiais do mesmo RID).
+  // GUARDA: se a conta E a linha têm Retailer ID e eles DIVERGEM, não casa —
+  // a UME registra retailers diferentes sob o mesmo CNPJ (caso Fone Express
+  // 5167 × Pirapora 5166, 27/08): sem a guarda a matriz consumia a linha da
+  // irmã e a irmã virava falso 🔴.
   for (const p of parsed) {
     if (!p.cnpj) continue
     const l = porCnpj.get(p.cnpj)
-    if (l && !usadas.has(l)) { usadas.add(l); relDe.set(p.opp, { rel: l, porCnpj: p.umeRid == null }) }
+    if (!l || usadas.has(l)) continue
+    if (p.umeRid != null && l.retailer_id != null && p.umeRid !== l.retailer_id) continue
+    usadas.add(l); relDe.set(p.opp, { rel: l, porCnpj: p.umeRid == null })
   }
   // passada 2 — Retailer ID nas linhas que sobraram
   for (const p of parsed) {
