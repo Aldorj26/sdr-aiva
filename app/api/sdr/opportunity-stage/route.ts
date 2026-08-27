@@ -584,7 +584,7 @@ export async function POST(req: NextRequest) {
       await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
         '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30 — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
-        '🔗 Reunião: https://meet.google.com/hqn-vcrr-dxo',
+        '🔗 Reunião — cada dia tem seu link: segundas https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo',
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
         '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).',
       ])

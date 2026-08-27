@@ -99,22 +99,33 @@ export function contextoDeData(): {
   }
 }
 
-export function proximaQuintaFeira09h30(): { start: string; end: string } {
+// Links Meet dos treinamentos AIVA — CADA DIA TEM O SEU (Aldo, 27/08):
+// segunda usa a sala nova, quinta segue na sala original.
+export const MEET_TREINO_SEGUNDA = 'https://meet.google.com/gdh-ppvw-nmp'
+export const MEET_TREINO_QUINTA = 'https://meet.google.com/hqn-vcrr-dxo'
+
+export function proximaQuintaFeira09h30(): { start: string; end: string; dia: 'segunda' | 'quinta'; meet: string } {
   // ATUALIZADO 2026-08-27: treinamentos agora às SEGUNDAS e QUINTAS 9h30–10h30
   // (aviso do Edu). O nome da função ficou histórico — devolve o PRÓXIMO dia de
   // treinamento (segunda ou quinta, o que vier primeiro; se hoje é dia de
-  // treino, pega o próximo — o convite é pra próxima turma).
+  // treino, pega o próximo — o convite é pra próxima turma) e o link Meet do dia.
   const agoraBrt = new Date(Date.now() - 3 * 60 * 60 * 1000)
   const DIAS_TREINO = [1, 4] // segunda, quinta (UTC-3 aplicado acima)
   for (let add = 1; add <= 7; add++) {
     const d = new Date(agoraBrt.getTime() + add * 24 * 60 * 60 * 1000)
     if (DIAS_TREINO.includes(d.getUTCDay())) {
       const y = d.getUTCFullYear(), m = String(d.getUTCMonth() + 1).padStart(2, '0'), dd = String(d.getUTCDate()).padStart(2, '0')
-      return { start: `${y}${m}${dd}T123000Z`, end: `${y}${m}${dd}T133000Z` }
+      const dia = d.getUTCDay() === 1 ? 'segunda' as const : 'quinta' as const
+      return {
+        start: `${y}${m}${dd}T123000Z`,
+        end: `${y}${m}${dd}T133000Z`,
+        dia,
+        meet: dia === 'segunda' ? MEET_TREINO_SEGUNDA : MEET_TREINO_QUINTA,
+      }
     }
   }
   // inalcançável (7 dias sempre contêm seg/qui) — fallback defensivo
-  return { start: '', end: '' }
+  return { start: '', end: '', dia: 'quinta', meet: MEET_TREINO_QUINTA }
 }
 
 /**
@@ -127,20 +138,21 @@ export function proximaQuintaFeira09h30(): { start: string; end: string } {
  * (reforço quando lead responde — Caminho 2).
  */
 export function buildAvisoTreinamentoMsgs(): string[] {
-  const proximaQuinta = proximaQuintaFeira09h30()
+  const proximoTreino = proximaQuintaFeira09h30()
   const calendarLink =
     `https://calendar.google.com/calendar/render?action=TEMPLATE` +
     `&text=${encodeURIComponent('Treinamento AIVA')}` +
-    `&dates=${proximaQuinta.start}/${proximaQuinta.end}` +
-    `&details=${encodeURIComponent('Link da reunião: https://meet.google.com/hqn-vcrr-dxo')}` +
-    `&location=${encodeURIComponent('https://meet.google.com/hqn-vcrr-dxo')}`
+    `&dates=${proximoTreino.start}/${proximoTreino.end}` +
+    `&details=${encodeURIComponent(`Link da reunião: ${proximoTreino.meet}`)}` +
+    `&location=${encodeURIComponent(proximoTreino.meet)}`
 
   const msgReuniao =
     `🎓 *Treinamento:*\n` +
     `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento de segunda ou quinta.\n\n` +
-    `Se preferir participar ao vivo, temos turmas às *segundas e quintas, das 9h30 às 10h30*:\n` +
-    `🔗 👉 meet.google.com/hqn-vcrr-dxo\n\n` +
-    `📲 *Adicionar ao seu calendário:*\n` +
+    `Se preferir participar ao vivo, temos turmas às *segundas e quintas, das 9h30 às 10h30* (cada dia tem seu link):\n` +
+    `🔗 Segundas 👉 ${MEET_TREINO_SEGUNDA.replace('https://', '')}\n` +
+    `🔗 Quintas 👉 ${MEET_TREINO_QUINTA.replace('https://', '')}\n\n` +
+    `📲 *Adicionar a próxima turma (${proximoTreino.dia}) ao seu calendário:*\n` +
     `👉 ${calendarLink}`
 
   const msgMateriais =

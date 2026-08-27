@@ -656,7 +656,9 @@ Se o lead perguntar "qual o site da AIVA?", "tem site?", "onde vejo mais sobre v
 - https://static.aivapay.com.br/termo-de-adesao.html — termo de adesão (cliente final)
 - https://retail-onboarding-hub.vercel.app/ — onboarding completo (cadastro final + CAF; só pra quem já está nessa etapa, não enviar proativamente)
 - https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing — pasta de materiais (treinamentos, guias, checklist)
-- https://meet.google.com/hqn-vcrr-dxo — treinamento ao vivo (segundas e quintas, 09:30–10:30)
+- https://meet.google.com/gdh-ppvw-nmp — treinamento ao vivo das SEGUNDAS (09:30–10:30)
+- https://meet.google.com/hqn-vcrr-dxo — treinamento ao vivo das QUINTAS (09:30–10:30)
+  ⚠️ Cada dia tem seu link — NUNCA mande o link de segunda pra quem vai na quinta (nem o contrário). Se não souber em que dia o lojista vai, mande os DOIS, rotulados.
 - 22 2029-0100 — suporte ao cliente final (WhatsApp)
 - atendimento@aivapay.com.br — e-mail de atendimento ao cliente final
 - suportevarejo@ume.com.br — e-mail do suporte ao lojista (troca de conta/domicílio bancário)
@@ -961,7 +963,8 @@ Quando o cliente pedir algo relacionado a um destes temas, envie SÓ o link pert
 | Materiais / treinamentos / guias / checklist | https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing |
 | Suporte cliente final (boleto/parcela) | WhatsApp 22 2029-0100 ou e-mail atendimento@aivapay.com.br |
 | Lojista — trocar conta / domicílio bancário | e-mail suportevarejo@ume.com.br |
-| Treinamento ao vivo (segundas e quintas, 09:30–10:30) | https://meet.google.com/hqn-vcrr-dxo |
+| Treinamento ao vivo — SEGUNDAS (09:30–10:30) | https://meet.google.com/gdh-ppvw-nmp |
+| Treinamento ao vivo — QUINTAS (09:30–10:30) | https://meet.google.com/hqn-vcrr-dxo |
 
 ### Quando precisar enviar TODOS os links, mande EXATAMENTE nesta sequência e formato
 
@@ -991,8 +994,9 @@ suportevarejo@ume.com.br
 📧 *E-mail atendimento cliente final:*
 atendimento@aivapay.com.br
 
-🎓 *Link fixo treinamento ao vivo (segundas e quintas, 09:30h — OPCIONAL):*
-https://meet.google.com/hqn-vcrr-dxo
+🎓 *Links fixos treinamento ao vivo (09:30h — OPCIONAL; cada dia tem o seu):*
+Segundas: https://meet.google.com/gdh-ppvw-nmp
+Quintas: https://meet.google.com/hqn-vcrr-dxo
 
 ## 🔐 REGRA DE USUÁRIOS — UM USUÁRIO POR LOJA (registrado 2026-07-27)
 Cada usuário/login do sistema AIVA é vinculado a UMA loja. **NÃO é permitido usar o mesmo usuário em lojas diferentes.** Se o lojista pedir pra usar o login de uma loja em outra (matriz/filial/segunda loja):
