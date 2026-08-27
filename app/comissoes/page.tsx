@@ -112,6 +112,10 @@ export default async function ComissoesPage({
   const linhasMes = (linhasDb ?? []) as (LinhaComissao & { origem: string })[]
   const desempenhoMes = (desempDb ?? []) as DesempenhoMes[]
   const funil11Ok = contasTodas.length > 0
+  // Snapshot do Data Studio existe pra este mês? Sem ele NÃO há contraprova —
+  // e "Divergências 0" enganaria (julho/26 não tem snapshot; o 1º import foi
+  // 20/08). Questionado pelo Aldo em 27/08.
+  const temContraprova = desempenhoMes.length > 0
 
   // O funil 11 é o MRR da Track INTEIRA — tem contas de outros produtos
   // (Autofix, Unifique, Rankmyapp etc., pedido do Aldo 26/08). Só entram na
@@ -301,11 +305,15 @@ export default async function ComissoesPage({
             ativo={sp.estado === e}
           />
         ))}
-        <Card label="🔴 Divergências" value={String(porEstado.divergencia)}
-          cor={porEstado.divergencia > 0 ? '#dc2626' : 'var(--text-muted)'}
-          href={qs({ estado: sp.estado === 'divergencia' ? undefined : 'divergencia' })}
-          ativo={sp.estado === 'divergencia'}
-        />
+        {temContraprova ? (
+          <Card label="🔴 Divergências" value={String(porEstado.divergencia)}
+            cor={porEstado.divergencia > 0 ? '#dc2626' : 'var(--text-muted)'}
+            href={qs({ estado: sp.estado === 'divergencia' ? undefined : 'divergencia' })}
+            ativo={sp.estado === 'divergencia'}
+          />
+        ) : (
+          <Card label="🔴 Divergências" value="—" sub={`sem snapshot do Data Studio em ${mes}`} cor="var(--text-muted)" />
+        )}
       </section>
 
       {/* Busca */}
@@ -367,8 +375,8 @@ export default async function ComissoesPage({
                   <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(l.relatorio?.mdr)}</td>
                   <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{fmtBRL(l.relatorio?.comissao)}</td>
                   {tab === 'aiva' && (
-                    <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                      {l.desempenho ? `${fmtInt(l.desempenho.vendas)} vendas · ${fmtBRL(l.desempenho.valor_vendas)}` : '—'}
+                    <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }} title={temContraprova ? undefined : `Sem snapshot do Data Studio pra ${mes} — sem contraprova neste mês`}>
+                      {l.desempenho ? `${fmtInt(l.desempenho.vendas)} vendas · ${fmtBRL(l.desempenho.valor_vendas)}` : temContraprova ? '—' : 'sem snapshot'}
                     </td>
                   )}
                   <td style={td}>
