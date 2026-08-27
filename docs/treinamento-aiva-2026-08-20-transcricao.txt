@@ -1,0 +1,454 @@
+# Transcrição automática (faster-whisper) do treinamento AIVA de 20/08/2026 (53 min, Eduardo/AIVA).
+# Fonte: gravação 2026-08-20 09-40-07.mp4. Base das regras Flexfone adicionadas ao prompt em 27/08.
+[00:00] Vamos começar agora o treinamento, eu me chamo Eduardo e quando tiverendo o despodinho,
+[00:10] falar gente.
+[00:15] Bom, é...
+[00:18] Um compartilhante da tela aqui...
+[00:30] Vocês estão conseguindo ver minha tela aqui gente?
+[00:45] Bom gente, estão treinamento, aiva.
+[00:53] O que é aiva gente?
+[00:56] Aiva é nada mais a do que a forma de querer estar assistível para expandir o poder de compra
+[01:02] e vocês conseguirem vender mais.
+[01:05] Quais são as vantagens da Aiva?
+[01:08] Ela tem um pagamento mensal, inclusão de serviços de assessores direitos no jornado, uma experiência
+[01:13] superguiada, a possibilidade de aterar o preço durante a execução e uma taxa de juros
+[01:20] super competitiva gente.
+[01:22] Ela tem a menor taxa de juros do mercado, tá?
+[01:27] Ela vai aprovar um pouco menos, vai ter uma taxa de juros menor do mercado, ou seja, o valor
+[01:33] da parcela pro cliente vai ser menor.
+[01:37] O que quer dizer é que quando você aprova esse cliente, ele tem uma chance de 99,
+[01:43] por cento virar venda porque a taxa de juros é muito mais barata do que outras taxas de
+[01:50] juros, né?
+[01:52] E aí para compensar essa menor aprovação, você vai ter também a financeira Odres, que
+[02:00] é uma financeira bicemanal.
+[02:01] Então o cliente não foi aprovado na Aiva, ele vai para Odres, tá?
+[02:08] E então primeiro a aprovação na Aiva, pude se não foi aprovado, faz a aprovação na
+[02:15] Odres e aí, enfim, caso ele seja aprovado, ele será aprovado no parcelamento de semanal
+[02:21] que eu vou falar mais na frente.
+[02:26] Aqui, falando um pouco, a gente trabalha com uma lista de aparelhos e cada modelo tem
+[02:32] um preço tabelado e aí nesse preço tabelado você pode aumentar em 15%, ou diminuir em
+[02:38] até 15%.
+[02:40] O valor da entrada, gente, ele é de 25% e deve ser pago diretamente para a loja, tá?
+[02:47] Esse é o valor da entrada.
+[02:49] Então, aqui a entrada, gente, ela é o maior controle da inade de implência, tá?
+[02:56] Porque pagando a entrada, o cliente se responsabiliza ali, ele dá um sinal de responsabilidade de pagar
+[03:03] essas passalas, caso ele não paga suas passalas, o bloqueador de tela será ativado e aí
+[03:11] ele não vai conseguir usar o celular e vai perder esse dinheiro que ele pagou na entrada.
+[03:17] Então, ele pagando a entrada, ele vai pensar 2 vezes em não pagar a um e a a flex funnel como
+[03:26] tudo.
+[03:27] Bom, as opções de parcelamento, gente, da Ivo, ela é 6 meses, 9 meses ou 12 meses,
+[03:33] tá?
+[03:34] São 3 opções.
+[03:37] Fala um pouco da jornada do cliente, gente.
+[03:40] Ela pode ser dividida em 4 principais etapas, 1ª análise de crédito, depois você vai
+[03:45] escolher o aparelho e o plano de pagamento, ali se for Ivo vai ser mensal na 6, 9, 12,
+[03:51] 4 horas, vai ser dissemional aí, 12 ou 18 vezes dissemional.
+[03:59] Depois disso, tem a configuração da trava, que é o bloqueador de tela, que eu falei para
+[04:03] vocês, caso o cliente esteja com o parcelo em atraso, você terá o seu bloquiat.
+[04:18] E por último, é o pagamento que é a etapa mais importante da jornada do cliente que vai
+[04:23] aditar a inade de implência no ponto de vendas de você.
+[04:28] Bom, plataforma de vendas, gente.
+[04:31] Como eu falei para vocês, vocês vão ter as duas financeiras, né?
+[04:37] Finançera Ivo e a financeira Odres, no mesmo lugar.
+[04:40] E para acessar essas duas financeiras ao mesmo tempo, você vai acessar esse site aqui,
+[04:47] vendas.flexphone.com.br, barra login.
+[04:52] Então é por ele que você vai conseguir ter as duas financeiras, gente.
+[04:58] Aí você vai colocar um CPF do cliente e aí automaticamente ele vai ser aprovado ou na
+[05:04] Ivo ou na Odres.
+[05:05] Você não consegue escolher qual é a financeira daquele cliente em específico.
+[05:12] Como você vai receber a senha, gente?
+[05:16] A senha você vai receber via WhatsApp por esse número aqui, 40, 20, 24.
+[05:24] E aí você vai receber uma mensagem lá, o seu nome, seu acesso, flexphone, estar
+[05:29] pronto, quer receber seus informações de acesso agora por aqui.
+[05:33] Aí você clica nesse botão, sim quero.
+[05:37] Aí quando você clicar, vai aparecer essa mensagem aqui automática e logo abaixo, vai aparecer
+[05:43] gente.
+[05:44] O login de vocês, que é o e-mail e a senha logo abaixo aqui, tá?
+[05:49] E aí se você clicar aqui em acessar flexphone, você já vai direto para esse link aqui que
+[05:56] eu falei para vocês.
+[05:57] Então é assim que vai funcionar.
+[06:06] Vocês vão receber uma mensagem depois do treinamento até hoje de fim de tarde.
+[06:13] Bom, como é que funciona análise de trecho, gente?
+[06:17] Antes de a gente entrar em detalhe, é importante que ressaltar aqui o crédito.
+[06:22] Precisas ser oferecido para pessoas com maior de 18 anos, que esteja com o celular próprio
+[06:27] com número tive e mouse, não pode ser de familiares ou terceiros.
+[06:31] A vinda precisa ser presencialmente loja e o cadastro não pode ser feito com fotos do
+[06:36] cliente e do documento, tá?
+[06:39] E que seja capaz de realizar a assinatura.
+[06:41] A pessoa precisa ser uma pessoa fobetizada porque ela vai ter que ler o contrato ali que
+[06:47] o contrato do financiamento, gente, tá bom?
+[06:52] Bom, como funciona aqui, gente?
+[06:55] Você vai colocar o CPF da pessoa, o teléfone celular dela e aí ela vai receber um código
+[07:05] de SMS e ela precisa repassar para vocês.
+[07:09] Puts, a cliente falou que o sinal dela é horrível ou não pega SMS ou o sinal da loja também
+[07:16] não pega SMS.
+[07:17] O que eu faço?
+[07:18] Você vai clicar para reinviar esse código, clique aqui para reinviar e aí esse código
+[07:25] vai chegar no WhatsApp da pessoa e aí ela repassa para vocês.
+[07:30] Clicando em confirmar o teléfone, aí você finalmente vai conseguir saber se a pessoa foi
+[07:36] aprovado ou não.
+[07:37] Nesse caso aqui nessa tela significa que o crédito não foi aprovado, não tem o que fazer.
+[07:43] Por outro lado, gente, se aparecer essa tela aqui com a lista dos aparelhos que a gente
+[07:47] trabalha, é porque essa, esse crédito foi aprovada.
+[07:58] Então beleza.
+[07:59] Aqui você vai escolher o teléfone, aqui vai ter o preço de referência que eu preço
+[08:05] estabeleado e aí você pode aumentar ou diminuir em até 15% esse preço aqui.
+[08:13] Aqui em adicional o carrinho, ao clicar em adicional o carrinho vai aparecer aqui os valores
+[08:19] dos assessores, gente.
+[08:21] Então valor do assessório aqui nesse caso 147 serviços, então você vai adicionar qual
+[08:28] o valor você quer colocar de assessório ou serviço, ou seja, capinha, celular, capinha,
+[08:36] película, etc.
+[08:38] E quem é a avançar para o financiamento?
+[08:41] Uma possível resposta que pode aparecer, gente, é para você simular com um carrinho diferente.
+[08:46] O que isso significa?
+[08:48] Significa que você precisa mudar o valor do assessório e o valor do serviço, porque você
+[08:55] colocou um valor exorbitante.
+[08:57] Aqui não tem nada a ver com o celular, tá?
+[09:01] Você só volta para o carrinho e muda o valor do assessório ou o serviço, tá?
+[09:07] Então vamos diminuir.
+[09:10] Dando tudo certo, gente, vai vir para cá.
+[09:13] E aqui, gente, nessa tela vocês vão conseguir saber se esse cliente é a ivo ou se ele foi
+[09:20] aprovado na odre, tá?
+[09:22] Então essa é a tela que vocês vão saber, tá?
+[09:26] Eu vou mostrar para vocês aqui.
+[09:32] Então, no caso de vocês, gente, vai aparecer essa tela aqui, é a parte da doco.
+[10:05] O plano de pagamento.
+[10:07] Então nesse caso aqui, esse print significou que o cliente foi financiado por ivo.
+[10:13] Aqui, olha o azulzinho aqui em cima.
+[10:16] Financiado por ivo.
+[10:18] A ivo é mensal, tá?
+[10:20] E aí vai aparecer o parcelamento aqui, 6, 9 ou 12 meses.
+[10:25] Por outro lado, gente, se esse cliente foi financiado por odres, vai aparecer aqui financiado
+[10:32] por odres cred.
+[10:35] E aí, o financiamento é bicemonal como bem falado aqui ao financiamento com pagamentos
+[10:41] bicemonais e aqui vai ter as duas opções de parcelamento, 12 vezes ou 18 vezes.
+[10:48] Tá bom, gente?
+[10:49] Gravem isso aqui.
+[10:51] Financiado por odres cred.
+[10:52] É bicemonal.
+[10:54] Financiado por ivo é mensal como fala aqui, gente.
+[11:04] Vamos voltar aqui.
+[11:09] Então, beleza, com o local.
+[11:11] O local, como eu falei pra vocês, né, é o bloqueador de tela, então caso o cliente
+[11:16] não pague a sua parcela, o seu celular será bloqueado.
+[11:20] Aqui vai ter entrada, então entrada mínima aqui nesse caso, 199 reais, então você precisa
+[11:27] cobrar do cliente pelo menos 199 reais.
+[11:30] Puts, mas o cliente ele tem mais dinheiro que é dar mais entrada.
+[11:34] Aí se alaciona a opção aqui que condice.
+[11:37] Se alacionando a opção, ele vai ter um valor da parcela menor.
+[11:45] Clica em revisar financiamento.
+[11:52] Aqui vai encontrar o primeiro vencimento, gente.
+[11:55] No mensal, é sempre no mesmo dia da compra, só que no mês seguinte.
+[11:59] Então, você vendeu a aparelho no dia 20 de agosto, no dia 20 de setembro será o vencimento
+[12:06] da primeira parcela, gente.
+[12:08] O vencimento da parcela, gente, é sempre fixo.
+[12:12] Não tem como alterar, tá, gente?
+[12:15] Sempre no mesmo dia da compra, só que no mês seguinte para aiva.
+[12:19] Para a Odris, é sempre 14 dias depois da primeira compra.
+[12:26] Segue com a contratação.
+[12:27] E aí, gente, vai aparecer aqui os campos vazios pra vocês preencher em nome, data de nascimento,
+[12:35] ponto de extrema atenção, gente.
+[12:38] Data de nascimento ao preencher, confira o cliente se você colocou a data correta.
+[12:44] Ela é essencial para o cliente conseguir acessar o link de pagamento dele, conta para
+[12:49] ele meter os boletos e pagar as parcelas.
+[12:52] Então, é extremamente importante você preencher essa data de nascimento.
+[12:57] Bom, aqui é biometria, gente.
+[13:01] Então, tem 2 opções.
+[13:02] A primeira opção é quando você tem o dispositivo que você tá usando, tem câmera frontal.
+[13:09] Para a outra lado, quando o dispositivo não...
+[13:11] não tem câmera frontal, você clica nessa opção aqui para fazer a biometria para o cliente.
+[13:17] Quais são as possíveis respostas, gente? A identidade não foi confirmada nesse caso.
+[13:23] Não tenho o que fazer, gente. Possivelmente o CPF que você colocou não com o discorrosso
+[13:29] da pessoa e também a pessoa pode ter alguns antecedentes criminales, algo do tipo, que
+[13:36] vai dar a identidade não confirmada e não tem o que fazer, gente.
+[13:41] Em serra consulta e não dá para vender.
+[13:45] Dando tudo certo, gente, vocês vêm para cá e aí a configuração da do Locker.
+[13:54] Você vai digitar o e-mail e um do aparelho. O e-mail e um do aparelho, ele sempre está na parte externa
+[14:00] da caixa do aparelho, novo para quem vai vender o aparelho que você vai vender.
+[14:08] Digita o e-mail. Ao digitar o e-mail, duas vezes e aparecer essa falha na verificação
+[14:14] duas vezes, gente, significa que ele não está ativo. E aí o suporte tem até dois
+[14:23] vezes Jesus para ativar esse e-mail. E aí para que você não perca venda, você já pega
+[14:29] um outro celular do mesmo modelo e coloca o e-mail desse novo celular desse novo aparelho.
+[14:37] Dando tudo certo, gente, vai aparecer essa tela aqui com a marca e o modelo. Então marca
+[14:43] realme o modelo no 60.
+[14:47] E quem configura a chapa dele, ao clicar em configura, vai aparecer, gente, o passo a passo
+[14:53] de como deve ser instalado esse Locker. E aí, gente, um ponto extremamente importante
+[15:00] aqui. Sempre deixe o celular na versão mais atualizada possível e no modo fábrica, antes de
+[15:07] começar a seguir o passo a passo, gente. Então o celular novo que você vai vender pro cliente,
+[15:14] deixa a nova versão mais atualizada possível e na e no modo fábrica. Possíveis respostas,
+[15:22] gente. Então seguiu o passo a passo e aí uma possível resposta que pode aparecer essa
+[15:28] aqui, configuração ainda não foi confirmada, gente. Nesse caso, é aguardar uns dez,
+[15:35] vinte segundos para clicar em tentar novamente e aí ao tentar novamente, vai aparecer aqui
+[15:40] deu tudo certo, você já pode sair dessa página. O que é que essa tela significa, gente,
+[15:46] significa que o Locker foi ativo nesse novo aparelho, mas a venda só é finalizada,
+[15:53] gente, quando você clicar em continuar. Antes disso, a venda não é finalizada, gente. Então
+[15:58] presta em muita atenção nisso. Venda só é finalizada ao clicar em continuar. Bom, aqui,
+[16:08] a venda foi finalizada, já vai ter um lembrete aqui, um lembrete aqui de qual é tal pagamento
+[16:13] da entrada, né? Nesse caso, aqui, do zeno e certo reais. E aí vai aparecer aqui, gente,
+[16:19] a opção de imprimir a Ccb, a opção não, o quadrado aqui de imprimir a Ccb, gente, a Ccb, ela é
+[16:29] o contrato que mostra o valor da passada, ela que o cliente vai pagar, que se ele não pagar o seu
+[16:36] nome, ele vai ser bloqueado. Então, isso aqui é o contrato, gente, é o contrato do
+[16:41] financiamento. Você precisa imprimir duas vias desse contrato, ambas assinadas pelo
+[16:48] cliente, uma fica com você e outra fica com clientes. Isso é pra gente ter um respal do jurídico,
+[16:53] gente. Isso é extremamente obrigatório, é obrigatório isso aqui. Então, você vai imprimir duas
+[17:00] vias da Ccb, ambas assinadas pelo cliente, uma fica com você e a outra o cliente leva,
+[17:06] tá? Isso é pra gente se defender jurídicamente que o cliente aceitou o financiamento, é a
+[17:13] prova de que o cliente aceitou. Ao clicar em visualizar com o provante, você encontra essa tela
+[17:22] aqui e essa tela, gente, é o recivo de venda, é o comprovante de venda que vocês vendeiram,
+[17:28] um aparelho, isso aqui é pra controle de vocês logistas, vendedores, gerentes, etc.
+[17:35] Bom, agora a gente entrou, gente, na sessão mais importante que a sessão do pagamento,
+[17:44] então essa sessão do pagamento e aqui, gente, vai ter uma diferença. Quando o cliente for aprovado
+[17:57] na AIVA, e seja, vender, num passeamento mensal, esse vai ser o site clientes.ivp.com.br,
+[18:05] tá? Então, você vai acessar aqui, vai entrar na conta dele, então vai pegar esse novo celular,
+[18:15] né, que você acabou de vender, vai acessar o clientes.ivp.com.br, entrar na conta dele e aí vai aparecer essa
+[18:23] tela aqui, gente. E aí, você seleciona a parcela aqui, no caso 4 de abril,
+[18:29] ao selecionar a parcela, vai aparecer aqui perguntando qual que é a melhor data de vencimento
+[18:36] desse boleto, gente, tá? E, putz, eu falei pra vocês que o vencimento da parcela é sempre
+[18:44] fixo. Se for AIVA é 30 dias depois, se for ordres, vai ser 14 dias depois. Então, por que
+[18:52] o cliente precisa escolher o vencimento do boleto? Aqui, gente, é porque, caso o cliente queira
+[18:58] pagar adiantado, ele precisa escolher a data que ele vai pagar adiantado. Então, vamos supor que o
+[19:06] cliente AIVA, então você vendeu o celular no dia 20 de agosto. No dia 20 de setembro, vai ser o vencimento
+[19:13] da primeira parcela. Mas, putz, o cliente falou que no dia 1 de setembro, ele já vai ter o dinheiro
+[19:20] e ele já vai querer pagar. Então, ele vai escolher o vencimento do boleto para primeiro
+[19:27] desse setembro. E aí, ele pagando no dia 1 de setembro, ele vai ter um desconto, porque o vencimento
+[19:35] da parcela dele é só dia 20 de setembro. Então, um de setembro para 20 de setembro tem 19 dias
+[19:43] de antecipação. Então, ele vai ter um desconto de 19 dias. Ficou claro, gente, esse ponto do por que
+[19:52] precisa escolher o vencimento do boleto? Bom, então, vamos lá. Tuporte ao cliente, gente, qual que é o suporte?
+[20:15] O suporte vai ser esse canto direito inferior, esse circo azul no canto direito inferior. E aí, você vai
+[20:22] clicar no círculo indicado para acessar o live chat. Clicando nele, gente, vai aparecer essa tela
+[20:30] aqui, que é a tela do chat, é a tela por onde você vai tirar as dúvidas. Por outro lado, quando o
+[20:38] cliente é aiva, o WhatsApp é esse equipe 22, 20, 29, 0, 100. Esse é o WhatsApp do cliente. Então,
+[20:48] os principais assuntos, né, gente, ajuda a configurar o loco em missão de boleto, com o selamento,
+[20:53] troca de aparelho com o defeito de fábrica. Beleza. Pudes, vocês também, gente, podem emitir o boleto para
+[21:03] o cliente acessando o suporte. Aqui, eu vou mostrar um vídeo de como faz esse boleto. Então,
+[21:32] em missão de boleto, coloco o CPF do cliente, CPF aqui, data de vencimento, pagar uma
+[22:13] parcela, clique em emitir boleto, e aí pronto, clica no link desse boleto. Ao clicar no link desse boleto,
+[22:39] gente, essa é a cara do boleto. E aqui, gente, é muito importante a um ponto de estremma,
+[22:46] atenção, sempre falha pro cliente, pagar via PIX, via esse que é ricódio aqui, esse quadrado,
+[22:53] tá? Porque, gente, o PIX, ele tem uma compensação bancária, e aí ele paga o PIX, o dinheiro já cai no nosso
+[23:03] sistema na nossa conta. Por outro lado, o boleto bancário, que é esse código de barras aqui, a compensação dele é
+[23:13] 2 a 3 Jesus. Então, se o cliente pagar no dia do vencimento, o dinheiro só vai cair no sistema,
+[23:21] depois de 2 a 3 dias, depois do vencimento. E aí, o nosso sistema vai entender que o cliente está
+[23:29] 2 a 3 dias de atraso de parcela. Então, o celular dele pode bloquear. Dito isso, sempre falha pro
+[23:39] cliente, pagar via PIX, que é esse quadrado aqui, gente, esse que é ricódio. Nunca pagar via código de barras.
+[23:48] Bom, gente, inade em plença. Essa aqui é a sessão mais importante da apresentação, e
+[24:01] porque ela que vai ditar a aprovação no ponto de venda de vocês, ela que vai ditar a gente,
+[24:09] o quanto a gente vai aprovar no ponto de venda. Vocês são varejos aqui que estão com uma sorte maior,
+[24:20] porque vocês vão acessar esse flexphone e vão ter as duas financeiras. Só que, ao mesmo tempo que
+[24:27] vocês têm essa sorte maior, esse poder maior, vocês têm uma responsabilidade maior. Porque, se a gente
+[24:36] verificar que a inade de imprensa está alta, a gente vai ter que cortar a financeira
+[24:40] ordres do ponto de venda de vocês, gente. Então, sempre sigam o processo, os pontos de atenção. Então,
+[24:49] aqui, gente, quatro pontos aqui. Não cada ser a telefona de terceiros quando o cliente não
+[24:54] pode ser número próprio, nesse caso orientar o cliente a adquirir no chip. Comunicar quando é a
+[25:00] iva sobre o passeamento mensal, compartilhar o telefonio da centrada do cliente e entregar o
+[25:05] chip e o cliente para o cliente. Para este tipo de coisa, a gente vai mostrar quando for o cliente
+[25:15] ordres, mas muito importante aqui, gente. Aqui são as informações necessárias que o cliente deve saber
+[25:23] antes de sair da lógica. Então, por isso, sempre mil a duas vezes da CCB, mas as assinadas foi o cliente,
+[25:31] acessou o link de pagamento dele. Finalmente, o último passo aqui, gente, é imprimir esse
+[25:37] teaquiliche. O cliente vai preencher com o acompanhamento de vocês e ele vai levar para casa dele.
+[25:44] Porque, aqui, contém todas as informações. Então, caso de não pagamento da fatura, o aparelho
+[25:49] será bloqueado. Para desbloqueir na hora, o pagamento deve ser feito viaX, após a compra da
+[25:54] aparelho. Não é possível trocar por outro modelo. As parcelas são mensais e vencinhas sempre no
+[25:59] mesmo dia da compra. Para emitir mensalmente seus boletos, acesse o site cliente.ivap.com.br.
+[26:06] E este aqui é o vencimento, em fin nome, CPF e aqui tem o WhatsApp.
+[26:22] Então, gente, para simplificar, eu coloquei aqui o processo de pós-venda para as duas financeiras, gente.
+[26:34] Então, quando o cliente é financiado por AIVA, você vai em primeias duas vezes da CCEB,
+[26:40] acessar o site clientes.IVAP.com.br no seu lado cliente, entrar na conta dele e ensinar como pagar as parcelas.
+[26:49] Você vai em primeiro te aquiliche AIVA para o cliente preencher com o acompanhamento de vocês e ele levar para casa.
+[26:55] E por último, você vai passar o WhatsApp de suporte ao cliente 22, 20, 29, 0, 100.
+[27:02] E esse aqui é o teaquiliche. Por outro lado, gente, quando é financiado por AIVA, você vai em primeir também as duas vezes da CCEB.
+[27:12] Só que agora, o site para ele pagar é esse aqui clientes.odris.cred.com.br.
+[27:20] O terceiro passo, você vai em primeiro teaquiliche.odris, que é esse aqui, que está aqui logo abaixo.
+[27:28] E por último, passar o WhatsApp do suporte ao cliente.odris também, que é o número diferente. Então, da AIVA é o 20, 29, e o da Odris é isso aqui.
+[27:39] Gente, não precisem se preocupar. Eu vou mandar essa foto aqui para vocês e vocês imprino essa foto e coloquem na parede da loja de vocês para vocês não esquecerem de cumprir esse processo, gente.
+[27:55] Essas quatro etapas, elas são extremamente importantes, gente, para que a gente contém uma inade imprensia excelente no ponto de venda de vocês.
+[28:07] Tá bom, gente? A gente vai mandar o material também o teaquiliche, né? Os PDFs, o teaquiliche AIVA, o teaquiliche.odris para que vocês consigam passar.
+[28:17] Bom, gente, práticas proibidas aqui que a gente considera como um fraude.
+[28:26] É... Pode perguntar. O que a gente levantou a mão? Não, beleza.
+[28:40] Práticas proibidas, será removido da plataforma, gente? Caso seja feito venda fora de loja, não cobre entrada de 25% do cliente, escolhe uma parede na plataforma e configura outra parede diferente.
+[28:58] Dependendo da gravidade, gente, dessa esfraud, você estará sujeito a bloqueio de repassa também. Tá?
+[29:07] Então, repetindo aqui, venda fora de loja, não cobrar entrada do cliente e escolher uma parede na plataforma e configura outra.
+[29:15] Bom, gente, a gente coloca uma meta de 15 aparelhos por mês em cada loja.
+[29:27] Então, assim, como vocês vão bater essa meta, gente? Vocês vão bater essa meta através da consulta.
+[29:36] Então, vocês vão consultar e consultar, gente. Essa é a forma de bater a meta, tá?
+[29:43] E aí, gente, a loja ideal é consulta ali 150 clientes por mês, tá? Então, aqui é um caso real, uma loja consulta 185,
+[29:56] que é o que eu vou fazer com a Provo 52, vendeu 25 aparelhos.
+[30:00] Para isso, gente, a gente vai dar uma comissão para vocês, duas comissões.
+[30:06] Na verdade, é uma comissão e a outra é uma campanha, uma supercampanha que a gente está fazendo, especialmente para vocês, dessa semana.
+[30:15] A primeira delas, gente, que a comissão, a Aiva vai pagar uma comissão de 10 reais por cada venda que vocês fizeram.
+[30:24] Então, venderam 10 aparelhos, vocês vão receber 100 reais dessas vendas, tá?
+[30:33] Quando vocês vão receber esse dinheiro, vocês vão receber esse dinheiro no décimo dia útil do mês seguinte.
+[30:39] Então, vocês fizeram 10 vendas em agosto, vocês vão receber 100 reais dessas vendas em agosto, em setembro, no décimo dia útil do setembro.
+[30:54] Como vocês vão receber esse dinheiro, gente, via chavepix, tipo CPF.
+[30:59] O único jeito, gente, de vocês receberem essa comissão é vocês terem uma chavepix, tipo CPF.
+[31:07] Se vocês não tiverem essa chavepix, tipo CPF, a gente não tem como pagar vocês, tá?
+[31:16] Então, se não tem, vai no banco de vocês, ou vai na aplicativa do banco de vocês e criam uma chavepix, tipo CPF, gente.
+[31:25] Precisa ser tipo CPF, tá?
+[31:29] Sai desse treinamento, entrem já no aplicativo do banco de vocês e criem essa chave.
+[31:38] Pode plantar. Sem perguntas, beleza.
+[31:46] Bom, e...
+[31:48] A Juliana tá com a mão legal untada.
+[31:51] Ela já tem um tempo, acho que desde o início...
+[31:54] Lázaro também.
+[32:00] Lázaro, quer falar alguma coisa?
+[32:04] Sobre a questão de clientes negativosados, é aprovado.
+[32:08] Vai ser aprovado. Aqui, você vai ter duas financeiras, duas financeiras extremamente potentes.
+[32:14] Então, se não for aprovado na Aiva, vai para a Odre, se quer bicem manual.
+[32:20] E essa comissão, a gente pode oferecer com os vendedores, essa comissão de 10 nés, para a Farim.
+[32:26] Não, é exatamente. Eles vão receber no 10 no dia útil do mês seguinte, mas eles precisam ter a chavepix, tipo CPF,
+[32:34] e precisam ter preenchido lá os dados dos colaboradores, o formulário lá que eu vou mostrar aqui no final do treinamento, para que não preencheu ainda.
+[32:43] Tá.
+[32:44] Tá, você vai ter um lugar.
+[32:46] De nada.
+[32:48] Bom, gente, a campanha que a gente vai fazer nessa semana é essa aqui, também, tão além dos 10 reais por vendo,
+[32:57] se você cumprir na primeira semana sua 30 consultas, você vai receber 80 reais.
+[33:04] Na segunda semana, se você fizer também 30 consultas, você vai receber 80 reais também.
+[33:12] Se na terceira semana você fizer 30 consultas e tiver duas vendas dentro dessas três semanas, você vai receber 80 reais também.
+[33:25] E na quarta semana, se você tiver 30 consultas e seis vendas de forma acumulada, você vai receber 80 reais também, gente.
+[33:37] Então, se você cumprir as quatro semanas, você vai ganhar 500 reais e não 80 reais, tá.
+[33:45] Então caso você faça, as 120 consultas que é somar todas as consultas dessas quatro semanas, e as seis vendas acumulado nesse mês, você vai ganhar 500 reais, gente.
+[33:59] Aqui a gente está fazendo uma super campanha e a gente não está colocando tanto a venda porque a gente sabe que vocês consultando, vocês com certeza vão conseguir vender, tá.
+[34:11] Então aqui são 30 consultas de CPFs distintos, gente, de clientes de cintos. Não adianta você consultar 30 vezes a mesma pessoa, tá.
+[34:24] Então, reforçando aqui, primeira semana, 30 consultas e segunda semana, 30 consultas. Na terceira semana, se você fizer 30 consultas e duas vendas, você vai receber 80 reais e na quarta semana, se fizer 30 consultas e quatro vendas, vai receber 80 reais, tá.
+[34:45] E aí, putz, eu só consegui fazer 30 consultas na primeira semana, você vai receber 80 reais da primeira semana, na segunda semana não vai receber 80 reais, tá.
+[34:57] Então é isso, gente, caso faça 120 consultas e seis vendas acumulado, você vai ganhar 500 reais, gente, o sóço vai ganhar 500 reais e ele pode redistribuir para os seus vendadores, gente.
+[35:12] Isso aqui é uma supercampanha, vocês são os primeiros varejos a aterem essa campanha, gente. Então valorize em consulta e consulta.
+[35:31] Para quem não preencher o ainda, gente, esse aqui é o link para preencher os dados dos colaboradores, gente.
+[35:50] Então você vai preencher, colocar o CNP joto, nome completo, CPF, e meio do telefone e colocar quem foi a indicação de vocês, tá.
+[36:07] Alguma pergunta, gente, que ficou?
+[36:11] Bom dia, eu até levei até a mão, eu queria saber quanta questão do contrato que é feito. É o contrato de venda ou contrato de aluguel do celular?
+[36:24] Não, é contrato de venda. É o contrato de venda.
+[36:29] Se quando eu pergunto a tanta outra excrete com a AIVA é somente para a celular ou é possível vender outros produtos que têm na loja, não só acessora.
+[36:41] Eu digo outros produtos que as vezes a gente tem na loja. Somente para celular.
+[36:46] Tudo bem, aquele repasse mensal com a questão de mensal seria o repasse mensal pro logista ou o mensal que o cliente faz o pagamento?
+[37:01] Não entende a sua pergunta que é mensal, não entende, pode ir para o tipo, por favor?
+[37:06] Quando você falou mensal, eu tive que entender o cliente, acabei perdendo pouca atenção.
+[37:11] Mençal é quando você falou, é o repasse pro logista que é feito mensalmente ou quando você falou mensal que o cliente faz o pagamento do celular?
+[37:23] O repasse ele fez até dois Jesus para o logista.
+[37:26] O mensal é o pagamento mensal do cliente que adquiriu o celular.
+[37:33] Eu estava fazendo meu cadastro na outra excrete, a última pergunta aí, os demais pode perguntar.
+[37:41] Eu fazendo com vocês, quer dizer, eu já fiz, é necessário ainda, eu continuo fazendo com a outra excrete.
+[37:50] Já não precisa mais porque já com vocês já estamos às duas financeiras.
+[37:55] Com a gente já está com as duas financeiras.
+[37:59] Obrigado.
+[38:05] Eu quero reforçar essa parte aqui.
+[38:18] Reforçando aqui, gente, vocês precisam diferenciar quando é financiado por AIVA ou quando é financiado por ordres crediante.
+[38:28] É extremamente importante porque quando o cliente AIVA o passalamento é mensal e quando o cliente AIVA o passalamento é bicemonal.
+[38:37] E aqui, o processo é diferente, gente. É parecido, mas ele é diferente.
+[38:42] O link de pagamento da AIVA vai ser diferente, o WhatsApp de suporte do cliente vai ser diferente e o checklist também.
+[38:49] A ordres tem um outro link de pagamento, a ordres tem um outro checklist e o WhatsApp de suporte a esse cliente é diferente também, gente.
+[38:59] Esse 40, 20, 19, 90.
+[39:02] Então, printa essa tela que a gente vai mandar essa imagem e vocês imprimam e botem no moral da loja de vocês, na parede da loja de vocês.
+[39:12] É extremamente importante isso aqui.
+[39:15] Um projeto de ter as duas financeiras só vai dar certo caso vocês consigam gente identificar e seguir essas quatro etapas a depender da financeira, gente.
+[39:29] É extremamente importante.
+[39:33] e o celular de mais importante da apresentação aqui.
+[39:36] O Eduardo tem uma pergunta aqui, esse passa-a-paça da venda a gente consegue fazer tudo pelo nosso celular,
+[39:44] somente pelo celular ou pelo computador a gente também consegue fazer o celular.
+[39:47] O celular também consegue.
+[39:50] Tá.
+[39:51] Agora a gente para finalizar, eu vou mostrar um vídeo de como fazer a primeira venda, gente.
+[40:05] Bom gente.
+[40:50] Então vocês vão acessar o flexphone, né?
+[40:54] O site do flexphone vai colocar o CPF do cliente aqui, vai colocar o telefone do cliente.
+[41:18] Gente, o suposto de vocês vai estar sempre aqui no ciclo direito inferior, tá?
+[41:27] Você vai colocar o código de SMS, de novo se o cliente não tem sinal na casa dele,
+[41:50] ou a loja não tem sinal direito, você clique em reinviada depois desses 17 segundos,
+[41:55] e aí esse código vai pro WhatsApp.
+[41:58] Quando aparece a lista aqui dos aparelhos é porque esse cliente foi aprovado, né gente?
+[42:10] E aqui, nesse caso, o Moto G203 está 1275 reais, você pode aumentar para 15%, ou diminuir em 15%.
+[42:18] Clique em avançar para o financiamento.
+[42:31] Clique com o oque.
+[42:41] Nesse caso aqui, gente, foi um cliente financiado por AIVA, tá?
+[42:47] Mente sál, como está aqui escrito financiado AIVA.
+[42:51] A entrada nesse caso aqui, mínimo é 340 reais, então cliente precisa pagar 340 reais.
+[43:00] Vocês conseguem ver aqui no lembreio de financiamento com pagamentos mensais,
+[43:05] as parcelas dessa comprovência mensalmente, e aqui logo abaixo vai ter as opções de parcela 6, 9 ou 12 meses.
+[43:20] Clique em revisa financiamento, coloca o nome completo na data de nascimento, lembrando gente.
+[43:51] A data de nascimento precisa, ao preencher a data de nascimento, confira com o cliente,
+[44:00] se você colocou a data de nascimento correto, porque ela é chave para o cliente entrar na conta dele, tá?
+[44:06] Aqui ele vai fazer a Bometria, não é? Clique em iniciar a Bometria, clique em verificar com a única,
+[44:24] tirar o selfie, ele vai tirar o selfie e depois vai pedir a foto do documento dele, ele tira.
+[44:32] E aqui instala, fez a Bometria, vem para a parte final aqui de configurar o lock.
+[44:43] Digita o lock, o e-mail não, que está sempre na caixa externa da parelho, beleza.
+[45:01] Lembrando ao chegar no passo a passo, sempre deixe o celular na versão mais atualizada possível e no modo fábrica.
+[45:09] Na versão mais atualizada possível e no modo fábrica.
+[45:12] Clique em próximo passo.
+[45:16] E aí o software, o lock ele pode demorar até 10 minutos para ser ativado, então fique tranquilos,
+[45:38] se não for de primeira, né? Aqui ele está mexendo no celular, está lando, colocando o lock.
+[45:49] E aqui ele vai clicar em check-out, a configuração.
+[45:57] Então a hora desse vídeo você vai mandar para a gente?
+[46:00] A gente manda assim, tá? Aguarde?
+[46:10] Configuração ainda não foi confirmado?
+[46:13] Hoje eu avente, faz um pergunta rápida, então duas rares.
+[46:17] No caso esse beat lock que a gente consegue já está lá antes de vender o telefone, já vai para o chá pronto, né?
+[46:24] E a outra pergunta no caso é em caso de formatação do telefone do cliente,
+[46:28] a gente está com a memória cheva, vai lá e formata.
+[46:30] Esse beat lock que não vai se familiar basicamente?
+[46:33] Não vai se familiar, não vai se familiar.
+[46:36] Ela não foi chuta para saber.
+[46:38] E no caso se a gente já quiser deixar o celular pronto, pegando o caso fazer o procedimento, não não teria como, né?
+[46:43] Não, o procedimento você só vai fazer no momento ali de finalizar a venda.
+[46:52] E um outro ponto aqui, sempre deixa o celular na versão mais atualizada possível.
+[46:56] Então se você quer adiantar algum passo, é deixar o celular na versão mais atualizada possível, tá?
+[47:02] Beleza.
+[47:12] Ele vai clicar em tentar novamente.
+[47:14] Pronto.
+[47:19] O lock foi instalado nesse aparelho que você vai vender para o cliente, mas a venda de novo, gente.
+[47:26] Só é finalizada ao clicar em continuar.
+[47:29] Antes disso, a venda não é finalizada.
+[47:32] Clique em continuar e aí pronto, venda finalizada.
+[47:41] Aqui tem um lembrete de novo, né?
+[47:43] A gente é entrada aqui nesse caso, 340 reais.
+[47:46] Então, cobrar a entrada do logista, do vendedor, 340 reais.
+[47:51] E aqui, gente já vai ter o quadrado para acessar a CCB.
+[47:55] Em primir, duas vias ambas assinadas pelo cliente, ele leva uma para casa e você fica com a outra.
+[48:03] Então, essa é a cara da CCB, gente.
+[48:11] Essa é a cara da CCB.
+[48:15] Aqui logo abaixo, gente, a vai ter o QR Code também com link de pagamento.
+[48:20] Então, como esse cliente é a AIVA, tá aqui AIVA que QR Code AIVA.
+[48:24] Mas se o cliente fosse Audrey e tá Audrey aqui, o QR Code com link de pagamento da Audrey.
+[48:30] Tá?
+[48:36] Então, beleza.
+[48:37] Aqui é o comprovante de vocês logistas.
+[48:58] Puts, clica em finalizada venda e esquecer de imprimir a CCB.
+[49:03] Como é que eu faço?
+[49:04] Vai em vendas do dia.
+[49:06] Clique em ações.
+[49:07] Aqui, ó.
+[49:09] Clique em ações, vai aparecer.
+[49:11] Isso aqui e clicar em acessar a CCB.
+[49:14] Aí clica no acessar a CCB.
+[49:16] Você já vai conseguir acessar ela novamente.
+[49:24] Então, é isso, gente.
+[49:31] Vamos vender muitos.
+[49:33] Vocês estão com uma supercampanha aí de 80 reais por semana e se conseguir atingir as 620 consultas nesse mês.
+[49:42] E realizar 6 vendas, você vai conseguir receber 500 reais, gente.
+[49:49] Então, vamos fazer uma compreens super agressiva.
+[49:53] Tá?
+[49:55] Duar, a gente consegue uma lista de aparelhos que estará disponível dentro da plataforma.
+[50:01] A gente tem a lista dos aparelhos já disponíveis para você ver e comprar com fome nesse dojo.
+[50:07] Tá?
+[50:08] Beleza.
+[50:09] Então, é isso aí, gente.
+[50:13] Du, isso está em uma coisa... Você falou do número lado do WhatsApp?
+[50:18] Já falei.
+[50:19] Boa.
+[50:20] Boa.
+[50:22] Valeu, gente.
+[50:24] Um abração.
+[50:25] Vamos lá.
+[50:26] Dávamos supor que o celular deu problema.
+[50:28] Tá com o locker.
+[50:30] O que a gente tem que fazer?
+[50:32] Deu problema, você fala estar com o defeito de fábrica, alguma coisa assim do tipo.
+[50:38] Isso, estar com o defeito de fábrica, o que precisa de forma tapo, porque tem boleros.
+[50:42] Você entra em contato com o suporte, é oficial, e aí ele vai orientar vocês da melhor forma, como deve ser feito pro acessamento.
+[50:51] Tá?
+[50:52] Vai ver.
+[50:54] Boa gente, vamos vender aí.
+[50:56] Vocês vão receber de novo, como Maurício reforçou pelo WhatsApp.
+[51:01] A senha, mais para receber, sem você precisar clicar no botão, quero, assim.
+[51:07] Beleza, gente.
+[51:08] Abração.
+[51:09] Tchau.

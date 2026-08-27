@@ -39,14 +39,14 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 
 // Mensagem oficial da Odres — enviada VERBATIM quando o lojista informa que já
 // trabalha com a Odres (novo_status = ODRES). Texto fixo (não parafrasear).
-// Texto aprovado pelo Aldo em 2026-08-19: sem citar a UME (a relação agora é
-// "AIVA e Odres são parceiras" + portal Flexphone), sem prometer prazo no
-// texto (a previsão ~2 meses só sai se o lojista PERGUNTAR — contexto no
-// prompt), e o contato final é do time da ODRES, não nosso.
+// Atualizada 2026-08-27 (treinamento AIVA 20/08): o Flexfone SAIU DO PAPEL —
+// está no ar pros novos credenciamentos AIVA; as lojas que já usam a Odres
+// serão migradas aos poucos pelo time da Odres. Sem promessa de data, e o
+// contato final segue sendo do time da ODRES, não nosso.
 const ODRES_MENSAGEM =
   'Vimos que sua loja já utiliza o crediário da Odres — ótima notícia, porque a AIVA e a Odres são parceiras.\n\n' +
-  'Estamos criando juntos um portal chamado Flexphone. Nele, sua loja vai fazer uma única consulta e já receber o resultado de qual financeira aprovou o seu cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta.\n\n' +
-  'Você não precisa fazer nenhum cadastro novo agora. Quando o Flexphone estiver disponível, o time da Odres entra em contato com você com o passo a passo.\n\n' +
+  'Juntas, elas criaram o Flexfone: uma plataforma única onde a loja faz uma só consulta e já recebe o resultado de qual financeira aprovou o cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta. A plataforma já está no ar e está sendo liberada pras lojas parceiras aos poucos.\n\n' +
+  'Você não precisa fazer nenhum cadastro novo agora. Quando chegar a vez da sua loja, o time da Odres entra em contato com o passo a passo.\n\n' +
   'Agradecemos pela parceria!'
 
 // Mensagem oficial da UME — enviada VERBATIM quando o lojista informa que já
@@ -1418,6 +1418,17 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+  }
+
+  // ⛔ TRAVA (2026-08-27): cliente JÁ CREDENCIADO nunca vira ODRES/UME. Com o
+  // Flexfone, todo cliente novo opera a Odres normalmente — "meu cliente caiu
+  // na Odres" é o produto funcionando, não gatilho de transferência. Retornar
+  // ODRES aqui apagaria a opp AIVA (funil 19) e silenciaria a conversa pra
+  // sempre. A regra de transferência vale só na prospecção/qualificação.
+  const STATUS_POS_CREDENCIAMENTO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+  if ((resposta.novo_status === 'ODRES' || resposta.novo_status === 'UME') && STATUS_POS_CREDENCIAMENTO.includes(lead.status)) {
+    console.warn(`[TRAVA_ODRES_POS] IA tentou ${resposta.novo_status} pra lead ${lead.telefone} em ${lead.status} — mantendo status atual`)
+    resposta.novo_status = lead.status
   }
 
   // Lojista já usa Odres/UME → envia a mensagem OFICIAL (texto fixo, verbatim),

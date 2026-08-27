@@ -160,7 +160,7 @@ export function buildKitPosFechamentoMsg(nome: string): string {
     `🏷️ *Precificação:* na venda parcelada, o valor do aparelho pode ser acrescido em até *15%* sobre o seu preço à vista (explicado no vídeo do curso, na pasta de materiais).\n` +
     `💵 *Repasse:* você recebe à vista, em até *2 dias úteis* após a venda.\n` +
     `🛡️ *Inadimplência:* risco *zero* pra você — a AIVA assume 100%. Se o cliente atrasar, o problema é dela, não seu.\n` +
-    `📲 *Pro seu cliente:* parcelamento em 6x, 9x ou 12x no boleto, com aprovação em ~2 minutos.\n\n` +
+    `📲 *Pro seu cliente:* aprovação em ~2 minutos, com DUAS financeiras na mesma consulta — pela AIVA o parcelamento é mensal (6x, 9x ou 12x) e, se ela não aprovar, a Odres Cred tenta na hora (bissemanal, 12x ou 18x). Menos venda perdida!\n\n` +
     `*Próximos passos:*\n` +
     `1️⃣ Assista o *Curso_Treinamento* na pasta de materiais — terminou, já pode operar, sem esperar (a reunião ao vivo de quinta 9h30 é opcional)\n` +
     `2️⃣ Me manda por aqui os dados dos seus funcionários (nome completo, CPF, e-mail e telefone de cada um) que eu cadastro os acessos pra você\n` +
@@ -234,6 +234,12 @@ export function buildAvisoMatrizMsg(nomeContato: string | null): string {
 /** Telefones oficiais que a VictorIA PODE citar (só dígitos, sem 55). */
 export const FONES_OFICIAIS = [
   '2220290100', // Suporte AIVA cliente final — WhatsApp 22 2029-0100
+  // "Comunicados Aiva Pay" (+55 4020-2024) — envia login/senha do Flexfone aos
+  // clientes novos (treinamento 20/08/2026). Duas chaves de propósito: escrito
+  // "+55 4020-2024" o chaveFone NÃO remove o 55 (número curto), então sem a
+  // segunda entrada o pós-processamento apagava a frase inteira da VictorIA.
+  '40202024',
+  '5540202024',
 ]
 
 export const soDigitos = (s: unknown) => String(s ?? '').replace(/\D/g, '')
