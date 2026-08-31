@@ -55,15 +55,27 @@ const num = (s) => {
 }
 const int = (s) => parseInt(String(s ?? '').replace(/\D/g, ''), 10) || 0
 
-// dedupe por cnpj (o coletor pode capturar a mesma linha 2x)
+// agrega por cnpj — o relatório é por LOJA e o mesmo CNPJ pode ter 2+ lojas
+// (ex.: "Loja Principal" e "Loja 2"). Sobrescrever perderia as vendas de uma
+// delas e mandaria "você não vendeu" pra quem vendeu. Soma sempre.
 const porCnpj = new Map()
 for (const l of bruto) {
   const cnpj = String(l.cnpj).replace(/\D/g, '').padStart(14, '0')
-  porCnpj.set(cnpj, {
-    semana, cnpj, rid: String(l.id ?? '') || null,
-    nome_varejo: l.varejo || null, loja: l.loja || null, uf: l.uf || null, cidade: l.cidade || null,
-    aprovados: int(l.aprovados), vendas: int(l.vendas), valor_vendas: num(l.valor),
-  })
+  const ap = int(l.aprovados), vd = int(l.vendas), vl = num(l.valor) ?? 0
+  const atual = porCnpj.get(cnpj)
+  if (!atual) {
+    porCnpj.set(cnpj, {
+      semana, cnpj, rid: String(l.id ?? '') || null,
+      nome_varejo: l.varejo || null, loja: l.loja || null, uf: l.uf || null, cidade: l.cidade || null,
+      aprovados: ap, vendas: vd, valor_vendas: vl,
+    })
+    continue
+  }
+  // fica com o nome da loja que mais vendeu (a mais representativa do CNPJ)
+  if (vd > atual.vendas) atual.loja = l.loja || atual.loja
+  atual.aprovados += ap
+  atual.vendas += vd
+  atual.valor_vendas += vl
 }
 const rows = [...porCnpj.values()]
 const tot = rows.reduce((a, r) => ({ ap: a.ap + r.aprovados, vd: a.vd + r.vendas }), { ap: 0, vd: 0 })
