@@ -175,7 +175,8 @@ export function buildKitPosFechamentoMsg(nome: string): string {
     `🏷️ *Precificação:* na venda parcelada, o valor do aparelho pode ser acrescido em até *15%* sobre o seu preço à vista (explicado no vídeo do curso, na pasta de materiais).\n` +
     `💵 *Repasse:* você recebe à vista, em até *2 dias úteis* após a venda.\n` +
     `🛡️ *Inadimplência:* risco *zero* pra você — a AIVA assume 100%. Se o cliente atrasar, o problema é dela, não seu.\n` +
-    `📲 *Pro seu cliente:* aprovação em ~2 minutos, com DUAS financeiras na mesma consulta — pela AIVA o parcelamento é mensal (6x, 9x ou 12x) e, se ela não aprovar, a Odres Cred tenta na hora (bissemanal, 12x ou 18x). Menos venda perdida!\n\n` +
+    `📲 *Pro seu cliente:* aprovação em ~2 minutos, com DUAS financeiras na mesma consulta — pela AIVA o parcelamento é mensal (6x, 9x ou 12x) e, se ela não aprovar, a Odres Cred tenta na hora (bissemanal, 12x ou 18x). Menos venda perdida!\n` +
+    `🎲 *Sobre aprovação (importante!):* cada consulta depende do perfil do cliente — é normal as primeiras consultas reprovarem, isso NÃO significa que "não aprova". A regra de ouro é consultar TODO cliente: quem consulta todo mundo aprova mais e vende mais no fim do mês. Não desanima com as primeiras! 💪\n\n` +
     `*Próximos passos:*\n` +
     `1️⃣ Participa do treinamento ao vivo — turmas às *segundas e quintas, 9h30–10h30* (o vídeo Curso_Treinamento na pasta de materiais adianta tudo)\n` +
     `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n` +
