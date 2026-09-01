@@ -101,7 +101,7 @@ export default function AssistenteWidget() {
             <textarea
               ref={inputRef}
               className="ast-input"
-              placeholder="Pergunte sobre leads, etapas, conversas… (Shift+Enter = nova linha)"
+              placeholder="Pergunte sobre leads, etapas, conversas… (envie pela seta ➤)"
               value={input}
               rows={1}
               onChange={(e) => {
@@ -110,13 +110,9 @@ export default function AssistenteWidget() {
                 e.target.style.height = 'auto'
                 e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
               }}
-              onKeyDown={(e) => {
-                // Enter envia; Shift+Enter quebra linha (pedido do Nei 01/09)
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  enviar()
-                }
-              }}
+              // Enter SEMPRE quebra linha — o envio é só pela seta ➤
+              // (pedido do Aldo 01/09: o Nei constrói o texto em parágrafos
+              // com calma e envia quando terminar)
               disabled={loading}
             />
             <button className="ast-send" onClick={enviar} disabled={loading || !input.trim()}>➤</button>
