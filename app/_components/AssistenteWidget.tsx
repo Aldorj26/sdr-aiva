@@ -15,7 +15,7 @@ export default function AssistenteWidget() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -34,6 +34,7 @@ export default function AssistenteWidget() {
     const atualizado = [...messages, userMsg]
     setMessages(atualizado)
     setInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto' // desfaz o auto-grow
     setLoading(true)
     try {
       const res = await fetch('/api/assistente', {
@@ -97,13 +98,25 @@ export default function AssistenteWidget() {
           </div>
 
           <div className="ast-input-row">
-            <input
+            <textarea
               ref={inputRef}
               className="ast-input"
-              placeholder="Pergunte sobre leads, etapas, conversas…"
+              placeholder="Pergunte sobre leads, etapas, conversas… (Shift+Enter = nova linha)"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && enviar()}
+              rows={1}
+              onChange={(e) => {
+                setInput(e.target.value)
+                // auto-cresce até ~5 linhas
+                e.target.style.height = 'auto'
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
+              }}
+              onKeyDown={(e) => {
+                // Enter envia; Shift+Enter quebra linha (pedido do Nei 01/09)
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  enviar()
+                }
+              }}
               disabled={loading}
             />
             <button className="ast-send" onClick={enviar} disabled={loading || !input.trim()}>➤</button>
@@ -190,6 +203,8 @@ const css = `
     flex: 1; min-width: 0; padding: 10px 14px; border-radius: 20px;
     border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text);
     font-size: 13.5px; outline: none; caret-color: var(--accent);
+    resize: none; overflow-y: auto; max-height: 120px; line-height: 1.45;
+    font-family: inherit;
   }
   .ast-input::placeholder { color: var(--text-muted); }
   .ast-input:focus { border-color: var(--accent); }

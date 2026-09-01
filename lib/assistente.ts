@@ -270,7 +270,9 @@ export async function responderAssistente(
   for (let i = 0; i < MAX_ITERACOES; i++) {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 1500,
+      // 8000: com 1500 as respostas longas (ex.: varredura de categorias de
+      // leads) saíam cortadas no meio — reclamação do Aldo 01/09.
+      max_tokens: 8000,
       system: [{ type: 'text', text: ASSISTENTE_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       tools: TOOLS,
       messages,
@@ -282,7 +284,8 @@ export async function responderAssistente(
         .map((b) => b.text)
         .join('\n')
         .trim()
-      return texto || 'Não consegui montar uma resposta. Tenta reformular a pergunta?'
+      const cortada = resp.stop_reason === 'max_tokens' ? '\n\n⚠️ (a resposta atingiu o limite de tamanho — manda "prossiga" que eu continuo de onde parei)' : ''
+      return (texto || 'Não consegui montar uma resposta. Tenta reformular a pergunta?') + cortada
     }
 
     // Executa as tools pedidas e devolve os resultados
