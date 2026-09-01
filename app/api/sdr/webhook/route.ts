@@ -25,7 +25,7 @@ import {
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
-import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker } from '@/lib/cnpj'
+import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
 import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado } from '@/lib/manual-docs'
 import { capturarColaborador } from '@/lib/colab-rede-seguranca'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
@@ -2453,6 +2453,78 @@ export async function POST(req: NextRequest) {
       (detalhe ? `\n\n${detalhe}` : '')
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
     if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+  }
+
+  // ─── LOJA NOVA NO MEIO DA CONVERSA (regra 01/09 — registro por loja) ────────
+  // Lead pós-cadastro manda um CNPJ (DV válido) que a gente ainda não conhece →
+  // é loja nova/filial: registra em sdr_registros_cnpj (status 'informada') e
+  // alerta o Nei com o link do painel (pré-cadastro preenchido fica lá).
+  // Captura DETERMINÍSTICA (mesmo padrão da rede de colaboradores): não depende
+  // do modelo emitir nada — basta o CNPJ aparecer na mensagem do lojista.
+  // A ativação é detectada depois pelo cruzamento semanal com o Data Studio
+  // (scripts/detectar-lojas-ativas.mjs), que cria a conta MRR no funil 11.
+  const STATUS_LOJA_NOVA = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+  if (STATUS_LOJA_NOVA.includes(lead.status)) {
+    try {
+      const todos14 = extrairCnpjs(conteudoEfetivo)
+      const doTexto = todos14.filter((c) => cnpjDvValido(c))
+      const dvRuim = todos14.filter((c) => !cnpjDvValido(c))
+      if (todos14.length > 0) {
+        const conhecidosObs = new Set(((lead.observacoes ?? '').replace(/[.\-\/]/g, '').match(/\d{14}/g) ?? []))
+        const { data: jaRegistrados } = await supabaseAdmin
+          .from('sdr_registros_cnpj').select('cnpj').eq('lead_id', lead.id)
+        const conhecidos = new Set([...conhecidosObs, ...(jaRegistrados ?? []).map((r) => r.cnpj)])
+        const novos = doTexto.filter((c) => !conhecidos.has(c))
+        const dvRuimNovos = dvRuim.filter((c) => !conhecidos.has(c))
+        if (novos.length > 0 || dvRuimNovos.length > 0) {
+          // captura em const antes do callback — TS perde o narrowing de `lead`
+          // dentro de closures
+          const { id: leadId, nome: leadNome, telefone: leadTel } = lead
+          if (novos.length > 0) {
+            await supabaseAdmin.from('sdr_registros_cnpj').upsert(
+              novos.map((c) => ({
+                lead_id: leadId, loja: leadNome, telefone: leadTel,
+                // origem NÃO é preenchida aqui — essa coluna pertence ao checkbox
+                // do painel ('abriu-form'/null). A procedência fica no status
+                // 'informada' + alerta ao Nei.
+                cnpj: c, tipo: 'adicional', status: 'informada',
+              })),
+              { onConflict: 'lead_id,cnpj', ignoreDuplicates: true },
+            )
+          }
+          // Enriquece com a Receita (best-effort) — idade <1 ano e situação
+          // irregular são exatamente o que a AIVA recusa; o alerta já avisa.
+          const linhasAlerta: string[] = []
+          for (const c of novos) {
+            const info = await consultarCNPJ(c).catch(() => null)
+            const avisos = [
+              info?.idadeAnos != null && info.idadeAnos < 1 ? `⚠️ ${info.idadeAnos.toFixed(1)} ano(s) de abertura — regra de 1 ano pode barrar` : null,
+              info?.situacao && info.situacao !== 'ATIVA' ? `⚠️ situação ${info.situacao}` : null,
+            ].filter(Boolean).join(' | ')
+            linhasAlerta.push(`• ${c}${info?.razaoSocial ? ` — ${info.razaoSocial}` : ''}${avisos ? `\n  ${avisos}` : ''}`)
+          }
+          for (const c of dvRuimNovos) {
+            linhasAlerta.push(`• ${c} — ❌ dígito verificador NÃO fecha (digitação errada?) — NÃO registrado; pedir o número de novo`)
+          }
+          // Rótulo neutro de propósito: CNPJ desconhecido também pode ser
+          // CORREÇÃO/TROCA do cadastral, não só loja nova — quem decide é o Nei.
+          const aviso =
+            `🏪 *CNPJ NOVO NA CONVERSA — conferir: loja nova ou correção/troca?*\n\n` +
+            `${lead.nome} (${lead.telefone} — etapa ${lead.status}) mandou:\n` +
+            linhasAlerta.join('\n') +
+            (novos.length > 0
+              ? `\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
+                `\nSe for LOJA NOVA: lançar o pré-cadastro (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
+                `\nSe for TROCA/CORREÇÃO do CNPJ cadastral: ajustar na mão e desconsiderar o registro.`
+              : '')
+          if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+          if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+          console.log(`[LOJA_NOVA] ${lead.telefone}: ${novos.join(', ') || '(nenhum válido)'} registrado(s); DV inválido: ${dvRuimNovos.join(', ') || 'nenhum'}`)
+        }
+      }
+    } catch (err) {
+      console.error(`[LOJA_NOVA] Falha ao registrar CNPJ novo de ${lead.telefone}:`, err)
+    }
   }
 
       respostaFinal = resposta

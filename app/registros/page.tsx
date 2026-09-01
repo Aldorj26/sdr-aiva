@@ -166,10 +166,10 @@ export default async function RegistrosPage({
           </p>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
-              <th style={th}>Enviado</th><th style={th}>Loja</th><th style={th}>CNPJ</th><th style={th}>Tipo</th><th style={th}>Quando</th><th style={th}>Ação</th>
+              <th style={th}>Enviado</th><th style={th}>Loja</th><th style={th}>CNPJ</th><th style={th}>Tipo</th><th style={th}>Status</th><th style={th}>Quando</th><th style={th}>Ação</th>
             </tr></thead>
             <tbody>
-              {cnpjs.length === 0 && <tr><td style={td} colSpan={6}>Nenhum CNPJ registrado ainda.</td></tr>}
+              {cnpjs.length === 0 && <tr><td style={td} colSpan={7}>Nenhum CNPJ registrado ainda.</td></tr>}
               {cnpjs.map((r) => {
                 const celulas = (
                   <>
@@ -177,6 +177,13 @@ export default async function RegistrosPage({
                     <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.telefone}</div></td>
                     <td style={{ ...td, fontFamily: 'monospace' }}>{formatarCnpj(r.cnpj)}</td>
                     <td style={td}>{r.tipo === 'matriz' ? '🏢 matriz' : '➕ adicional'}</td>
+                    <td style={td}>
+                      {r.status === 'ativa'
+                        ? <span style={{ color: 'var(--ok, #34d399)' }}>✅ ativa{r.rid ? ` · RID ${r.rid}` : ''}</span>
+                        : r.status === 'pre_cadastro_enviado'
+                          ? '📤 pré-cadastro enviado'
+                          : '🆕 informada'}
+                    </td>
                     <td style={td}>{dataBr(r.criado_em)}</td>
                     <td style={td}>
                       <AbrirFormLink id={r.id} href={linkFormPreenchido(r.cnpj) ?? '#'} jaEnviado={r.enviado} />

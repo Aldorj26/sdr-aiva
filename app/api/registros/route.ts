@@ -22,5 +22,13 @@ export async function POST(req: NextRequest) {
     .update({ enviado: body.enviado, origem })
     .eq('id', body.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Status por loja (regra 01/09): marcar "enviado" promove informada →
+  // pre_cadastro_enviado; desmarcar volta. NUNCA mexe em quem já está 'ativa'
+  // (ativação é detectada pelo cruzamento semanal com o Data Studio).
+  await supabaseAdmin
+    .from('sdr_registros_cnpj')
+    .update({ status: body.enviado ? 'pre_cadastro_enviado' : 'informada' })
+    .eq('id', body.id)
+    .neq('status', 'ativa')
   return NextResponse.json({ ok: true })
 }

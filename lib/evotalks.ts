@@ -881,6 +881,43 @@ export async function criarContaMrr(opts: {
 }
 
 /**
+ * Cria conta MRR (funil 11) pra UMA LOJA específica (filial / loja adicional),
+ * identificada pelo Retailer ID da UME. Diferente de criarContaMrr, o dedupe é
+ * pelo `UME_RID:` na descrição — NÃO por telefone, porque filiais compartilham
+ * o telefone do lojista e a matriz já tem conta (regra 01/09, registro por loja).
+ */
+export async function criarContaMrrLoja(opts: {
+  titulo: string
+  telefone: string
+  rid: string
+  cnpj: string
+  leadNome?: string | null
+}): Promise<{ id: number; jaExistia: boolean } | null> {
+  const rid = String(opts.rid ?? '').trim()
+  if (!rid) return null
+  const existentes = await getPipeOpportunities(PIPELINE_MRR)
+  const re = new RegExp(`UME_RID:\\s*${rid}\\b`)
+  const dup = existentes.find((o) => re.test(o.description ?? ''))
+  if (dup) return { id: dup.id, jaExistia: true }
+
+  const titulo = opts.titulo.replace(/\s*[—–-]\s*AIVA\s*$/i, '').trim() || 'Loja AIVA'
+  const id = await createOpportunity({
+    title: titulo,
+    number: (opts.telefone ?? '').replace(/\D/g, ''),
+    pipelineId: PIPELINE_MRR,
+    stageId: STAGE_MRR_INICIO,
+  })
+  const desc = [
+    `UME_RID: ${rid}`,
+    `CNPJ: ${opts.cnpj}`,
+    opts.leadNome ? `Loja adicional de ${opts.leadNome}` : 'Loja adicional (registro por loja 01/09)',
+  ].join(' | ')
+  await post<{ id: number }>('/int/updateOpportunity', { id, description: desc, tags: [TAG_IDS.UME] })
+  console.log(`CRM/MRR: conta POR LOJA criada — #${id} "${titulo}" (RID ${rid}, CNPJ ${opts.cnpj})`)
+  return { id, jaExistia: false }
+}
+
+/**
  * Remove UMA tag específica de uma oportunidade, preservando as demais.
  *
  * O updateOpportunity SUBSTITUI o array de tags inteiro — então pra remover
