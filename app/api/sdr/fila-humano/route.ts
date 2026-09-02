@@ -57,16 +57,20 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const grupos: Record<string, Item[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
+  // CS separado (02/09): lojas ATIVAS têm seção própria e são tratadas no
+  // /desempenho — não se misturam com o funil.
+  const grupos: Record<string, Item[]> = { acao: [], docs: [], mover: [], sem_motivo: [], cs: [] }
   for (const l of leads ?? []) {
     const motivo = ((l.observacoes ?? '').match(RE_MOTIVO)?.[1] ?? '').trim()
-    grupos[categoria(motivo)].push({
+    const item = {
       nome: l.nome,
       telefone: l.telefone,
       status: l.status,
       motivo,
       ultimaMsg: l.data_ultimo_contato,
-    })
+    }
+    if (l.status === 'LOJA_FINALIZADA_E_VENDENDO') grupos.cs.push(item)
+    else grupos[categoria(motivo)].push(item)
   }
 
   const total = (leads ?? []).length
@@ -87,13 +91,15 @@ export async function GET(req: NextRequest) {
     const s1 = secao(`🔴 *AÇÃO PENDENTE (${grupos.acao.length})* — resolver hoje:`, grupos.acao, n); n += grupos.acao.length
     const s2 = secao(`📄 *DOCS/COLABORADORES (${grupos.docs.length})* — processar com o Edu:`, grupos.docs, n); n += grupos.docs.length
     const s3 = secao(`🟡 *MOVER CARD (${grupos.mover.length})* — cadastro/biometria confirmados:`, grupos.mover, n); n += grupos.mover.length
-    const s4 = secao(`⚪ *SEM MOTIVO REGISTRADO (${grupos.sem_motivo.length})* — revisar e marcar "Atendido":`, grupos.sem_motivo, n)
+    const s4 = secao(`⚪ *SEM MOTIVO REGISTRADO (${grupos.sem_motivo.length})* — revisar e marcar "Atendido":`, grupos.sem_motivo, n); n += grupos.sem_motivo.length
+    const s5 = secao(`🟣 *CS — LOJAS ATIVAS (${grupos.cs.length})* — tratar no painel Desempenho:`, grupos.cs, n)
 
     msg =
       `📋 *FILA DE ATENDIMENTO HUMANO — ${dataHoje}* (${total} lead${total > 1 ? 's' : ''})\n` +
       `Prioridade nº 1 do dia 👊\n` +
-      s1 + s2 + s3 + s4 +
-      `\nDetalhes e conversas: https://sdr-aiva.vercel.app/?aguardando_humano=true\n` +
+      s1 + s2 + s3 + s4 + s5 +
+      `\nFunil: https://sdr-aiva.vercel.app/?aguardando_humano=true\n` +
+      (grupos.cs.length ? `CS (lojas ativas): https://sdr-aiva.vercel.app/desempenho\n` : '') +
       `(Atendeu? Marca "Atendido" no painel pra sair da fila.)`
   }
 

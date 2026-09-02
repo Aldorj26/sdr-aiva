@@ -2474,12 +2474,17 @@ export async function POST(req: NextRequest) {
     // está no filtro "Aguardando humano" do painel; quando o Nei clica "Atendido"
     // (acionar_humano=false), um novo acionamento volta a alertar normalmente.
     const detalhe = formatarDadosLead(dadosAlerta)
+    // Loja ATIVA = atendimento de CS → prefixo próprio + link do /desempenho
+    // (pedido do Aldo 02/09: o Nei trata clientes no painel Desempenho).
+    const ehCs = lead.status === 'LOJA_FINALIZADA_E_VENDENDO'
     const msg =
+      (ehCs ? `🟣 *CS — LOJA ATIVA* (tratar no painel Desempenho)\n` : '') +
       `🔔 *${lead.nome}* (${lead.telefone}${lead.cidade ? ` — ${lead.cidade}` : ''}) precisa de atendimento humano.\n` +
       `📌 Etapa: ${lead.status}\n` +
       `❓ Motivo: ${resposta.motivo_humano ?? 'não especificado'}\n` +
       `💬 Última mensagem do lojista: "${conteudo}"` +
-      (detalhe ? `\n\n${detalhe}` : '')
+      (detalhe ? `\n\n${detalhe}` : '') +
+      (ehCs ? `\n\n👉 https://sdr-aiva.vercel.app/desempenho` : '')
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
     if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
   }

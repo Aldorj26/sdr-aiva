@@ -53,9 +53,10 @@ async function getRecentLeads(
   if (importante === 'true') query = query.eq('importante', true)
 
   if (aguardandoHumano === 'true') {
+    // LFV fora: atendimento de loja ativa é CS e mora no /desempenho (02/09)
     query = query
       .eq('acionar_humano', true)
-      .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO")')
+      .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")')
   }
 
   if (pausados === 'true') {
@@ -168,7 +169,7 @@ async function getAgora() {
   const umMinutoAtras = new Date(now.getTime() - 60 * 1000).toISOString()
   const fimDoDia = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
 
-  const [conversasAtivas, aguardandoHumano, pausados, lockTravado, followupsHoje, cadastroCompleto, cafPreenchido] = await Promise.all([
+  const [conversasAtivas, aguardandoHumano, pausados, lockTravado, followupsHoje, cadastroCompleto, cafPreenchido, csAguardando] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id', { count: 'exact', head: true })
@@ -178,7 +179,8 @@ async function getAgora() {
       .from('sdr_leads')
       .select('id', { count: 'exact', head: true })
       .eq('acionar_humano', true)
-      .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO")'),
+      // LFV fora: atendimento de loja ativa é CS e mora no /desempenho (02/09)
+      .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")'),
     // Pausados: só conta pausa AINDA VIGENTE de lead ativo. Marcadores
     // [PAUSA_ATE:] vencidos ficavam pra sempre (bug Smarting/Clinicell
     // 2026-07-29: descartados em maio ainda contavam como pausados).
@@ -226,6 +228,12 @@ async function getAgora() {
       .eq('produto', 'AIVA')
       .eq('status', 'EM_ANALISE_AIVA')
       .like('observacoes', '%[CAF_OK%'),
+    // Acionamentos de lojas ATIVAS (CS) — tratados no /desempenho (02/09).
+    supabaseAdmin
+      .from('sdr_leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('acionar_humano', true)
+      .eq('status', 'LOJA_FINALIZADA_E_VENDENDO'),
   ])
 
   return {
@@ -236,6 +244,7 @@ async function getAgora() {
     followupsHoje: followupsHoje.count ?? 0,
     cadastroCompleto: cadastroCompleto.count ?? 0,
     cafPreenchido: cafPreenchido.count ?? 0,
+    csAguardando: csAguardando.count ?? 0,
   }
 }
 
@@ -248,12 +257,13 @@ interface LeadResumo {
 }
 
 // Leads que pediram atendimento humano e ainda não foram resolvidos.
+// LFV fora: atendimento de loja ativa é CS e mora no /desempenho (02/09).
 async function getPrecisamAtendimento(): Promise<LeadResumo[]> {
   const { data } = await supabaseAdmin
     .from('sdr_leads')
     .select('id, nome, telefone, status, data_ultimo_contato')
     .eq('acionar_humano', true)
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO")')
+    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")')
     .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
     .limit(12)
   return (data ?? []) as LeadResumo[]
@@ -650,9 +660,16 @@ export default async function Page({
         <Card
           label="Aguardando humano"
           value={agora.aguardandoHumano}
-          hint="acionar_humano = true"
+          hint="funil (lojas ativas → CS)"
           color={agora.aguardandoHumano > 0 ? 'var(--yellow)' : 'var(--text-muted)'}
           href="/?aguardando_humano=true"
+        />
+        <Card
+          label="🟣 No CS"
+          value={agora.csAguardando}
+          hint="lojas ativas — painel Desempenho"
+          color={agora.csAguardando > 0 ? '#a855f7' : 'var(--text-muted)'}
+          href="/desempenho"
         />
         <Card
           label="Pausados"
