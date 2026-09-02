@@ -154,6 +154,7 @@ async function getCsData() {
   // pulso de segunda — A zerou / B aprovou-não-vendeu / C queda).
   const semanasDisp = [...new Set((semanas.data ?? []).map((s) => s.semana as string))]
   const radar: { loja: string; cnpj: string; tag: string }[] = []
+  let zerou = 0
   if (semanasDisp[0]) {
     const { data: sw } = await supabaseAdmin
       .from('aiva_desempenho_semanal')
@@ -169,13 +170,15 @@ async function getCsData() {
     }
     for (const r of sw ?? []) {
       const va = ant.get(r.cnpj)
-      const nome = (r.loja ?? r.nome_varejo ?? r.cnpj) as string
+      // nome limpo: o campo "loja" do Data Studio é a unidade ("LOJA 3") ou
+      // vem sujo com código — o varejo é o nome que faz sentido sozinho
+      const nome = String(r.nome_varejo ?? r.loja ?? r.cnpj).slice(0, 34)
       if ((r.vendas ?? 0) > 0 && va !== undefined && (r.vendas ?? 0) < va && va >= 2) {
         radar.push({ loja: nome, cnpj: r.cnpj, tag: `📉 caiu ${va}→${r.vendas}` })
       } else if ((r.vendas ?? 0) === 0 && (r.aprovados ?? 0) > 0) {
-        radar.push({ loja: nome, cnpj: r.cnpj, tag: `⚠️ ${r.aprovados} aprovado(s), 0 venda` })
+        radar.push({ loja: nome, cnpj: r.cnpj, tag: `${r.aprovados} aprovado(s), 0 venda` })
       } else if ((r.vendas ?? 0) === 0 && (r.aprovados ?? 0) === 0) {
-        radar.push({ loja: nome, cnpj: r.cnpj, tag: '🛑 zerou a semana' })
+        zerou++
       }
     }
   }
@@ -184,6 +187,7 @@ async function getCsData() {
     conversas24h: conversas.count ?? 0,
     ativacoes: ativacoes.data ?? [],
     radar,
+    zerou,
     semanaRadar: semanasDisp[0] ?? null,
   }
 }
@@ -324,28 +328,26 @@ export default async function DesempenhoPage({
         </p>
       </header>
 
-      {/* ─── CS — atendimento das lojas ativas ─────────────────────────────── */}
-      <section style={{ marginBottom: '1.1rem', flexShrink: 0, border: '1px solid var(--border)', borderLeft: '3px solid #a855f7', borderRadius: 8, background: 'var(--bg-elev)', padding: '0.7rem 0.9rem' }}>
-        <div style={{ display: 'flex', gap: '1.4rem', flexWrap: 'wrap', alignItems: 'baseline' }}>
-          <strong style={{ color: '#a855f7', fontSize: '0.85rem' }}>🟣 CS — carteira de lojas ativas</strong>
-          <span style={{ fontSize: '0.8rem', color: cs.humano.length > 0 ? 'var(--red)' : 'var(--text-muted)' }}>
-            🔔 Atendimento humano: <b>{cs.humano.length}</b>
-          </span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>💬 Conversas 24h: <b>{cs.conversas24h}</b></span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>🆕 Ativações 7d: <b>{cs.ativacoes.length}</b></span>
-          <span style={{ fontSize: '0.8rem', color: cs.radar.length > 0 ? 'var(--yellow)' : 'var(--text-muted)' }}>
-            📡 Radar de churn{cs.semanaRadar ? ` (semana ${cs.semanaRadar})` : ''}: <b>{cs.radar.length}</b>
-          </span>
+      {/* ─── CS — atendimento das lojas ativas (visual clean 02/09) ─────────── */}
+      <section style={{ marginBottom: '1.1rem', flexShrink: 0, border: '1px solid var(--border)', borderLeft: '3px solid #a855f7', borderRadius: 8, background: 'var(--bg-elev)', padding: '0.6rem 0.9rem' }}>
+        <div style={{ display: 'flex', gap: '1.2rem', flexWrap: 'wrap', alignItems: 'baseline', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          <strong style={{ color: '#a855f7', fontSize: '0.85rem' }}>🟣 CS</strong>
+          <span style={{ color: cs.humano.length > 0 ? 'var(--red)' : undefined }}>🔔 Atendimento: <b>{cs.humano.length}</b></span>
+          <span>💬 Conversas 24h: <b>{cs.conversas24h}</b></span>
+          <span>🆕 Ativações 7d: <b>{cs.ativacoes.length}</b></span>
+          <span style={{ color: cs.radar.length > 0 ? 'var(--yellow)' : undefined }}>📡 Atenção na semana: <b>{cs.radar.length}</b></span>
+          <span>🛑 Sem movimento: <b>{cs.zerou}</b></span>
         </div>
+
         {cs.humano.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.55rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
             <tbody>
               {cs.humano.map((l) => (
                 <ClickableRow key={l.id} leadId={l.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.32rem 0.4rem', fontSize: '0.82rem' }}>🔔 {l.nome}</td>
-                  <td style={{ padding: '0.32rem 0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{l.telefone}</td>
-                  <td style={{ padding: '0.32rem 0.4rem', fontSize: '0.78rem', color: 'var(--yellow)' }}>{motivoDe(l.observacoes) || 'motivo não identificado'}</td>
-                  <td style={{ padding: '0.32rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.82rem', width: '30%' }}>🔔 {l.nome}</td>
+                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)', width: '18%' }}>{l.telefone}</td>
+                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--yellow)' }}>{motivoDe(l.observacoes) || 'ver conversa'}</td>
+                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', textAlign: 'right' }}>
                     {l.data_ultimo_contato ? new Date(l.data_ultimo_contato).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
                   </td>
                 </ClickableRow>
@@ -353,15 +355,41 @@ export default async function DesempenhoPage({
             </tbody>
           </table>
         )}
+
         {(cs.radar.length > 0 || cs.ativacoes.length > 0) && (
-          <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.4rem 1rem', flexWrap: 'wrap', fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-            {cs.radar.slice(0, 10).map((r) => (
-              <span key={r.cnpj} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '0.15rem 0.45rem' }}>{r.tag} · {r.loja}</span>
-            ))}
-            {cs.radar.length > 10 && <span>+{cs.radar.length - 10} no radar</span>}
-            {cs.ativacoes.map((a) => (
-              <span key={a.cnpj} style={{ border: '1px solid var(--green, #16a34a)', borderRadius: 6, padding: '0.15rem 0.45rem', color: 'var(--green, #16a34a)' }}>🆕 {a.loja}{a.rid ? ` · RID ${a.rid}` : ''}</span>
-            ))}
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '0.45rem' }}>
+            {cs.radar.length > 0 && (
+              <details style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--yellow)' }}>
+                  📡 Atenção na semana{cs.semanaRadar ? ` de ${new Date(cs.semanaRadar + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : ''} ({cs.radar.length})
+                </summary>
+                <table style={{ borderCollapse: 'collapse', marginTop: '0.35rem' }}>
+                  <tbody>
+                    {cs.radar.map((r) => (
+                      <tr key={r.cnpj} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.22rem 0.9rem 0.22rem 0.4rem' }}>{r.loja}</td>
+                        <td style={{ padding: '0.22rem 0.4rem', color: 'var(--yellow)' }}>{r.tag}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            )}
+            {cs.ativacoes.length > 0 && (
+              <details style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--green, #16a34a)' }}>🆕 Ativações da semana ({cs.ativacoes.length})</summary>
+                <table style={{ borderCollapse: 'collapse', marginTop: '0.35rem' }}>
+                  <tbody>
+                    {cs.ativacoes.map((a) => (
+                      <tr key={a.cnpj} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.22rem 0.9rem 0.22rem 0.4rem' }}>{a.loja}</td>
+                        <td style={{ padding: '0.22rem 0.4rem', color: 'var(--text-muted)' }}>{a.rid ? `RID ${a.rid}` : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            )}
           </div>
         )}
       </section>
