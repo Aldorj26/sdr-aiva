@@ -418,6 +418,35 @@ export async function POST(req: NextRequest) {
     lead = await getLeadByTelefone('55' + userExtId)
   }
 
+  // ─── NOME REAL DA FILA NA PRIMEIRA RESPOSTA (pedido do Aldo 02/09) ──────────
+  // O disparo semeia nome genérico 'Loja' de propósito (decisão 09/07 — as
+  // listas antigas tinham nome ruim). A fila da varredura (Google Maps) tem
+  // nome BOM: quando o lead responde, promove o nome da fila pro lead e pro
+  // título da opp. A qualificação da VictorIA (nome_varejo) continua podendo
+  // refinar depois — este é só o ponto de partida melhor que 'Loja'.
+  if (lead && lead.nome === 'Loja') {
+    try {
+      const { data: filaRow } = await supabaseAdmin
+        .from('sdr_fila_disparo').select('nome').eq('telefone', lead.telefone).maybeSingle()
+      const nomeFila = (filaRow?.nome ?? '').trim()
+      if (nomeFila && nomeFila.toLowerCase() !== 'loja') {
+        const nomeCurto = nomeFila.split(/\s*[|–—-]\s+/)[0].slice(0, 48).trim() || nomeFila
+        await supabaseAdmin.from('sdr_leads').update({ nome: nomeCurto }).eq('id', lead.id)
+        lead.nome = nomeCurto
+        if (lead.evotalks_opportunity_id) {
+          try {
+            await updateOpportunityTitle(Number(lead.evotalks_opportunity_id), `${nomeCurto} — AIVA`)
+          } catch (err) {
+            console.error(`[NOME_FILA] Falha ao renomear opp #${lead.evotalks_opportunity_id}:`, err)
+          }
+        }
+        console.log(`[NOME_FILA] ${lead.telefone}: 'Loja' → '${nomeCurto}' (nome da varredura)`)
+      }
+    } catch (err) {
+      console.error(`[NOME_FILA] Falha ao buscar nome na fila pra ${lead.telefone}:`, err)
+    }
+  }
+
   if (!lead) {
     // Lead desconhecido mandou mensagem → cria automaticamente e processa.
     // Isso captura leads orgânicos (indicação, busca, etc.) que mandam msg
