@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
+import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 
 /**
  * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
@@ -330,12 +331,36 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // ─── PRÉ-CADASTRO ANTECIPADO (pedido do Aldo 02/09) ─────────────────────
+      // O CNPJ da matriz já foi coletado e validado na Fase 1 — não precisa
+      // esperar os 5 dados da Fase 3 pra liberar o pré-cadastro. Registra AGORA
+      // no painel /registros (status 'informada') e o alerta abaixo leva o link.
+      // Os CNPJs adicionais continuam entrando na conclusão do cadastro (fluxo
+      // existente; o upsert de lá é idempotente e não mexe nesta linha).
+      let cnpjMatriz49: string | null = null
+      try {
+        const obsCnpj = (lead?.observacoes ?? '').match(/cnpj_matriz=([^|\]\n]+)/)?.[1] ?? ''
+        cnpjMatriz49 = extrairCnpjs(String(forms['dd2ab580'] ?? ''))[0] ?? extrairCnpjs(obsCnpj)[0] ?? null
+        if (cnpjMatriz49 && lead?.id) {
+          await supabaseAdmin.from('sdr_registros_cnpj').upsert(
+            [{ lead_id: lead.id, loja: lead.nome, telefone, cnpj: cnpjMatriz49, tipo: 'matriz', status: 'informada' }],
+            { onConflict: 'lead_id,cnpj', ignoreDuplicates: true },
+          )
+          console.log(`[PRE_CADASTRO_49] ${telefone}: matriz ${cnpjMatriz49} liberada pro pré-cadastro (antecipado)`)
+        }
+      } catch (err) {
+        console.error(`[PRE_CADASTRO_49] Falha ao registrar CNPJ matriz de ${telefone}:`, err)
+      }
+
       // Alerta Aldo + Nei de que a oportunidade foi aprovada internamente e
       // a VictorIA vai começar a Fase 3 (coleta dos 5 dados complementares).
       try {
         const msg =
           `🟢 *${lead?.nome ?? nomeSocio}* (${telefone}) movido pra Cadastro Recebido.\n` +
-          `HSM 20 disparado — VictorIA vai coletar os 5 dados restantes (email, faturamento, valor boleto, localização, CNPJs adicionais).`
+          `HSM 20 disparado — VictorIA vai coletar os 5 dados restantes (email, faturamento, valor boleto, localização, CNPJs adicionais).` +
+          (cnpjMatriz49
+            ? `\n\n📝 *Pré-cadastro já LIBERADO (antecipado):* CNPJ matriz ${cnpjMatriz49} está no painel com o form preenchido — pode lançar agora:\nhttps://sdr-aiva.vercel.app/registros`
+            : `\n\n⚠️ CNPJ matriz não encontrado nos dados — o pré-cadastro vai ser liberado na conclusão do cadastro, como antes.`)
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
       } catch (err) {
