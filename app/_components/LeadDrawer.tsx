@@ -523,10 +523,29 @@ export default function LeadDrawer() {
             maxHeight: '62%',
           }}
         >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
-            {data?.lead.nome ?? (loading ? 'Carregando…' : 'Lead')}
-          </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
+              {data?.lead.nome ?? (loading ? 'Carregando…' : 'Lead')}
+            </h2>
+            {/* Identidade fixa (pedido do Aldo 02/09): telefone, status da
+                conversa, etapa do funil no Evo e etiquetas — sempre visíveis. */}
+            {data && (
+              <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>📞 {data.lead.telefone}</span>
+                <span style={{ color: STATUS_COLOR[data.lead.status] ?? 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{data.lead.status}</span>
+                {data.etapaEvo && (
+                  <span style={{ color: 'var(--text)', whiteSpace: 'nowrap' }} title="Etapa do card no funil do Evo Talks">
+                    🧭 {data.etapaEvo}
+                    {data.etapaEvo === 'Cadastro recebido' && data.lead.status === 'INTERESSADO' && (
+                      <span style={{ color: 'var(--text-muted)' }}> · Fase 3 em coleta</span>
+                    )}
+                  </span>
+                )}
+                {data.tagsEvo && data.tagsEvo.length > 0 && <TagChips tags={data.tagsEvo} size="sm" />}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setLeadId(null)}
             style={{
@@ -537,6 +556,7 @@ export default function LeadDrawer() {
               borderRadius: '8px',
               cursor: 'pointer',
               fontFamily: 'inherit',
+              flexShrink: 0,
             }}
           >
             ✕ Fechar
@@ -1121,42 +1141,9 @@ export default function LeadDrawer() {
         {/* ─── Conversa (rolável) — dados do lead + histórico ─── */}
         {data && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
+            {/* Telefone/Status/Etapa/Etiquetas subiram pro cabeçalho fixo (02/09) */}
             <div style={{ fontSize: '0.85rem', lineHeight: 1.7, marginBottom: '0.5rem' }}>
-              <Row label="Telefone" value={data.lead.telefone} />
               <Row label="Cidade" value={data.lead.cidade ?? '—'} />
-              <Row
-                label="Status"
-                value={
-                  <span style={{ color: STATUS_COLOR[data.lead.status] ?? '#fff' }}>
-                    {data.lead.status}
-                  </span>
-                }
-              />
-              <Row
-                label="Etapa funil (Evo)"
-                value={
-                  <span style={{ fontWeight: 600 }}>
-                    {data.etapaEvo ?? '—'}
-                    {data.etapaEvo === 'Cadastro recebido' && data.lead.status === 'INTERESSADO' && (
-                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        {' '}· VictorIA coletando dados complementares (Fase 3)
-                      </span>
-                    )}
-                  </span>
-                }
-              />
-              {/* Etiquetas do card no Evo — replicadas com nome e cor de lá.
-                  Só aparece a linha se o card tiver alguma. */}
-              {data.tagsEvo && data.tagsEvo.length > 0 && (
-                <Row
-                  label="Etiquetas (Evo)"
-                  value={
-                    <span style={{ display: 'inline-flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                      <TagChips tags={data.tagsEvo} size="md" />
-                    </span>
-                  }
-                />
-              )}
               <Row label="Cadência" value={`D+${data.lead.etapa_cadencia}`} />
               <Row
                 label="Último contato"
