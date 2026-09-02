@@ -329,14 +329,16 @@ export default async function DesempenhoPage({
       </header>
 
       {/* ─── CS — atendimento das lojas ativas (visual clean 02/09) ─────────── */}
-      <section style={{ marginBottom: '1.1rem', flexShrink: 0, border: '1px solid var(--border)', borderLeft: '3px solid #a855f7', borderRadius: 8, background: 'var(--bg-elev)', padding: '0.6rem 0.9rem' }}>
-        <div style={{ display: 'flex', gap: '1.2rem', flexWrap: 'wrap', alignItems: 'baseline', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <strong style={{ color: '#a855f7', fontSize: '0.85rem' }}>🟣 CS</strong>
-          <span style={{ color: cs.humano.length > 0 ? 'var(--red)' : undefined }}>🔔 Atendimento: <b>{cs.humano.length}</b></span>
-          <span>💬 Conversas 24h: <b>{cs.conversas24h}</b></span>
-          <span>🆕 Ativações 7d: <b>{cs.ativacoes.length}</b></span>
-          <span style={{ color: cs.radar.length > 0 ? 'var(--yellow)' : undefined }}>📡 Atenção na semana: <b>{cs.radar.length}</b></span>
-          <span>🛑 Sem movimento: <b>{cs.zerou}</b></span>
+      <section id="cs" style={{ marginBottom: '1.1rem', flexShrink: 0, border: '1px solid var(--border)', borderLeft: '3px solid #a855f7', borderRadius: 8, background: 'var(--bg-elev)', padding: '0.7rem 0.9rem' }}>
+        <div style={{ fontSize: '0.72rem', color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.55rem' }}>
+          🟣 CS — carteira de lojas ativas
+        </div>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <Card label="Atendimento humano" value={String(cs.humano.length)} color={cs.humano.length > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
+          <Card label="Conversas 24h" value={String(cs.conversas24h)} color="var(--green, #16a34a)" href="#cs" />
+          <Card label="Ativações 7d" value={String(cs.ativacoes.length)} color={cs.ativacoes.length > 0 ? 'var(--accent)' : 'var(--text-muted)'} href="#cs" />
+          <Card label="Atenção na semana" value={String(cs.radar.length)} color={cs.radar.length > 0 ? 'var(--yellow)' : 'var(--text-muted)'} href="#cs" />
+          <Card label="Sem movimento" value={String(cs.zerou)} color={cs.zerou > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
         </div>
 
         {cs.humano.length > 0 && (
