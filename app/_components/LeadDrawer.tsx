@@ -547,6 +547,30 @@ export default function LeadDrawer() {
 
         {data && (
           <>
+            {/* Lojas do lojista FIXAS no cabeçalho (pedido do Aldo 02/09) —
+                visíveis mesmo rolando o histórico. */}
+            {(data.lojas?.length ?? 0) > 0 && (
+              <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap', fontSize: '0.73rem' }}>
+                {data.lojas!.map((lj) => (
+                  <span
+                    key={lj.cnpj}
+                    title={`${lj.tipo === 'matriz' ? 'Matriz' : 'Filial/adicional'} — ${lj.status === 'ativa' ? 'ativa' : lj.status === 'pre_cadastro_enviado' ? 'pré-cadastro enviado' : 'informada'}${lj.rid ? ` · RID ${lj.rid} (conta no funil Contas Fechadas MRR)` : ''}`}
+                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '2px 7px', background: 'var(--bg-elev)', color: 'var(--text-dim)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}
+                  >
+                    {lj.tipo === 'matriz' ? '🏢' : '➕'} {lj.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}{' '}
+                    {lj.status === 'ativa' ? <span style={{ color: '#34d399' }}>✅{lj.rid ? ` RID ${lj.rid}` : ''}</span> : lj.status === 'pre_cadastro_enviado' ? '📤' : '🆕'}
+                  </span>
+                ))}
+                {(data.funcionarios?.length ?? 0) > 0 && (
+                  <span
+                    title={data.funcionarios!.map((f) => `${f.nome}${f.telefone ? ` · ${f.telefone}` : ''}`).join('\n')}
+                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '2px 7px', background: 'var(--bg-elev)', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}
+                  >
+                    👥 {data.funcionarios!.length} funcionário{data.funcionarios!.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            )}
             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <ActionBtn
                 disabled={busy || replying}
@@ -1166,22 +1190,8 @@ export default function LeadDrawer() {
               />
             </div>
 
-            {/* Vínculos do lojista (02/09): lojas (matriz + filiais, com RID do
-                funil 11) e funcionários conhecidos pela conversa. */}
-            {(data.lojas?.length ?? 0) > 0 && (
-              <div style={{ marginBottom: '0.9rem', border: '1px solid var(--border)', borderRadius: 8, padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-dim)', marginBottom: '0.3rem' }}>🏢 Lojas deste lojista ({data.lojas!.length})</div>
-                {data.lojas!.map((lj) => (
-                  <div key={lj.cnpj} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', padding: '0.15rem 0', color: 'var(--text)' }}>
-                    <span style={{ fontFamily: 'monospace' }}>{lj.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{lj.tipo === 'matriz' ? '🏢 matriz' : '➕ filial/adicional'}</span>
-                    <span style={{ color: lj.status === 'ativa' ? '#34d399' : 'var(--text-muted)' }}>
-                      {lj.status === 'ativa' ? `✅ ativa${lj.rid ? ` · RID ${lj.rid}` : ''}` : lj.status === 'pre_cadastro_enviado' ? '📤 pré-cadastro enviado' : '🆕 informada'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Funcionários conhecidos pela conversa (02/09) — as lojas ficam
+                em chips FIXOS no cabeçalho, junto dos botões. */}
             {(data.funcionarios?.length ?? 0) > 0 && (
               <div style={{ marginBottom: '0.9rem', border: '1px solid var(--border)', borderRadius: 8, padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ fontWeight: 700, color: 'var(--text-dim)', marginBottom: '0.3rem' }}>👥 Funcionários conhecidos ({data.funcionarios!.length})</div>
