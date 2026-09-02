@@ -54,9 +54,13 @@ function chaveTel(s: string | null | undefined): string {
 // Corrigido em 25/08/2026.
 type InfoLead = { id: string; telefone: string | null; email: string | null; socio: string | null }
 
-async function mapasDeLeads(): Promise<{ porCnpj: Map<string, InfoLead>; porFone: Map<string, InfoLead> }> {
+async function mapasDeLeads(): Promise<{ porCnpj: Map<string, InfoLead>; porFone: Map<string, InfoLead>; blobPorLead: Map<string, string> }> {
   const porCnpj = new Map<string, InfoLead>()
   const porFone = new Map<string, InfoLead>()
+  // Texto pesquisável dos VÍNCULOS de cada lead (02/09): funcionários
+  // (sdr_registros_colab) e todas as lojas (sdr_registros_cnpj) — é o que faz
+  // "Ana Paula" ou o CNPJ da filial acharem a linha do lojista dono.
+  const blobPorLead = new Map<string, string>()
   try {
     const q =
       `select coalesce(jsonb_agg(t), '[]'::jsonb) from (` +
@@ -69,17 +73,35 @@ async function mapasDeLeads(): Promise<{ porCnpj: Map<string, InfoLead>; porFone
     const { data, error } = await supabaseAdmin.rpc('assistente_sql', { q })
     if (error) throw error
     type LinhaSql = { id: string; telefone: string; c1: string | null; c2: string | null; email: string | null; socio: string | null }
+    const porId = new Map<string, InfoLead>()
     for (const l of (data ?? []) as LinhaSql[]) {
       const info: InfoLead = { id: l.id, telefone: l.telefone, email: l.email, socio: l.socio }
+      porId.set(l.id, info)
       if (l.c1) porCnpj.set(l.c1, info)
       if (l.c2 && !porCnpj.has(l.c2)) porCnpj.set(l.c2, info)
       const k = chaveTel(l.telefone)
       if (k) porFone.set(k, info)
     }
+    // Vínculos: lojas por CNPJ (matriz + filiais) e funcionários conhecidos.
+    const [cnpjs, colabs] = await Promise.all([
+      supabaseAdmin.from('sdr_registros_cnpj').select('lead_id, cnpj, rid, loja'),
+      supabaseAdmin.from('sdr_registros_colab').select('lead_id, nome, cpf, telefone, email'),
+    ])
+    const add = (id: string | null, txt: string) => {
+      if (!id) return
+      blobPorLead.set(id, `${blobPorLead.get(id) ?? ''} ${txt}`)
+    }
+    for (const r of cnpjs.data ?? []) {
+      add(r.lead_id, `${r.cnpj} ${r.rid ?? ''} ${r.loja ?? ''}`)
+      // CNPJ de filial também casa a linha do snapshot com o lead dono
+      const info = porId.get(r.lead_id ?? '')
+      if (info && r.cnpj && !porCnpj.has(r.cnpj)) porCnpj.set(r.cnpj, info)
+    }
+    for (const c of colabs.data ?? []) add(c.lead_id, `${c.nome ?? ''} ${c.cpf ?? ''} ${c.telefone ?? ''} ${c.email ?? ''}`)
   } catch (e) {
     console.warn('[desempenho] mapa de leads indisponível (drawer e busca por e-mail desabilitados):', e)
   }
-  return { porCnpj, porFone }
+  return { porCnpj, porFone, blobPorLead }
 }
 
 const fmtBRL = (v: number | null) =>
@@ -221,7 +243,7 @@ export default async function DesempenhoPage({
     for (const r of (ant ?? []) as Row[]) anterior.set(r.cnpj, r)
   }
 
-  const { porCnpj, porFone } = await mapasDeLeads()
+  const { porCnpj, porFone, blobPorLead } = await mapasDeLeads()
   const cs = await getCsData()
   // Dados do lead pra uma linha do snapshot: casa por CNPJ e, se não achar,
   // pelo telefone que veio do Data Studio.
@@ -244,6 +266,8 @@ export default async function DesempenhoPage({
       return casaBusca(sp.q!, [
         r.loja, r.nome_varejo, r.cidade, r.uf, r.cnpj, r.status_consulta,
         r.telefone, info?.telefone, info?.email, info?.socio,
+        // vínculos (02/09): funcionários + CNPJs/RIDs de todas as lojas do dono
+        info?.id ? blobPorLead.get(info.id) : undefined,
       ])
     })
   }

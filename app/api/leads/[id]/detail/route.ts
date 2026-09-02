@@ -94,11 +94,29 @@ export async function GET(
     }
   }
 
+  // Vínculos do lojista (02/09): todas as lojas (matriz + filiais, com status e
+  // RID = elo com a conta do funil 11) e os funcionários conhecidos pela
+  // conversa — pro Nei enxergar a estrutura sem sair do drawer.
+  const [{ data: lojas }, { data: funcionarios }] = await Promise.all([
+    supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('cnpj, tipo, status, rid, criado_em')
+      .eq('lead_id', id)
+      .order('tipo', { ascending: false }),
+    supabaseAdmin
+      .from('sdr_registros_colab')
+      .select('nome, cpf, telefone, email, cnpj_loja, criado_em')
+      .eq('lead_id', id)
+      .order('criado_em', { ascending: true }),
+  ])
+
   return NextResponse.json({
     lead,
     mensagens: mensagensComAvaliacao,
     totalMensagens: totalMensagens ?? mensagens.length,
     etapaEvo,
     tagsEvo,
+    lojas: lojas ?? [],
+    funcionarios: funcionarios ?? [],
   })
 }

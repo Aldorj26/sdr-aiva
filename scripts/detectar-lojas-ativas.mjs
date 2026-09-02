@@ -69,7 +69,7 @@ for (const r of ativaram) {
         })
         await post('/int/updateOpportunity', {
           id: nova.id,
-          description: `UME_RID: ${rid} | CNPJ: ${r.cnpj} | Loja de ${r.loja} (ativação detectada ${semana})`,
+          description: `UME_RID: ${rid} | CNPJ: ${r.cnpj} | Loja de ${r.loja} (ativação detectada ${semana}) | Fone lojista: ${String(r.telefone ?? '').replace(/\D/g, '')}`,
           tags: [TAG_UME],
         })
         // read-after-write (lição 26/08: update do Evo pode retornar 200 sem persistir)

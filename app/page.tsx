@@ -106,9 +106,41 @@ async function getRecentLeads(
       .lt('data_disparo_inicial', endBrt.toISOString())
   }
 
+  let idsVinculo = new Set<string>()
   if (q && q.trim()) {
     // Remove vírgula/parênteses: quebrariam a sintaxe do .or() do PostgREST.
     const term = q.trim().replace(/[(),]/g, ' ').trim()
+    const soDigitos = term.replace(/\D/g, '')
+
+    // ── VÍNCULOS (pedido do Aldo 02/09): funcionário ou CNPJ/RID de QUALQUER
+    // loja do lojista (matriz/filial) também acham o lead dono — o funcionário
+    // da filial liga pro Nei e a busca resolve pra conversa certa.
+    try {
+      const digitosOuTermo = soDigitos.length >= 6 ? soDigitos : term
+      const [colabs, cnpjs] = await Promise.all([
+        supabaseAdmin
+          .from('sdr_registros_colab')
+          .select('lead_id')
+          .or([
+            `nome.ilike.%${term}%`,
+            `email.ilike.%${term}%`,
+            `cpf.ilike.%${digitosOuTermo}%`,
+            `telefone.ilike.%${digitosOuTermo}%`,
+          ].join(','))
+          .limit(30),
+        supabaseAdmin
+          .from('sdr_registros_cnpj')
+          .select('lead_id')
+          .or([`cnpj.ilike.%${digitosOuTermo}%`, `rid.ilike.%${term}%`, `loja.ilike.%${term}%`].join(','))
+          .limit(30),
+      ])
+      idsVinculo = new Set(
+        [...(colabs.data ?? []), ...(cnpjs.data ?? [])].map((r) => r.lead_id as string).filter(Boolean),
+      )
+    } catch (e) {
+      console.warn('[busca] vínculos falharam:', e)
+    }
+
     // Busca em nome/telefone/cidade E nas observacoes — que guardam todos os dados
     // coletados ([DADOS_COLETADOS:nome_socio=…|email_socio=…|cnpj_matriz=…|…]),
     // então cobre sócio, email, CNPJ, faturamento, região, nº lojas etc.
@@ -120,14 +152,17 @@ async function getRecentLeads(
     ]
     // CNPJ/CPF/telefone colado COM pontuação (00.000.000/0001-00): no banco
     // esses valores vivem só com dígitos — busca também a versão limpa.
-    const soDigitos = term.replace(/\D/g, '')
     if (soDigitos.length >= 8 && soDigitos !== term) {
       condicoes.push(`telefone.ilike.%${soDigitos}%`, `observacoes.ilike.%${soDigitos}%`)
+    }
+    if (idsVinculo.size > 0) {
+      condicoes.push(`id.in.(${[...idsVinculo].slice(0, 40).join(',')})`)
     }
     query = query.or(condicoes.join(','))
   }
   const { data } = await query
-  return data ?? []
+  // Marca quem foi achado por vínculo (funcionário/loja) pro selo 🔗 na linha
+  return (data ?? []).map((l) => ({ ...l, achado_por_vinculo: idsVinculo.has(l.id) }))
 }
 
 /**
@@ -738,7 +773,7 @@ export default async function Page({
           </tr>
         </thead>
         <tbody>
-          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean; acionar_humano: boolean; status_alterado_em: string | null }) => {
+          {leads.map((l: { id: string; nome: string; telefone: string; cidade: string | null; status: string; data_ultimo_contato: string | null; importante: boolean; acionar_humano: boolean; status_alterado_em: string | null; achado_por_vinculo?: boolean }) => {
             // SLA de liberação: lojas em TREINAR/LOGIN paradas 3+ dias ganham
             // badge "⏱ Xd parado" (curadoria 2026-07-27 — queixa nº 1 do funil).
             const diasParado =
@@ -750,6 +785,11 @@ export default async function Page({
               <td>
                 {l.importante && <span style={{ color: '#f59e0b', marginRight: 4 }} title="Importante (3+ lojas)">★</span>}
                 {l.nome}
+                {l.achado_por_vinculo && (
+                  <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#a855f7', border: '1px solid #a855f744', borderRadius: 4, padding: '1px 5px' }} title="Achado por vínculo: funcionário ou CNPJ de uma das lojas deste lojista">
+                    🔗 vínculo
+                  </span>
+                )}
               </td>
               <td style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                 <StatusPill status={l.status} />

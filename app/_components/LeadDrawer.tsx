@@ -108,7 +108,11 @@ interface AtalhoInfo {
 export default function LeadDrawer() {
   const [leadId, setLeadId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<{ lead: Lead; mensagens: Mensagem[]; totalMensagens?: number; etapaEvo?: string | null; tagsEvo?: TagChip[] } | null>(null)
+  const [data, setData] = useState<{
+    lead: Lead; mensagens: Mensagem[]; totalMensagens?: number; etapaEvo?: string | null; tagsEvo?: TagChip[]
+    lojas?: Array<{ cnpj: string; tipo: string; status: string; rid: string | null }>
+    funcionarios?: Array<{ nome: string; cpf: string | null; telefone: string | null; email: string | null; cnpj_loja: string | null }>
+  } | null>(null)
 
   // Abre a conversa já rolada no FIM (última mensagem à vista) — pedido do
   // Aldo 2026-07-31. Âncora + scrollIntoView: rola o ancestral certo, seja o
@@ -1161,6 +1165,35 @@ export default function LeadDrawer() {
                 value={data.lead.evotalks_opportunity_id ?? '—'}
               />
             </div>
+
+            {/* Vínculos do lojista (02/09): lojas (matriz + filiais, com RID do
+                funil 11) e funcionários conhecidos pela conversa. */}
+            {(data.lojas?.length ?? 0) > 0 && (
+              <div style={{ marginBottom: '0.9rem', border: '1px solid var(--border)', borderRadius: 8, padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-dim)', marginBottom: '0.3rem' }}>🏢 Lojas deste lojista ({data.lojas!.length})</div>
+                {data.lojas!.map((lj) => (
+                  <div key={lj.cnpj} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', padding: '0.15rem 0', color: 'var(--text)' }}>
+                    <span style={{ fontFamily: 'monospace' }}>{lj.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{lj.tipo === 'matriz' ? '🏢 matriz' : '➕ filial/adicional'}</span>
+                    <span style={{ color: lj.status === 'ativa' ? '#34d399' : 'var(--text-muted)' }}>
+                      {lj.status === 'ativa' ? `✅ ativa${lj.rid ? ` · RID ${lj.rid}` : ''}` : lj.status === 'pre_cadastro_enviado' ? '📤 pré-cadastro enviado' : '🆕 informada'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(data.funcionarios?.length ?? 0) > 0 && (
+              <div style={{ marginBottom: '0.9rem', border: '1px solid var(--border)', borderRadius: 8, padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-dim)', marginBottom: '0.3rem' }}>👥 Funcionários conhecidos ({data.funcionarios!.length})</div>
+                {data.funcionarios!.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', padding: '0.15rem 0', color: 'var(--text)' }}>
+                    <span>{f.nome}</span>
+                    {f.telefone && <span style={{ color: 'var(--text-muted)' }}>📱 {f.telefone}</span>}
+                    {f.cnpj_loja && <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>loja {f.cnpj_loja}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--text-dim)' }}>
               Histórico de mensagens ({data.totalMensagens ?? data.mensagens.length})

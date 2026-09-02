@@ -911,6 +911,8 @@ export async function criarContaMrrLoja(opts: {
     `UME_RID: ${rid}`,
     `CNPJ: ${opts.cnpj}`,
     opts.leadNome ? `Loja adicional de ${opts.leadNome}` : 'Loja adicional (registro por loja 01/09)',
+    // telefone do LOJISTA dono: quem estiver no Evo consegue voltar pro lead
+    `Fone lojista: ${(opts.telefone ?? '').replace(/\D/g, '')}`,
   ].join(' | ')
   await post<{ id: number }>('/int/updateOpportunity', { id, description: desc, tags: [TAG_IDS.UME] })
   console.log(`CRM/MRR: conta POR LOJA criada — #${id} "${titulo}" (RID ${rid}, CNPJ ${opts.cnpj})`)
