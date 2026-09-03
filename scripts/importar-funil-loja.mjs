@@ -70,24 +70,41 @@ const num = (s) => {
 }
 const int = (s) => parseInt(String(s ?? '').replace(/\D/g, ''), 10) || 0
 
-const rows = bruto.map((l) => ({
-  mes,
-  cnpj: String(l.cnpj).replace(/\D/g, '').padStart(14, '0'),
-  nome_varejo: l.varejo || null,
-  loja: l.loja || null,
-  uf: l.uf || null,
-  cidade: l.cidade || null,
-  status_consulta: l.status || null,
-  aprovados: int(l.aprovados),
-  vendas: int(l.vendas),
-  conversao: (num(l.conv) ?? 0) / 100,
-  valor_vendas: num(l.valor),
-  ticket_medio: num(l.ticket),
-  sem_venda: int(l.vendas) === 0,
-  sem_consulta: int(l.aprovados) === 0,
+// AGREGA POR CNPJ (03/09): a PK da tabela é (mes, cnpj) e o relatório traz
+// uma linha por LOJA — o mesmo CNPJ pode ter 2+ lojas (Multicell Loja 1/2/3).
+// Sobrescrever perderia vendas de uma delas; soma sempre (mesma correção do
+// importador semanal). Fica o nome da loja que mais vendeu.
+const porCnpj = new Map()
+for (const l of bruto) {
+  const cnpj = String(l.cnpj).replace(/\D/g, '').padStart(14, '0')
+  const ap = int(l.aprovados), vd = int(l.vendas), vl = num(l.valor) ?? 0
+  const atual = porCnpj.get(cnpj)
+  if (!atual) {
+    porCnpj.set(cnpj, {
+      mes, cnpj,
+      nome_varejo: l.varejo || null,
+      loja: l.loja || null,
+      uf: l.uf || null,
+      cidade: l.cidade || null,
+      status_consulta: l.status || null,
+      aprovados: ap, vendas: vd, valor_vendas: vl,
+      atualizado_em: new Date().toISOString(),
+    })
+    continue
+  }
+  if (vd > atual.vendas) atual.loja = l.loja || atual.loja
+  atual.aprovados += ap
+  atual.vendas += vd
+  atual.valor_vendas += vl
+}
+const rows = [...porCnpj.values()].map((r) => ({
+  ...r,
+  conversao: r.aprovados > 0 ? r.vendas / r.aprovados : 0,
+  ticket_medio: r.vendas > 0 ? r.valor_vendas / r.vendas : null,
+  sem_venda: r.vendas === 0,
+  sem_consulta: r.aprovados === 0,
   sem_operador: false,
   telefone: null,
-  atualizado_em: new Date().toISOString(),
 }))
 
 const tot = {

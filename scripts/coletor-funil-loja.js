@@ -9,9 +9,12 @@
  *   1. Abra o relatório: https://datastudio.google.com/u/0/reporting/af540856-cd61-4ada-9b97-de85174d7cbd/page/p_q8g4rrvn3d
  *   2. Em "Selecionar período", escolha o mês fechado (ex.: 1 a 31 de julho).
  *   3. Aperte F12 → aba Console → cole este arquivo inteiro → Enter.
- *   4. Role a tabela "Funil por Loja" até o fim e passe pelas páginas (setinha ›).
- *      O contador flutuante no canto mostra quantas linhas já foram capturadas
- *      — role devagar até bater o total (ex.: "69 / 69").
+ *   4. NÃO PRECISA ROLAR (descoberta 03/09): cada página da tabela já rende as
+ *      50 linhas inteiras no DOM. Basta clicar nas setinhas ‹ › passando por
+ *      TODAS as páginas — o contador captura cada página inteira de uma vez.
+ *      ⚠️ O contador pode fechar em total-1: o Looker repete a linha da
+ *      fronteira entre páginas (ex.: 131/132 com a mesma loja idêntica nas
+ *      páginas 2 e 3) — se os totais do importador baterem com os cards, ok.
  *   5. Clique no botão "⬇ Baixar JSON" do contador.
  *   6. Me mande o arquivo ou rode:
  *      node --env-file=.env.local scripts/importar-funil-loja.mjs --mes 2026-07 --arquivo "C:/Users/rocha/Downloads/funil-loja.json"
@@ -26,7 +29,9 @@
       const cs = [...r.querySelectorAll('.cell')].map((c) => c.textContent.trim())
       // colunas: ID | CNPJ | Varejo | Loja | UF | Cidade | Status | Aprovados | Vendas | Conv% | Venda R$ | Ticket
       if (cs.length >= 12 && cs[0] && /^\d+$/.test(cs[0])) {
-        coleta.set(cs[0] + '|' + cs[1], {
+        // chave inclui a LOJA (corrigido 03/09): o mesmo id+cnpj pode ter
+        // 2+ lojas (Multicell Loja 1/2/3) — sem isso elas colapsavam.
+        coleta.set(cs[0] + '|' + cs[1] + '|' + cs[3], {
           id: cs[0], cnpj: cs[1], varejo: cs[2], loja: cs[3], uf: cs[4], cidade: cs[5],
           status: cs[6], aprovados: cs[7], vendas: cs[8], conv: cs[9], valor: cs[10], ticket: cs[11],
         })
