@@ -25,21 +25,11 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const RE_MOTIVO =
-  /(acesso_[a-z_]+|desanimo_[a-z_]+|troca_[a-z_]+|atendimento_automatico[^|[]*|duvida_[^|[]*|pediu[^|[]*|interesse_[^|[]*|loja_[^|[]*|documentos_[^|[]*|dados_colaborador[^|[]*|qualificacao[^|[]*|cadastro[^|[]*|usuario_[^|[]*|alterac[^|[]*)/i
+// Classificação compartilhada com a página /atendimento (lib/fila.ts, 03/09) —
+// uma fonte só pra motivo/categoria, digest e painel nunca divergem.
+import { RE_MOTIVO, categoriaFila as categoria } from '@/lib/fila'
 
 type Item = { nome: string; telefone: string; status: string; motivo: string; ultimaMsg: string | null }
-
-function categoria(motivo: string): 'acao' | 'docs' | 'mover' | 'sem_motivo' {
-  // acesso_flexfone_nao_chegou / acesso_colaborador_pendente (regra 27/08): loja
-  // parada sem login — sempre ação vermelha.
-  if (/^acesso_/i.test(motivo.trim())) return 'acao'
-  const m = motivo.toLowerCase()
-  if (!m.trim()) return 'sem_motivo'
-  if (/cadastro_caf_confirmado|cadastro_completo\b/.test(m)) return 'mover'
-  if (/documentos_sem_socio_completos|dados_colaborador/.test(m)) return 'docs'
-  return 'acao'
-}
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
