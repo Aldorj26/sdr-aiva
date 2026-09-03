@@ -401,7 +401,7 @@ export default async function DesempenhoPage({
                 const celulas = (
                   <>
                     <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.82rem', width: '26%' }}>🛠 {c.loja ?? c.telefone}</td>
-                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)' }} title={c.problema ?? ''}>
+                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>
                       {(c.problema ?? 'ver conversa').slice(0, 90)}
                     </td>
                     <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>

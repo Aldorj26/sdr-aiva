@@ -152,7 +152,7 @@ export default async function AtendimentoPage() {
               const celulas = (
                 <>
                   <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.telefone}</div></td>
-                  <td style={{ ...td, fontSize: '0.8rem', color: 'var(--text-dim)' }} title={c.problema ?? ''}>{(c.problema ?? 'ver conversa').slice(0, 110)}</td>
+                  <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>{(c.problema ?? 'ver conversa').slice(0, 110)}</td>
                   <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)' }}>{c.status_lead ?? '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(c.criado_em)}</td>
                   <td style={{ ...td, textAlign: 'right' }}><ChamadoResolver id={c.id} /></td>
