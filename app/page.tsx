@@ -3,7 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase'
 import LeadDrawer from './_components/LeadDrawer'
 import ClickableRow from './_components/ClickableRow'
 import TimelineRow from './_components/TimelineRow'
-import ChamadoResolver from './_components/ChamadoResolver'
 import SearchBar from './_components/SearchBar'
 import { getPipeOpportunities, getTagCatalog, PIPELINE_AIVA } from '@/lib/evotalks'
 import TagChips, { type TagChip } from './_components/TagChips'
@@ -292,18 +291,8 @@ interface LeadResumo {
   data_ultimo_contato: string | null
 }
 
-// Leads que pediram atendimento humano e ainda não foram resolvidos.
-// LFV fora: atendimento de loja ativa é CS e mora no /desempenho (02/09).
-async function getPrecisamAtendimento(): Promise<LeadResumo[]> {
-  const { data } = await supabaseAdmin
-    .from('sdr_leads')
-    .select('id, nome, telefone, status, data_ultimo_contato')
-    .eq('acionar_humano', true)
-    .not('status', 'in', '("OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")')
-    .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
-    .limit(12)
-  return (data ?? []) as LeadResumo[]
-}
+// (getPrecisamAtendimento migrou pra aba 🎧 /atendimento em 03/09 — a fila
+// completa, com motivo e botão Atendido, mora lá.)
 
 // Leads nas etapas finais do funil — os mais perto de fechar.
 async function getLeadsQuentes(): Promise<LeadResumo[]> {
@@ -512,46 +501,6 @@ async function getChamadosAbertos(): Promise<ChamadoRow[]> {
   return ((data ?? []) as ChamadoRow[]).filter((c) => c.status_lead !== 'LOJA_FINALIZADA_E_VENDENDO')
 }
 
-function PainelChamados({ chamados }: { chamados: ChamadoRow[] }) {
-  const linha = (c: ChamadoRow) => (
-    <>
-      <span className="timeline-time">{fmtRelativo(c.criado_em)}</span>
-      <span style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {c.loja ?? c.telefone}
-        </span>
-        <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.problema ?? ''}>
-          {c.problema ?? 'ver conversa'}
-        </span>
-      </span>
-      <ChamadoResolver id={c.id} />
-    </>
-  )
-  return (
-    <div>
-      <div className="section-header">
-        <h2 style={{ margin: 0 }}>🛠 Chamados abertos</h2>
-        <span className="section-sub">erro de portal/sistema{chamados.length > 0 ? ` — ${chamados.length}` : ''}</span>
-      </div>
-      <div className="timeline">
-        {chamados.length === 0 ? (
-          <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Nenhum chamado aberto. ✓
-          </div>
-        ) : (
-          chamados.slice(0, 12).map((c) =>
-            c.lead_id ? (
-              <TimelineRow key={c.id} leadId={c.lead_id}>{linha(c)}</TimelineRow>
-            ) : (
-              <div key={c.id} className="timeline-item">{linha(c)}</div>
-            ),
-          )
-        )}
-      </div>
-    </div>
-  )
-}
-
 function PainelLeads({
   titulo,
   sub,
@@ -646,7 +595,7 @@ export default async function Page({
   }>
 }) {
   const sp = await searchParams
-  const [metricas, leadsRaw, agora, atendimento, quentes, conversasHoje, saude, etapasEvo, descartadosTels, chamadosAbertos] = await Promise.all([
+  const [metricas, leadsRaw, agora, quentes, conversasHoje, saude, etapasEvo, descartadosTels, chamadosAbertos] = await Promise.all([
     getMetricas(),
     getRecentLeads(
       sp.q,
@@ -664,7 +613,6 @@ export default async function Page({
       sp.descartados_pipeline,
     ),
     getAgora(),
-    getPrecisamAtendimento(),
     getLeadsQuentes(),
     getConversasHoje(),
     getSaude(),
@@ -714,6 +662,22 @@ export default async function Page({
             </p>
           </div>
           <Link
+            href="/atendimento"
+            style={{
+              background: 'var(--bg-elev)',
+              color: 'var(--text-dim)',
+              textDecoration: 'none',
+              padding: '0.55rem 0.9rem',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            🎧 Atendimento
+          </Link>
+          <Link
             href="/campanhas"
             style={{
               background: 'var(--bg-elev)',
@@ -758,11 +722,18 @@ export default async function Page({
           href="/?status=INTERESSADO"
         />
         <Card
-          label="Aguardando humano"
+          label="🎧 Aguardando humano"
           value={agora.aguardandoHumano}
-          hint="funil (lojas ativas → CS)"
+          hint="fila do funil — aba Atendimento"
           color={agora.aguardandoHumano > 0 ? 'var(--yellow)' : 'var(--text-muted)'}
-          href="/?aguardando_humano=true"
+          href="/atendimento"
+        />
+        <Card
+          label="🛠 Chamados"
+          value={chamadosAbertos.length}
+          hint="erro de portal — aba Atendimento"
+          color={chamadosAbertos.length > 0 ? 'var(--red)' : 'var(--text-muted)'}
+          href="/atendimento"
         />
         <Card
           label="🟣 No CS"
@@ -921,13 +892,7 @@ export default async function Page({
           marginTop: '2.5rem',
         }}
       >
-        <PainelLeads
-          titulo="🔔 Precisam de atendimento"
-          sub="acionar humano"
-          leads={atendimento}
-          vazio="Ninguém esperando atendimento. ✓"
-          verTodosHref="/?aguardando_humano=true"
-        />
+        {/* "Precisam de atendimento" e "Chamados" migraram pra aba 🎧 /atendimento (03/09) */}
         <PainelLeads
           titulo="🔥 Leads quentes"
           sub="perto de fechar"
@@ -942,7 +907,6 @@ export default async function Page({
           vazio="Nenhuma conversa nas últimas 24h."
           verTodosHref="/?status=INTERESSADO"
         />
-        <PainelChamados chamados={chamadosAbertos} />
       </div>
 
       {/* ─── Saúde do sistema ─────────────────────────────────────────── */}
