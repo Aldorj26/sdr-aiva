@@ -1,67 +1,71 @@
 ---
 name: destilar-enviar-info
-description: Destila as respostas manuais do Nei (botão "Enviar info" do painel) em conhecimento pra VictorIA — gera um digest com sugestões prontas de curadoria e de regra de prompt, aplica só o que o Aldo aprovar. Use quando o Aldo pedir pra "destilar o Enviar info", "aprender com as respostas do Nei", rodar o "destilador", ou na rodada semanal se estiver combinado.
+description: Ciclo de aprendizado AUTÔNOMO da VictorIA (liberado pelo Aldo 03/09) — destila as respostas manuais do Nei (Enviar info) E as conversas que deram certo, aplica curadoria sozinho e regra de prompt só com revisor limpo; manda digest de auditoria pro Aldo/Nei em vez de pedir aprovação. Use quando pedirem pra "destilar", "rodar o destilador", "aprender com as conversas", ou na rodada agendada semanal.
 ---
 
-# Destilador do "Enviar info" → conhecimento da VictorIA
+# Destilador → aprendizado autônomo da VictorIA
 
-## O que esta skill faz
+## Modo de operação (decisão do Aldo 03/09)
 
-As respostas manuais do Nei ficam em `sdr_mensagens` com marcador
-`manual via painel` no conteúdo (ou logo após ele, quando o texto vai em
-mensagem separada). Elas só beneficiam O PRÓPRIO lead (entram no histórico).
-Esta skill fecha o ciclo pros OUTROS leads: minera o que o Nei respondeu,
-identifica o que a VictorIA não sabia (ou teria respondido diferente) e
-transforma em sugestões de aprendizado — **nada é aplicado sem aprovação
-explícita do Aldo**.
+**Autônomo com auditoria**: nada de pedir aprovação prévia — aplica, registra
+e reporta no WhatsApp do Aldo/Nei o que foi aprendido, com instrução de como
+reverter ("responda aqui ou apague na /curadoria"). As exceções da seção
+ZONAS PROIBIDAS nunca são autônomas.
 
-## Passo a passo
+## Fontes de aprendizado (as duas)
 
-1. **Janela**: pegar as mensagens `direcao='out'` com `%manual via painel%`
-   desde a última rodada. A última rodada fica registrada em
-   `docs/destilador-enviar-info.log` (uma linha `RODADA: <iso> | <n> analisadas`)
-   — se não existir, usar 14 dias.
+1. **Respostas manuais do Nei** — `sdr_mensagens` com `%manual via painel%`
+   desde a última rodada (log em `docs/destilador-enviar-info.log`, linha
+   `RODADA: <iso> | <resumo>`; sem log = 14 dias). Intervenção humana = a
+   VictorIA não resolveu sozinha.
+2. **Conversas que DERAM CERTO** — respostas da própria VictorIA seguidas de
+   avanço real do lead: status progrediu (INTERESSADO→PRE_APROVACAO→
+   CADASTRO_RECEBIDO→…) logo após, ou o lojista destravou/agradeceu/agiu.
+   Buscar nos últimos 14 dias os leads que MUDARAM de status e olhar a
+   resposta imediatamente anterior ao avanço.
 
-2. **Contexto**: pra cada resposta manual, buscar as ~6 mensagens anteriores
-   do lead (o que o lojista perguntou e o que a VictorIA tinha respondido
-   antes de o Nei intervir). Intervenção do Nei = sinal de que a VictorIA
-   não resolveu sozinha.
+## Classificação e destino (via Claude API, padrão dos scripts/mineracao-*)
 
-3. **Destilar** (Claude API, claude-sonnet-4-5, mesmo padrão dos mineradores
-   em `scripts/mineracao-*.mjs`): pra cada caso, classificar:
-   - `fato_novo` — o Nei informou algo que NÃO está no prompt (prazo, regra,
-     contato, procedimento). Candidato a virar REGRA DE PROMPT.
-   - `correcao_de_conduta` — a VictorIA respondeu e o Nei corrigiu/refez.
-     Candidato a virar ENTRADA DE CURADORIA (pergunta + resposta ruim dela +
-     resposta certa do Nei).
-   - `caso_pontual` — específico daquele lead (valores, datas, negociação).
-     NÃO vira aprendizado; no máximo `instrucao_silvia` daquele lead.
-   Agrupar os repetidos (mesmo tema respondido pra N leads = prioridade).
+| Achado | Destino | Autônomo? |
+|---|---|---|
+| Correção de conduta (Nei refez a resposta dela) | `sdr_curadoria` avaliacao='ruim' + correcao (voz da VictorIA) | ✅ sim |
+| Jogada vencedora (resposta dela → lead avançou) | `sdr_curadoria` avaliacao='boa' com pergunta+resposta (entra no bloco [JOGADAS QUE DERAM CERTO] do prompt) | ✅ sim |
+| Fato novo operacional (prazo, procedimento, canal) | regra em `prompts/aiva.ts` | ⚠️ só se o `revisor-prompt-victoria` voltar SEM contradição ALTA/MÉDIA; senão, parqueia no digest |
+| Caso pontual do lead (valores, negociação) | nada (no máximo instrucao_silvia do lead) | — |
+| Tema de ZONA PROIBIDA | parquear no digest pro Aldo decidir | ⛔ nunca |
 
-4. **Digest pro Aldo** (no chat, não disparar nada): tabela com tema,
-   quantas vezes o Nei respondeu isso, o texto-fonte do Nei, e a sugestão
-   PRONTA — pra curadoria: pergunta/resposta_ruim/correção; pra prompt: a
-   frase exata e a seção onde entraria. Terminar perguntando quais aplicar.
+## ZONAS PROIBIDAS (nunca aprender sozinho)
 
-5. **Aplicar SÓ o aprovado**:
-   - Curadoria → insert em `sdr_curadoria` (avaliacao='ruim', correcao=texto
-     do Nei adaptado à voz da VictorIA; vincular mensagem_id real quando der).
-   - Prompt → editar `prompts/aiva.ts` e **SEMPRE rodar o subagente
-     `revisor-prompt-victoria` antes de commitar** (regra da casa).
-   - Registrar a rodada no log (passo 1) e commitar.
+Histórico do projeto justifica cada uma:
+- **Telefones/contatos e acusação de golpe** (caso JN Multimarcas: 2 dias
+  chamando o número do Nei de golpe). Qualquer regra com telefone/URL fora
+  de FONES_OFICIAIS/whitelist → digest, nunca automático.
+- **Parcelex** (gate rígido: só loja já vendendo, e por pedido).
+- **Promessas de aprovação/prazo/taxa/comissão** (valores mudam; NUNCA
+  garantir aprovação).
+- **Regras de coleta de dados** (colaboradores/CNPJ — acabaram de mudar).
 
-## Cuidados (aprendidos neste projeto)
+## Limites por rodada
 
-- ⛔ Nunca aprender sozinho: improviso do Nei pode estar errado ou datado —
-  o Aldo é o filtro de qualidade.
-- ⛔ Telefones citados pelo Nei que não estão em FONES_OFICIAIS
-  (`lib/text.ts`): se virarem regra, o sanitizador APAGA a frase da resposta.
-  Sinalizar no digest quando a sugestão contém telefone/URL fora da whitelist.
-- ⛔ Regra nova convivendo com passagem antiga = comportamento alternado.
-  Por isso o revisor é obrigatório em qualquer mudança de prompt.
-- A curadoria injeta só as 12 correções mais recentes — entrada nova empurra
-  a mais antiga pra fora. Se a fila estiver cheia de correções valiosas,
-  preferir transformar em regra de prompt (permanente).
-- Respostas do tipo "[Info pendente (manual via painel, HSM) — Nome]" são o
-  REGISTRO do envio; o texto real pode estar na mensagem seguinte ou só no
-  Evo. Ignorar as que não têm conteúdo útil.
+- Máx **5** entradas 'ruim' + **5** 'boa' novas (a fila do prompt injeta as
+  12 'ruim' + 6 'boa' mais recentes — entrada nova empurra antiga pra fora;
+  se a fila estiver valiosa, preferir promover a regra de prompt).
+- Máx **1** mudança de prompt por rodada (e sempre commit separado).
+- Dedupe: não criar entrada de tema que já existe na curadoria ativa.
+
+## Fechamento da rodada (sempre)
+
+1. Gravar `RODADA:` no log + commitar (log, curadoria não é git; prompt sim).
+2. Digest WhatsApp pro Aldo e Nei (fluxo openChat/sendMessageToChat dos
+   scripts): o que aprendeu (ruins, boas, regra aplicada ou parqueada), com
+   "pra reverter: apague na /curadoria ou me chame".
+3. Se algo foi parqueado (zona proibida / revisor barrou), listar no digest
+   como PENDENTE DE DECISÃO.
+
+## Cuidados herdados
+
+- Revisor obrigatório em QUALQUER edição de prompts/aiva.ts ou blocos de
+  lib/claude.ts — sem exceção no modo autônomo.
+- "[Info pendente (manual via painel…)]" é registro de envio; o texto útil
+  pode estar na mensagem seguinte ou só no Evo — pular os vazios.
+- tsc + build antes de commitar mudança de código/prompt.

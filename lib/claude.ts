@@ -615,35 +615,64 @@ Responda só com o primeiro nome OU "DESCONHECIDO". Sem explicação, sem aspas,
 async function getCorrecoesParaPrompt(): Promise<string> {
   try {
     const { supabaseAdmin } = await import('@/lib/supabase')
-    const { data } = await supabaseAdmin
-      .from('sdr_curadoria')
-      .select('pergunta, resposta, correcao, atualizado_em')
-      .eq('avaliacao', 'ruim')
-      .not('correcao', 'is', null)
-      .order('atualizado_em', { ascending: false })
-      .limit(12)
+    const [{ data }, { data: boas }] = await Promise.all([
+      supabaseAdmin
+        .from('sdr_curadoria')
+        .select('pergunta, resposta, correcao, atualizado_em')
+        .eq('avaliacao', 'ruim')
+        .not('correcao', 'is', null)
+        .order('atualizado_em', { ascending: false })
+        .limit(12),
+      // Aprendizado com o que DEU CERTO (liberado pelo Aldo 03/09): entradas
+      // 'boa' COM pergunta+resposta preenchidas viram exemplos vencedores.
+      // (👍 antigos sem pergunta/resposta ficam de fora — não têm conteúdo.)
+      supabaseAdmin
+        .from('sdr_curadoria')
+        .select('pergunta, resposta, atualizado_em')
+        .eq('avaliacao', 'boa')
+        .not('pergunta', 'is', null)
+        .not('resposta', 'is', null)
+        .order('atualizado_em', { ascending: false })
+        .limit(6),
+    ])
 
-    if (!data || data.length === 0) return ''
+    let bloco = ''
 
-    const exemplos = data
-      .map((c, i) => {
-        const perg = c.pergunta
-          ? `Lead disse: "${String(c.pergunta).slice(0, 300)}"`
-          : '(sem contexto da pergunta)'
-        const errada = `Você respondeu (ERRADO): "${String(c.resposta ?? '').slice(0, 400)}"`
-        const certo = `Resposta correta: "${String(c.correcao).slice(0, 400)}"`
-        return `${i + 1}. ${perg}\n   ${errada}\n   ${certo}`
-      })
-      .join('\n\n')
+    if (data && data.length > 0) {
+      const exemplos = data
+        .map((c, i) => {
+          const perg = c.pergunta
+            ? `Lead disse: "${String(c.pergunta).slice(0, 300)}"`
+            : '(sem contexto da pergunta)'
+          const errada = `Você respondeu (ERRADO): "${String(c.resposta ?? '').slice(0, 400)}"`
+          const certo = `Resposta correta: "${String(c.correcao).slice(0, 400)}"`
+          return `${i + 1}. ${perg}\n   ${errada}\n   ${certo}`
+        })
+        .join('\n\n')
 
-    return (
-      `\n\n[CORREÇÕES DA CURADORIA — APRENDA COM ESTES ERROS]\n` +
-      `O time revisou respostas suas e marcou as de baixo como ERRADAS, junto da versão correta. ` +
-      `Entenda o PADRÃO do que estava errado e aplique a lição — não copie literalmente, ` +
-      `adapte ao contexto da conversa atual. Nunca repita os mesmos erros.\n\n` +
-      exemplos +
-      `\n[FIM DAS CORREÇÕES]`
-    )
+      bloco +=
+        `\n\n[CORREÇÕES DA CURADORIA — APRENDA COM ESTES ERROS]\n` +
+        `O time revisou respostas suas e marcou as de baixo como ERRADAS, junto da versão correta. ` +
+        `Entenda o PADRÃO do que estava errado e aplique a lição — não copie literalmente, ` +
+        `adapte ao contexto da conversa atual. Nunca repita os mesmos erros.\n\n` +
+        exemplos +
+        `\n[FIM DAS CORREÇÕES]`
+    }
+
+    if (boas && boas.length > 0) {
+      const exemplosBons = boas
+        .map((c, i) =>
+          `${i + 1}. Lead disse: "${String(c.pergunta).slice(0, 300)}"\n   Resposta que FUNCIONOU: "${String(c.resposta).slice(0, 400)}"`)
+        .join('\n\n')
+      bloco +=
+        `\n\n[JOGADAS QUE DERAM CERTO — REPITA O PADRÃO]\n` +
+        `As respostas abaixo destravaram conversas reais (o lojista avançou depois delas). ` +
+        `Aprenda o ESTILO e a ABORDAGEM — tom, ordem dos argumentos, tamanho — e adapte ao contexto; não copie literalmente.\n\n` +
+        exemplosBons +
+        `\n[FIM DAS JOGADAS]`
+    }
+
+    return bloco
   } catch (err) {
     console.warn('[getCorrecoesParaPrompt] falha ao carregar correções:', err)
     return ''
