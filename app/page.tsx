@@ -662,22 +662,6 @@ export default async function Page({
             </p>
           </div>
           <Link
-            href="/atendimento"
-            style={{
-              background: 'var(--bg-elev)',
-              color: 'var(--text-dim)',
-              textDecoration: 'none',
-              padding: '0.55rem 0.9rem',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            🎧 Atendimento
-          </Link>
-          <Link
             href="/campanhas"
             style={{
               background: 'var(--bg-elev)',
