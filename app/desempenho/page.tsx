@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import { casaBusca } from '@/lib/text'
 import ClickableRow from '../_components/ClickableRow'
+import ChamadoResolver from '../_components/ChamadoResolver'
 import LeadDrawer from '../_components/LeadDrawer'
 
 // Desempenho dos lojistas ativos na AIVA — snapshot mensal importado do
@@ -149,7 +150,7 @@ function motivoDe(obs: string | null): string {
 async function getCsData() {
   const h24 = new Date(Date.now() - 24 * 3600e3).toISOString()
   const d7 = new Date(Date.now() - 7 * 86400e3).toISOString()
-  const [humano, conversas, ativacoes, semanas] = await Promise.all([
+  const [humano, conversas, ativacoes, semanas, chamados] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id, nome, telefone, data_ultimo_contato, observacoes')
@@ -170,6 +171,15 @@ async function getCsData() {
       .order('ativa_em', { ascending: false })
       .limit(12),
     supabaseAdmin.from('aiva_desempenho_semanal').select('semana').order('semana', { ascending: false }).limit(60),
+    // Chamados de erro de portal ABERTOS de lojas ATIVAS (regra 03/09) —
+    // os de credenciamento aparecem no painel pipeline.
+    supabaseAdmin
+      .from('sdr_chamados')
+      .select('id, lead_id, loja, telefone, problema, criado_em')
+      .eq('status', 'aberto')
+      .eq('status_lead', 'LOJA_FINALIZADA_E_VENDENDO')
+      .order('criado_em', { ascending: false })
+      .limit(20),
   ])
 
   // Radar de churn: última semana coletada vs a anterior (mesma segmentação do
@@ -211,6 +221,7 @@ async function getCsData() {
     radar,
     zerou,
     semanaRadar: semanasDisp[0] ?? null,
+    chamados: chamados.data ?? [],
   }
 }
 
@@ -363,6 +374,7 @@ export default async function DesempenhoPage({
           <Card label="Ativações 7d" value={String(cs.ativacoes.length)} color={cs.ativacoes.length > 0 ? 'var(--accent)' : 'var(--text-muted)'} href="#cs" />
           <Card label="Atenção na semana" value={String(cs.radar.length)} color={cs.radar.length > 0 ? 'var(--yellow)' : 'var(--text-muted)'} href="#cs" />
           <Card label="Sem movimento" value={String(cs.zerou)} color={cs.zerou > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
+          <Card label="🛠 Chamados" value={String(cs.chamados.length)} color={cs.chamados.length > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
         </div>
 
         {cs.humano.length > 0 && (
@@ -378,6 +390,32 @@ export default async function DesempenhoPage({
                   </td>
                 </ClickableRow>
               ))}
+            </tbody>
+          </table>
+        )}
+
+        {cs.chamados.length > 0 && (
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+            <tbody>
+              {cs.chamados.map((c) => {
+                const celulas = (
+                  <>
+                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.82rem', width: '26%' }}>🛠 {c.loja ?? c.telefone}</td>
+                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)' }} title={c.problema ?? ''}>
+                      {(c.problema ?? 'ver conversa').slice(0, 90)}
+                    </td>
+                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {new Date(c.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '0.3rem 0.4rem', textAlign: 'right' }}><ChamadoResolver id={c.id} /></td>
+                  </>
+                )
+                return c.lead_id ? (
+                  <ClickableRow key={c.id} leadId={c.lead_id} style={{ borderTop: '1px solid var(--border)' }}>{celulas}</ClickableRow>
+                ) : (
+                  <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>{celulas}</tr>
+                )
+              })}
             </tbody>
           </table>
         )}

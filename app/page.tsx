@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import LeadDrawer from './_components/LeadDrawer'
 import ClickableRow from './_components/ClickableRow'
 import TimelineRow from './_components/TimelineRow'
+import ChamadoResolver from './_components/ChamadoResolver'
 import SearchBar from './_components/SearchBar'
 import { getPipeOpportunities, getTagCatalog, PIPELINE_AIVA } from '@/lib/evotalks'
 import TagChips, { type TagChip } from './_components/TagChips'
@@ -488,6 +489,69 @@ function StatusPill({ status }: { status: string }) {
 }
 
 // Painel de lista de leads acionável (usado na seção de 3 colunas do dashboard).
+// ─── Chamados de erro de portal/sistema (regra 03/09) ─────────────────────────
+// Detectados na conversa pelo webhook → sdr_chamados. Aqui aparecem os de lojas
+// em CREDENCIAMENTO; os de loja ativa (LFV) moram no bloco CS do /desempenho.
+interface ChamadoRow {
+  id: string
+  lead_id: string | null
+  loja: string | null
+  telefone: string
+  problema: string | null
+  status_lead: string | null
+  criado_em: string
+}
+
+async function getChamadosAbertos(): Promise<ChamadoRow[]> {
+  const { data } = await supabaseAdmin
+    .from('sdr_chamados')
+    .select('id, lead_id, loja, telefone, problema, status_lead, criado_em')
+    .eq('status', 'aberto')
+    .order('criado_em', { ascending: false })
+    .limit(60)
+  return ((data ?? []) as ChamadoRow[]).filter((c) => c.status_lead !== 'LOJA_FINALIZADA_E_VENDENDO')
+}
+
+function PainelChamados({ chamados }: { chamados: ChamadoRow[] }) {
+  const linha = (c: ChamadoRow) => (
+    <>
+      <span className="timeline-time">{fmtRelativo(c.criado_em)}</span>
+      <span style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {c.loja ?? c.telefone}
+        </span>
+        <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.problema ?? ''}>
+          {c.problema ?? 'ver conversa'}
+        </span>
+      </span>
+      <ChamadoResolver id={c.id} />
+    </>
+  )
+  return (
+    <div>
+      <div className="section-header">
+        <h2 style={{ margin: 0 }}>🛠 Chamados abertos</h2>
+        <span className="section-sub">erro de portal/sistema{chamados.length > 0 ? ` — ${chamados.length}` : ''}</span>
+      </div>
+      <div className="timeline">
+        {chamados.length === 0 ? (
+          <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Nenhum chamado aberto. ✓
+          </div>
+        ) : (
+          chamados.slice(0, 12).map((c) =>
+            c.lead_id ? (
+              <TimelineRow key={c.id} leadId={c.lead_id}>{linha(c)}</TimelineRow>
+            ) : (
+              <div key={c.id} className="timeline-item">{linha(c)}</div>
+            ),
+          )
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PainelLeads({
   titulo,
   sub,
@@ -582,7 +646,7 @@ export default async function Page({
   }>
 }) {
   const sp = await searchParams
-  const [metricas, leadsRaw, agora, atendimento, quentes, conversasHoje, saude, etapasEvo, descartadosTels] = await Promise.all([
+  const [metricas, leadsRaw, agora, atendimento, quentes, conversasHoje, saude, etapasEvo, descartadosTels, chamadosAbertos] = await Promise.all([
     getMetricas(),
     getRecentLeads(
       sp.q,
@@ -606,6 +670,7 @@ export default async function Page({
     getSaude(),
     getEtapasEvo(),
     getDescartadosTels(),
+    getChamadosAbertos(),
   ])
   // Descartados que AINDA ocupam uma oportunidade aberta no pipeline AIVA.
   // Cruzamento em memória contra o mapa do Evo — zero chamada extra.
@@ -877,6 +942,7 @@ export default async function Page({
           vazio="Nenhuma conversa nas últimas 24h."
           verTodosHref="/?status=INTERESSADO"
         />
+        <PainelChamados chamados={chamadosAbertos} />
       </div>
 
       {/* ─── Saúde do sistema ─────────────────────────────────────────── */}

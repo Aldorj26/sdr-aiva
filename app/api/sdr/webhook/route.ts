@@ -941,7 +941,18 @@ export async function POST(req: NextRequest) {
                 cnpj: cnpjChamado || null,
                 problema: (problemaResumo || txt).slice(0, 400),
               })
-              console.log(`[ERRO_PORTAL] Chamado registrado na planilha pra ${lead.telefone}`)
+              // Espelho gerenciável no banco (regra 03/09): alimenta os cards
+              // "🛠 Chamados abertos" do pipeline e do CS, com botão Resolver.
+              await supabaseAdmin.from('sdr_chamados').insert({
+                lead_id: lead.id,
+                loja: lead.nome,
+                telefone: lead.telefone,
+                cnpj: cnpjChamado || null,
+                status_lead: lead.status,
+                problema: (problemaResumo || txt).slice(0, 400),
+                status: 'aberto',
+              })
+              console.log(`[ERRO_PORTAL] Chamado registrado (planilha + sdr_chamados) pra ${lead.telefone}`)
             } catch (errCh) {
               console.error(`[ERRO_PORTAL] Falha ao registrar chamado pra ${lead.telefone}:`, errCh)
             }
