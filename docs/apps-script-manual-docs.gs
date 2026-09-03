@@ -86,3 +86,18 @@ function obterOuCriarSubpasta(raiz, nome) {
 function saida(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// ─── AÇÃO 'repasse' (adicionada 03/09/2026 — colar no doPost do script
+// PUBLICADO, antes do "return saida({ ok: false, erro: 'acao_desconhecida' })",
+// e reimplantar o Web App) ──────────────────────────────────────────────────
+//    if (body.acao === 'repasse') {
+//      var ss2 = SpreadsheetApp.getActiveSpreadsheet();
+//      var abaR = ss2.getSheetByName('Repasses');
+//      if (!abaR) { abaR = ss2.insertSheet('Repasses');
+//        abaR.appendRow(['Data/Hora', 'Loja', 'Telefone', 'CNPJ Matriz', 'Gmail', 'Lançado no form?']); }
+//      abaR.appendRow([
+//        body.data_hora || '', body.loja || '', body.telefone || '',
+//        body.cnpj || '', body.gmail || '', body.form_ok ? 'SIM' : 'NÃO — lançar manual'
+//      ]);
+//      return saida({ ok: true });
+//    }

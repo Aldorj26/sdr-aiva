@@ -81,6 +81,29 @@ export async function registrarChamado(params: {
 }
 
 /**
+ * Registra na aba "Repasses" da planilha AIVA APROVAÇÃO uma solicitação de
+ * acesso ao painel de repasses lançada pela VictorIA (regra 03/09).
+ * ⚠️ Requer a ação 'repasse' no Apps Script publicado (trecho no fim de
+ * docs/apps-script-manual-docs.gs — o Aldo cola e reimplanta).
+ */
+export async function registrarRepasse(params: {
+  loja: string
+  telefone: string
+  cnpj: string
+  gmail: string
+  form_ok: boolean
+}): Promise<boolean> {
+  try {
+    const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    const resp = await postManual({ acao: 'repasse', data_hora: dataHora, ...params })
+    return !!resp
+  } catch (err) {
+    console.error('[MANUAL_DOCS] Falha ao registrar na aba Repasses:', err)
+    return false
+  }
+}
+
+/**
  * Registra na aba "Atendimentos" da planilha AIVA APROVAÇÃO o momento em que os
  * CNPJs do lead foram disponibilizados pro pré-cadastro (pedido do Aldo
  * 2026-07-28): CNPJ matriz, adicionais e data/hora do envio.

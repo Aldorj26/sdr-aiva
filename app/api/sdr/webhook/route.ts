@@ -26,7 +26,8 @@ import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
-import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado } from '@/lib/manual-docs'
+import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
+import { solicitarPainelRepasses, ehGmail, linkRepassesPreenchido } from '@/lib/repasses-form'
 import { capturarColaborador } from '@/lib/colab-rede-seguranca'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido, type Colaborador } from '@/lib/colaborador-form'
@@ -2508,8 +2509,74 @@ export async function POST(req: NextRequest) {
   // do modelo emitir nada — basta o CNPJ aparecer na mensagem do lojista.
   // A ativação é detectada depois pelo cruzamento semanal com o Data Studio
   // (scripts/detectar-lojas-ativas.mjs), que cria a conta MRR no funil 11.
+  // ─── PAINEL DE REPASSES (regra 03/09 — ação aprovada pelo Aldo) ─────────────
+  // Lojista sem acesso ao painel manda CNPJ matriz + GMAIL → o sistema lança no
+  // form público "Painel de Repasse - Sócio", registra na aba Repasses da
+  // planilha e na tabela sdr_repasses_solicitados. Captura determinística
+  // (mesmo padrão das outras redes): dispara quando a mensagem traz um e-mail
+  // E o contexto é repasses (campanha marcada ou papo recente sobre o painel).
+  const STATUS_REPASSE = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+  let repasseCapturado = false
+  // Contexto de repasse calculado FORA do gate de e-mail: também suprime a
+  // captura de LOJA NOVA quando o lojista manda o CNPJ num turno e o Gmail no
+  // seguinte (achado do revisor 03/09 — senão o CNPJ da matriz virava alerta
+  // de "loja nova" no meio da coleta do painel).
+  let contextoRep = false
+  if (STATUS_REPASSE.includes(lead.status)) {
+    try {
+      const obsRep = lead.observacoes ?? ''
+      contextoRep = obsRep.includes('[CAMPANHA_PAINEL_REPASSES') || /repasse|painel/i.test(conteudoEfetivo ?? '')
+      if (!contextoRep) {
+        const { data: ultimas } = await supabaseAdmin
+          .from('sdr_mensagens').select('conteudo').eq('lead_id', lead.id)
+          .order('enviado_em', { ascending: false }).limit(6)
+        contextoRep = (ultimas ?? []).some((m) => /painel de repasse|repasses/i.test(m.conteudo ?? ''))
+      }
+      const emailMatch = (conteudoEfetivo ?? '').match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)
+      if (emailMatch) {
+        const jaSolicitado = obsRep.includes('[REPASSE_SOLICITADO')
+        if (contextoRep && !jaSolicitado) {
+          const email = emailMatch[0]
+          const cnpjMsg = extrairCnpjs(conteudoEfetivo).find((c) => cnpjDvValido(c))
+          const matrizConhecida =
+            String(dadosAcumulados?.cnpj_matriz ?? '').replace(/\D/g, '') ||
+            (obsRep.match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
+          const cnpjRep = cnpjMsg ?? (matrizConhecida.length === 14 ? matrizConhecida : '')
+          if (cnpjRep) {
+            repasseCapturado = true
+            if (!ehGmail(email)) {
+              // prompt manda a VictorIA pedir um GMAIL — aqui só logamos
+              console.log(`[REPASSES] ${lead.telefone}: e-mail não-Gmail (${email}) — aguardando Gmail`)
+            } else {
+              const okForm = await solicitarPainelRepasses(cnpjRep, email)
+              const okPlan = await registrarRepasse({
+                loja: lead.nome, telefone: lead.telefone, cnpj: cnpjRep, gmail: email, form_ok: okForm,
+              })
+              await supabaseAdmin.from('sdr_repasses_solicitados').upsert(
+                [{ lead_id: lead.id, loja: lead.nome, telefone: lead.telefone, cnpj: cnpjRep, gmail: email, form_ok: okForm, planilha_ok: okPlan }],
+                { onConflict: 'telefone,cnpj' },
+              )
+              const { data: obsRow2 } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+              await supabaseAdmin.from('sdr_leads')
+                .update({ observacoes: `${obsRow2?.observacoes ?? ''} [REPASSE_SOLICITADO:${new Date().toISOString().slice(0, 10)} cnpj=${cnpjRep} form=${okForm ? 'ok' : 'FALHOU'}]`.trim() })
+                .eq('id', lead.id)
+              if (!okForm && process.env.NEI_WHATSAPP) {
+                await alertHuman(process.env.NEI_WHATSAPP, `⚠️ *Painel de repasses:* envio automático FALHOU pra *${lead.nome}* (${lead.telefone}). Lançar manual (já preenchido):\n${linkRepassesPreenchido(cnpjRep, email)}`)
+              }
+              console.log(`[REPASSES] ${lead.telefone}: ${cnpjRep}/${email} → form=${okForm} planilha=${okPlan}`)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[REPASSES] Falha na captura pra ${lead.telefone}:`, err)
+    }
+  }
+
   const STATUS_LOJA_NOVA = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
-  if (STATUS_LOJA_NOVA.includes(lead.status)) {
+  // contextoRep suprime a captura de loja nova: CNPJ mandado durante a coleta
+  // do painel de repasses NÃO é loja nova (revisor 03/09).
+  if (!repasseCapturado && !contextoRep && STATUS_LOJA_NOVA.includes(lead.status)) {
     try {
       const todos14 = extrairCnpjs(conteudoEfetivo)
       const doTexto = todos14.filter((c) => cnpjDvValido(c))
