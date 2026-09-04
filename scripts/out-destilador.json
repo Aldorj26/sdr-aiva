@@ -1,0 +1,851 @@
+{
+ "desde": "2026-08-20T19:51:49.849Z",
+ "fonteA": [
+  {
+   "lead_id": "168ea2a7-9d76-4cd8-9959-5d55917c9bf1",
+   "mensagem_id": "123f6b33-cf59-4a02-8d7c-e7c0757a29a4",
+   "quando": "2026-09-03T19:43:58.256402+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "2b54f056-8b99-4342-af05-d759dd7a1a60",
+   "mensagem_id": "9566329b-57dc-436a-8971-042524741946",
+   "quando": "2026-09-03T14:30:15.738985+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "4bfaf4e4-02c0-4a5e-b977-f1292d2a64cd",
+   "mensagem_id": "2aea5662-e375-4f24-a786-89af37fcd9d2",
+   "quando": "2026-09-03T14:21:53.876158+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "b6682556-1a2c-45cc-a8ae-8324b598ef3c",
+   "mensagem_id": "d16b3b20-21ac-409d-ab06-6d29b21ff6ac",
+   "quando": "2026-09-03T14:21:07.336602+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "2fdb6aaf-f05f-45fa-84da-4177bad8c252",
+   "mensagem_id": "d7be609d-6670-4305-b47d-9d3744ebc50d",
+   "quando": "2026-09-03T14:20:28.542672+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio template",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "789a24c8-34d2-4a3f-a4b4-ddd115550992",
+   "mensagem_id": "a9d4fb95-15f1-40f1-8acc-612ee5f4cde4",
+   "quando": "2026-09-03T12:48:59.013925+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "86c526a1-6aa5-450e-83ce-3cd8376a650c",
+   "mensagem_id": "d43d56e4-6c0d-43b1-b2d6-9f9a31e95d05",
+   "quando": "2026-09-02T21:31:43.642465+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "4bfaf4e4-02c0-4a5e-b977-f1292d2a64cd",
+   "mensagem_id": "164dfeaa-2e19-438c-8543-8aacbbc21374",
+   "quando": "2026-09-02T21:24:56.80218+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "2b54f056-8b99-4342-af05-d759dd7a1a60",
+   "mensagem_id": "6c5f4640-c9c3-4c84-8fd5-fcc85fac4b87",
+   "quando": "2026-09-02T21:24:04.992618+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios de template",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "5248a212-6109-4e87-b29d-ea1035890b91",
+   "mensagem_id": "81ef1b0d-8b0b-4375-9d1f-2a2ca88f4c64",
+   "quando": "2026-09-02T21:23:33.759991+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "9759e26f-30b9-42ee-89d8-9c1f2e042625",
+   "mensagem_id": "7a0d7288-8839-4f51-b5c1-340d44fba3af",
+   "quando": "2026-09-02T19:47:09.577527+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "2d835b32-d707-43fa-8cb2-b095f9ac5096",
+   "mensagem_id": "e8b2dc41-6278-40fd-9164-8d5bdc94c329",
+   "quando": "2026-09-02T19:45:46.473437+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios repetidos",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "f50c53a4-3506-4403-977e-390c6f4fab97",
+   "mensagem_id": "8d2589d5-eef1-418d-aa5b-007a3c3dc607",
+   "quando": "2026-09-02T19:37:31.956854+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios de template",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "509b21ed-725a-4478-b058-ba5e7c567052",
+   "mensagem_id": "9a4a425f-fa0f-4b53-8f1a-a517168e6d5d",
+   "quando": "2026-09-02T18:58:36.248951+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio info pendente",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "a7c9988b-e89a-4568-8201-2dcecf063d0c",
+   "mensagem_id": "344696ea-c69c-4b64-9a76-0cfce47eb8ec",
+   "quando": "2026-09-02T17:50:11.329914+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio de info pendente",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "d88c8a6c-90a9-401b-a418-26507adae19d",
+   "mensagem_id": "5e5b6605-3bb6-4728-8f52-b0d6a88326ba",
+   "quando": "2026-09-02T17:45:51.695024+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "Registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "978b5023-b6ef-4b54-93c3-53e9c4fef73e",
+   "mensagem_id": "93f86ab4-9acc-41fc-8e16-c59d369bf4ad",
+   "quando": "2026-09-02T17:43:09.879593+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio Info pendente",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "95cffc7a-b5a9-478f-9685-6d978e715dea",
+   "mensagem_id": "a02876fe-9d5b-4d0b-bce1-a8368a29bf2c",
+   "quando": "2026-09-02T17:41:51.415723+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios de follow-up",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": true,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "978b5023-b6ef-4b54-93c3-53e9c4fef73e",
+   "mensagem_id": "bb117090-160e-4abc-b0c0-c865ff373f0a",
+   "quando": "2026-09-02T17:40:20.098553+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio de pendência",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "7197e09e-b198-4aa3-9b95-71abeb5a9f58",
+   "mensagem_id": "9a4e86f1-dec7-46f6-b003-49d91b4609ff",
+   "quando": "2026-09-02T16:43:08.585391+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "5e7a76b0-c74a-42c7-8b6e-2d2a13d72484",
+   "mensagem_id": "2bdc7bac-3bd8-4953-b7a4-7eebc772041b",
+   "quando": "2026-09-02T12:26:56.176631+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio duplicado",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "f97eb51c-5328-427a-aa6e-bdd5087f80a0",
+   "mensagem_id": "89623211-6bff-4a56-8301-11551955ede0",
+   "quando": "2026-09-01T19:52:34.561848+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "b6682556-1a2c-45cc-a8ae-8324b598ef3c",
+   "mensagem_id": "50a5756b-f948-4035-9e84-bef0065d8acd",
+   "quando": "2026-09-01T19:32:33.666697+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "978b5023-b6ef-4b54-93c3-53e9c4fef73e",
+   "mensagem_id": "de3ac27f-9021-477c-9ccc-2f5f7c5e92be",
+   "quando": "2026-09-01T19:31:25.896902+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "95672194-d847-4f6e-b702-dc80b47f5ff7",
+   "mensagem_id": "338acc9d-d5dd-48f6-a926-13674302959c",
+   "quando": "2026-09-01T19:30:24.621489+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "168ea2a7-9d76-4cd8-9959-5d55917c9bf1",
+   "mensagem_id": "2e54e989-d4db-40e8-abc6-4ee0971c455a",
+   "quando": "2026-09-01T19:25:31.33594+00:00",
+   "tipo": "zona_proibida",
+   "tema": "coleta de dados cadastrais",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "60423c32-9ed3-4f8f-b48b-ae30726c888a",
+   "mensagem_id": "df680383-c04f-40a9-9721-d2d3cc05dacb",
+   "quando": "2026-09-01T18:45:18.230003+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "35e2683b-b6ac-4599-ab6d-b9ef31166090",
+   "mensagem_id": "14e3f03f-f321-4a2d-bfb9-8e8be473903a",
+   "quando": "2026-09-01T17:37:08.746809+00:00",
+   "tipo": "correcao_de_conduta",
+   "tema": "acesso painel repasses",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": {
+    "pergunta": "O valor cai, mas quero saber antes de cair pra saber exatamente quanto que vai cair",
+    "resposta_ruim": "Entendi, Elton! Você quer ter visibilidade dos valores ANTES de cair na conta pra conferir certinho. Pra isso, o melhor lugar é o Relatório Financeiro dentro da própria plataforma AIVA — lá aparece cada venda aprovada, o valor que você vai receber (já com o desconto dos 12%) e a data programada do repasse. Se você preencheu os formulários que te mandei e ainda não teve retorno com acesso ao painel, vou registrar aqui pro time verificar e garantir",
+    "correcao": "Entendi, Elton! Você quer saber o valor certinho antes de cair na conta. Olha só: pra ter acesso ao painel de repasses, manda um e-mail pra **atendimentoaovarejo@ume.com.br** e **neiluiz@trackcr.com.br** pedindo o acesso. No e-mail, informa os **CNPJs** que você quer acompanhar. Lá você vai conseguir ver tudo antes: cada venda aprovada, o valor que vai receber (já com desconto dos 12%) e a data programada. Qualquer dúvida é só chamar! 😊"
+   },
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "f217db44-95cc-428b-9c62-2a573352ce2f",
+   "mensagem_id": "49b56ad2-f42c-41ea-9040-9f7a98428759",
+   "quando": "2026-09-01T14:37:47.393836+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "Registro vazio sem texto útil",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "40abad99-3636-4060-8366-d6766f4524f1",
+   "mensagem_id": "e9263091-df73-4a50-a7f4-975d3e8b7408",
+   "quando": "2026-09-01T14:01:56.994243+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "44b28736-ff01-44d8-84cd-33417d31ecb9",
+   "mensagem_id": "0b7b7055-f56b-408a-892a-26254d436d9c",
+   "quando": "2026-09-01T12:34:31.539961+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio duplicado",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "123be0e5-1596-406a-8298-5a030d24c53e",
+   "mensagem_id": "0a097ff8-2ac3-4450-91df-71c3fb182b49",
+   "quando": "2026-09-01T01:49:25.169191+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "b5537478-fb3f-47d5-9f54-c7e610347b43",
+   "mensagem_id": "d01af1e7-58d2-43af-bb19-f75a937ee7e0",
+   "quando": "2026-09-01T01:47:17.736613+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio pendente",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "2c502ae3-c58c-4bf2-a703-769cf2b43587",
+   "mensagem_id": "fa339926-277d-4693-aaae-11c27c0433d4",
+   "quando": "2026-09-01T01:45:19.32754+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": true,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "44d63c6b-112a-4aee-b4a3-f0861c829b74",
+   "mensagem_id": "37eaf01e-42dc-40b0-bd9d-72c65c973bf4",
+   "quando": "2026-09-01T01:43:27.500445+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "25727e5c-9b75-49e9-ad33-4ce72ef76d80",
+   "mensagem_id": "f694db86-b613-438a-9f26-8a2692469865",
+   "quando": "2026-09-01T01:41:38.389521+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios de follow-up",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "324ae37d-3893-40ee-829e-ca353e0d9fb6",
+   "mensagem_id": "cc6e5b14-d145-44ce-962b-2931a92560ce",
+   "quando": "2026-09-01T01:40:34.784091+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio manual",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": true,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "430341d6-77d3-4ca0-9e22-b8a19bc93771",
+   "mensagem_id": "9859e049-26f2-4aae-8a8d-375da295ca29",
+   "quando": "2026-08-31T20:17:43.591581+00:00",
+   "tipo": "zona_proibida",
+   "tema": "compartilhamento de telefone",
+   "zona_proibida_motivo": "telefone_ou_golpe",
+   "contem_fone_ou_url": true,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "430341d6-77d3-4ca0-9e22-b8a19bc93771",
+   "mensagem_id": "c1ddadbe-7477-4241-b3e1-7fd69404d075",
+   "quando": "2026-08-31T20:12:58.764279+00:00",
+   "tipo": "zona_proibida",
+   "tema": "fornecimento de telefone",
+   "zona_proibida_motivo": "telefone_ou_golpe",
+   "contem_fone_ou_url": true,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
+   "lead_id": "324ae37d-3893-40ee-829e-ca353e0d9fb6",
+   "mensagem_id": "deb3d7a6-3d84-41da-ba05-688bfb544b10",
+   "quando": "2026-08-31T20:11:53.861959+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registro vazio",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  }
+ ],
+ "fonteB": [
+  {
+   "lead_id": "168ea2a7-9d76-4cd8-9959-5d55917c9bf1",
+   "nome": "Hospital do Smart",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": false,
+   "motivo": "O avanço decorreu de ação manual do operador (reenvio da senha via painel), não de resposta da IA que destravou a situação",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "e6bb70a4-d483-430f-8225-be7d7710cb90",
+   "nome": "Signuscell.shop",
+   "status": "CADASTRO_RECEBIDO",
+   "vale_como_jogada": false,
+   "motivo": "Respostas operacionais padrão de coleta de cadastro; avanço ocorreu pelo preenchimento completo dos dados obrigatórios, não por contorno de objeção ou desbloqueio ativo",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "ee117a53-d9d1-4297-b0fe-8db4e84d84af",
+   "nome": "Iconnect Cell",
+   "status": "CADASTRO_RECEBIDO",
+   "vale_como_jogada": true,
+   "motivo": "A IA interpretou corretamente '10.00 mil promissória' como volume de parcelado e validou a dor ('muita procura, faz mas cartão por não ter financeira'), mostrando que o AIVA resolve exatamente esse problema, mantendo o lead engajado até completar o cadastro.",
+   "pergunta": "Torno de 10.00 mil promissória parcelado tenho muita procura faz mas cartão por não ter financeira",
+   "resposta": "Entendi, Rodrigo! R$ 10.000 por mês no parcelado — anotado. Só confirmando: a Iconnect Cell fica em Campo Grande mesmo, né? Ou tem loja em outra cidade também?",
+   "tema": "Validar dor e seguir cadastro"
+  },
+  {
+   "lead_id": "a934593e-93f8-444c-85a4-9d69d3321033",
+   "nome": "FABIOCELL",
+   "status": "PRE_APROVACAO",
+   "vale_como_jogada": true,
+   "motivo": "Neutralizou objeção sobre ter outras financeiras ao apresentar Flexfone como solução integradora, não concorrente",
+   "pergunta": "Tenho odres tbm",
+   "resposta": "Vimos que sua loja já utiliza o crediário da Odres — ótima notícia, porque a AIVA e a Odres são parceiras. Juntas, elas criaram o Flexfone: uma plataforma única onde a loja faz uma só consulta e já recebe o resultado de qual financeira aprovou o cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta. A plataforma já está no ar e está sendo liberada pras lojas parceiras aos poucos.",
+   "tema": "Parceria Odres-AIVA via Flexfone"
+  },
+  {
+   "lead_id": "adc38dfd-8f51-4ff6-acac-3cf82c731f72",
+   "nome": "Ponto do Celular",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu após conclusão natural do cadastro/biometria, não por resposta específica que destravou objeção",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "37832b99-44d8-4b1b-a15e-66970098f2de",
+   "nome": "FG Cell",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Sequência de coleta de dados padrão sem objeção contornada; avanço para análise é fluxo natural após completar cadastro",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "6ce2cc23-02e9-4a91-9536-16723ff36179",
+   "nome": "Barão Celulares",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Respostas apenas coletaram dados cadastrais de rotina; avanço ocorreu por completude do formulário, não por contornar objeção ou destravar decisão",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "8b04e891-32aa-49d9-bf27-471a3ce11c65",
+   "nome": "Gcell.Inf",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção sobre falta de fornecedor, validou que o crediário funciona independente disso e manteve o lead engajado no processo",
+   "pergunta": "e vcs tem algum fornecedor de celulares novos? para me indicar?",
+   "resposta": "Guilherme, a Track atua só na parte de crediário mesmo — não temos fornecedor de aparelhos pra indicar. Mas a boa notícia é que a AIVA financia as marcas que você já deve trabalhar: Samsung, Motorola, Xiaomi, Honor, Infinix, Tecno, Itel — praticamente todo o catálogo de entrada e intermediário (R$ 700 a R$ 2.000). Você já tem fornecedor ou tá procurando?",
+   "tema": "Objeção sobre ausência de fornecedor"
+  },
+  {
+   "lead_id": "d4077944-2901-4ab4-aeea-8cf07d99064a",
+   "nome": "CBA Cell",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "A conversa é apenas coleta de dados cadastrais sem objeção ou trava; o avanço ocorreu naturalmente ao completar o formulário, não por mérito de resposta específica",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "45057d35-ba60-4bcb-8a4d-9183fe05ab37",
+   "nome": "Freecell",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Respostas apenas coletaram dados cadastrais padrão; avanço ocorreu por conclusão do formulário, não por objeção contornada ou destravamento decisivo.",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "4d3189fb-2e52-469f-a61d-64e4a9f29a21",
+   "nome": "Andrey Cell Assistência Técnica",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Lead frustrado pedindo pessoa real 3x; IA contornou com solução prática (treinamento amanhã) + deadline (assinar hoje) que converteu lead travado em TREINAR",
+   "pergunta": "Me bota pra falar com uma oessoa / Pessoa",
+   "resposta": "Olá Andrey, boa notícia: amanhã, quinta-feira às 9h30, tem treinamento AIVA ao vivo — e sua loja pode participar! Só tem uma condição: você precisa assinar o contrato ainda hoje (aquele link de assinatura com as 7 etapas + biometria). Assinou? Me responde aqui avisando que a gente confirma sua vaga na turma de amanhã e avisa o Nei. Se travar em alguma etapa da assinatura, me chama que eu te ajudo!",
+   "tema": "Converter frustração em urgência positiva"
+  },
+  {
+   "lead_id": "011db7c2-e9b3-4334-8cbe-27dc491565d5",
+   "nome": "ISATECH",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Desbloqueou objeção de urgência explicando que presença não é obrigatória e login chega de qualquer forma, mantendo lead engajado.",
+   "pergunta": "Ó, gerou o link, eu mandei pro telefone dela, ela tá aqui junto comigo, nós fizemos tudo lá e deu tudo ok. E aí eu queria ver com você, a gente tá com muita urgência. Quando você falou que tem treinamento e o treinamento é demorado? Porque parece que você falou que tem na quinta-feira, é amanhã, né?",
+   "resposta": "Isso mesmo, Edson! Amanhã (quinta-feira, 03/09) tem treinamento sim, das 9h30 às 10h30. Mas ó: presença na live NÃO é obrigatória pra receber o acesso — o cadastro dos varejos roda todos os dias úteis e os logins são enviados em levas, sempre após os treinamentos de segunda e quinta. Ou seja, mesmo que você não participe amanhã, o login e a senha chegam no WhatsApp +55 21 4020-2024 na próxima leva (pode ser amanhã mesmo ou na segunda). Agora, se",
+   "tema": "Urgência - Treinamento não obrigatório"
+  },
+  {
+   "lead_id": "4abaf389-5c89-47b5-9f0c-3ed3665ed9d8",
+   "nome": "Matheus iphones",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu por conclusão de cadastro e processo operacional padrão, não por resposta específica que destravou objeção",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "0f42254b-92d0-40df-b181-4496a9fe19dc",
+   "nome": "John Store",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu por fluxo operacional padrão (envio de links de treinamento e onboarding) após cadastro já iniciado, sem resposta específica que tenha destravado objeção",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "eacbcf9e-8e7a-4cd4-adeb-e3003bd144fe",
+   "nome": "Fone express e casa do celular",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": false,
+   "motivo": "Todas as mensagens são templates automáticos de onboarding enviados após aprovação, sem interação que destrave objeção ou conduza decisão do lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "5e7a76b0-c74a-42c7-8b6e-2d2a13d72484",
+   "nome": "Original Cell",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Destrancou objeção técnica ('não tem opção de biometria') explicando que ela só aparece após completar as 7 etapas, e guiou o lead passo a passo até conclusão do cadastro.",
+   "pergunta": "Não tem a opção de fazer biometria",
+   "resposta": "José Flávio, a biometria facial aparece na última etapa do cadastro, depois que você preenche os 7 passos com os dados da empresa (começa pelo CNPJ). Você já preencheu todas as etapas até o final? A biometria só aparece depois de concluir tudo. Se travou em alguma etapa antes, me fala qual pra eu te ajudar a destrancar!",
+   "tema": "Biometria aparece após etapas anteriores"
+  },
+  {
+   "lead_id": "026e272b-f90b-4f4f-aeae-3c1d07ff39f9",
+   "nome": "Homix",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "Lead apenas confirmou ter completado cadastro; avanço ocorreu por fluxo operacional padrão, sem objeção contornada pela IA",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "20c59180-0f5a-4126-b83b-d7c7cf289b79",
+   "nome": "YourCase Avenida",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Conversa de coleta de dados cadastrais sem objeção contornada; avanço ocorreu após envio automático de template de campanha",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "2e805471-fb01-4a0d-b35a-21cc4360650f",
+   "nome": "Conserta Mais Celulares LTDA",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "A IA diagnosticou tecnicamente o problema (tela branca na UF) e ofereceu solução alternativa de navegador que destravou o cadastro imediatamente",
+   "pergunta": "Quando Clico para alterar a UF ela vai para uma tela em branco e não carrega, já aguardei um minuto e nada, já abri em um notebook e nada de funcionar também",
+   "resposta": "Entendi, Marcos! Se a tela da UF trava em branco mesmo depois de aguardar e já testou em outro dispositivo, é problema no sistema mesmo. Vou acionar o time técnico agora pra verificar essa tela e destrancar pra você conseguir finalizar o cadastro certinho. Te retorno assim que tiver uma solução, ok? Enquanto isso, se tentou abrir em outro navegador (Chrome, Firefox, Safari), me avisa — às vezes só trocar o navegador já resolve.",
+   "tema": "Contornar erro técnico sugerindo navegador alternativo"
+  },
+  {
+   "lead_id": "3726a882-9b1a-44e8-a717-c3b84bef80bd",
+   "nome": "Mundo Smart",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu por ação manual/técnica do time (desbloqueio de cadastro), não por mérito direto de resposta específica da IA",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "32d36f29-fee0-4bee-9b44-c16b572d5fff",
+   "nome": "Magu Cell",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "As respostas foram coleta de dados padrão e orientação de cadastro; o avanço para TREINAR provavelmente ocorreu por conclusão do cadastro/cron, não por uma resposta específica que destravou objeção ou convenceu o lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "60423c32-9ed3-4f8f-b48b-ae30726c888a",
+   "nome": "LuanLay Magazine",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Lead rejeitou explicitamente a biometria e pediu para parar; avanço ocorreu por follow-up posterior via template/operador, não por resposta que destravou objeção",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "af0ddf44-77b6-4f9e-87fd-694bad18b1ed",
+   "nome": "Confitec",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Lead estava perdido após completar cadastro ('E agora? Como prosseguir?') e a IA mapeou claramente os próximos passos, gerando confiança e engajamento que levou ao avanço para TREINAR",
+   "pergunta": "E agora ? Como prosseguir?",
+   "resposta": "Que ótimo, Andrey! Cadastro e biometria concluídos então? 🎉 Agora o time da AIVA finaliza a análise em até 24h e você recebe a confirmação por aqui. Assim que liberar, eu te passo os próximos passos: treinamento, acesso à plataforma e como começar a vender. Enquanto isso, já pode ir preparando a equipe — em breve você tá operando! 😊",
+   "tema": "Orientação pós-cadastro e próximos passos"
+  },
+  {
+   "lead_id": "330969ee-d2e0-4b87-a1b9-8bd8bf175f81",
+   "nome": "Ajucelulares",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Respostas foram apenas coleta de dados padrão e orientações operacionais; avanço para análise ocorreu naturalmente após completar cadastro, sem objeção contornada.",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "184b4102-ac3a-4fc2-a524-86a051d99ced",
+   "nome": "Celulares e Cia",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu por acionamento do time técnico (operador), não por mérito da resposta da IA",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "a77656c2-dc65-4cee-9251-234944873f15",
+   "nome": "Conserta Center",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Validou a frustração genuína do lead, assumiu responsabilidade sem desculpas vazias, e propôs ação concreta imediata com acompanhamento pessoal, transformando uma reclamação agressiva em engajamento.",
+   "pergunta": "Deus me livre! Estou até agora aguardando retorno sobre um problema no meu cadastro… Atendimento de vocês com clientes novos é desse nível, imagino a qualidade do pós",
+   "resposta": "José, tem toda razão de estar chateado — problema técnico que trava cadastro é frustrante mesmo, ainda mais quando você já separou tempo pra resolver. Vou acionar o time agora com urgência pra destravarem o formulário e te darem um retorno rápido sobre o que aconteceu. Você merece uma solução, não mais espera. Enquanto isso: você tentou abrir o link pelo celular (não pelo computador)? Às vezes o reconhecimento facial exige mobile.",
+   "tema": "Gestão de reclamação com empatia e ação"
+  },
+  {
+   "lead_id": "7cc8e7ab-3baa-42e0-8df9-303401f4899e",
+   "nome": "BC Flash Capital",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "A IA apenas repetiu empatia e promessas de escalonamento, mas não destravou nada - o lead permaneceu frustrado e chegou a desistir dizendo que fecharia com concorrente; o avanço para TREINAR provavelmente ocorreu por resolução técnica externa ou intervenção manual, não por mérito da resposta da IA",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "35154c70-c475-4018-969f-54f27933d49c",
+   "nome": "JSCELULARES",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção crucial de lojista inexperiente em crediário, explicando valor complementar ao cartão e tranquilizando sobre o processo",
+   "pergunta": "Seria a primeira, ou parcelo no cartão de crédito, nunca usei crediario.",
+   "resposta": "Perfeito, Paulo! Então a AIVA vai ser uma excelente opção pra complementar o cartão de crédito — muitos clientes que não têm limite no cartão conseguem aprovação no crediário. Já tenho todos os seus dados aqui. Nosso time está analisando seu cadastro e em breve te retorno com as novidades, combinado?",
+   "tema": "Primeira experiência com crediário"
+  },
+  {
+   "lead_id": "b5537478-fb3f-47d5-9f54-c7e610347b43",
+   "nome": "Hcell celulares e acessórios",
+   "status": "TREINAR",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção técnica ('continua parando nessa frase') diagnosticando corretamente que o lead já tinha cadastro, prometeu ação e manteve o lead engajado até a conclusão da biometria",
+   "pergunta": "continua parando nessa frase Obrigado pelo interesse! Se fizer sentido, entraremos em contato em breve.",
+   "resposta": "Entendi, Vitor! Essa mensagem aparece quando você CONCLUI o cadastro todo (incluindo a biometria), não no meio do processo. Se ela tá aparecendo logo no início, significa que o sistema detectou que você já tem um cadastro iniciado/concluído. Vou acionar o time técnico agora pra verificar o que aconteceu e liberar o acesso certo pra você. Você deve receber o retorno ainda hoje pra destravar isso, ok?",
+   "tema": "Diagnóstico de erro técnico cadastral"
+  },
+  {
+   "lead_id": "f66891af-f4c7-4eae-85ff-0ee49331c7ce",
+   "nome": "Nova Era",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "O avanço decorreu da resolução técnica manual pelo time (campo do banco), não de uma resposta específica da IA que tenha destravado objeção ou convencido a lead.",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "f33abd8d-724e-4b72-9cef-8088b92164f3",
+   "nome": "Tech Mundo Tecnologia",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "Lead apenas confirmou conclusão de etapas do cadastro; avanço foi progressão natural do processo, não resultado de objeção contornada ou condução ativa da IA",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "157f2bfc-2260-4597-bb17-7d33ab8c3500",
+   "nome": "Cel Mania",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu após coleta padrão de dados cadastrais; nenhuma resposta contornou objeção ou destravou decisão do lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "324ae37d-3893-40ee-829e-ca353e0d9fb6",
+   "nome": "Redcell",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "Lead avançou por encaminhamento ao time técnico devido a erro no sistema, não por mérito da resposta da IA em destravar objeção ou conduzir ação",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "426563b9-a92f-45c6-a34f-03ccb75c6019",
+   "nome": "Vip celular",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Sequência padrão de coleta de dados cadastrais sem objeção contornada; avanço ocorreu naturalmente após completar formulário",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "3ea93449-4df0-42be-80eb-6022868431b8",
+   "nome": "STARTCELL CELULARES",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu por conclusão de cadastro via template automatizado, não por resposta que destravou objeção ou convenceu o lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "9e1833f1-2f8d-48f8-9d7b-1addfdb9499b",
+   "nome": "Conserto ld",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": false,
+   "motivo": "Avanço ocorreu após envio de template automático de cadastro, sem resposta da IA que tenha destravado objeção ou convencido o lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "5dfdc4fb-634a-4a30-a345-3e3557cbb6ea",
+   "nome": "2 Brothers Celulares",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "O avanço ocorreu por processo natural de coleta de dados e envio automático de cadastro, sem resposta específica que destravou objeção ou conduziu decisão do lead",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "6cf1e9e0-bdf1-41b3-ad20-40bb9cd32e32",
+   "nome": "Movlar",
+   "status": "TREINAR",
+   "vale_como_jogada": false,
+   "motivo": "As respostas foram apenas confirmações de cadastro e orientações operacionais padrão, sem contornar objeções ou destravar avanço real",
+   "pergunta": "",
+   "resposta": "",
+   "tema": ""
+  },
+  {
+   "lead_id": "f47a634b-bf0c-4754-8a39-089a6f3bdc3b",
+   "nome": "PSR ELETRONICOS",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": true,
+   "motivo": "Exemplo numérico concreto destravou a compreensão do lead sobre entrada obrigatória e matemática do repasse, lead confirmou entendimento e seguiu engajado.",
+   "pergunta": "Exemplo com valor",
+   "resposta": "Claro, Pablo! Vou te dar um exemplo prático: Aparelho de R$ 1.000: • Entrada de 25% = R$ 250 (cliente paga na hora pra você, em dinheiro/PIX/cartão) • Valor financiado = R$ 750 (vai pro parcelamento) Esse R$ 750 você recebe da AIVA em até 2 dias úteis, menos os 12% de taxa: • R$ 750 - 12% = R$ 660 que cai na sua conta Ou seja: no total você recebe R$ 250 (entrada) + R$ 660 (repasse) = R$ 910 por um aparelho de R$ 1.000.",
+   "tema": "exemplo numérico entrada obrigatória"
+  },
+  {
+   "lead_id": "9c190085-13bf-4863-b9ac-41903e26e72f",
+   "nome": "Grupo ABC",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção importante (limite de valor) mantendo o lead engajado ao reposicionar o foco no volume real de vendas do varejo.",
+   "pergunta": "consegue aprovar valor de 3 a 5k?",
+   "resposta": "Marcio, a AIVA trabalha com aparelhos de R$ 700 a R$ 2.000 — então valores de 3 a 5k não entram na faixa atual de financiamento. Pra aparelhos nessa faixa de preço mais alta, a AIVA ainda não atende (pode entrar no futuro, mas ainda está em avaliação). O foco mesmo é no catálogo de entrada e intermediário (Samsung A15/A35, Motorola G55, Redmi Note, etc) — que normalmente é onde tem mais volume de venda no varejo. 📱",
+   "tema": "Contorno de objeção de limite de crédito"
+  }
+ ]
+}
