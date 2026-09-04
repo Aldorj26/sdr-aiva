@@ -77,9 +77,21 @@ const SYS_B = `Você garimpa JOGADAS VENCEDORAS de uma agente de IA (VictorIA, S
  "motivo": "<1 frase>",
  "pergunta": "<a mensagem do lead à qual ela respondeu bem>",
  "resposta": "<a resposta vencedora dela, na íntegra ou levemente encurtada>",
- "tema": "<3-6 palavras>"
+ "tema": "<3-6 palavras>",
+ "zona_proibida_motivo": "<telefone_ou_golpe | parcelex | promessa_aprovacao_taxa | coleta_de_dados, ou null>",
+ "contem_fone_ou_url": true/false,
+ "contem_valor_taxa_prazo": true/false
 }
-Critério exigente: só vale se a resposta claramente destravou (contornou objeção, explicou e o lead topou, conduziu pro próximo passo). Avanço por cron/operador sem mérito da resposta = false.`
+Critério exigente: só vale se a resposta claramente destravou (contornou objeção, explicou e o lead topou, conduziu pro próximo passo). Avanço por cron/operador sem mérito da resposta = false.
+
+ZONA PROIBIDA — analise o texto do campo "resposta" que você extraiu, não a conversa toda. Marque quando ele tocar em:
+- telefone_ou_golpe: qualquer telefone, contato ou URL, ou juízo sobre número ser/não ser legítimo;
+- parcelex: menção à Parcelex ou ao Ricardo;
+- promessa_aprovacao_taxa: garantia de aprovação, OU número concreto de taxa/comissão (ex: "12%"), prazo de pagamento/análise (ex: "D+2", "em até 24h"), quantidade de parcelas (ex: "6x, 9x ou 12x") ou faixa de valor de aparelho (ex: "de R$ 700 a R$ 2.000");
+- coleta_de_dados: regra sobre quais documentos/dados de CNPJ ou de colaboradores pedir.
+"contem_valor_taxa_prazo" é true só quando há NÚMERO concreto de taxa, prazo, parcela ou faixa de valor no texto — alusão genérica ("tem uma taxa por venda", "cai rapidinho") é false.
+
+IMPORTANTE: zona proibida NÃO zera "vale_como_jogada". A jogada pode ser excelente e ainda assim precisar de decisão humana — marque os campos e deixe o operador parquear.`
 
 const resultado = { desde, fonteA: [], fonteB: [] }
 
@@ -115,12 +127,29 @@ for (const l of avancosRaw ?? []) {
 console.log('fonte B destilada:', resultado.fonteB.length)
 
 writeFileSync(OUT, JSON.stringify(resultado, null, 1))
+
+// Zona proibida na fonte B: a jogada continua válida, mas não pode ser gravada
+// sozinha — vai parqueada no digest pro Aldo decidir (skill destilar-enviar-info).
+const parquear = (x) => Boolean(x.zona_proibida_motivo || x.contem_fone_ou_url || x.contem_valor_taxa_prazo)
+const jogadas = resultado.fonteB.filter((x) => x.vale_como_jogada)
+const aParquear = jogadas.filter(parquear)
+
 const resumo = {
   correcoes: resultado.fonteA.filter((x) => x.tipo === 'correcao_de_conduta').length,
   fatos_novos: resultado.fonteA.filter((x) => x.tipo === 'fato_novo').length,
   zonas_proibidas: resultado.fonteA.filter((x) => x.tipo === 'zona_proibida').length,
   pontuais: resultado.fonteA.filter((x) => x.tipo === 'caso_pontual').length,
-  jogadas: resultado.fonteB.filter((x) => x.vale_como_jogada).length,
+  jogadas: jogadas.length,
+  jogadas_livres: jogadas.length - aParquear.length,
+  jogadas_a_parquear: aParquear.length,
 }
 console.log('RESUMO:', JSON.stringify(resumo))
+for (const x of aParquear) {
+  const motivos = [
+    x.zona_proibida_motivo,
+    x.contem_fone_ou_url ? 'contem_fone_ou_url' : null,
+    x.contem_valor_taxa_prazo ? 'contem_valor_taxa_prazo' : null,
+  ].filter(Boolean).join(', ')
+  console.log(`  ⏸️ PARQUEAR — ${x.nome} | ${x.tema} | ${motivos}`)
+}
 setTimeout(() => process.exit(0), 800).unref()

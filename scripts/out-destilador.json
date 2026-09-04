@@ -2,6 +2,17 @@
  "desde": "2026-09-03T19:57:43.552Z",
  "fonteA": [
   {
+   "lead_id": "789a24c8-34d2-4a3f-a4b4-ddd115550992",
+   "mensagem_id": "2dddadd0-6ee3-4466-bfdf-5593a32bb4e2",
+   "quando": "2026-09-04T13:21:49.7436+00:00",
+   "tipo": "sem_conteudo",
+   "tema": "registros vazios repetidos",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "curadoria": null,
+   "regra_prompt": null
+  },
+  {
    "lead_id": "8722fe7a-2f44-475e-944a-289a7d366a4a",
    "mensagem_id": "22e76a48-4c9c-4793-97c5-1e6fcad88b33",
    "quando": "2026-09-03T19:59:46.284426+00:00",
@@ -17,7 +28,7 @@
    "mensagem_id": "dbeb9e24-cf19-4263-b5b4-167883e21795",
    "quando": "2026-09-03T19:59:12.0172+00:00",
    "tipo": "sem_conteudo",
-   "tema": "registro vazio manual",
+   "tema": "registro vazio",
    "zona_proibida_motivo": null,
    "contem_fone_ou_url": false,
    "curadoria": null,
@@ -26,114 +37,147 @@
  ],
  "fonteB": [
   {
-   "lead_id": "1ecfbfa3-ee33-4f91-8350-d726c4d2a358",
-   "nome": "Dom Store",
-   "status": "PRE_APROVACAO",
-   "vale_como_jogada": true,
-   "motivo": "A primeira resposta desmistificou completamente a operação, tornando-a tangível e sem risco, o que gerou confiança imediata e levou o lead a fornecer telefone espontaneamente.",
-   "pergunta": "Como funciona a operação?",
-   "resposta": "Oi Marcelo! Vamos lá! Funciona assim: quando um cliente chega na loja querendo parcelar, você consulta o CPF dele no sistema AIVA (leva até 2 minutos). Se aprovar, ele escolhe o aparelho, faz o cadastro na hora e sai com o celular parcelado. Você recebe o valor em D+2 (2 dias úteis), já descontando a taxa de 12% — e zero risco de inadimplência. O cliente paga mensal (6x, 9x ou 12x) e, se atrasar, o aparelho é bloqueado automaticamente.",
-   "tema": "Explicação operacional clara e sem risco"
-  },
-  {
-   "lead_id": "b87d14e3-4a6a-479a-bd8a-032df5f4cd8e",
-   "nome": "Lambari Imports",
-   "status": "CADASTRO_RECEBIDO",
-   "vale_como_jogada": true,
-   "motivo": "Contornou objeção crucial sobre não ter vendas parceladas, reposicionou AIVA como solução para começar e manteve fluxo",
-   "pergunta": "Ainda não temos essa opção de vender pelo boleto",
-   "resposta": "Entendi, Rodrigo! Então vocês ainda não vendem no parcelado hoje — a AIVA seria justamente pra começar a oferecer essa opção pros seus clientes. Nesse caso, pode deixar esse campo zerado mesmo. Vamos pro próximo: as lojas ficam só em Lambari mesmo, ou tem outras cidades também?",
-   "tema": "Reposicionar solução quando lead não tem operação atual"
-  },
-  {
    "lead_id": "ec571c00-2389-4a90-b332-d84bb51414af",
    "nome": "FG Cell",
-   "status": "PRE_APROVACAO",
+   "status": "CADASTRO_RECEBIDO",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção sobre ausência de sócio e vendas em boleto, manteve fluidez e coletou todos os dados necessários para avanço.",
+   "pergunta": "então a loja não tem sócio né só saiu e valor médio de boleto não vendo no boleto ainda né",
+   "resposta": "Entendi, Flávio! Sem problema. Sobre o e-mail: mesmo sem sócio registrado formalmente, preciso de um e-mail pra contato — pode ser o seu mesmo, de responsável pela loja. Qual seria? E sobre o boleto: tranquilo! Como vocês ainda não vendem no parcelado, pode deixar esse campo zerado mesmo. Só pra confirmar: as 2 lojas ficam só em Cuiabá mesmo, ou tem alguma em outra cidade?",
+   "tema": "Contorno de ausência sócio/boleto",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
+  },
+  {
+   "lead_id": "1ecfbfa3-ee33-4f91-8350-d726c4d2a358",
+   "nome": "Dom Store",
+   "status": "CADASTRO_RECEBIDO",
    "vale_como_jogada": false,
-   "motivo": "Conversa seguiu script padrão de qualificação sem objeções; avanço foi natural pela coleta completa de dados, não por resposta decisiva",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Sequência padrão de coleta de dados do cadastro, sem objeção contornada ou destravamento decisivo",
+   "pergunta": "150 a 200 mil ano mais ou menos",
+   "resposta": "Perfeito, Marcelo! Anotado: R$ 150 a 200 mil/ano. Agora essa: quanto a Dom Store vende por mês no parcelado (boleto), mais ou menos? Pode ser uma média aproximada mesmo.",
+   "tema": "coleta faturamento e vendas parceladas",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "8906b5c1-4343-40f9-95f3-3a9aa0308bc1",
    "nome": "MSPHONE",
-   "status": "CADASTRO_RECEBIDO",
+   "status": "EM_ANALISE_AIVA",
    "vale_como_jogada": false,
-   "motivo": "Lead já estava colaborativo desde o início, apenas respondeu perguntas de cadastro padrão sem objeções a contornar",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Avanço ocorreu por fluxo automatizado de coleta de dados, sem resposta decisiva que destravou objeção ou conduziu escolha ativa do lead",
+   "pergunta": "Primeiras",
+   "resposta": "Perfeito, Marcus Vinícius! Já tenho tudo pra enviar sua pré-aprovação. Nosso time analisa em até 24h e te retorno aqui com as próximas etapas. 😊",
+   "tema": "Transição para análise de cadastro",
+   "zona_proibida_motivo": "promessa_aprovacao_taxa",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": true
+  },
+  {
+   "lead_id": "b87d14e3-4a6a-479a-bd8a-032df5f4cd8e",
+   "nome": "Lambari Imports",
+   "status": "EM_ANALISE_AIVA",
+   "vale_como_jogada": true,
+   "motivo": "Contornou objeção de 'não temos boleto' explicando que AIVA seria justamente pra começar, conduziu fluidamente pro próximo campo e completou cadastro",
+   "pergunta": "Ainda não temos essa opção de vender pelo boleto",
+   "resposta": "Entendi, Rodrigo! Então vocês ainda não vendem no parcelado hoje — a AIVA seria justamente pra começar a oferecer essa opção pros seus clientes. Nesse caso, pode deixar esse campo zerado mesmo. Vamos pro próximo: as lojas ficam só em Lambari mesmo, ou tem outras cidades também?",
+   "tema": "Objeção: não tem boleto hoje",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "7d729e73-d589-49a9-914f-2bac17ca8b9d",
    "nome": "Hunter Promo",
    "status": "EM_ANALISE_AIVA",
    "vale_como_jogada": false,
-   "motivo": "Respostas apenas coletaram dados de qualificação (faturamento, ticket médio) sem contornar objeções; avanço ocorreu naturalmente pelo fluxo operacional padrão",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Respostas seguiram roteiro padrão de coleta de dados; avanço ocorreu por conclusão de etapa cadastral, não por contorno de objeção ou insight da IA",
+   "pergunta": "5 á 7",
+   "resposta": "Ótimo! E a Hunter Promo fica em Tomé-Açu mesmo, certo? Só confirmando a localização certinha da loja.",
+   "tema": "confirmação de localização da loja",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "cd0d37c8-b77f-41af-977b-8e8685274ddb",
    "nome": "Loja Americana",
    "status": "EM_ANALISE_AIVA",
    "vale_como_jogada": false,
-   "motivo": "Avanço ocorreu por coleta de dados cadastrais padrão, sem objeção contornada ou destravamento decisivo pela IA",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Avanço ocorreu por fluxo automático de coleta de dados, não por resposta que destravou objeção ou conduziu decisão do lead",
+   "pergunta": "15.000",
+   "resposta": "Tudo certo, Neivaldo! Seu cadastro está completo. Agora é só aguardar nossa equipe finalizar a análise.",
+   "tema": "confirmação de cadastro completo",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "8722fe7a-2f44-475e-944a-289a7d366a4a",
    "nome": "Valoriza Cell",
    "status": "TREINAR",
-   "vale_como_jogada": true,
-   "motivo": "A resposta criou urgência com oferta concreta (treinamento às 9h30 de amanhã) condicionada à ação imediata, desbloqueando o lead que estava parado no cadastro.",
-   "pergunta": "Oi",
-   "resposta": "Oi, Leandro! Tudo bem? Vi que te mandei o link do cadastro final (com as 7 etapas + biometria) alguns dias atrás. Você conseguiu finalizar o processo? Se tiver alguma dificuldade ou dúvida, me fala que eu te ajudo!",
-   "tema": "Resgate com oferta de suporte"
+   "vale_como_jogada": false,
+   "motivo": "Lead só respondeu 'Oi' e 'Sim' monossilábicos; avanço veio por ação manual do Nei cobrando biometria, não por mérito da resposta da IA",
+   "pergunta": "Sim",
+   "resposta": "Que ótimo, Leandro! 🎉 Você concluiu o cadastro e a biometria então? Agora é só aguardar a análise final do time AIVA — em até 24h você recebe a confirmação e as próximas etapas por aqui mesmo. Qualquer dúvida enquanto isso, é só chamar!",
+   "tema": "Confirmação de cadastro finalizado",
+   "zona_proibida_motivo": "promessa_aprovacao_taxa",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": true
   },
   {
    "lead_id": "330969ee-d2e0-4b87-a1b9-8bd8bf175f81",
    "nome": "Ajucelulares",
    "status": "TREINAR",
    "vale_como_jogada": false,
-   "motivo": "Respostas foram apenas confirmações de protocolo após lead já ter concordado ('Ok', 'Sim', 'Ja sim'); avanço decorreu de conclusão de cadastro/biometria, não de contorno de objeção ou condução ativa da IA",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Respostas apenas confirmaram conclusão de etapas já iniciadas pelo lead, sem destravar objeção ou conduzir decisão ativa",
+   "pergunta": "Ok / Sim / Ja sim",
+   "resposta": "Perfeito, Bruna! Cadastro e biometria concluídos. O time da AIVA vai finalizar a análise e você recebe a confirmação de aprovação em breve.",
+   "tema": "confirmação biometria cadastro",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "e6bb70a4-d483-430f-8225-be7d7710cb90",
    "nome": "Signuscell.shop",
    "status": "EM_ANALISE_AIVA",
    "vale_como_jogada": false,
-   "motivo": "Respostas foram coleta de dados padrão; avanço ocorreu após conclusão do cadastro, sem objeção contornada",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "motivo": "Sequência padrão de coleta de dados sem objeção a contornar; avanço por conclusão do fluxo, não por resposta decisiva",
+   "pergunta": "80k",
+   "resposta": "Anotado! E quanto a loja vende por mês no parcelado, mais ou menos? (Essa informação também ajuda a AIVA a dimensionar sua operação)",
+   "tema": "coleta de faturamento e volume",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "ee117a53-d9d1-4297-b0fe-8db4e84d84af",
    "nome": "Iconnect Cell",
    "status": "EM_ANALISE_AIVA",
    "vale_como_jogada": true,
-   "motivo": "Transformou objeção implícita (usa promissória por falta de financeira) em argumento a favor, validando a dor e conduzindo naturalmente para conclusão do cadastro",
+   "motivo": "Conduziu coleta completa de dados (email, faturamento, vendas parceladas, localização) de forma fluida e natural, mantendo o lead engajado até completar cadastro",
    "pergunta": "Torno de 10.00 mil promissória parcelado tenho muita procura faz mas cartão por não ter financeira",
    "resposta": "Entendi, Rodrigo! R$ 10.000 por mês no parcelado — anotado. Só confirmando: a Iconnect Cell fica em Campo Grande mesmo, né? Ou tem loja em outra cidade também?",
-   "tema": "Validar dor e prosseguir cadastro"
+   "tema": "Validação de dados e confirmação de localização",
+   "zona_proibida_motivo": "coleta_de_dados",
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   },
   {
    "lead_id": "696a607c-21c9-4aa0-b537-d683386ed735",
    "nome": "Licell",
    "status": "TREINAR",
-   "vale_como_jogada": false,
-   "motivo": "Avanço ocorreu por marcação de treinamento (processo operacional/cron), não por mérito de resposta específica da IA",
-   "pergunta": "",
-   "resposta": "",
-   "tema": ""
+   "vale_como_jogada": true,
+   "motivo": "Destravou objeção técnica de cadastro com diagnóstico preciso e passo a passo claro, lead confirmou sucesso e avançou",
+   "pergunta": "Travou após o endereço",
+   "resposta": "Entendi, Lucas — travou logo depois do endereço. Isso pode ser por algum dado que não bateu exatamente com o que tá na Receita Federal. Tenta assim: • Preenche o endereço *exatamente* como está no CNPJ cadastrado (CEP, rua, número, bairro) • Se tiver dúvida de como tá na Receita, consulta no site deles ou no seu contrato social • Usa o celular pra abrir o link (costuma funcionar melhor) Se travar de novo no mesmo ponto, me chama que eu aciono o time técnico pra ajustar.",
+   "tema": "Destravar cadastro travado no endereço",
+   "zona_proibida_motivo": null,
+   "contem_fone_ou_url": false,
+   "contem_valor_taxa_prazo": false
   }
  ]
 }
