@@ -77,21 +77,31 @@ const SYS_B = `Você garimpa JOGADAS VENCEDORAS de uma agente de IA (VictorIA, S
  "motivo": "<1 frase>",
  "pergunta": "<a mensagem do lead à qual ela respondeu bem>",
  "resposta": "<a resposta vencedora dela, na íntegra ou levemente encurtada>",
- "tema": "<3-6 palavras>",
+ "tema": "<3-6 palavras>"
+}
+Critério exigente: só vale se a resposta claramente destravou (contornou objeção, explicou e o lead topou, conduziu pro próximo passo). Avanço por cron/operador sem mérito da resposta = false.`
+
+// Zona proibida da fonte B roda em passe SEPARADO, recebendo SÓ o texto da
+// jogada extraída. Quando as duas perguntas iam no mesmo prompt, o modelo
+// rotulava o ASSUNTO DA CONVERSA em vez do texto (5 de 11 conversas de
+// qualificação viravam "coleta_de_dados") — e aí toda jogada parqueava.
+const SYS_ZONA = `Você recebe UM texto: uma resposta da VictorIA (SDR do crediário AIVA) candidata a virar exemplo de treino. Diga se ESTE texto — nada além dele — toca numa zona proibida. Responda SÓ JSON:
+{
  "zona_proibida_motivo": "<telefone_ou_golpe | parcelex | promessa_aprovacao_taxa | coleta_de_dados, ou null>",
  "contem_fone_ou_url": true/false,
- "contem_valor_taxa_prazo": true/false
+ "contem_valor_taxa_prazo": true/false,
+ "trecho": "<o trecho exato que disparou, ou null>"
 }
-Critério exigente: só vale se a resposta claramente destravou (contornou objeção, explicou e o lead topou, conduziu pro próximo passo). Avanço por cron/operador sem mérito da resposta = false.
-
-ZONA PROIBIDA — analise o texto do campo "resposta" que você extraiu, não a conversa toda. Marque quando ele tocar em:
-- telefone_ou_golpe: qualquer telefone, contato ou URL, ou juízo sobre número ser/não ser legítimo;
-- parcelex: menção à Parcelex ou ao Ricardo;
-- promessa_aprovacao_taxa: garantia de aprovação, OU número concreto de taxa/comissão (ex: "12%"), prazo de pagamento/análise (ex: "D+2", "em até 24h"), quantidade de parcelas (ex: "6x, 9x ou 12x") ou faixa de valor de aparelho (ex: "de R$ 700 a R$ 2.000");
-- coleta_de_dados: regra sobre quais documentos/dados de CNPJ ou de colaboradores pedir.
-"contem_valor_taxa_prazo" é true só quando há NÚMERO concreto de taxa, prazo, parcela ou faixa de valor no texto — alusão genérica ("tem uma taxa por venda", "cai rapidinho") é false.
-
-IMPORTANTE: zona proibida NÃO zera "vale_como_jogada". A jogada pode ser excelente e ainda assim precisar de decisão humana — marque os campos e deixe o operador parquear.`
+Zonas:
+- telefone_ou_golpe: o texto traz telefone, contato ou URL, ou opina se um número é/não é legítimo;
+- parcelex: cita a Parcelex ou o Ricardo;
+- promessa_aprovacao_taxa: garante aprovação, OU traz número concreto de taxa/comissão ("12%"), prazo de pagamento/análise ("D+2", "em até 24h"), quantidade de parcelas ("6x, 9x ou 12x") ou faixa de valor de aparelho ("de R$ 700 a R$ 2.000");
+- coleta_de_dados: enuncia REGRA de quais documentos/dados de CNPJ ou de colaboradores o lojista precisa mandar.
+Regras de precisão, siga à risca:
+- Perguntar um dado ao lojista ("qual seu faturamento?", "tem outros CNPJs?") ou anotar a resposta dele NÃO é coleta_de_dados — só conta quando o texto ENUNCIA a regra de quais documentos são exigidos.
+- Número dito PELO LOJISTA e apenas ecoado ("anotado: R$ 300 mil/ano") NÃO é promessa_aprovacao_taxa. Só conta número da OFERTA da AIVA.
+- "contem_valor_taxa_prazo" é true só com NÚMERO concreto de taxa, prazo, parcela ou faixa de valor da oferta; alusão genérica ("tem uma taxa por venda", "cai rapidinho") é false.
+Na dúvida entre marcar e não marcar, NÃO marque — o objetivo é pegar o texto que congela valor que muda, não toda conversa de qualificação.`
 
 const resultado = { desde, fonteA: [], fonteB: [] }
 
@@ -121,7 +131,19 @@ for (const l of avancosRaw ?? []) {
     })
     const t = r.content.find((b) => b.type === 'text')?.text ?? ''
     const j = t.match(/\{[\s\S]*\}/)
-    if (j) resultado.fonteB.push({ lead_id: l.id, nome: l.nome, status: l.status, ...JSON.parse(j[0]) })
+    if (!j) continue
+    const jogada = { lead_id: l.id, nome: l.nome, status: l.status, ...JSON.parse(j[0]) }
+    // Só a jogada aprovada precisa do passe de zona proibida — é ela que pode virar curadoria.
+    if (jogada.vale_como_jogada && jogada.resposta) {
+      const z = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5', max_tokens: 400, system: SYS_ZONA,
+        messages: [{ role: 'user', content: String(jogada.resposta) }],
+      })
+      const zt = z.content.find((b) => b.type === 'text')?.text ?? ''
+      const zj = zt.match(/\{[\s\S]*\}/)
+      if (zj) Object.assign(jogada, JSON.parse(zj[0]))
+    }
+    resultado.fonteB.push(jogada)
   } catch (e) { console.error('B', l.id, String(e).slice(0, 80)) }
 }
 console.log('fonte B destilada:', resultado.fonteB.length)
@@ -151,5 +173,6 @@ for (const x of aParquear) {
     x.contem_valor_taxa_prazo ? 'contem_valor_taxa_prazo' : null,
   ].filter(Boolean).join(', ')
   console.log(`  ⏸️ PARQUEAR — ${x.nome} | ${x.tema} | ${motivos}`)
+  if (x.trecho) console.log(`     trecho: "${String(x.trecho).slice(0, 160)}"`)
 }
 setTimeout(() => process.exit(0), 800).unref()
