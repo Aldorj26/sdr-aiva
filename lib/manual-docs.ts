@@ -96,7 +96,9 @@ export async function registrarRepasse(params: {
   try {
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     const resp = await postManual({ acao: 'repasse', data_hora: dataHora, ...params })
-    return !!resp
+    // resp truthy não basta: script sem a ação 'repasse' respondia {ok:false} e
+    // gerava planilha_ok falso-positivo (aconteceu com as 24 primeiras em 03/09)
+    return resp?.ok === true
   } catch (err) {
     console.error('[MANUAL_DOCS] Falha ao registrar na aba Repasses:', err)
     return false
