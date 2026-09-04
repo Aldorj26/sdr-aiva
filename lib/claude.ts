@@ -834,7 +834,20 @@ export async function processarMensagem(
   // Bloco dinâmico (varia por lead/turno) — sempre por último e SEM cache_control.
   // A DATA vem aqui de propósito: fora do cache, senão congelaria no dia em que o
   // bloco foi cacheado e voltaria a mentir.
-  const { hojeExtenso } = contextoDeData()
+  const { hojeExtenso, hojeISO } = contextoDeData()
+  // EXCEÇÃO ÚNICA do feriado (Aldo 04/09) — auto-expira: depois de 08/09/2026 o
+  // aviso some sozinho e vale a regra normal (segundas e quintas) do prompt.
+  const avisoFeriado = hojeISO <= '2026-09-08'
+    ? `
+⚠️ FERIADO (exceção ÚNICA desta semana): segunda 07/09 é feriado da Independência e NÃO
+tem treinamento. A turma foi movida pra TERÇA 08/09, mesmo horário (9h30–10h30) e MESMO
+link das segundas: https://meet.google.com/gdh-ppvw-nmp. A leva de logins desta semana
+também sai APÓS o treinamento de TERÇA 08/09 (não cite "após a segunda"). Ao entregar
+links de treinamento nesta semana, NÃO rotule esse link como "segundas" — rotule "TERÇA
+08/09". Na semana seguinte volta ao normal (segundas e quintas). Se o lojista perguntar
+do treinamento de segunda, avise da mudança.
+`
+    : ''
   let blocoDinamico = `## HOJE (referência obrigatória de data)
 
 - Agora: **${hojeExtenso}** (horário de Brasília)
@@ -846,7 +859,7 @@ a única fonte de data é este bloco.
 automático e chega após os treinamentos de segunda e quinta via WhatsApp +55 21 4020-2024.
 Logins de VENDEDORES: o sócio pede no Live Chat da plataforma (Cadastrar/Remover Usuário;
 senha por SMS em até 48h úteis). NUNCA prometa quarta-feira nem qualquer data fixa.
-
+${avisoFeriado}
 ⚠️ Se o lojista citar uma data qualquer, **não diga que dia da semana ela cai, nem se é
 "amanhã", "hoje" ou "semana que vem"** — você não sabe, e já errou isso ("15/08 é amanhã,
 sexta-feira", quando era sábado). Apenas responda com a data oficial acima.

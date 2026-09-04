@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, contextoDeData } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 
 /**
@@ -606,10 +606,17 @@ export async function POST(req: NextRequest) {
       //   {{2}}..{{5}} = texto fixo (treinamento, reunião, materiais, cadastro)
       // Enviar menos que 5 causa #131008 (Meta: "parameter is missing text value").
       const TREINAMENTO_TEMPLATE_ID = 69
+      // EXCEÇÃO ÚNICA feriado 07/09/2026 (Aldo 04/09): a turma de segunda vira
+      // TERÇA 08/09, mesmo horário e mesmo link. Auto-expira depois de 08/09.
+      const feriadoSemana = contextoDeData().hojeISO <= '2026-09-08'
       await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
-        '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30 — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
-        '🔗 Reunião — cada dia tem seu link: segundas https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo',
+        feriadoSemana
+          ? '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30. ATENÇÃO nesta semana: segunda 07/09 é feriado — a turma será na TERÇA 08/09, mesmo horário. O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.'
+          : '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30 — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
+        feriadoSemana
+          ? '🔗 Reunião — nesta semana: TERÇA 08/09 https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo'
+          : '🔗 Reunião — cada dia tem seu link: segundas https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo',
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
         '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).',
       ])
