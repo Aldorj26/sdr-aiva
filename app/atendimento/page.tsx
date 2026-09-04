@@ -78,9 +78,22 @@ async function getDados() {
   const travados = ((travadosRaw.data ?? []) as Array<LeadFila & { status_alterado_em: string | null }>)
     .sort((a, b) => (a.status_alterado_em ?? '').localeCompare(b.status_alterado_em ?? ''))
 
+  // CNPJ dos chamados: sdr_chamados não guarda CNPJ — vem das observações do
+  // lead vinculado (mesmos marcadores das outras seções).
+  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string; cnpj?: string | null }>
+  const idsChamados = [...new Set(listaChamados.map((c) => c.lead_id).filter(Boolean))] as string[]
+  if (idsChamados.length) {
+    const { data: leadsCh } = await supabaseAdmin
+      .from('sdr_leads')
+      .select('id, observacoes')
+      .in('id', idsChamados)
+    const cnpjPorLead = new Map((leadsCh ?? []).map((l) => [l.id, cnpjDeObs(l.observacoes)]))
+    for (const c of listaChamados) c.cnpj = c.lead_id ? cnpjPorLead.get(c.lead_id) ?? null : null
+  }
+
   return {
     grupos,
-    chamados: (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>,
+    chamados: listaChamados,
     travados,
     cs: (csFila.data ?? []) as LeadFila[],
   }
@@ -171,7 +184,7 @@ export default async function AtendimentoPage() {
             {chamados.map((c) => {
               const celulas = (
                 <>
-                  <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.telefone}</div></td>
+                  <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.telefone}{c.cnpj ? ` · ${c.cnpj}` : ''}</div></td>
                   <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>{(c.problema ?? 'ver conversa').slice(0, 110)}</td>
                   <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)' }}>{c.status_lead ?? '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(c.criado_em)}</td>
