@@ -722,9 +722,9 @@ export default async function Page({
         <Card
           label="🟣 No CS"
           value={agora.csAguardando}
-          hint="lojas ativas — painel Desempenho"
+          hint="lojas ativas — aba Atendimento"
           color={agora.csAguardando > 0 ? '#a855f7' : 'var(--text-muted)'}
-          href="/desempenho"
+          href="/atendimento"
         />
         <Card
           label="Pausados"

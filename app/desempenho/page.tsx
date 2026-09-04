@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import { casaBusca } from '@/lib/text'
 import ClickableRow from '../_components/ClickableRow'
-import ChamadoResolver from '../_components/ChamadoResolver'
 import LeadDrawer from '../_components/LeadDrawer'
 
 // Desempenho dos lojistas ativos na AIVA — snapshot mensal importado do
@@ -136,95 +135,6 @@ function Card({ label, value, color, href, ativo }: { label: string; value: stri
   )
 }
 
-// ─── CS — a carteira de lojas ativas (pedido do Aldo 02/09) ──────────────────
-// O /desempenho é o cockpit de CS do Nei: acionamentos de humano de lojas em
-// LOJA_FINALIZADA_E_VENDENDO aparecem AQUI (e saíram do painel pipeline, que
-// mantém só um contador com link). Radar de churn vem do snapshot semanal.
-const RE_MOTIVO_CS =
-  /(acesso_[a-z_]+|desanimo_[a-z_]+|troca_[a-z_]+|duvida_[^|[\n]*|pediu[^|[\n]*|interesse_[^|[\n]*|loja_[^|[\n]*|usuario_[^|[\n]*|alterac[^|[\n]*|campanha[^|[\n]*)/i
-
-function motivoDe(obs: string | null): string {
-  return ((obs ?? '').match(RE_MOTIVO_CS)?.[1] ?? '').trim().slice(0, 70)
-}
-
-async function getCsData() {
-  const h24 = new Date(Date.now() - 24 * 3600e3).toISOString()
-  const d7 = new Date(Date.now() - 7 * 86400e3).toISOString()
-  const [humano, conversas, ativacoes, semanas, chamados] = await Promise.all([
-    supabaseAdmin
-      .from('sdr_leads')
-      .select('id, nome, telefone, data_ultimo_contato, observacoes')
-      .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
-      .eq('acionar_humano', true)
-      .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
-      .limit(30),
-    supabaseAdmin
-      .from('sdr_leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
-      .gte('data_ultimo_contato', h24),
-    supabaseAdmin
-      .from('sdr_registros_cnpj')
-      .select('loja, cnpj, rid, ativa_em')
-      .eq('status', 'ativa')
-      .gte('ativa_em', d7)
-      .order('ativa_em', { ascending: false })
-      .limit(12),
-    supabaseAdmin.from('aiva_desempenho_semanal').select('semana').order('semana', { ascending: false }).limit(60),
-    // Chamados de erro de portal ABERTOS de lojas ATIVAS (regra 03/09) —
-    // os de credenciamento aparecem no painel pipeline.
-    supabaseAdmin
-      .from('sdr_chamados')
-      .select('id, lead_id, loja, telefone, problema, criado_em')
-      .eq('status', 'aberto')
-      .eq('status_lead', 'LOJA_FINALIZADA_E_VENDENDO')
-      .order('criado_em', { ascending: false })
-      .limit(20),
-  ])
-
-  // Radar de churn: última semana coletada vs a anterior (mesma segmentação do
-  // pulso de segunda — A zerou / B aprovou-não-vendeu / C queda).
-  const semanasDisp = [...new Set((semanas.data ?? []).map((s) => s.semana as string))]
-  const radar: { loja: string; cnpj: string; tag: string }[] = []
-  let zerou = 0
-  if (semanasDisp[0]) {
-    const { data: sw } = await supabaseAdmin
-      .from('aiva_desempenho_semanal')
-      .select('cnpj, loja, nome_varejo, aprovados, vendas')
-      .eq('semana', semanasDisp[0])
-    const ant = new Map<string, number>()
-    if (semanasDisp[1]) {
-      const { data: swAnt } = await supabaseAdmin
-        .from('aiva_desempenho_semanal')
-        .select('cnpj, vendas')
-        .eq('semana', semanasDisp[1])
-      for (const r of swAnt ?? []) ant.set(r.cnpj, r.vendas ?? 0)
-    }
-    for (const r of sw ?? []) {
-      const va = ant.get(r.cnpj)
-      // nome limpo: o campo "loja" do Data Studio é a unidade ("LOJA 3") ou
-      // vem sujo com código — o varejo é o nome que faz sentido sozinho
-      const nome = String(r.nome_varejo ?? r.loja ?? r.cnpj).slice(0, 34)
-      if ((r.vendas ?? 0) > 0 && va !== undefined && (r.vendas ?? 0) < va && va >= 2) {
-        radar.push({ loja: nome, cnpj: r.cnpj, tag: `📉 caiu ${va}→${r.vendas}` })
-      } else if ((r.vendas ?? 0) === 0 && (r.aprovados ?? 0) > 0) {
-        radar.push({ loja: nome, cnpj: r.cnpj, tag: `${r.aprovados} aprovado(s), 0 venda` })
-      } else if ((r.vendas ?? 0) === 0 && (r.aprovados ?? 0) === 0) {
-        zerou++
-      }
-    }
-  }
-  return {
-    humano: humano.data ?? [],
-    conversas24h: conversas.count ?? 0,
-    ativacoes: ativacoes.data ?? [],
-    radar,
-    zerou,
-    semanaRadar: semanasDisp[0] ?? null,
-    chamados: chamados.data ?? [],
-  }
-}
-
 export default async function DesempenhoPage({
   searchParams,
 }: {
@@ -255,7 +165,6 @@ export default async function DesempenhoPage({
   }
 
   const { porCnpj, porFone, blobPorLead } = await mapasDeLeads()
-  const cs = await getCsData()
   // Dados do lead pra uma linha do snapshot: casa por CNPJ e, se não achar,
   // pelo telefone que veio do Data Studio.
   const infoDe = (r: Row) => porCnpj.get(r.cnpj) ?? (r.telefone ? porFone.get(chaveTel(r.telefone)) : undefined)
@@ -363,101 +272,10 @@ export default async function DesempenhoPage({
         </p>
       </header>
 
-      {/* ─── CS — atendimento das lojas ativas (visual clean 02/09) ─────────── */}
-      <section id="cs" style={{ marginBottom: '1.1rem', flexShrink: 0, border: '1px solid var(--border)', borderLeft: '3px solid #a855f7', borderRadius: 8, background: 'var(--bg-elev)', padding: '0.7rem 0.9rem' }}>
-        <div style={{ fontSize: '0.72rem', color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.55rem' }}>
-          🟣 CS — carteira de lojas ativas
-        </div>
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <Card label="Atendimento humano" value={String(cs.humano.length)} color={cs.humano.length > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
-          <Card label="Conversas 24h" value={String(cs.conversas24h)} color="var(--green, #16a34a)" href="#cs" />
-          <Card label="Ativações 7d" value={String(cs.ativacoes.length)} color={cs.ativacoes.length > 0 ? 'var(--accent)' : 'var(--text-muted)'} href="#cs" />
-          <Card label="Atenção na semana" value={String(cs.radar.length)} color={cs.radar.length > 0 ? 'var(--yellow)' : 'var(--text-muted)'} href="#cs" />
-          <Card label="Sem movimento" value={String(cs.zerou)} color={cs.zerou > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
-          <Card label="🛠 Chamados" value={String(cs.chamados.length)} color={cs.chamados.length > 0 ? 'var(--red)' : 'var(--text-muted)'} href="#cs" />
-        </div>
-
-        {cs.humano.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
-            <tbody>
-              {cs.humano.map((l) => (
-                <ClickableRow key={l.id} leadId={l.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.82rem', width: '30%' }}>🔔 {l.nome}</td>
-                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)', width: '18%' }}>{l.telefone}</td>
-                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--yellow)' }}>{motivoDe(l.observacoes) || 'ver conversa'}</td>
-                  <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    {l.data_ultimo_contato ? new Date(l.data_ultimo_contato).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
-                  </td>
-                </ClickableRow>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {cs.chamados.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
-            <tbody>
-              {cs.chamados.map((c) => {
-                const celulas = (
-                  <>
-                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.82rem', width: '26%' }}>🛠 {c.loja ?? c.telefone}</td>
-                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.78rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>
-                      {(c.problema ?? 'ver conversa').slice(0, 90)}
-                    </td>
-                    <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(c.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td style={{ padding: '0.3rem 0.4rem', textAlign: 'right' }}><ChamadoResolver id={c.id} /></td>
-                  </>
-                )
-                return c.lead_id ? (
-                  <ClickableRow key={c.id} leadId={c.lead_id} style={{ borderTop: '1px solid var(--border)' }}>{celulas}</ClickableRow>
-                ) : (
-                  <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>{celulas}</tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {(cs.radar.length > 0 || cs.ativacoes.length > 0) && (
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '0.45rem' }}>
-            {cs.radar.length > 0 && (
-              <details style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--yellow)' }}>
-                  📡 Atenção na semana{cs.semanaRadar ? ` de ${new Date(cs.semanaRadar + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : ''} ({cs.radar.length})
-                </summary>
-                <table style={{ borderCollapse: 'collapse', marginTop: '0.35rem' }}>
-                  <tbody>
-                    {cs.radar.map((r) => (
-                      <tr key={r.cnpj} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.22rem 0.9rem 0.22rem 0.4rem' }}>{r.loja}</td>
-                        <td style={{ padding: '0.22rem 0.4rem', color: 'var(--yellow)' }}>{r.tag}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-            )}
-            {cs.ativacoes.length > 0 && (
-              <details style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--green, #16a34a)' }}>🆕 Ativações da semana ({cs.ativacoes.length})</summary>
-                <table style={{ borderCollapse: 'collapse', marginTop: '0.35rem' }}>
-                  <tbody>
-                    {cs.ativacoes.map((a) => (
-                      <tr key={a.cnpj} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.22rem 0.9rem 0.22rem 0.4rem' }}>{a.loja}</td>
-                        <td style={{ padding: '0.22rem 0.4rem', color: 'var(--text-muted)' }}>{a.rid ? `RID ${a.rid}` : ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-            )}
-          </div>
-        )}
-      </section>
-
+      {/* Seção CS saiu daqui em 04/09 (pedido do Aldo): a página travava — o
+          main tem overflow:hidden (só a tabela rola) e a seção CS crescia além
+          da tela, zerando a altura da tabela. Acionamentos e chamados de lojas
+          ativas agora moram no /atendimento (seção 🟣 CS). */}
       <section style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem', flexShrink: 0 }}>
         <Card label="Lojas" value={String(todas.length)} href={qs({})} ativo={!filtro} />
         <Card label="Aprovados" value={tot.aprovados.toLocaleString('pt-BR')} href={qs({})} />

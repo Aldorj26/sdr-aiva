@@ -82,14 +82,14 @@ export async function GET(req: NextRequest) {
     const s2 = secao(`📄 *DOCS/COLABORADORES (${grupos.docs.length})* — processar com o Edu:`, grupos.docs, n); n += grupos.docs.length
     const s3 = secao(`🟡 *MOVER CARD (${grupos.mover.length})* — cadastro/biometria confirmados:`, grupos.mover, n); n += grupos.mover.length
     const s4 = secao(`⚪ *SEM MOTIVO REGISTRADO (${grupos.sem_motivo.length})* — revisar e marcar "Atendido":`, grupos.sem_motivo, n); n += grupos.sem_motivo.length
-    const s5 = secao(`🟣 *CS — LOJAS ATIVAS (${grupos.cs.length})* — tratar no painel Desempenho:`, grupos.cs, n)
+    const s5 = secao(`🟣 *CS — LOJAS ATIVAS (${grupos.cs.length})* — tratar na aba Atendimento:`, grupos.cs, n)
 
     msg =
       `📋 *FILA DE ATENDIMENTO HUMANO — ${dataHoje}* (${total} lead${total > 1 ? 's' : ''})\n` +
       `Prioridade nº 1 do dia 👊\n` +
       s1 + s2 + s3 + s4 + s5 +
       `\nFunil: https://sdr-aiva.vercel.app/?aguardando_humano=true\n` +
-      (grupos.cs.length ? `CS (lojas ativas): https://sdr-aiva.vercel.app/desempenho\n` : '') +
+      (grupos.cs.length ? `CS (lojas ativas): https://sdr-aiva.vercel.app/atendimento\n` : '') +
       `(Atendeu? Marca "Atendido" no painel pra sair da fila.)`
   }
 

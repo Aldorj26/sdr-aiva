@@ -7,8 +7,10 @@ import ChamadoResolver from '../_components/ChamadoResolver'
 import AtendidoButton from '../_components/AtendidoButton'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
-// resolver do FUNIL, numa aba só, ordenado por prioridade — a versão viva do
-// digest de WhatsApp das 8h. Atendimento de loja ATIVA (CS) mora no /desempenho.
+// resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
+// WhatsApp das 8h. Desde 04/09 o CS (lojas ativas) também mora aqui: a seção
+// no /desempenho travava a página (main overflow:hidden + seção crescendo além
+// da tela) e o Aldo pediu pra tirar de lá.
 export const dynamic = 'force-dynamic'
 
 interface LeadFila {
@@ -28,14 +30,25 @@ function fmtQuando(iso: string | null): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
+// CNPJ da matriz ao lado do telefone (pedido do Aldo 04/09). Vem das
+// observações do lead — mesmos marcadores que o /desempenho usa pra casar
+// snapshot ↔ lead (cnpj_matriz= dos dados coletados; CNPJ_RECEITA: da validação).
+function cnpjDeObs(obs: string | null): string | null {
+  const d = (obs ?? '').match(/cnpj_matriz=([0-9]{14})/)?.[1]
+    ?? (obs ?? '').match(/CNPJ_RECEITA:cnpj=([0-9]{14})/)?.[1]
+  return d ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : null
+}
+
 async function getDados() {
-  const [fila, chamados, travadosRaw, csCount] = await Promise.all([
+  const [fila, chamados, travadosRaw, csFila] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
       .eq('acionar_humano', true)
       .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")')
       .order('data_ultimo_contato', { ascending: true, nullsFirst: true }),
+    // Chamados abertos de TODAS as etapas (04/09: os de loja ativa vinham no
+    // /desempenho; agora a coluna Etapa distingue credenciamento × LFV)
     supabaseAdmin
       .from('sdr_chamados')
       .select('id, lead_id, loja, telefone, problema, status_lead, criado_em')
@@ -48,11 +61,14 @@ async function getDados() {
       .select('id, nome, telefone, status, observacoes, status_alterado_em, data_ultimo_contato')
       .eq('status', 'EM_ANALISE_AIVA')
       .like('observacoes', '%[FOLLOWUP_FASE_COUNT:3%'),
+    // 🟣 CS — acionamentos de lojas ATIVAS (veio do /desempenho em 04/09)
     supabaseAdmin
       .from('sdr_leads')
-      .select('id', { count: 'exact', head: true })
+      .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
       .eq('acionar_humano', true)
-      .eq('status', 'LOJA_FINALIZADA_E_VENDENDO'),
+      .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
+      .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
+      .limit(40),
   ])
 
   const grupos: Record<CategoriaFila, LeadFila[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
@@ -64,9 +80,9 @@ async function getDados() {
 
   return {
     grupos,
-    chamados: ((chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>).filter((c) => c.status_lead !== 'LOJA_FINALIZADA_E_VENDENDO'),
+    chamados: (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>,
     travados,
-    csCount: csCount.count ?? 0,
+    cs: (csFila.data ?? []) as LeadFila[],
   }
 }
 
@@ -95,9 +111,10 @@ function Secao({ id, titulo, sub, vazio, children, count }: { id: string; titulo
 
 function LinhaLead({ l, botao }: { l: LeadFila; botao: React.ReactNode }) {
   const motivo = motivoDeObs(l.observacoes)
+  const cnpj = cnpjDeObs(l.observacoes)
   return (
     <ClickableRow leadId={l.id}>
-      <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}</div></td>
+      <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}{cnpj ? ` · ${cnpj}` : ''}</div></td>
       <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
       <td style={{ ...td, color: 'var(--yellow)', fontSize: '0.8rem' }}>{motivo || 'ver conversa'}</td>
       <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
@@ -113,7 +130,7 @@ const cab = (
 )
 
 export default async function AtendimentoPage() {
-  const { grupos, chamados, travados, csCount } = await getDados()
+  const { grupos, chamados, travados, cs } = await getDados()
 
   return (
     <main>
@@ -121,26 +138,29 @@ export default async function AtendimentoPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Link href="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: '0.85rem', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-elev)' }}>← Voltar</Link>
           <h1 style={{ margin: 0 }}>🎧 Atendimento</h1>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>a fila de trabalho do funil — lojas ativas (CS) ficam no <Link href="/desempenho" style={{ color: '#a855f7' }}>Desempenho</Link></span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>a fila de trabalho — funil e lojas ativas (CS); números de desempenho ficam no <Link href="/desempenho" style={{ color: 'var(--accent)' }}>Desempenho</Link></span>
         </div>
       </header>
 
       <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <CardResumo label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
+        <CardResumo label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
         <CardResumo label="🛠 Chamados" value={chamados.length} color="var(--red)" />
         <CardResumo label="🟡 Mover card" value={grupos.mover.length} color="var(--yellow)" />
         <CardResumo label="⏱ Travados no CAF" value={travados.length} color="var(--yellow)" />
         <CardResumo label="📄 Docs" value={grupos.docs.length} />
         <CardResumo label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
-        <a href="/desempenho#cs" style={{ display: 'block', textDecoration: 'none', padding: '0.7rem 0.9rem', borderRadius: 8, border: '1px solid #a855f744', background: 'var(--bg-elev)', minWidth: 140 }}>
-          <div style={{ fontSize: '0.7rem', color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🟣 No CS</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: csCount > 0 ? '#a855f7' : 'var(--text-muted)' }}>{csCount}</div>
-        </a>
       </div>
 
       <Secao id="Aopendente" titulo="🔴 Ação pendente" sub="acionaram humano — resolver hoje" vazio="Fila zerada. 🎉" count={grupos.acao.length}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
           {grupos.acao.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
+        </tbody></table>
+      </Secao>
+
+      <Secao id="CSlojasativas" titulo="🟣 CS — lojas ativas" sub="lojas vendendo que acionaram humano — veio do Desempenho (04/09)" vazio="Nenhuma loja ativa aguardando. ✓" count={cs.length}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
+          {cs.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
         </tbody></table>
       </Secao>
 
@@ -178,7 +198,7 @@ export default async function AtendimentoPage() {
           <tbody>
             {travados.map((l) => (
               <ClickableRow key={l.id} leadId={l.id}>
-                <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}</div></td>
+                <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}{cnpjDeObs(l.observacoes) ? ` · ${cnpjDeObs(l.observacoes)}` : ''}</div></td>
                 <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{l.status_alterado_em ? new Date(l.status_alterado_em).toLocaleDateString('pt-BR') : '—'}</td>
                 <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
               </ClickableRow>

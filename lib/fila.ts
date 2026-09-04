@@ -4,7 +4,7 @@
  * página /atendimento).
  */
 export const RE_MOTIVO =
-  /(acesso_[a-z_]+|desanimo_[a-z_]+|troca_[a-z_]+|atendimento_automatico[^|[]*|duvida_[^|[]*|pediu[^|[]*|interesse_[^|[]*|loja_[^|[]*|documentos_[^|[]*|dados_colaborador[^|[]*|qualificacao[^|[]*|cadastro[^|[]*|usuario_[^|[]*|alterac[^|[]*)/i
+  /(acesso_[a-z_]+|desanimo_[a-z_]+|troca_[a-z_]+|repasse_[^|[]*|desbloqueio_[^|[]*|solicitacao_[^|[]*|painel_[^|[]*|atendimento_automatico[^|[]*|duvida_[^|[]*|pediu[^|[]*|interesse_[^|[]*|loja_[^|[]*|documentos_[^|[]*|dados_colaborador[^|[]*|qualificacao[^|[]*|cadastro[^|[]*|usuario_[^|[]*|alterac[^|[]*)/i
 
 export type CategoriaFila = 'acao' | 'docs' | 'mover' | 'sem_motivo'
 
@@ -19,5 +19,8 @@ export function categoriaFila(motivo: string): CategoriaFila {
 }
 
 export function motivoDeObs(obs: string | null): string {
-  return ((obs ?? '').match(RE_MOTIVO)?.[1] ?? '').trim()
+  // Marcadores [ASSIM] saem antes do match: o [CAMPANHA_PAINEL_REPASSES:...]
+  // casava com o padrão e vazava na coluna de motivo dos painéis (04/09).
+  const semMarcadores = (obs ?? '').replace(/\[[^\]]*\]/g, ' ')
+  return (semMarcadores.match(RE_MOTIVO)?.[1] ?? '').trim().slice(0, 70)
 }
