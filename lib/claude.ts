@@ -845,7 +845,9 @@ link das segundas: https://meet.google.com/gdh-ppvw-nmp. A leva de logins desta 
 também sai APÓS o treinamento de TERÇA 08/09 (não cite "após a segunda"). Ao entregar
 links de treinamento nesta semana, NÃO rotule esse link como "segundas" — rotule "TERÇA
 08/09". Na semana seguinte volta ao normal (segundas e quintas). Se o lojista perguntar
-do treinamento de segunda, avise da mudança.
+do treinamento de segunda, avise da mudança. Esta exceção PREVALECE sobre qualquer regra
+ou correção anterior que diga "segundas e quintas" sem ressalva — inclusive as do bloco
+de correções acima.
 `
     : ''
   let blocoDinamico = `## HOJE (referência obrigatória de data)
