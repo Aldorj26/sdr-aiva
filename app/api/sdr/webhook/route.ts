@@ -25,6 +25,7 @@ import {
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
+import { RE_PEDIDO_EXCLUSAO, MARCADOR_DADOS_APAGADOS, apagarDadosLead, resumoExclusao } from '@/lib/lgpd'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
 import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
 import { solicitarPainelRepasses, ehGmail, linkRepassesPreenchido } from '@/lib/repasses-form'
@@ -597,6 +598,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 4z. LGPD — pedido de exclusão de dados (Aldo 08/09/2026, caso NanCell).
+  // Vem ANTES do bloqueio de status final: quem já está OPT_OUT também tem
+  // direito. Determinístico (regex), sem passar pela IA: confirma pro lead,
+  // apaga o que está sob nosso controle e avisa Aldo/Nei do resto.
+  if (RE_PEDIDO_EXCLUSAO.test(conteudo) && !(lead.observacoes ?? '').includes(MARCADOR_DADOS_APAGADOS)) {
+    const nomeOriginal = lead.nome
+    try {
+      await sendText(
+        lead.telefone,
+        'Entendido! Vou remover seus dados dos nossos sistemas agora e você não vai mais receber mensagens nossas. Se um dia quiser retomar a conversa, é só nos chamar. 🙏',
+        chatId || null,
+      )
+    } catch (err) {
+      console.error('[LGPD] falha ao confirmar exclusão pro lead:', err)
+    }
+    let resumo: string
+    try {
+      const r = await apagarDadosLead(lead.id)
+      resumo = resumoExclusao(r, nomeOriginal)
+    } catch (err) {
+      resumo = `🗑️ *EXCLUSÃO DE DADOS (LGPD)* — ${nomeOriginal} (${lead.telefone}) pediu pra apagar os dados e a exclusão automática FALHOU: ${err instanceof Error ? err.message : String(err)}. Rodar na mão: POST /api/sdr/lgpd-apagar.`
+    }
+    if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, resumo)
+    if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, resumo)
+    return NextResponse.json({ ok: true, lgpd: 'dados_apagados' })
+  }
+
   // 5. Ignora leads em status final
   if (STATUS_IGNORAR.includes(lead.status)) {
     return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
@@ -898,7 +926,13 @@ export async function POST(req: NextRequest) {
         !/\?\s*$/.test(txt.trim()) &&
         /n[ãa]o (?:aprov(?:a|ou|aram)|passou|passa) (?:nada|ningu[ée]m|nenhum|nenhuma)|nenhuma aprova|nunca aprova|s[óo] (?:reprova|recusa|nega)|clientes? n[ãa]o (?:aprova|aprovam|aprovou)|aprova[çc][ãa]o (?:muito )?baixa|reprov(?:ou|a) (?:tudo|todos)|recus(?:ou|a) (?:tudo|todos)/i.test(txt)
 
-      if (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal)) {
+      // TRAVA/DESBLOQUEIO DE APARELHO (Center Celulares 08/09/2026): "retirar a
+      // trava de um celular", "destravar", "desbloquear o aparelho" NÃO é chamado
+      // nosso — só o Live Chat da plataforma destrava (regra do Aldo). Sem isso o
+      // "travou" abria chamado pro Nei e a VictorIA prometia "cobrar o time".
+      const travaAparelho = /(retirar|tirar|remover|liberar) a trava|destrav|desbloque(?:ar|io|ia)/i.test(txt)
+
+      if (!travaAparelho && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal))) {
         try {
           const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: jaAlertou } = await supabaseAdmin
