@@ -889,6 +889,7 @@ export async function POST(req: NextRequest) {
     // imediato pro time. A VictorIA não resolve erro de sistema — sem esse
     // alerta a queixa morria na conversa. Cooldown de 24h por lead (sdr_alertas).
     const STATUS_POS_CADASTRO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+    let instrucaoPedirPrint = ''
     if (STATUS_POS_CADASTRO.includes(lead.status) && conteudoEfetivo) {
       const txt = conteudoEfetivo
       // "erro"/travou/biometria sozinhos já bastam; "não consigo/funciona" só
@@ -931,6 +932,17 @@ export async function POST(req: NextRequest) {
       // nosso — só o Live Chat da plataforma destrava (regra do Aldo). Sem isso o
       // "travou" abria chamado pro Nei e a VictorIA prometia "cobrar o time".
       const travaAparelho = /(retirar|tirar|remover|liberar) a trava|destrav|desbloque(?:ar|io|ia)/i.test(txt)
+
+      // 📸 REGRA DO PRINT (Aldo 08/09/2026): qualquer erro relatado → a VictorIA
+      // pede o print da tela, se ainda não veio nesta conversa. Determinístico
+      // (instrução injetada no turno), pra não depender só do prompt. O print
+      // fica em sdr_mensagens ([LEAD_ENVIOU_IMAGEM:id]) e aparece no chamado.
+      const relatouErro = erroForte || naoChega || financeiro || reclamacaoAprovacao || travaAparelho || (naoConsigo && contextoPortal)
+      const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
+      if (relatouErro && !temPrintRecente) {
+        instrucaoPedirPrint =
+          'O lojista acabou de relatar um ERRO/TRAVA e ainda NÃO mandou print nesta conversa. Na sua resposta, PEÇA o print da tela com a mensagem de erro (ex.: "me manda um print da tela com o erro? assim o time vê exatamente o que apareceu") ANTES de qualquer orientação. Não prometa resolver.'
+      }
 
       if (!travaAparelho && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal))) {
         try {
@@ -1116,7 +1128,8 @@ export async function POST(req: NextRequest) {
     try {
       // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
       // fallback — o status sozinho não distingue Fase 1 de Fase 3.
-      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, lead.instrucao_silvia, undefined, leadEmFase3)
+      const instrucaoTurno = [lead.instrucao_silvia, instrucaoPedirPrint].filter((s) => s && String(s).trim()).join('\n\n') || null
+      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, leadEmFase3)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined

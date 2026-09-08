@@ -84,15 +84,24 @@ async function getDados() {
 
   // CNPJ dos chamados: sdr_chamados não guarda CNPJ — vem das observações do
   // lead vinculado (mesmos marcadores das outras seções).
-  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string; cnpj?: string | null }>
+  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string; cnpj?: string | null; prints?: string[] }>
   const idsChamados = [...new Set(listaChamados.map((c) => c.lead_id).filter(Boolean))] as string[]
   if (idsChamados.length) {
-    const { data: leadsCh } = await supabaseAdmin
-      .from('sdr_leads')
-      .select('id, observacoes')
-      .in('id', idsChamados)
+    const [{ data: leadsCh }, { data: imgs }] = await Promise.all([
+      supabaseAdmin.from('sdr_leads').select('id, observacoes').in('id', idsChamados),
+      // 📸 Histórico de erros (Aldo 08/09): prints que o lojista mandou desde
+      // 24h antes de abrir o chamado — o print costuma vir junto do relato.
+      supabaseAdmin.from('sdr_mensagens').select('lead_id, conteudo, enviado_em').in('lead_id', idsChamados).eq('direcao', 'in').like('conteudo', '[LEAD_ENVIOU_IMAGEM:%').order('enviado_em'),
+    ])
     const cnpjPorLead = new Map((leadsCh ?? []).map((l) => [l.id, cnpjDeObs(l.observacoes)]))
-    for (const c of listaChamados) c.cnpj = c.lead_id ? cnpjPorLead.get(c.lead_id) ?? null : null
+    for (const c of listaChamados) {
+      c.cnpj = c.lead_id ? cnpjPorLead.get(c.lead_id) ?? null : null
+      const desde = new Date(new Date(c.criado_em).getTime() - 24 * 3600e3).toISOString()
+      c.prints = [...new Set((imgs ?? [])
+        .filter((m) => m.lead_id === c.lead_id && m.enviado_em >= desde)
+        .map((m) => m.conteudo.match(/\[LEAD_ENVIOU_IMAGEM:(\d+)\]/)?.[1] ?? '')
+        .filter(Boolean))]
+    }
   }
 
   return {
@@ -189,7 +198,16 @@ export default async function AtendimentoPage() {
               const celulas = (
                 <>
                   <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.telefone}{c.cnpj ? ` · ${c.cnpj}` : ''}</div></td>
-                  <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>{(c.problema ?? 'ver conversa').slice(0, 110)}</td>
+                  <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>
+                    {(c.problema ?? 'ver conversa').slice(0, 110)}
+                    {(c.prints?.length ?? 0) > 0 && (
+                      <span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>
+                        {c.prints!.map((id, i) => (
+                          <a key={id} href={`/api/leads/media/${id}`} target="_blank" rel="noopener noreferrer" title={`Print ${i + 1} enviado pelo lojista`} style={{ color: 'var(--accent)', textDecoration: 'none', marginRight: 4 }}>📷{c.prints!.length > 1 ? i + 1 : ''}</a>
+                        ))}
+                      </span>
+                    )}
+                  </td>
                   <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)' }}>{c.status_lead ?? '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(c.criado_em)}</td>
                   <td style={{ ...td, textAlign: 'right' }}><ChamadoResolver id={c.id} /></td>
