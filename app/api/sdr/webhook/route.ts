@@ -1422,10 +1422,13 @@ export async function POST(req: NextRequest) {
               (info.cnaeDescricao ? `🏷️ Atividade: ${info.cnaeDescricao}\n` : '')
 
             if (info.idadeAnos != null && info.idadeAnos < 1) {
-              // Regra de corte: CNPJ < 1 ano → desqualifica na hora, mensagem educada
+              // Regra de corte: CNPJ < 1 ano → desqualifica na hora, mensagem educada.
+              // motivo_humano vira o carimbo da razão (entra nas observações e na
+              // nota da opp) e é o que manda o card pra etapa 93 no bloco do CRM
+              // (Aldo 08/09/2026). acionar_humano segue false — ninguém é chamado.
               resposta.novo_status = 'NAO_QUALIFICADO'
               resposta.acionar_humano = false
-              resposta.motivo_humano = null
+              resposta.motivo_humano = 'cnpj_menos_de_1_ano'
               resposta.mensagem =
                 `Obrigada pelas informações! 😊 Fiz a verificação aqui e o CNPJ informado tem menos de 1 ano de abertura — e hoje, pra cadastrar na AIVA, precisamos de CNPJ com pelo menos 1 ano.\n\n` +
                 `Assim que a loja completar 1 ano de CNPJ, é só me chamar aqui que seguimos com o cadastro na hora, combinado? Vou deixar seu contato guardado! 🙌`
@@ -2121,6 +2124,16 @@ export async function POST(req: NextRequest) {
         }
       } else if (resposta.novo_status === 'NAO_QUALIFICADO') {
         await addOpportunityNote(oppId, `Lead não qualificado: ${resposta.motivo_humano ?? 'sem perfil'}`)
+        // CNPJ < 1 ano → card vai pra etapa 93 "Lojas menos de 01 Ano" (Aldo
+        // 08/09/2026): o Nei enxerga no kanban quem volta a valer daqui a meses.
+        if (resposta.motivo_humano === 'cnpj_menos_de_1_ano') {
+          try {
+            await changeOpportunityStage(oppId, STAGES.MENOS_1_ANO)
+            console.log(`CRM: Oportunidade #${oppId} → Lojas menos de 01 Ano (stage ${STAGES.MENOS_1_ANO})`)
+          } catch (err) {
+            console.log(`CRM: Erro ao mover para Lojas menos de 01 Ano #${oppId}:`, err)
+          }
+        }
       } else if (resposta.novo_status === 'BOT_DETECTADO') {
         // Chatbot/atendimento automático detectado pela VictorIA em qualquer fase.
         // Move opp pro stage 69 (Bot Detectado) no pipeline AIVA, fora do funil ativo.

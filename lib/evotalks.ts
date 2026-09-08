@@ -599,6 +599,9 @@ const STAGES = {
   LOGIN: 71,
   LOJA_FINALIZADA_E_VENDENDO: 51,
   BOT_DETECTADO: 69,
+  // "Lojas menos de 01 Ano" (etapa criada pelo Nei 08/09/2026): destino dos
+  // leads desqualificados pela regra de CNPJ < 1 ano (pedido do Aldo 08/09).
+  MENOS_1_ANO: 93,
 } as const
 
 // Progressão LINEAR do funil (ordem de avanço) por ID de stage. Usada por
