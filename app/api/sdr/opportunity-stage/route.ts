@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3 } from '@/lib/evotalks'
+import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, contextoDeData } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
@@ -777,6 +777,42 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('Erro ao espelhar stage 71 (LOGIN):', err)
       return NextResponse.json({ ok: false, erro: 'login_stage_error' }, { status: 500 })
+    }
+  }
+
+  // ESPELHO GENÉRICO (08/09/2026 — Aldo: "sincronização em tempo real"). O Evo
+  // agora notifica TODAS as etapas do funil 15 (automações 97–101 + elemento
+  // extra na 88). Qualquer etapa mapeada que não tenha handler próprio acima
+  // vira status no painel na hora, com as MESMAS exceções do sync-from-evo.
+  const statusEspelho = STAGE_TO_STATUS[stageNum]
+  if (statusEspelho) {
+    try {
+      const opp = await getOpportunity(Number(opportunityId))
+      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
+      if (!telefone) return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
+      const { data: lead } = await supabaseAdmin
+        .from('sdr_leads').select('id, status, observacoes').eq('telefone', telefone).maybeSingle()
+      if (!lead?.id) return NextResponse.json({ ok: true, espelho: statusEspelho, ignorado: 'lead_nao_encontrado', telefone })
+
+      const novo = statusFromOpp(opp as { fkStage?: number; formsdata?: Record<string, string | null> | null }) ?? statusEspelho
+      const obs = lead.observacoes ?? ''
+      let motivoSkip: string | null = null
+      if (lead.status === novo) motivoSkip = 'ja_estava'
+      else if (lead.status === 'DESCARTADO' && obs.includes('[DESCARTADO_MANUAL')) motivoSkip = 'descarte_manual'
+      else if (lead.status === 'OPT_OUT' || lead.status === 'NAO_QUALIFICADO') motivoSkip = 'terminal'
+      else if (lead.status === 'AGUARDANDO' && novo === 'INTERESSADO') motivoSkip = 'sub_estado_aguardando'
+      else if (lead.status === 'DESCARTADO' && novo === 'SEM_RESPOSTA') motivoSkip = 'sub_estado_descartado'
+      if (motivoSkip) return NextResponse.json({ ok: true, espelho: novo, ignorado: motivoSkip, telefone })
+
+      const patch: Record<string, unknown> = { status: novo }
+      if (['BOT_DETECTADO', 'DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO'].includes(novo)) patch.acionar_humano = false
+      await supabaseAdmin.from('sdr_leads').update(patch).eq('id', lead.id)
+      console.log(`Espelho stage ${stageNum}: ${telefone} ${lead.status} → ${novo} (opp #${opportunityId})`)
+      return NextResponse.json({ ok: true, espelho: novo, de: lead.status, telefone })
+    } catch (err) {
+      console.error(`Erro no espelho genérico (stage ${stageNum}):`, err)
+      return NextResponse.json({ ok: false, erro: 'espelho_error' }, { status: 500 })
     }
   }
 

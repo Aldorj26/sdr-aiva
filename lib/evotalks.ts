@@ -1118,6 +1118,9 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   71: 'LOGIN',
   51: 'LOJA_FINALIZADA_E_VENDENDO',
   69: 'BOT_DETECTADO',
+  // 93 "Lojas menos de 01 Ano" (etapa criada pelo Nei): CNPJ com menos de 1 ano
+  // = política de qualificação → NAO_QUALIFICADO (08/09/2026).
+  93: 'NAO_QUALIFICADO',
 }
 
 // Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.
