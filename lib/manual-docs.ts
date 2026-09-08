@@ -81,6 +81,26 @@ export async function registrarChamado(params: {
 }
 
 /**
+ * Marca "sim" na coluna Resolvido (F) da aba "Chamados" quando o Nei clica
+ * ✓ Resolver no painel (pedido do Aldo 08/09/2026). O Apps Script acha a
+ * linha pelo telefone + início do problema (fallback: última linha não
+ * resolvida do telefone). Ação 'chamado_resolvido' — Versão 14 do script.
+ */
+export async function resolverChamadoPlanilha(params: {
+  telefone: string
+  problema?: string | null
+  observacao?: string | null
+}): Promise<boolean> {
+  try {
+    const resp = await postManual({ acao: 'chamado_resolvido', ...params })
+    return resp?.ok === true
+  } catch (err) {
+    console.error('[MANUAL_DOCS] Falha ao marcar chamado resolvido na planilha:', err)
+    return false
+  }
+}
+
+/**
  * Registra na aba "Repasses" da planilha AIVA APROVAÇÃO uma solicitação de
  * acesso ao painel de repasses lançada pela VictorIA (regra 03/09).
  * ⚠️ Requer a ação 'repasse' no Apps Script publicado (trecho no fim de
