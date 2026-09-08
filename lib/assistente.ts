@@ -3,6 +3,7 @@ import { getClient } from '@/lib/claude'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASSISTENTE_SYSTEM_PROMPT } from '@/prompts/assistente'
 import { getPipeOpportunities, getOpportunity, STAGE_TO_STATUS, PIPELINE_AIVA } from '@/lib/evotalks'
+import { contextoDeData } from '@/lib/text'
 
 // Rótulos das etapas do funil AIVA no Evo (fonte da verdade da ETAPA)
 const ETAPA_LABEL: Record<number, string> = {
@@ -273,7 +274,12 @@ export async function responderAssistente(
       // 8000: com 1500 as respostas longas (ex.: varredura de categorias de
       // leads) saíam cortadas no meio — reclamação do Aldo 01/09.
       max_tokens: 8000,
-      system: [{ type: 'text', text: ASSISTENTE_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      // Data de HOJE fora do bloco cacheado (08/09/2026): sem isso a Analista
+      // inventava o "hoje" e errava contas de dias ("08/09, 5 dias" no dia 08/09).
+      system: [
+        { type: 'text', text: ASSISTENTE_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: `## HOJE\nAgora: ${contextoDeData().hojeExtenso} (horário de Brasília). Use esta data pra "hoje/ontem/há N dias" — nunca deduza a data por conta própria.` },
+      ],
       tools: TOOLS,
       messages,
     })
