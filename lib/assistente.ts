@@ -94,7 +94,7 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: 'consulta_sql',
     description:
-      'Executa um SELECT livre no Postgres (somente leitura, máx 50 linhas). Tabelas: sdr_leads, sdr_mensagens. Use para perguntas que as outras ferramentas não cobrem.',
+      'Executa um SELECT livre no Postgres (somente leitura, máx 50 linhas). Tabelas: sdr_leads, sdr_mensagens, sdr_chamados, sdr_repasses_solicitados, aiva_desempenho_semanal, sdr_curadoria (colunas descritas no system prompt). Use para perguntas que as outras ferramentas não cobrem.',
     input_schema: {
       type: 'object',
       properties: {
