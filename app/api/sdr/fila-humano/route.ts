@@ -27,7 +27,7 @@ export const maxDuration = 60
 
 // Classificação compartilhada com a página /atendimento (lib/fila.ts, 03/09) —
 // uma fonte só pra motivo/categoria, digest e painel nunca divergem.
-import { RE_MOTIVO, categoriaFila as categoria } from '@/lib/fila'
+import { motivoDeObs, categoriaFila as categoria } from '@/lib/fila'
 
 type Item = { nome: string; telefone: string; status: string; motivo: string; ultimaMsg: string | null }
 
@@ -51,7 +51,8 @@ export async function GET(req: NextRequest) {
   // /desempenho — não se misturam com o funil.
   const grupos: Record<string, Item[]> = { acao: [], docs: [], mover: [], sem_motivo: [], cs: [] }
   for (const l of leads ?? []) {
-    const motivo = ((l.observacoes ?? '').match(RE_MOTIVO)?.[1] ?? '').trim()
+    // motivo ATUAL (o último das observações) — mesma regra do /atendimento (08/09)
+    const motivo = motivoDeObs(l.observacoes)
     const item = {
       nome: l.nome,
       telefone: l.telefone,
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
       ultimaMsg: l.data_ultimo_contato,
     }
     if (l.status === 'LOJA_FINALIZADA_E_VENDENDO') grupos.cs.push(item)
-    else grupos[categoria(motivo)].push(item)
+    else grupos[categoria(motivo, l.status)].push(item)
   }
 
   const total = (leads ?? []).length

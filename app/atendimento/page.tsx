@@ -71,12 +71,16 @@ async function getDados() {
       .limit(40),
   ])
 
-  const grupos: Record<CategoriaFila, LeadFila[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
-  for (const l of (fila.data ?? []) as LeadFila[]) {
-    grupos[categoriaFila(motivoDeObs(l.observacoes))].push(l)
-  }
   const travados = ((travadosRaw.data ?? []) as Array<LeadFila & { status_alterado_em: string | null }>)
     .sort((a, b) => (a.status_alterado_em ?? '').localeCompare(b.status_alterado_em ?? ''))
+  // Travados no CAF têm precedência (08/09): quem esgotou as 3 cobranças é
+  // lista de ligação — não repete em Ação/Mover com um motivo antigo.
+  const idsTravados = new Set(travados.map((t) => t.id))
+  const grupos: Record<CategoriaFila, LeadFila[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
+  for (const l of (fila.data ?? []) as LeadFila[]) {
+    if (idsTravados.has(l.id)) continue
+    grupos[categoriaFila(motivoDeObs(l.observacoes), l.status)].push(l)
+  }
 
   // CNPJ dos chamados: sdr_chamados não guarda CNPJ — vem das observações do
   // lead vinculado (mesmos marcadores das outras seções).
