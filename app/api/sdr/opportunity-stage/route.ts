@@ -757,5 +757,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Etapa 71 (Login): o Evo dispara o webhook (19 eventos em 14 dias, 08/09)
+  // mas caía no "sem ação configurada" — o painel só virava LOGIN no sync
+  // diário. Agora espelha na hora. Sem template: o login chega pela AIVA.
+  if (stageNum === STAGES.LOGIN) {
+    try {
+      const opp = await getOpportunity(Number(opportunityId))
+      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
+      if (!telefone) return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
+      const { data: lead } = await supabaseAdmin.from('sdr_leads').select('id, status').eq('telefone', telefone).maybeSingle()
+      if (lead?.id && lead.status !== 'LOGIN') {
+        await supabaseAdmin
+          .from('sdr_leads')
+          .update({ status: 'LOGIN', acionar_humano: false })
+          .eq('id', lead.id)
+      }
+      return NextResponse.json({ ok: true, stage: 'LOGIN', telefone, atualizado: !!lead?.id })
+    } catch (err) {
+      console.error('Erro ao espelhar stage 71 (LOGIN):', err)
+      return NextResponse.json({ ok: false, erro: 'login_stage_error' }, { status: 500 })
+    }
+  }
+
   return NextResponse.json({ ok: true, ignorado: `stage ${destStageId} sem ação configurada` })
 }

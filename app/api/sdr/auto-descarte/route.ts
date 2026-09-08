@@ -24,10 +24,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
+import { changeOpportunityStage, STAGES } from '@/lib/evotalks'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+// 300 (era 30): a regra 1 agora move card por card no Evo (08/09/2026)
+export const maxDuration = 300
 
 // O Vercel Cron dispara GET. Sem este handler a rota respondia 405 e a higiene
 // de funil NUNCA rodou pelo cron (bug encontrado em 10/08/2026, junto com o
@@ -68,13 +70,39 @@ export async function POST(req: NextRequest) {
     // quando a cadência rodava: aos 15 dias o lead já teria recebido o D+3. Com o
     // cron morto (405) desde sempre, ninguém recebeu D+3 — forçar 7 aqui APAGARIA
     // esse toque de ~2.000 leads. Quem manda na etapa é a régua (/followup).
-    const r1 = await supabaseAdmin
+    //
+    // 08/09/2026: o card no Evo TAMBÉM vai pra "Sem resposta" (53). Antes esta
+    // regra só gravava no painel; como o Evo é a fonte da verdade, o sync
+    // desfazia no dia seguinte (539 leads em ping-pong Início↔Sem resposta) e a
+    // regra 2 nunca chegava aos 30 dias. Ordem: move no Evo primeiro; só quem
+    // moveu ganha o status. Teto de 200s — o resto fica pro próximo dia.
+    const { data: candidatos } = await supabaseAdmin
       .from('sdr_leads')
-      .update({ status: 'SEM_RESPOSTA' })
+      .select('id, evotalks_opportunity_id')
       .eq('produto', 'AIVA')
       .eq('status', 'INICIO')
       .lt('data_disparo_inicial', d15ago)
-      .select('id')
+      .limit(400)
+    const t0 = Date.now()
+    const idsMovidos: string[] = []
+    let evoFalhas = 0
+    for (const c of candidatos ?? []) {
+      if (Date.now() - t0 > 200_000) break
+      if (c.evotalks_opportunity_id) {
+        try {
+          await changeOpportunityStage(Number(c.evotalks_opportunity_id), STAGES.SEM_RESPOSTA)
+        } catch (err) {
+          evoFalhas++
+          console.error(`[auto-descarte] Evo não moveu opp ${c.evotalks_opportunity_id} pra 53:`, err instanceof Error ? err.message : err)
+          continue
+        }
+      }
+      idsMovidos.push(c.id)
+    }
+    const r1 = idsMovidos.length
+      ? await supabaseAdmin.from('sdr_leads').update({ status: 'SEM_RESPOSTA' }).in('id', idsMovidos).select('id')
+      : { data: [] as { id: string }[], error: null }
+    if (evoFalhas) console.warn(`[auto-descarte] ${evoFalhas} cards não moveram no Evo (ficam INICIO até o próximo dia)`)
 
     // 1b) Etapa 1 é inválida pra régua (não existe template D+1): sobe pro D+3
     // pra esses leads não ficarem órfãos rodando em falso todo dia.

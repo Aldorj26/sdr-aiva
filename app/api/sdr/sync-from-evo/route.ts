@@ -12,13 +12,13 @@
  * move card no kanban. Esse cron é a "rede de segurança" pra 1% que escapa
  * (falha de rede, deploy, bug, etc).
  *
- * Schedule: diário 7h BRT (antes dos crons da cadência às 10h+).
+ * Schedule: a cada 5 minutos, todos os dias (08/09/2026 — era diário 7h BRT).
  * Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
+import { rotuloHorario } from '@/lib/business-time'
 import { statusFromOpp, emFase3, MARCADOR_FASE3 } from '@/lib/evotalks'
 
 export const runtime = 'nodejs'
@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
 
   const ts = new Date().toISOString()
 
-  // Skip silencioso em fim de semana
-  if (!isDiaUtil()) {
-    return NextResponse.json({ ok: true, ts, ignorado: 'fim_de_semana', quando: rotuloHorario() })
-  }
-
+  // 08/09/2026 (Aldo: "preciso que isso seja instantâneo"): o sync passou de
+  // 1x/dia (7h, dias úteis) pra a cada 5 minutos, todos os dias. O webhook do
+  // Evo só dispara pra 5 etapas (49/50/51/70/71); pras outras (Início,
+  // Interessado, Sem resposta, Pré-aprovação, Bot) este poll É o tempo real.
+  // Sem skip de fim de semana: espelho é espelho.
   const inicio = Date.now()
 
   try {
@@ -90,14 +90,14 @@ export async function POST(req: NextRequest) {
     const opps: OppFromEvo[] = await evoRes.json()
 
     // ─── 2. Carrega TODOS os leads AIVA do Supabase de uma vez (paginado) ──
-    const leadsMap = new Map<string, { id: string; status: string; descartadoManual: boolean; observacoes: string }>()
+    const leadsMap = new Map<string, { id: string; status: string; descartadoManual: boolean; observacoes: string; alteradoEm: string | null }>()
     {
       let from = 0
       const page = 1000
       while (true) {
         const { data, error } = await supabaseAdmin
           .from('sdr_leads')
-          .select('id, status, evotalks_opportunity_id, observacoes')
+          .select('id, status, evotalks_opportunity_id, observacoes, status_alterado_em')
           .eq('produto', 'AIVA')
           .not('evotalks_opportunity_id', 'is', null)
           .range(from, from + page - 1)
@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
               status: l.status,
               descartadoManual: (l.observacoes ?? '').includes('[DESCARTADO_MANUAL'),
               observacoes: l.observacoes ?? '',
+              alteradoEm: l.status_alterado_em ?? null,
             })
           }
         }
@@ -152,6 +153,18 @@ export async function POST(req: NextRequest) {
       // lead só porque o card ficou parado no funil. Reverter = mover o card
       // no Evo (webhook de stage) ou ajuste manual (2026-08-03).
       if (lead.descartadoManual && lead.status === 'DESCARTADO') { skipped++; continue }
+      // Sub-estados do painel que o Evo NÃO representa como etapa (08/09/2026):
+      // - AGUARDANDO = Interessado que sumiu 21d (auto-descarte regra 3) — card
+      //   segue em Interessado (47) no Evo, e está certo.
+      // - DESCARTADO com card em Sem resposta (53) = cadência esgotada +30d
+      //   (auto-descarte regra 2) — o funil 15 não tem etapa "Descartado".
+      // Sem essas exceções o sync revivia os dois todo dia (ping-pong).
+      if (lead.status === 'AGUARDANDO' && novoStatus === 'INTERESSADO') { skipped++; continue }
+      if (lead.status === 'DESCARTADO' && novoStatus === 'SEM_RESPOSTA') { skipped++; continue }
+      // Corrida com o webhook/VictorIA: quem acabou de mudar de status há menos
+      // de 2 min pode estar com o card ainda a caminho do Evo (changeStage é
+      // chamado depois do update). Deixa pro próximo ciclo (5 min).
+      if (lead.alteradoEm && Date.now() - new Date(lead.alteradoEm).getTime() < 120_000) { skipped++; continue }
 
       if (!idsParaUpdate[novoStatus]) idsParaUpdate[novoStatus] = []
       idsParaUpdate[novoStatus].push(lead.id)

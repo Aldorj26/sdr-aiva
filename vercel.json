@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/sdr/sync-from-evo",
-      "schedule": "0 10 * * 1-5"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/sdr/auto-descarte",
