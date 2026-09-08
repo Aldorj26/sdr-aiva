@@ -951,7 +951,9 @@ export async function POST(req: NextRequest) {
           'O lojista acabou de relatar um ERRO/TRAVA e ainda NÃO mandou print nesta conversa. Na sua resposta, PEÇA o print da tela com a mensagem de erro (ex.: "me manda um print da tela com o erro? assim o time vê exatamente o que apareceu") ANTES de qualquer orientação. Não prometa resolver.'
       }
 
-      if (!travaAparelho && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal))) {
+      // "não abre/carrega" com contexto de portal também vira chamado (Aldo: qualquer
+      // erro) — assim o print pedido tem onde ficar guardado no painel.
+      if (!travaAparelho && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
         try {
           const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: jaAlertou } = await supabaseAdmin
