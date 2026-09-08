@@ -87,6 +87,29 @@ function saida(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ─── AÇÃO 'chamado_resolvido' — JÁ NO SCRIPT PUBLICADO (Versão 14, 08/09/2026) ─
+// Chamada pelo POST /api/chamados quando o Nei clica ✓ Resolver no painel.
+// Aba "Chamados": A Data/Hora | B Loja | C Telefone | D CNPJ | E Problema |
+// F Resolvido (sim/não) | G Observação. Acha a linha por telefone + início do
+// problema (40 chars), sem 'sim' em F; fallback: última linha do telefone sem
+// 'sim'. Escreve 'sim' em F e a observação em G.
+//    if (body.acao === 'chamado_resolvido') {
+//      var ssC = SpreadsheetApp.openById(PLANILHA_ID); var abaC = ssC.getSheetByName('Chamados');
+//      if (!abaC) { return saida({ ok: false, erro: 'aba_chamados' }); }
+//      var vals = abaC.getDataRange().getValues();
+//      var telR = String(body.telefone || '').replace(/\D/g, '');
+//      var pref = String(body.problema || '').substring(0, 40).toLowerCase(); var hit = -1;
+//      for (var i = vals.length - 1; i >= 1; i--) { var tI = String(vals[i][2] || '').replace(/\D/g, '');
+//        var rI = String(vals[i][5] || '').trim().toLowerCase(); var pI = String(vals[i][4] || '').substring(0, 40).toLowerCase();
+//        if (tI === telR && rI !== 'sim' && pref && pI === pref) { hit = i; break; } }
+//      if (hit < 0) { for (var j = vals.length - 1; j >= 1; j--) { var tJ = String(vals[j][2] || '').replace(/\D/g, '');
+//        var rJ = String(vals[j][5] || '').trim().toLowerCase(); if (tJ === telR && rJ !== 'sim') { hit = j; break; } } }
+//      if (hit < 0) { return saida({ ok: false, erro: 'chamado_nao_encontrado' }); }
+//      abaC.getRange(hit + 1, 6).setValue('sim');
+//      if (body.observacao) { abaC.getRange(hit + 1, 7).setValue(body.observacao); }
+//      return saida({ ok: true, linha: hit + 1 });
+//    }
+
 // ─── AÇÃO 'repasse' — JÁ NO SCRIPT PUBLICADO (Versão 13, 04/09/2026) ────────
 // A aba "Repasses" já existia na planilha com cabeçalho próprio:
 //   A=ID VAREJO | B=NOME DA LOJA | C=CNPJ | D=EMAIL | E=TELEFONE | F=DATA/HORA | G=LANCADO NO FORM?
