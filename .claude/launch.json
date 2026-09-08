@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "Next.js Dev (senha dummy de preview)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set DASHBOARD_PASSWORD=dev-preview&& npm run dev"],
+      "port": 3000
     }
   ]
 }
