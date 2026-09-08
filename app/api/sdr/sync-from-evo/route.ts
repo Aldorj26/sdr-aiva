@@ -161,6 +161,10 @@ export async function POST(req: NextRequest) {
       // Sem essas exceções o sync revivia os dois todo dia (ping-pong).
       if (lead.status === 'AGUARDANDO' && novoStatus === 'INTERESSADO') { skipped++; continue }
       if (lead.status === 'DESCARTADO' && novoStatus === 'SEM_RESPOSTA') { skipped++; continue }
+      // Terminais por decisão do LEAD ou da regra de negócio — o card parado no
+      // Evo não desfaz: OPT_OUT revivido = VictorIA falando com quem pediu pra
+      // sair; NAO_QUALIFICADO = loja que não vende celular. Reverter é manual.
+      if (lead.status === 'OPT_OUT' || lead.status === 'NAO_QUALIFICADO') { skipped++; continue }
       // Corrida com o webhook/VictorIA: quem acabou de mudar de status há menos
       // de 2 min pode estar com o card ainda a caminho do Evo (changeStage é
       // chamado depois do update). Deixa pro próximo ciclo (5 min).
