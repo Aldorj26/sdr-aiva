@@ -36,17 +36,22 @@ interface Mensagem {
 // webhook com o fileId do Evo) viram imagem ou link de arquivo, resolvidos pelo
 // proxy /api/leads/media/<fileId>. Qualquer outra coisa é texto normal.
 function MensagemConteudo({ conteudo }: { conteudo: string }) {
-  const img = conteudo.match(/^\[LEAD_ENVIOU_IMAGEM:(\d+)\]$/)
+  // 08/09/2026: imagem pode vir com legenda depois do marcador (print + "ó o erro")
+  const img = conteudo.match(/^\[LEAD_ENVIOU_IMAGEM:(\d+)\]\s*([\s\S]*)$/)
   if (img) {
     const src = `/api/leads/media/${img[1]}`
+    const legenda = (img[2] ?? '').trim()
     return (
-      <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-        <img
-          src={src}
-          alt="Imagem enviada pelo lojista"
-          style={{ maxWidth: '100%', maxHeight: 320, borderRadius: '0.5rem', display: 'block' }}
-        />
-      </a>
+      <div>
+        <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+          <img
+            src={src}
+            alt="Imagem enviada pelo lojista"
+            style={{ maxWidth: '100%', maxHeight: 320, borderRadius: '0.5rem', display: 'block' }}
+          />
+        </a>
+        {legenda && <div style={{ marginTop: 4 }}>{legenda}</div>}
+      </div>
     )
   }
 

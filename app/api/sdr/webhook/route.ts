@@ -308,7 +308,11 @@ export async function POST(req: NextRequest) {
   // O prompt da VictorIA orienta a SEMPRE confirmar o dado com o lead antes de salvar
   // (evita gravar valores errados por causa de OCR).
   let imagemPraClaude: { base64: string; mimeType: string } | null = null
-  if (!conteudo.trim() && isImage && fileId) {
+  // 08/09/2026: imagem COM legenda também conta (antes, "ó o erro aqui" + print
+  // descartava a imagem: a VictorIA não via o print e pedia de novo). O marcador
+  // vai PRIMEIRO e a legenda depois — o painel e o /atendimento reconhecem pelo prefixo.
+  if (isImage && fileId) {
+    const legenda = conteudo.trim()
     try {
       const img = await downloadAudio(fileId) // helper genérico — baixa qualquer fileId
       imagemPraClaude = {
@@ -317,14 +321,14 @@ export async function POST(req: NextRequest) {
       }
       // Marcador COM o fileId → o painel gera o link do Evo e exibe a imagem
       // (o link tem token que expira, então guardamos só o id e resolvemos na hora).
-      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]`
-      console.log(`Imagem recebida e baixada — fileId: ${fileId}, mimeType: ${imagemPraClaude.mimeType}, ${img.buffer.byteLength} bytes`)
+      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]${legenda ? `\n${legenda}` : ''}`
+      console.log(`Imagem recebida e baixada — fileId: ${fileId}, mimeType: ${imagemPraClaude.mimeType}, ${img.buffer.byteLength} bytes${legenda ? ' (com legenda)' : ''}`)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       console.error(`Erro ao baixar imagem fileId=${fileId}: ${errMsg}`)
       // Fallback: marca a imagem (com id, ainda dá pra ver no painel) — VictorIA
       // pede em texto via prompt já que não conseguiu ler o conteúdo.
-      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]`
+      conteudo = `[LEAD_ENVIOU_IMAGEM:${fileId}]${legenda ? `\n${legenda}` : ''}`
     }
   }
 
@@ -937,7 +941,10 @@ export async function POST(req: NextRequest) {
       // pede o print da tela, se ainda não veio nesta conversa. Determinístico
       // (instrução injetada no turno), pra não depender só do prompt. O print
       // fica em sdr_mensagens ([LEAD_ENVIOU_IMAGEM:id]) e aparece no chamado.
-      const relatouErro = erroForte || naoChega || financeiro || reclamacaoAprovacao || travaAparelho || (naoConsigo && contextoPortal)
+      // travaAparelho fica FORA: desbloqueio é só Live Chat — não há time nosso
+      // pra ver print, e pedir "assim o time vê" reabriria o caso Center Celulares.
+      const naoAbre = /n[ãa]o (?:abre|abriu|carrega|carregou)/i.test(txt)
+      const relatouErro = erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal)
       const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
       if (relatouErro && !temPrintRecente) {
         instrucaoPedirPrint =
@@ -1911,9 +1918,32 @@ export async function POST(req: NextRequest) {
             .update({ status: 'INTERESSADO' })
             .eq('id', lead.id)
 
+          // 08/09/2026 (caso Gzimports): a mensagem "já tenho tudo pra enviar
+          // sua pré-aprovação" JÁ saiu — sem isto o lead ficava esperando 24h por
+          // uma análise que nunca começa. Pergunta na hora o primeiro dado que
+          // falta (1 pergunta por vez), como continuação natural da conversa.
+          const PERGUNTA_FALTANTE: Record<string, string> = {
+            nome_socio: 'Ah, só faltou um dado pra eu fechar: qual o nome do responsável pela loja (o sócio)?',
+            cnpj_matriz: 'Ah, só faltou um dado pra eu fechar: qual o CNPJ da loja? (são 14 números)',
+            nome_varejo: 'Ah, só faltou um dado pra eu fechar: qual o nome da loja?',
+            regiao_varejo: 'Ah, só faltou um dado pra eu fechar: em qual cidade e estado fica a loja?',
+            numero_lojas: 'Ah, só faltou um dado pra eu fechar: quantas lojas vocês têm?',
+            possui_outra_financeira: 'Ah, só faltou um dado pra eu fechar: vocês já trabalham com a Odres ou a UME hoje?',
+            telefone: 'Ah, só faltou um dado pra eu fechar: qual o telefone do responsável? (pode ser este mesmo)',
+          }
+          const perguntaFaltante = PERGUNTA_FALTANTE[faltantesFase1[0]]
+          if (perguntaFaltante) {
+            try {
+              await sendText(lead.telefone, perguntaFaltante, chatId || null)
+              await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: perguntaFaltante })
+            } catch (errPf) {
+              console.error(`[fase1_incompleta] falha ao perguntar ${faltantesFase1[0]} pra ${lead.telefone}:`, errPf)
+            }
+          }
+
           const msg =
             `ℹ️ *${lead.nome}* (${lead.telefone}) — a VictorIA ainda está coletando a qualificação (faltam: ${faltantesFase1.join(', ')}).\n` +
-            `Nada mudou de etapa no Evo — ela continua a conversa normalmente.`
+            `Nada mudou de etapa no Evo — ela ${perguntaFaltante ? 'já perguntou o que falta e ' : ''}continua a conversa normalmente.`
           if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
           if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
 
