@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { somarDias, ultimoDiaDoMes, mesDe, mtdEm, type LinhaDiaria } from './portal-aiva-derivar.ts'
+import {
+  somarDias, ultimoDiaDoMes, mesDe, mtdEm, classificarAtencao, agregarMensal, derivarSemana,
+  type LinhaDiaria,
+} from './portal-aiva-derivar.ts'
 
 export const linha = (p: Partial<LinhaDiaria> & { data_ref: string; retailer_id: string; mes: string }): LinhaDiaria => ({
   cnpj: '11111111000191', nome_varejo: 'Loja', consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0,
@@ -28,8 +31,6 @@ test('mtdEm devolve o retrato mais recente até a data, ou zeros se não há ret
   assert.deepEqual(mtdEm(serie, 'r1', '2026-08-01', '2026-09-07'), { consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 })
 })
 
-import { classificarAtencao } from './portal-aiva-derivar.ts'
-
 test('classificarAtencao espelha a aba "Precisam de atenção" do portal', () => {
   const hoje = '2026-09-09'
   // novo (14 dias), 0 vendas, 2 aprovados → novo sem engajamento
@@ -47,8 +48,6 @@ test('classificarAtencao espelha a aba "Precisam de atenção" do portal', () =>
   // cadastro desconhecido = trata como base
   assert.equal(classificarAtencao({ cadastro: null, hoje, vendasDesdeCadastro: 0, aprovadosDesdeCadastro: 0, vendas30d: 0 }), 'baixa_performance')
 })
-
-import { agregarMensal } from './portal-aiva-derivar.ts'
 
 test('agregarMensal usa o último retrato do mês e soma lojas do mesmo CNPJ', () => {
   const serie = [
@@ -100,7 +99,19 @@ test('agregarMensal marca baixa performance quando não vende há 30 dias', () =
   assert.equal(rows[0].atencao, 'baixa_performance')
 })
 
-import { derivarSemana } from './portal-aiva-derivar.ts'
+test('agregarMensal: rederivar um mês fechado usa a data de fechamento do mês, não "hoje" do backfill', () => {
+  const serie = [
+    linha({ data_ref: '2026-09-08', retailer_id: 'r3', mes: '2026-09-01', cnpj: '22222222000191', vendas: 0 }),
+    linha({ data_ref: '2026-08-31', retailer_id: 'r3', mes: '2026-08-01', cnpj: '22222222000191', vendas: 0, aprovados: 1 }),
+    // venda em outubro, depois que setembro já fechou — não pode "salvar" a atenção de setembro
+    linha({ data_ref: '2026-10-05', retailer_id: 'r3', mes: '2026-10-01', cnpj: '22222222000191', vendas: 5 }),
+  ]
+  const primeira = new Map([['r3', '2026-05-01']])
+  const rowsBackfill = agregarMensal(serie, '2026-09-01', '2026-10-15', primeira) // rodando hoje, mas rederivando setembro
+  const rowsNoFechamento = agregarMensal(serie, '2026-09-01', '2026-09-30', primeira) // rodando no fim de setembro
+  assert.equal(rowsNoFechamento[0].atencao, 'baixa_performance')
+  assert.equal(rowsBackfill[0].atencao, rowsNoFechamento[0].atencao)
+})
 
 const L = (data_ref: string, retailer_id: string, mes: string, m: Partial<LinhaDiaria>) =>
   linha({ data_ref, retailer_id, mes, cnpj: retailer_id.padStart(14, '0'), nome_varejo: 'Loja ' + retailer_id, ...m })
@@ -185,4 +196,45 @@ test('derivarSemana: duas lojas do mesmo CNPJ viram uma linha (RID da que mais v
   assert.equal(linhas[0].vendas, 4)
   assert.equal(linhas[0].rid, 'b')
   assert.equal(linhas[0].loja, 'Loja B')
+})
+
+test('derivarSemana: duas semanas consecutivas em volta de um domingo sem retrato somam o total real (revisão 09/09)', () => {
+  // sem retrato de 2026-09-13 — a semana de 07/09 fecha usando o de 14/09 (Monday-fallback);
+  // a baseline da semana de 14/09 precisa espelhar esse mesmo fim, senão o intervalo
+  // sábado(12)→segunda(14) é contado nas DUAS semanas
+  const serie = [
+    L('2026-09-06', 'r1', '2026-09-01', { vendas: 1 }),
+    L('2026-09-12', 'r1', '2026-09-01', { vendas: 5 }),
+    L('2026-09-14', 'r1', '2026-09-01', { vendas: 8 }),
+    L('2026-09-20', 'r1', '2026-09-01', { vendas: 10 }),
+  ]
+  const semana1 = derivarSemana(serie, '2026-09-07', new Map())
+  const semana2 = derivarSemana(serie, '2026-09-14', new Map())
+  assert.equal(semana1.linhas[0].vendas, 7)
+  assert.equal(semana2.linhas[0].vendas, 2)
+  assert.equal(semana1.linhas[0].vendas + semana2.linhas[0].vendas, 9) // total real: 10 − 1
+})
+
+test('derivarSemana: mês fechado usa o retrato mais recente, não exige data_ref exatamente no último dia (revisão 09/09)', () => {
+  // agosto não tem retrato de 31/08 (coleta falhou); só chega de novo em 06/09, ainda com mes=2026-08-01
+  const serie = [
+    L('2026-08-30', 'r1', '2026-08-01', { vendas: 10 }),
+    L('2026-09-06', 'r1', '2026-08-01', { vendas: 12 }),
+    L('2026-09-06', 'r1', '2026-09-01', { vendas: 3 }),
+  ]
+  const { linhas } = derivarSemana(serie, '2026-08-31', new Map())
+  assert.equal(linhas[0].vendas, 2 + 3)
+})
+
+test('derivarSemana: identidade da loja (cnpj/nome) vem do retrato mais recente, não do primeiro da série (revisão 09/09)', () => {
+  const serie = [
+    linha({ data_ref: '2026-09-06', retailer_id: 'r1', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Nome Antigo', vendas: 1 }),
+    linha({ data_ref: '2026-09-13', retailer_id: 'r1', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Nome Novo', vendas: 4 }),
+  ]
+  const { linhas } = derivarSemana(serie, '2026-09-07', new Map())
+  assert.equal(linhas[0].nome_varejo, 'Nome Novo')
+})
+
+test('derivarSemana lança erro se "segunda" não cair numa segunda-feira', () => {
+  assert.throws(() => derivarSemana([], '2026-09-08', new Map()), /segunda-feira/)
 })

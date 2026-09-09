@@ -28,7 +28,9 @@ export type LinhaDiaria = {
 }
 
 export type Metricas = { consultas: number; aprovados: number; vendas: number; valor_vendas: number }
-export const ZERO: Metricas = { consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 }
+// congelado — é reusado via spread (`{ ...ZERO }`) em vários pontos; um `delta[k] +=`
+// acidental direto no objeto exportado corromperia todo mundo que importa ZERO depois (revisão 09/09)
+export const ZERO: Metricas = Object.freeze({ consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 })
 
 const utc = (d: string) => new Date(d + 'T00:00:00Z')
 const iso = (d: Date) => d.toISOString().slice(0, 10)
@@ -61,6 +63,8 @@ export function diasEntre(a: string, b: string): number {
  * recente com data_ref <= data para aquele mês. Sem retrato = zeros (mês ainda
  * não começou, ou a loja não existia).
  */
+// perf: varredura linear de propósito — ~250 ms pra 220 lojas × 60 retratos (medido 09/09);
+// indexar só se a base passar de ~1.000 lojas.
 export function mtdEm(serie: LinhaDiaria[], retailerId: string, mes: string, data: string): Metricas {
   let melhor: LinhaDiaria | null = null
   for (const l of serie) {
@@ -160,6 +164,10 @@ export function agregarMensal(
   if (!doMes.length) return []
   const ultimo = doMes.reduce((m, l) => (l.data_ref > m ? l.data_ref : m), doMes[0].data_ref)
   const retrato = doMes.filter((l) => l.data_ref === ultimo)
+  // `mes` pode ser um mês já fechado sendo rederivado num backfill rodando hoje — nesse caso
+  // "hoje" (a data real da chamada) não pode entrar no cálculo de vendas30d/atenção, senão
+  // vendas de meses seguintes vazam pra classificação de um mês que já fechou (revisão 09/09)
+  const ref = hoje < ultimoDiaDoMes(mes) ? hoje : ultimoDiaDoMes(mes)
 
   type Acc = LinhaMensal & {
     _maisVendas: number; _aprovDesdeCad: number; _vendasDesdeCad: number; _vendas30d: number
@@ -186,7 +194,7 @@ export function agregarMensal(
         cadastro_em: null, atencao: null, sem_venda: false, sem_consulta: false,
         uf: null, cidade: null, status_consulta: null, sem_operador: false, telefone: null, qtd_operadores: null,
         _maisVendas: l.vendas, _aprovDesdeCad: l.aprovados + ant.aprovados, _vendasDesdeCad: l.vendas + ant.vendas,
-        _vendas30d: vendas30d(serie, l.retailer_id, hoje), _cadReal: cadastroReal, _cadFallback: cadastroFallback,
+        _vendas30d: vendas30d(serie, l.retailer_id, ref), _cadReal: cadastroReal, _cadFallback: cadastroFallback,
       })
       continue
     }
@@ -203,7 +211,7 @@ export function agregarMensal(
     acc._cadFallback = minData(acc._cadFallback, cadastroFallback)
     acc._aprovDesdeCad += l.aprovados + ant.aprovados
     acc._vendasDesdeCad += l.vendas + ant.vendas
-    acc._vendas30d += vendas30d(serie, l.retailer_id, hoje)
+    acc._vendas30d += vendas30d(serie, l.retailer_id, ref)
   }
 
   return [...porCnpj.values()].map(({ _maisVendas, _aprovDesdeCad, _vendasDesdeCad, _vendas30d, _cadReal, _cadFallback, ...r }) => {
@@ -215,7 +223,8 @@ export function agregarMensal(
       ticket_medio: r.vendas > 0 ? r.valor_vendas / r.vendas : null,
       sem_venda: r.vendas === 0,
       sem_consulta: r.consultas === 0,
-      atencao: classificarAtencao({ cadastro: cadastro_em, hoje, vendasDesdeCadastro: _vendasDesdeCad, aprovadosDesdeCadastro: _aprovDesdeCad, vendas30d: _vendas30d }),
+      atencao: classificarAtencao({ cadastro: cadastro_em, hoje: ref, vendasDesdeCadastro: _vendasDesdeCad, aprovadosDesdeCadastro: _aprovDesdeCad, vendas30d: _vendas30d }),
+      valor_vendas: Number(r.valor_vendas.toFixed(2)), // acumulação em float — arredonda só no retorno
     }
   })
 }
@@ -258,6 +267,7 @@ export function derivarSemana(
   segunda: string,
   vendasSemanaAnterior: Map<string, number>,
 ): { linhas: LinhaSemanal[]; avisos: string[] } {
+  if (new Date(segunda + 'T12:00:00Z').getUTCDay() !== 1) throw new Error(`${segunda} não é segunda-feira`)
   const avisos: string[] = []
   const domingo = somarDias(segunda, 6)
   const domAnt = somarDias(segunda, -1)
@@ -268,19 +278,32 @@ export function derivarSemana(
     fim = somarDias(domingo, 1)
     avisos.push(`sem retrato de domingo ${domingo}; usando o de segunda ${fim} (inclui a segunda-feira)`)
   }
+  // a baseline (início da semana) precisa espelhar a MESMA regra de fallback do fim: se o
+  // domingo anterior não tem retrato, a semana anterior já fechou usando a segunda seguinte
+  // (que é ESTA `segunda`) como ponto final dela — usar `domAnt` aqui de novo faria o trecho
+  // sábado→segunda entrar contado nas duas semanas (revisão 09/09)
+  const inicio = temRetrato(domAnt) ? domAnt : (temRetrato(segunda) ? segunda : domAnt)
   const meses = [...new Set([mesDe(segunda), mesDe(domingo)])]
 
+  // mantém o retrato MAIS RECENTE por loja (cnpj/nome_varejo atualizados), não o primeiro
+  // que aparecer — a ordem de chegada da série (ordem de query) não pode decidir a identidade
+  // da loja (revisão 09/09)
   const porRetailer = new Map<string, LinhaDiaria>()
-  for (const l of serie) if (!porRetailer.has(l.retailer_id)) porRetailer.set(l.retailer_id, l)
+  for (const l of serie) {
+    const cur = porRetailer.get(l.retailer_id)
+    if (!cur || l.data_ref > cur.data_ref) porRetailer.set(l.retailer_id, l)
+  }
 
   type Acc = LinhaSemanal & { _maisVendas: number }
   const porCnpj = new Map<string, Acc>()
   for (const [rid, info] of porRetailer) {
     const delta: Metricas = { ...ZERO }
     for (const mes of meses) {
-      const fimMes = mes === mesDe(fim) ? fim : ultimoDiaDoMes(mes)
-      const a = mtdEm(serie, rid, mes, fimMes)
-      const b = mtdEm(serie, rid, mes, domAnt)
+      // mês fechado (mes !== mesDe(fim)) tem MTD congelado — usar `fim` (o retrato mais
+      // recente que a série tem) em vez de exigir data_ref no último dia exato do mês antigo;
+      // um só dia de coleta falha e o rabo do mês fechado se perdia pra sempre (revisão 09/09)
+      const a = mtdEm(serie, rid, mes, fim)
+      const b = mtdEm(serie, rid, mes, inicio)
       // um único aviso por loja/mês, mesmo que mais de uma métrica tenha caído junto
       // (ex.: AIVA cancela uma venda → vendas E valor_vendas ficam negativos na mesma hora)
       const negativos: string[] = []
@@ -302,6 +325,6 @@ export function derivarSemana(
 
   const linhas = [...porCnpj.values()]
     .filter((l) => l.consultas > 0 || l.aprovados > 0 || l.vendas > 0 || (vendasSemanaAnterior.get(l.cnpj) ?? 0) > 0)
-    .map(({ _maisVendas, ...l }) => l)
+    .map(({ _maisVendas, ...l }) => ({ ...l, valor_vendas: Number(l.valor_vendas.toFixed(2)) })) // acumulação em float — arredonda só no retorno
   return { linhas, avisos }
 }
