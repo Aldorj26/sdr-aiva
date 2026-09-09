@@ -272,8 +272,17 @@ type RegistroCnpj = {
  * no `criarContaMrrLoja` — cujo dedupe é o `UME_RID:` na descrição, que as
  * contas MRR antigas não têm → duplicaria conta em massa na primeira rodada.
  *
- * Teto por rodada na ativação: 25 lojas ou 60s (cada `criarContaMrrLoja` fala
+ * Teto por rodada na ativação: 25 grupos ou 60s (cada `criarContaMrrLoja` fala
  * com o Evo). O que sobrar continua não-'ativa' e é repescado amanhã, por design.
+ * Relógio próprio (`INICIO_ATIVACAO`), não o relógio da função inteira: o balde
+ * 2 (só RID) roda ANTES e, sem clock próprio, sozinho já podia consumir os 60s
+ * da ativação sem que nenhum grupo do balde 1 fosse tentado (revisão 09/09). O
+ * teto NÃO se aplica em `dry` — a prévia precisa mostrar tudo que uma rodada
+ * real faria (revisão 09/09).
+ *
+ * Balde 2 (só RID) também ganhou teto próprio (200/rodada, self-drena): sem
+ * ele um retrato com milhares de registros sem RID travava a rodada inteira
+ * nesse balde antes de a ativação sequer começar (revisão 09/09).
  *
  * Mesma ação do `scripts/detectar-lojas-ativas.mjs` (que fica intacto como
  * rede de segurança de segunda), agora em TS e disparada todo dia pela rota.
@@ -283,13 +292,14 @@ type RegistroCnpj = {
 /** Teto da rodada de ativação — ver docstring de `ativarLojasPresentes`. */
 const TETO_ATIVACOES = 25
 const TETO_MS = 60_000
+/** Teto do balde "só RID" — ver docstring de `ativarLojasPresentes`. */
+const TETO_SO_RID = 200
 /** Digest no WhatsApp: no máximo 20 linhas de detalhe por seção. */
 const MAX_DIGEST = 20
 const cortarDigest = (ls: string[]) =>
   ls.length > MAX_DIGEST ? [...ls.slice(0, MAX_DIGEST), `… +${ls.length - MAX_DIGEST} mais`] : ls
 
 export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean): Promise<string[]> {
-  const INICIO = Date.now()
   // Map<cnpj, LinhaDiaria> — quando o CNPJ tem várias lojas, prefere a linha
   // Ativo (uma loja ativa "cobre" o CNPJ mesmo que outra unidade esteja Inativo).
   const porCnpj = new Map<string, LinhaDiaria>()
@@ -324,15 +334,20 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
     (r) => r.status !== 'ativa' && porCnpj.get(String(r.cnpj))!.status === 'Ativo',
   )
   // Balde 2 — todo o resto cujo RID está ausente/desatualizado: só grava `rid`.
-  const soRid = presentes.filter((r) => {
+  const soRidTodos = presentes.filter((r) => {
     const s = porCnpj.get(String(r.cnpj))!
     const vaiAtivar = r.status !== 'ativa' && s.status === 'Ativo'
     return !vaiAtivar && String(r.rid ?? '') !== s.retailer_id
   })
+  // Teto de 200/rodada — self-drena: quem sobrar tem `rid` desatualizado ainda,
+  // então volta a aparecer na consulta de amanhã sem precisar de nenhum marcador
+  // extra (revisão 09/09).
+  const soRid = soRidTodos.slice(0, TETO_SO_RID)
+  const soRidSobraram = soRidTodos.length - soRid.length
   // Balde 3 (já ativa e com o mesmo RID) não aparece em lugar nenhum: nada a fazer.
   if (!paraAtivar.length && !soRid.length) return []
 
-  // --- só RID (balde 2) — update barato, um por vez, sem teto ---------------
+  // --- só RID (balde 2) — update barato, um por vez, teto de 200 ------------
   const ridLinhas: string[] = []
   for (const r of soRid) {
     const s = porCnpj.get(String(r.cnpj))!
@@ -362,12 +377,14 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
   const criadas: { id: number; rid: string; linha: number }[] = []
   // Teto por rodada: cada grupo fala com o Evo (~2 chamadas) e a função morre em
   // 300s. Quem não couber continua não-'ativa' e volta amanhã (revisão 09/09).
+  // Relógio próprio da ativação — o balde 2 (só RID) roda antes e não pode
+  // comer o orçamento de tempo do balde 1 (revisão 09/09). Em `dry` o teto não
+  // vale: a prévia tem que mostrar tudo que uma rodada real faria (revisão 09/09).
+  const INICIO_ATIVACAO = Date.now()
   const grupos = [...porRid.entries()]
-  let feitas = 0
   let i = 0
   for (; i < grupos.length; i++) {
-    if (feitas >= TETO_ATIVACOES || Date.now() - INICIO > TETO_MS) break
-    feitas++
+    if (!dry && (i >= TETO_ATIVACOES || Date.now() - INICIO_ATIVACAO > TETO_MS)) break
     const [rid, grupo] = grupos[i]
     const r = grupo[0]
     const s = porCnpj.get(String(r.cnpj))!
@@ -375,27 +392,48 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
     const fone = String(r.telefone ?? '').replace(/\D/g, '')
     if (dry) { linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) [dry]`); continue }
 
-    let conta: { id: number; jaExistia: boolean } | null = null
-    try {
-      conta = await criarContaMrrLoja({
-        titulo: (s.nome_varejo ?? r.loja ?? 'Loja AIVA').trim(),
-        telefone: fone,
-        rid,
-        cnpj: String(r.cnpj),
-        leadNome: `${r.loja ?? 'lojista'} (ativa no portal AIVA em ${s.data_ref})`,
-      })
-    } catch (e) {
-      linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ conta MRR falhou, status NÃO gravado (tenta amanhã): ${String(e).slice(0, 100)}`)
+    // L1 (revisão 09/09): irmã do MESMO CNPJ já 'ativa' → não chama o Evo de
+    // novo. A lista paginada de `candidatos` não serve pra essa checagem (o
+    // `.or()` pode não trazer a linha irmã de volta), então é uma query extra
+    // e pontual. Existe porque contas MRR legadas do funil 11 (criadas antes
+    // do registro-por-loja) não têm `UME_RID:` na descrição — o dedupe do
+    // `criarContaMrrLoja` não as enxerga e duplicaria a conta.
+    const { data: irmaAtiva, error: erroIrma } = await supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('id')
+      .eq('cnpj', String(r.cnpj))
+      .eq('status', 'ativa')
+      .limit(1)
+    if (erroIrma) {
+      linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ checagem de irmã ativa falhou, status NÃO gravado (tenta amanhã): ${erroIrma.message.slice(0, 100)}`)
       continue
     }
-    if (!conta) {
-      linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ RID vazio, conta MRR não criada e status NÃO gravado`)
-      continue
+    const jaTemIrmaAtiva = !!irmaAtiva?.length
+
+    let conta: { id: number; jaExistia: boolean } | null = null
+    if (!jaTemIrmaAtiva) {
+      try {
+        conta = await criarContaMrrLoja({
+          titulo: (s.nome_varejo ?? r.loja ?? 'Loja AIVA').trim(),
+          telefone: fone,
+          rid,
+          cnpj: String(r.cnpj),
+          leadNome: `${r.loja ?? 'lojista'} (ativa no portal AIVA em ${s.data_ref})`,
+        })
+      } catch (e) {
+        linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ conta MRR falhou, status NÃO gravado (tenta amanhã): ${String(e).slice(0, 100)}`)
+        continue
+      }
+      if (!conta) {
+        linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ RID vazio, conta MRR não criada e status NÃO gravado`)
+        continue
+      }
     }
 
-    // CRM ok (criada ou já existia) → agora sim o banco, em todos os registros do CNPJ.
-    // TODOS os erros do grupo entram no aviso — antes o último sobrescrevia os
-    // anteriores e um grupo com 3 falhas reportava só 1 (revisão 09/09).
+    // CRM ok (criada, já existia, ou presumida por irmã) → agora sim o banco,
+    // em todos os registros do CNPJ. TODOS os erros do grupo entram no aviso —
+    // antes o último sobrescrevia os anteriores e um grupo com 3 falhas
+    // reportava só 1 (revisão 09/09).
     const erros: string[] = []
     for (const reg of grupo) {
       const { error } = await supabaseAdmin.from('sdr_registros_cnpj')
@@ -405,11 +443,14 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
     const aviso = erros.length
       ? ` ⚠️ status/RID não gravou em ${erros.length}/${grupo.length} registro(s): ${erros.join('; ')}`
       : ''
-    if (!conta.jaExistia) criadas.push({ id: conta.id, rid, linha: linhas.length })
-    linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ${conta.jaExistia ? `conta MRR já existia (#${conta.id})` : `conta MRR criada (#${conta.id})`}${aviso}`)
+    if (conta && !conta.jaExistia) criadas.push({ id: conta.id, rid, linha: linhas.length })
+    const statusConta = jaTemIrmaAtiva
+      ? 'conta MRR presumida existente (irmã já ativa)'
+      : conta!.jaExistia ? `conta MRR já existia (#${conta!.id})` : `conta MRR criada (#${conta!.id})`
+    linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ${statusConta}${aviso}`)
   }
   const sobraram = grupos.length - i
-  const linhaTeto = sobraram > 0 ? `⏳ +${sobraram} lojas ficaram pra amanhã (teto da rodada)` : null
+  const linhaTeto = sobraram > 0 ? `⏳ +${sobraram} grupo(s)/CNPJ(s) ficaram pra amanhã (teto da rodada)` : null
 
   // read-after-write UMA vez no fim (lição 26/08: o Evo responde 200 sem
   // persistir). `criarContaMrrLoja` não confere — uma leitura do funil por
@@ -438,13 +479,20 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
   // Cada seção vai cortada em MAX_DIGEST linhas (o retorno da função continua
   // completo): 300 lojas numa mensagem só o WhatsApp trunca no meio.
   const avisoTeto = linhaTeto ? `\n${linhaTeto}` : ''
+  // Teto do balde 2 (só RID) também precisa aparecer no digest — sem isso o
+  // Aldo não sabia que sobraram RIDs pra amanhã (revisão 09/09).
+  const avisoSoRid = soRidSobraram > 0 ? ` — +${soRidSobraram} RIDs ficaram pra amanhã` : ''
   let resumo: string | null = null
   if (linhas.length) {
-    const rodape = ridLinhas.length ? `\n🔖 +${ridLinhas.length} loja(s) ganharam RID sem ativar ainda:\n${cortarDigest(ridLinhas).join('\n')}` : ''
+    const rodape = ridLinhas.length ? `\n🔖 +${ridLinhas.length} loja(s) ganharam RID sem ativar ainda${avisoSoRid}:\n${cortarDigest(ridLinhas).join('\n')}` : ''
     resumo = `🆕 *Lojas novas ATIVARAM no portal AIVA (${dataRef})*\n${cortarDigest(linhas).join('\n')}${avisoTeto}${rodape}`
   } else if (ridLinhas.length) {
-    resumo = `🔖 *RID gravado pra ${ridLinhas.length} loja(s) do portal AIVA (${dataRef})* — ainda sem status Ativo\n${cortarDigest(ridLinhas).join('\n')}${avisoTeto}`
+    resumo = `🔖 *RID gravado pra ${ridLinhas.length} loja(s) do portal AIVA (${dataRef})* — sem ativação nova${avisoSoRid}\n${cortarDigest(ridLinhas).join('\n')}${avisoTeto}`
   }
+  // L2 (revisão 09/09): o ⏳ do teto de ativação precisa sair mesmo quando não
+  // há nem ativação nem RID novo — senão o Aldo nunca fica sabendo que grupos
+  // ficaram pra amanhã.
+  if (!resumo && linhaTeto) resumo = linhaTeto
   if (resumo) {
     for (const tel of [process.env.ALDO_WHATSAPP, process.env.NEI_WHATSAPP].filter(Boolean) as string[]) {
       try { await sendText(tel, resumo) } catch (e) { console.error('[portal-aiva] digest de ativação falhou:', e) }
