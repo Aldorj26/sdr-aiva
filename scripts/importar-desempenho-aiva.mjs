@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /**
+ * ⚠️ LEGADO — substituído pelo Portal Parceiros AIVA em 09/09/2026
+ *    (lib/portal-aiva.ts + /api/cron/portal-aiva). Só serve se o portal cair.
+ *
  * importar-desempenho-aiva.mjs — importa os CSVs exportados do Data Studio
  * "Parceiros - AIVA" pra tabela aiva_desempenho (snapshot do mês corrente).
  *

@@ -112,7 +112,7 @@ export default async function ComissoesPage({
   const linhasMes = (linhasDb ?? []) as (LinhaComissao & { origem: string })[]
   const desempenhoMes = (desempDb ?? []) as DesempenhoMes[]
   const funil11Ok = contasTodas.length > 0
-  // Snapshot do Data Studio existe pra este mês? Sem ele NÃO há contraprova —
+  // Snapshot do Portal AIVA existe pra este mês? Sem ele NÃO há contraprova —
   // e "Divergências 0" enganaria (julho/26 não tem snapshot; o 1º import foi
   // 20/08). Questionado pelo Aldo em 27/08.
   const temContraprova = desempenhoMes.length > 0
@@ -312,7 +312,7 @@ export default async function ComissoesPage({
             ativo={sp.estado === 'divergencia'}
           />
         ) : (
-          <Card label="🔴 Divergências" value="—" sub={`sem snapshot do Data Studio em ${mes}`} cor="var(--text-muted)" />
+          <Card label="🔴 Divergências" value="—" sub={`sem snapshot do Portal AIVA em ${mes}`} cor="var(--text-muted)" />
         )}
       </section>
 
@@ -340,7 +340,7 @@ export default async function ComissoesPage({
               <th style={{ ...thFixo, textAlign: 'right' }}>Originação</th>
               <th style={{ ...thFixo, textAlign: 'right' }}>MDR</th>
               <th style={{ ...thFixo, textAlign: 'right' }}>Comissão</th>
-              {tab === 'aiva' && <th style={thFixo}>Data Studio</th>}
+              {tab === 'aiva' && <th style={thFixo}>Portal AIVA</th>}
               <th style={thFixo}>Ações</th>
             </tr>
           </thead>
@@ -357,7 +357,7 @@ export default async function ComissoesPage({
                 <>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <span style={{ color: est.cor, fontWeight: 600, fontSize: '0.76rem' }}>{est.emoji} {est.rotulo}</span>
-                    {l.divergencia && <span title="Sem comissão no mês, mas o Data Studio mostra vendas — questionar a UME" style={{ marginLeft: 4 }}>🔴</span>}
+                    {l.divergencia && <span title="Sem comissão no mês, mas o Portal AIVA mostra vendas — questionar a UME" style={{ marginLeft: 4 }}>🔴</span>}
                   </td>
                   <td style={{ ...td, maxWidth: 260 }}>
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -375,7 +375,7 @@ export default async function ComissoesPage({
                   <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(l.relatorio?.mdr)}</td>
                   <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{fmtBRL(l.relatorio?.comissao)}</td>
                   {tab === 'aiva' && (
-                    <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }} title={temContraprova ? undefined : `Sem snapshot do Data Studio pra ${mes} — sem contraprova neste mês`}>
+                    <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }} title={temContraprova ? undefined : `Sem snapshot do Portal AIVA pra ${mes} — sem contraprova neste mês`}>
                       {l.desempenho ? `${fmtInt(l.desempenho.vendas)} vendas · ${fmtBRL(l.desempenho.valor_vendas)}` : temContraprova ? '—' : 'sem snapshot'}
                     </td>
                   )}

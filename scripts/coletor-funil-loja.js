@@ -1,4 +1,7 @@
 /**
+ * ⚠️ LEGADO — substituído pelo Portal Parceiros AIVA em 09/09/2026
+ *    (lib/portal-aiva.ts + /api/cron/portal-aiva). Só serve se o portal cair.
+ *
  * COLETOR do "Funil por Loja" (Data Studio Parceiros-AIVA, aba com filtro de período)
  * ────────────────────────────────────────────────────────────────────────────
  * O Looker Studio não tem export acessível por script, então a coleta é feita

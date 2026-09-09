@@ -202,7 +202,7 @@ export interface DesempenhoMes {
 
 export interface LinhaConferencia {
   estado: EstadoConferencia
-  /** Divergência real: sem comissão no mês MAS Data Studio mostra vendas > 0. */
+  /** Divergência real: sem comissão no mês MAS Portal AIVA mostra vendas > 0. */
   divergencia: boolean
   /** Casou por CNPJ (sem UME_RID) → candidata ao botão "gravar Retailer ID". */
   casouPorCnpj: boolean
@@ -215,7 +215,7 @@ export interface LinhaConferencia {
 
 /**
  * Cruza as contas do funil 11 com as linhas do relatório do mês e o snapshot
- * de desempenho (Data Studio). Regra de negócio alinhada com a UME (Gerisson,
+ * de desempenho (Portal AIVA). Regra de negócio alinhada com a UME (Gerisson,
  * 19/08): loja fora do relatório = sem venda no mês — estado, não erro.
  */
 export function conferir(

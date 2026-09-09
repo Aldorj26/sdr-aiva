@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /**
+ * ⚠️ LEGADO — substituído pelo Portal Parceiros AIVA em 09/09/2026
+ *    (lib/portal-aiva.ts + /api/cron/portal-aiva). Só serve se o portal cair.
+ *
  * Importa o "Funil por Loja" (Data Studio Parceiros-AIVA, filtrado por mês)
  * pra tabela aiva_desempenho — é o que alimenta a contraprova 🔴 do painel
  * /comissoes e a coluna Data Studio.
