@@ -7,7 +7,10 @@ import {
 
 export const linha = (p: Partial<LinhaDiaria> & { data_ref: string; retailer_id: string; mes: string }): LinhaDiaria => ({
   cnpj: '11111111000191', nome_varejo: 'Loja', consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0,
-  inadimplencia_aiva: null, inadimplencia_odres: null, foto_fora_pct: null, status: 'Ativo', cadastro_em: null,
+  // inadimplência é categoria de texto ("BOM"/"RUIM") e foto_fora_pct é 0–100 —
+  // formato real do portal 09/09
+  inadimplencia_aiva: null, inadimplencia_odres: null, foto_fora_pct: null, status: 'Ativo',
+  telefone: null, cadastro_em: null,
   ...p,
 })
 
@@ -54,8 +57,8 @@ test('agregarMensal usa o último retrato do mês e soma lojas do mesmo CNPJ', (
     // retrato antigo (deve ser ignorado)
     linha({ data_ref: '2026-09-05', retailer_id: 'r1', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Multicell 1', vendas: 1, aprovados: 3, consultas: 5, valor_vendas: 100 }),
     // último retrato
-    linha({ data_ref: '2026-09-08', retailer_id: 'r1', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Multicell 1', vendas: 2, aprovados: 6, consultas: 10, valor_vendas: 300, status: 'Inativo', inadimplencia_aiva: 0.02 }),
-    linha({ data_ref: '2026-09-08', retailer_id: 'r2', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Multicell 2', vendas: 5, aprovados: 8, consultas: 12, valor_vendas: 900, status: 'Ativo', inadimplencia_aiva: 0.05, cadastro_em: '2026-06-01' }),
+    linha({ data_ref: '2026-09-08', retailer_id: 'r1', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Multicell 1', vendas: 2, aprovados: 6, consultas: 10, valor_vendas: 300, status: 'Inativo', inadimplencia_aiva: 'BOM', telefone: '5511111111111' }),
+    linha({ data_ref: '2026-09-08', retailer_id: 'r2', mes: '2026-09-01', cnpj: '11111111000191', nome_varejo: 'Multicell 2', vendas: 5, aprovados: 8, consultas: 12, valor_vendas: 900, status: 'Ativo', inadimplencia_aiva: 'RUIM', telefone: '5522222222222', cadastro_em: '2026-06-01' }),
     linha({ data_ref: '2026-09-08', retailer_id: 'r3', mes: '2026-09-01', cnpj: '22222222000191', nome_varejo: 'Zerada', consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 }),
     // mês anterior do r3 (vendeu em agosto → não é baixa performance ainda no dia 9)
     linha({ data_ref: '2026-08-31', retailer_id: 'r3', mes: '2026-08-01', cnpj: '22222222000191', nome_varejo: 'Zerada', vendas: 1, aprovados: 2, consultas: 3, valor_vendas: 50 }),
@@ -73,7 +76,8 @@ test('agregarMensal usa o último retrato do mês e soma lojas do mesmo CNPJ', (
   assert.equal(multi.loja, 'Multicell 2')      // a que mais vendeu
   assert.equal(multi.rid, 'r2')
   assert.equal(multi.status_portal, 'Ativo')  // qualquer loja ativa
-  assert.equal(multi.inadimplencia_aiva, 0.05) // a maior
+  assert.equal(multi.inadimplencia_aiva, 'RUIM') // pior categoria (RUIM > BOM)
+  assert.equal(multi.telefone, '5522222222222') // telefone da que mais vendeu
   assert.equal(multi.cadastro_em, '2026-06-01')
   assert.equal(multi.conversao, 7 / 14)
   assert.equal(multi.ticket_medio, 1200 / 7)
@@ -88,6 +92,20 @@ test('agregarMensal usa o último retrato do mês e soma lojas do mesmo CNPJ', (
   assert.equal(zerada.conversao, 0)
   assert.equal(zerada.cadastro_em, '2026-05-01') // sem coluna do portal → primeira aparição
   assert.equal(zerada.atencao, null)           // vendeu em agosto, dentro dos 30 dias
+})
+
+test('agregarMensal: inadimplência = pior categoria; telefone cai pro não-nulo se a campeã não tem (formato real do portal 09/09)', () => {
+  const serie = [
+    // a que MAIS vende não tem telefone e está 'BOM'; a irmã menor tem telefone e está 'RUIM'
+    linha({ data_ref: '2026-09-08', retailer_id: 'r1', mes: '2026-09-01', cnpj: '33333333000191', nome_varejo: 'Loja 1', vendas: 9, aprovados: 9, inadimplencia_aiva: 'BOM', telefone: null, foto_fora_pct: 33.3 }),
+    linha({ data_ref: '2026-09-08', retailer_id: 'r2', mes: '2026-09-01', cnpj: '33333333000191', nome_varejo: 'Loja 2', vendas: 1, aprovados: 1, inadimplencia_aiva: 'RUIM', telefone: '5567999278475', foto_fora_pct: 100 }),
+  ]
+  const rows = agregarMensal(serie, '2026-09-01', '2026-09-09', new Map([['r1', '2026-05-01'], ['r2', '2026-05-01']]))
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].rid, 'r1')                       // a que mais vendeu continua mandando no RID
+  assert.equal(rows[0].inadimplencia_aiva, 'RUIM')      // a pior contamina o CNPJ
+  assert.equal(rows[0].telefone, '5567999278475')       // campeã sem telefone → o não-nulo do grupo
+  assert.equal(rows[0].foto_fora_pct, 100)              // maior (escala 0–100)
 })
 
 test('agregarMensal marca baixa performance quando não vende há 30 dias', () => {

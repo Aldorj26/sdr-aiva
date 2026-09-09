@@ -32,10 +32,14 @@ export type LinhaPortal = {
   n_aprovados: number | null
   n_vendas: number | null
   valor_vendas: number | string | null
-  inadimplencia_aiva: number | null
-  inadimplencia_odres: number | null
-  out_of_store_photo_pct: number | null
-  status: string | null
+  // formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"), não número.
+  // `inadimplencia_odres` veio 100% null até agora — assumimos o mesmo formato.
+  inadimplencia_aiva: string | null
+  inadimplencia_odres: string | null
+  out_of_store_photo_pct: number | null   // formato real do portal 09/09: número 0–100 (33.3, 50, 100)
+  status: string | null                   // formato real do portal 09/09: "active" / "inactive"
+  registered_at?: string | null           // formato real do portal 09/09: data do cadastro YYYY-MM-DD (100% das linhas)
+  phone_number?: string | null            // formato real do portal 09/09: "5567999278475" (100% das linhas)
   [extra: string]: unknown
 }
 
@@ -104,15 +108,29 @@ export async function buscarPerformance(s: Sessao, partnerId: string, mesMinimo:
 
 /** Converte a linha do portal pro formato da nossa série diária. */
 export function paraLinhaDiaria(l: LinhaPortal, dataRef: string): LinhaDiaria {
-  // `created_at` tirado da cadeia (revisão final 09/09): nessa tabela é quase certo que seja o
-  // timestamp de INSERT da linha (retailer_performance é regravada/atualizada com frequência),
-  // não a data de cadastro do lojista — um cadastro errado alimenta `atencao` direto
-  // (classificarAtencao usa dias desde o cadastro). ⚠️ Confirmar o nome real da coluna de
-  // cadastro no log `chaves` do `?dry=1` (app/api/cron/portal-aiva/route.ts) antes da primeira
-  // rodada real — pode não ser nem `cadastro_em` nem `retailer_created_at`.
-  const dataCad = typeof l.cadastro_em === 'string' ? l.cadastro_em.slice(0, 10)
-    : typeof l.retailer_created_at === 'string' ? l.retailer_created_at.slice(0, 10)
+  // Cadastro — formato real do portal 09/09: a coluna é `registered_at` (data YYYY-MM-DD,
+  // presente em 100% das linhas). `cadastro_em` fica só como fallback histórico e
+  // `retailer_created_at` saiu da cadeia (não existe na tabela).
+  // `created_at`/`updated_at` continuam FORA de propósito: são timestamps da linha
+  // (retailer_performance é regravada/atualizada com frequência), não a data de cadastro do
+  // lojista — um cadastro errado alimenta `atencao` direto (classificarAtencao usa dias
+  // desde o cadastro).
+  const dataCad = typeof l.registered_at === 'string' ? l.registered_at.slice(0, 10)
+    : typeof l.cadastro_em === 'string' ? l.cadastro_em.slice(0, 10)
     : null
+  // Status — formato real do portal 09/09: a API devolve "active"/"inactive" (a UI é que
+  // rotula Ativo/Inativo). Todo o resto do código compara com 'Ativo' (ativação de loja,
+  // filtro do painel), então a normalização acontece AQUI, na fronteira. Valor desconhecido
+  // passa cru: melhor aparecer estranho no painel do que virar "Inativo" em silêncio.
+  const statusCru = l.status == null ? null : String(l.status).trim()
+  const status = statusCru?.toLowerCase() === 'active' ? 'Ativo'
+    : statusCru?.toLowerCase() === 'inactive' ? 'Inativo'
+    : statusCru
+  // Telefone — formato real do portal 09/09: "5567999278475" (100% das linhas). Só dígitos.
+  const telefone = String(l.phone_number ?? '').replace(/\D/g, '') || null
+  // Inadimplência — formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"),
+  // não percentual. Normaliza caixa/espaço; qualquer coisa que não seja texto vira null.
+  const inad = (v: unknown) => (typeof v === 'string' ? v.trim().toUpperCase() : null)
   const retailer_id = String(l.retailer_id)
   const mes = String(l.mes).slice(0, 10)
   if (!/^\d{4}-\d{2}-01$/.test(mes)) throw new Error(`mes inesperado do portal: ${JSON.stringify(l.mes)}`)
@@ -135,10 +153,13 @@ export function paraLinhaDiaria(l: LinhaPortal, dataRef: string): LinhaDiaria {
     aprovados: l.n_aprovados ?? 0,
     vendas: l.n_vendas ?? 0,
     valor_vendas: Number(l.valor_vendas ?? 0),
-    inadimplencia_aiva: l.inadimplencia_aiva ?? null,
-    inadimplencia_odres: l.inadimplencia_odres ?? null,
+    inadimplencia_aiva: inad(l.inadimplencia_aiva),
+    inadimplencia_odres: inad(l.inadimplencia_odres),
+    // escala 0–100 confirmada no retrato real 09/09 (33.3, 50, 100) — guardado como vem,
+    // sem ×100 nem ÷100; quem exibe formata.
     foto_fora_pct: l.out_of_store_photo_pct ?? null,
-    status: l.status ?? null,
+    status,
+    telefone,
     cadastro_em: dataCad,
   }
 }
@@ -154,7 +175,11 @@ export async function avisarAldo(texto: string): Promise<void> {
   try { await sendText(tel, texto) } catch (e) { console.error('[portal-aiva] aviso WhatsApp falhou:', e) }
 }
 
-/** Grava o retrato do dia (upsert — rodar duas vezes substitui a mesma data_ref). */
+/**
+ * Grava o retrato do dia (upsert — rodar duas vezes substitui a mesma data_ref).
+ * O `...l` carrega TODAS as colunas de LinhaDiaria, inclusive `telefone` (coluna
+ * nova em aiva_portal_diario — formato real do portal 09/09).
+ */
 export async function gravarDiario(linhas: LinhaDiaria[], brutas: LinhaPortal[]): Promise<void> {
   const brutoPor = new Map(brutas.map((b) => [`${b.retailer_id}|${String(b.mes).slice(0, 10)}`, b]))
   const rows = linhas.map((l) => ({ ...l, bruto: brutoPor.get(`${l.retailer_id}|${l.mes}`) ?? {}, coletado_em: new Date().toISOString() }))
@@ -170,7 +195,9 @@ export async function gravarDiario(linhas: LinhaDiaria[], brutas: LinhaPortal[])
  * de mesmo nome do derivar (revisão 09/09).
  */
 export async function lerSerie(mesIni: string, mesFim: string): Promise<LinhaDiaria[]> {
-  const cols = 'data_ref,retailer_id,mes,cnpj,nome_varejo,consultas,aprovados,vendas,valor_vendas,inadimplencia_aiva,inadimplencia_odres,foto_fora_pct,status,cadastro_em'
+  // `telefone` entra na lista (coluna nova — formato real do portal 09/09): sem ela o
+  // agregado mensal perderia o telefone da loja que a série já guardou.
+  const cols = 'data_ref,retailer_id,mes,cnpj,nome_varejo,consultas,aprovados,vendas,valor_vendas,inadimplencia_aiva,inadimplencia_odres,foto_fora_pct,status,telefone,cadastro_em'
   const tudo: LinhaDiaria[] = []
   for (let de = 0; ; de += 1000) {
     // .order() é obrigatório com .range() — sem ordenação estável a paginação do

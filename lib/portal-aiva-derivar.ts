@@ -20,10 +20,12 @@ export type LinhaDiaria = {
   aprovados: number
   vendas: number
   valor_vendas: number
-  inadimplencia_aiva: number | null
-  inadimplencia_odres: number | null
-  foto_fora_pct: number | null
-  status: string | null   // Ativo / Inativo
+  // formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"), não percentual
+  inadimplencia_aiva: string | null
+  inadimplencia_odres: string | null
+  foto_fora_pct: number | null   // formato real do portal 09/09: 0–100 (não 0–1)
+  status: string | null          // já normalizado em paraLinhaDiaria: Ativo / Inativo
+  telefone: string | null        // formato real do portal 09/09: phone_number, só dígitos
   cadastro_em: string | null
 }
 
@@ -113,18 +115,28 @@ export type LinhaMensal = {
   valor_vendas: number
   conversao: number
   ticket_medio: number | null
-  inadimplencia_aiva: number | null
-  inadimplencia_odres: number | null
-  foto_fora_pct: number | null
+  // formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"), não percentual
+  inadimplencia_aiva: string | null
+  inadimplencia_odres: string | null
+  foto_fora_pct: number | null   // formato real do portal 09/09: 0–100 (não 0–1)
+  telefone: string | null        // formato real do portal 09/09: vem do portal (phone_number)
   cadastro_em: string | null
   atencao: Atencao
   sem_venda: boolean
   sem_consulta: boolean
   // colunas do Data Studio que continuam na tabela — sempre nulas/false agora
-  uf: null; cidade: null; status_consulta: null; sem_operador: false; telefone: null; qtd_operadores: null
+  uf: null; cidade: null; status_consulta: null; sem_operador: false; qtd_operadores: null
 }
 
 const maxNulo = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
+/**
+ * Pior categoria de inadimplência entre lojas do mesmo CNPJ (formato real do portal 09/09:
+ * texto "BOM"/"RUIM"). Ordem: RUIM > BOM > null — uma unidade ruim contamina o grupo, que é
+ * a leitura conservadora que o time quer. Categoria desconhecida fica entre null e BOM: não
+ * some do painel, mas também não finge ser um sinal bom.
+ */
+const pesoInad = (v: string | null) => (v === 'RUIM' ? 3 : v === 'BOM' ? 2 : v == null ? 0 : 1)
+const piorInad = (a: string | null, b: string | null): string | null => (pesoInad(b) > pesoInad(a) ? b : a)
 const minData = (a: string | null, b: string | null) => (a == null ? b : b == null ? a : a < b ? a : b)
 
 /**
@@ -148,8 +160,10 @@ function vendas30d(serie: LinhaDiaria[], retailerId: string, hoje: string): numb
 /**
  * Uma linha por CNPJ pra aiva_desempenho, a partir do ÚLTIMO retrato do mês.
  * Agrega multi-lojas do mesmo CNPJ (Multicell Loja 1/2/3): soma métricas, fica
- * o nome/RID da loja que mais vendeu, Ativo se qualquer loja está ativa,
- * inadimplência = a maior, cadastro = o mais antigo.
+ * o nome/RID/telefone da loja que mais vendeu (telefone cai pro primeiro não-nulo
+ * do grupo se a campeã de vendas não tiver), Ativo se qualquer loja está ativa,
+ * inadimplência = a PIOR categoria (RUIM > BOM > null), foto fora = a maior,
+ * cadastro = o mais antigo.
  *
  * `primeiraAparicao`: retailer_id → primeiro data_ref na série inteira (quem
  * chama lê do banco). É o cadastro quando o portal não expõe a coluna.
@@ -182,6 +196,10 @@ export function agregarMensal(
     // loja do mesmo grupo — senão uma Multicell 2 com cadastro real perdia pra Multicell 1 sem
     // coluna (cuja "primeira aparição" pode ser bem mais antiga que o cadastro de verdade).
     _cadReal: string | null; _cadFallback: string | null
+    // telefone da campeã de vendas pode ser null; guarda o primeiro não-nulo do grupo
+    // como rede (formato real do portal 09/09 — a coluna veio 100% preenchida, mas o
+    // histórico do backfill pode não ter).
+    _telFallback: string | null
   }
   const porCnpj = new Map<string, Acc>()
   for (const l of retrato) {
@@ -197,10 +215,12 @@ export function agregarMensal(
         status_portal: l.status, consultas: l.consultas, aprovados: l.aprovados, vendas: l.vendas, valor_vendas: Number(l.valor_vendas),
         conversao: 0, ticket_medio: null,
         inadimplencia_aiva: l.inadimplencia_aiva, inadimplencia_odres: l.inadimplencia_odres, foto_fora_pct: l.foto_fora_pct,
+        telefone: l.telefone,
         cadastro_em: null, atencao: null, sem_venda: false, sem_consulta: false,
-        uf: null, cidade: null, status_consulta: null, sem_operador: false, telefone: null, qtd_operadores: null,
+        uf: null, cidade: null, status_consulta: null, sem_operador: false, qtd_operadores: null,
         _maisVendas: l.vendas, _aprovDesdeCad: l.aprovados + ant.aprovados, _vendasDesdeCad: l.vendas + ant.vendas,
         _vendas30d: vendas30d(serie, l.retailer_id, ref), _cadReal: cadastroReal, _cadFallback: cadastroFallback,
+        _telFallback: l.telefone,
       })
       continue
     }
@@ -208,10 +228,11 @@ export function agregarMensal(
     acc.aprovados += l.aprovados
     acc.vendas += l.vendas
     acc.valor_vendas += Number(l.valor_vendas)
-    if (l.vendas > acc._maisVendas) { acc._maisVendas = l.vendas; acc.loja = l.nome_varejo; acc.rid = l.retailer_id }
+    if (l.vendas > acc._maisVendas) { acc._maisVendas = l.vendas; acc.loja = l.nome_varejo; acc.rid = l.retailer_id; acc.telefone = l.telefone }
+    if (acc._telFallback == null) acc._telFallback = l.telefone
     if (l.status === 'Ativo') acc.status_portal = 'Ativo'
-    acc.inadimplencia_aiva = maxNulo(acc.inadimplencia_aiva, l.inadimplencia_aiva)
-    acc.inadimplencia_odres = maxNulo(acc.inadimplencia_odres, l.inadimplencia_odres)
+    acc.inadimplencia_aiva = piorInad(acc.inadimplencia_aiva, l.inadimplencia_aiva)
+    acc.inadimplencia_odres = piorInad(acc.inadimplencia_odres, l.inadimplencia_odres)
     acc.foto_fora_pct = maxNulo(acc.foto_fora_pct, l.foto_fora_pct)
     acc._cadReal = minData(acc._cadReal, cadastroReal)
     acc._cadFallback = minData(acc._cadFallback, cadastroFallback)
@@ -220,10 +241,11 @@ export function agregarMensal(
     acc._vendas30d += vendas30d(serie, l.retailer_id, ref)
   }
 
-  return [...porCnpj.values()].map(({ _maisVendas, _aprovDesdeCad, _vendasDesdeCad, _vendas30d, _cadReal, _cadFallback, ...r }) => {
+  return [...porCnpj.values()].map(({ _maisVendas, _aprovDesdeCad, _vendasDesdeCad, _vendas30d, _cadReal, _cadFallback, _telFallback, ...r }) => {
     const cadastro_em = _cadReal ?? _cadFallback
     return {
       ...r,
+      telefone: r.telefone ?? _telFallback,
       cadastro_em,
       conversao: r.aprovados > 0 ? r.vendas / r.aprovados : 0,
       ticket_medio: r.vendas > 0 ? r.valor_vendas / r.vendas : null,

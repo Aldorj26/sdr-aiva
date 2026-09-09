@@ -29,9 +29,10 @@ type Row = {
   consultas: number | null
   rid: string | null
   status_portal: string | null
-  inadimplencia_aiva: number | null
-  inadimplencia_odres: number | null
-  foto_fora_pct: number | null
+  // formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"), não percentual
+  inadimplencia_aiva: string | null
+  inadimplencia_odres: string | null
+  foto_fora_pct: number | null   // formato real do portal 09/09: escala 0–100
   cadastro_em: string | null
   atencao: 'novo_sem_engajamento' | 'baixa_performance' | null
 }
@@ -48,7 +49,8 @@ function chaveTel(s: string | null | undefined): string {
 // Dados do lead casados por CNPJ e por telefone. Servem pra duas coisas:
 // abrir a conversa ao clicar na linha (LeadDrawer) e alimentar a busca com o
 // que NÃO existe no snapshot do Data Studio — e-mail, nome do sócio e o
-// telefone das lojas que vieram sem ele (58 das 108 em 2026-08).
+// telefone das lojas que vieram sem ele (58 das 108 em 2026-08 — nos meses do
+// portal a coluna `telefone` vem cheia, formato real do portal 09/09).
 // A extração acontece no banco (RPC read-only assistente_sql) porque o CNPJ e o
 // e-mail moram dentro de observacoes; trazer as observacoes inteiras de ~6 mil
 // leads pra cá seria pesado demais por render.
@@ -112,9 +114,16 @@ async function mapasDeLeads(): Promise<{ porCnpj: Map<string, InfoLead>; porFone
 const fmtBRL = (v: number | null) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 const fmtPct = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)
-// Destaca em âmbar quando há inadimplência/foto fora — mesma cor de atenção
-// dos cards ⚠️ (var(--yellow) do app/globals.css).
-const ambar = (v: number | null): React.CSSProperties => (v != null && v > 0 ? { color: 'var(--yellow)', fontWeight: 600 } : {})
+// Foto fora de loja: escala 0–100 confirmada no retrato real 09/09 (33.3, 50, 100) —
+// entra pronta, SEM ×100 (com o ×100 do fmtPct virava "3330,0%").
+const fmtPct100 = (v: number | null) => (v == null ? '—' : `${v.toFixed(0)}%`)
+// Inadimplência (formato real do portal 09/09): categoria de texto, não número —
+// RUIM em vermelho, BOM em verde, sem dado = —.
+function Inad({ v }: { v: string | null }) {
+  if (!v) return <span style={{ color: 'var(--text-dim)' }}>—</span>
+  const cor = v === 'RUIM' ? 'var(--red)' : v === 'BOM' ? 'var(--green)' : 'var(--text-dim)'
+  return <span style={{ color: cor, fontWeight: 700 }}>{v}</span>
+}
 function rotuloAtencao(a: Row['atencao']): string {
   return a === 'novo_sem_engajamento' ? ' · ⚠️ novo sem engajamento' : a === 'baixa_performance' ? ' · ⚠️ baixa performance' : ''
 }
@@ -214,7 +223,9 @@ export default async function DesempenhoPage({
     // número, compara só os dígitos — então "52.618.643/0001-05" e
     // "(47) 99608-5000" acham a linha do mesmo jeito que a versão sem máscara.
     // Campos do lead (e-mail, sócio, telefone) entram junto: o retrato do
-    // portal não traz e-mail nem sócio.
+    // portal não traz e-mail nem sócio. `r.telefone` volta a valer a partir de
+    // 09/09: a coluna `phone_number` do portal veio preenchida em 100% das
+    // linhas (formato real do portal 09/09) e alimenta aiva_desempenho.telefone.
     rows = rows.filter((r) => {
       const info = infoDe(r)
       return casaBusca(sp.q!, [
@@ -236,8 +247,11 @@ export default async function DesempenhoPage({
     conv: { rotulo: 'Conv.', campo: 'conversao', numerica: true },
     valor: { rotulo: 'Valor', campo: 'valor_vendas', numerica: true },
     ticket: { rotulo: 'Ticket', campo: 'ticket_medio', numerica: true },
-    inad_aiva: { rotulo: 'Inad. AIVA', campo: 'inadimplencia_aiva', numerica: true },
-    inad_odres: { rotulo: 'Inad. Odres', campo: 'inadimplencia_odres', numerica: true },
+    // inadimplência é texto (BOM/RUIM — formato real do portal 09/09): ordenação
+    // alfabética, não numérica (Number('RUIM') = NaN embaralhava a tabela inteira).
+    // Alfabética já é útil: desc = RUIM primeiro.
+    inad_aiva: { rotulo: 'Inad. AIVA', campo: 'inadimplencia_aiva', numerica: false },
+    inad_odres: { rotulo: 'Inad. Odres', campo: 'inadimplencia_odres', numerica: false },
     foto: { rotulo: 'Foto fora', campo: 'foto_fora_pct', numerica: true },
   }
   const sort = sp.sort && COLUNAS[sp.sort] ? sp.sort : 'valor'
@@ -418,10 +432,11 @@ export default async function DesempenhoPage({
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPct(r.conversao)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.valor_vendas)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.ticket_medio)}</td>
-                  {/* inadimplência/foto: escala assumida 0–1; conferir no 1º retrato real (Task 9 Step 4) */}
-                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', ...ambar(r.inadimplencia_aiva) }}>{fmtPct(r.inadimplencia_aiva)}</td>
-                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', ...ambar(r.inadimplencia_odres) }}>{fmtPct(r.inadimplencia_odres)}</td>
-                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPct(r.foto_fora_pct)}</td>
+                  {/* inadimplência = categoria BOM/RUIM e foto fora em escala 0–100 confirmada
+                      no retrato real 09/09 */}
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}><Inad v={r.inadimplencia_aiva} /></td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}><Inad v={r.inadimplencia_odres} /></td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPct100(r.foto_fora_pct)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', color: tendCor, textAlign: 'center' }}>{tend}</td>
                 </>
               )
