@@ -122,7 +122,7 @@ export function paraLinhaDiaria(l: LinhaPortal, dataRef: string): LinhaDiaria {
   // rotula Ativo/Inativo). Todo o resto do código compara com 'Ativo' (ativação de loja,
   // filtro do painel), então a normalização acontece AQUI, na fronteira. Valor desconhecido
   // passa cru: melhor aparecer estranho no painel do que virar "Inativo" em silêncio.
-  const statusCru = l.status == null ? null : String(l.status).trim()
+  const statusCru = (l.status == null ? '' : String(l.status).trim()) || null // '' vira null (revisão 09/09)
   const status = statusCru?.toLowerCase() === 'active' ? 'Ativo'
     : statusCru?.toLowerCase() === 'inactive' ? 'Inativo'
     : statusCru
@@ -130,7 +130,7 @@ export function paraLinhaDiaria(l: LinhaPortal, dataRef: string): LinhaDiaria {
   const telefone = String(l.phone_number ?? '').replace(/\D/g, '') || null
   // Inadimplência — formato real do portal 09/09: categoria de TEXTO ("BOM"/"RUIM"),
   // não percentual. Normaliza caixa/espaço; qualquer coisa que não seja texto vira null.
-  const inad = (v: unknown) => (typeof v === 'string' ? v.trim().toUpperCase() : null)
+  const inad = (v: unknown) => (typeof v === 'string' ? v.trim().toUpperCase() : typeof v === 'number' ? String(v) : '') || null
   const retailer_id = String(l.retailer_id)
   const mes = String(l.mes).slice(0, 10)
   if (!/^\d{4}-\d{2}-01$/.test(mes)) throw new Error(`mes inesperado do portal: ${JSON.stringify(l.mes)}`)
