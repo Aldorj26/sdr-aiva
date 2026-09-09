@@ -188,6 +188,8 @@ export default async function DesempenhoPage({
     mapasDeLeads(),
   ])
   const dataRetrato = drRes.data?.[0]?.data_ref as string | undefined
+  // mês do Data Studio não tem status_portal — o filtro viraria beco sem saída
+  let status = dataRetrato ? sp.status : undefined
   const todas = (dataRes.data ?? []) as Row[]
   const anterior = new Map<string, Row>()
   for (const r of (antRes.data ?? []) as Row[]) anterior.set(r.cnpj, r)
@@ -196,14 +198,17 @@ export default async function DesempenhoPage({
   // pelo telefone que veio do Data Studio.
   const infoDe = (r: Row) => porCnpj.get(r.cnpj) ?? (r.telefone ? porFone.get(chaveTel(r.telefone)) : undefined)
 
-  const filtro = sp.filtro ?? ''
+  let filtro = sp.filtro ?? ''
+  // URL antiga (antes de 09/09) usava filtro=ativas — hoje é status=ativas
+  if (filtro === 'ativas') { status = 'ativas'; filtro = '' }
+  if (!['sem_venda', 'sem_consulta', 'novo_sem_engajamento', 'baixa_performance'].includes(filtro)) filtro = ''
   let rows = todas
   if (filtro === 'sem_venda') rows = rows.filter((r) => r.sem_venda)
   if (filtro === 'sem_consulta') rows = rows.filter((r) => r.sem_consulta)
   if (filtro === 'novo_sem_engajamento') rows = rows.filter((r) => r.atencao === 'novo_sem_engajamento')
   if (filtro === 'baixa_performance') rows = rows.filter((r) => r.atencao === 'baixa_performance')
-  if (sp.status === 'ativas') rows = rows.filter((r) => r.status_portal === 'Ativo')
-  if (sp.status === 'inativas') rows = rows.filter((r) => r.status_portal && r.status_portal !== 'Ativo')
+  if (status === 'ativas') rows = rows.filter((r) => r.status_portal === 'Ativo')
+  if (status === 'inativas') rows = rows.filter((r) => r.status_portal && r.status_portal !== 'Ativo')
   if (sp.q) {
     // Mesma busca do /registros (lib/text.ts): ignora acento/caixa e, pra
     // número, compara só os dígitos — então "52.618.643/0001-05" e
@@ -268,8 +273,15 @@ export default async function DesempenhoPage({
     const p = new URLSearchParams()
     if (mes) p.set('mes', mes)
     if (sp.q) p.set('q', sp.q)
-    if (sp.status) p.set('status', sp.status)
+    if (status) p.set('status', status)
     for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v)
+    return `/desempenho?${p.toString()}`
+  }
+  // Reset do card "Lojas": mantém só mês + busca, descarta filtro e status.
+  const qsReset = () => {
+    const p = new URLSearchParams()
+    if (mes) p.set('mes', mes)
+    if (sp.q) p.set('q', sp.q)
     return `/desempenho?${p.toString()}`
   }
   // Link de ordenação: preserva mês + filtros; clicar na coluna ativa inverte a direção.
@@ -277,7 +289,7 @@ export default async function DesempenhoPage({
     const p = new URLSearchParams()
     if (mes) p.set('mes', mes)
     if (filtro) p.set('filtro', filtro)
-    if (sp.status) p.set('status', sp.status)
+    if (status) p.set('status', status)
     if (sp.q) p.set('q', sp.q)
     p.set('sort', col)
     p.set('dir', sort === col && dir === 'desc' ? 'asc' : 'desc')
@@ -287,6 +299,9 @@ export default async function DesempenhoPage({
   // dataRetrato não pode ser mais novo que a data de atualizado_em (hora da
   // derivação) — se for, a derivação falhou depois da coleta; não afirme a
   // data do retrato, mostre atualizado_em com um aviso.
+  // A comparação é data BRT (dataRetrato) vs. data UTC do timestamp
+  // (atualizado_em) — o descompasso de fuso só pode tornar isto mais
+  // permissivo (nunca reprova um retrato que na verdade era confiável).
   const retratoConfiavel = !!dataRetrato && (!atualizadoEm || dataRetrato <= atualizadoEm.slice(0, 10))
 
   return (
@@ -321,11 +336,11 @@ export default async function DesempenhoPage({
           da tela, zerando a altura da tabela. Acionamentos e chamados de lojas
           ativas agora moram no /atendimento (seção 🟣 CS). */}
       <section style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem', flexShrink: 0 }}>
-        <Card label="Lojas" value={String(todas.length)} href={qs({})} ativo={!filtro && !sp.status} />
+        <Card label="Lojas" value={String(todas.length)} href={qsReset()} ativo={!filtro && !status} />
         {/* meses do Data Studio não têm esses campos — mostrar 0 seria mentira */}
         {dataRetrato && (
           <>
-            <Card label="Ativas" value={String(tot.ativas)} href={qs({ status: 'ativas' })} ativo={sp.status === 'ativas'} />
+            <Card label="Ativas" value={String(tot.ativas)} href={qs({ status: 'ativas' })} ativo={status === 'ativas'} />
             <Card label="Consultas" value={tot.consultas.toLocaleString('pt-BR')} href={qs({})} />
           </>
         )}
@@ -351,7 +366,7 @@ export default async function DesempenhoPage({
         <input name="q" defaultValue={sp.q ?? ''} placeholder="Loja, CNPJ, RID, e-mail, sócio, telefone…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 330 }} />
         {/* status_portal só existe no retrato do portal — meses do Data Studio não têm esse campo */}
         {dataRetrato && (
-          <select name="status" defaultValue={sp.status ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
+          <select name="status" defaultValue={status ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
             <option value="">Todas</option>
             <option value="ativas">Ativas</option>
             <option value="inativas">Inativas</option>
