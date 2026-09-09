@@ -10,8 +10,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabase'
 import {
-  sendText, createOpportunity, updateOpportunityDescription, addOpportunityTags,
-  getPipeOpportunities, PIPELINE_MRR, STAGE_MRR_INICIO, TAG_IDS,
+  sendText, criarContaMrrLoja, getPipeOpportunities, PIPELINE_MRR,
 } from '@/lib/evotalks'
 import {
   agregarMensal, derivarSemana, mesDe, somarDias,
@@ -20,6 +19,13 @@ import {
 
 const URL_PORTAL = () => (process.env.AIVA_PORTAL_URL ?? '').replace(/\/$/, '')
 const ANON = () => process.env.AIVA_PORTAL_ANON_KEY ?? ''
+
+/**
+ * Escapa antes de interpolar em RegExp — o `rid` vem do portal (dado externo);
+ * um caractere especial ali viraria metacaractere e faria o dedupe casar
+ * com a conta errada (ou explodir a construção do regex) — revisão 09/09.
+ */
+const escaparRegex = (v: unknown) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Linha crua da tabela retailer_performance do portal (select=*). */
 export type LinhaPortal = {
@@ -160,14 +166,18 @@ export async function gravarDiario(linhas: LinhaDiaria[], brutas: LinhaPortal[])
   }
 }
 
-/** Série diária de um intervalo de meses (mes >= de, mes <= ate) — dados, sem o jsonb. */
-export async function lerSerie(mesDe: string, mesAte: string): Promise<LinhaDiaria[]> {
+/**
+ * Série diária de um intervalo de meses (mes >= mesIni, mes <= mesFim) — dados,
+ * sem o jsonb. Parâmetros renomeados: `mesDe` fazia sombra na função importada
+ * de mesmo nome do derivar (revisão 09/09).
+ */
+export async function lerSerie(mesIni: string, mesFim: string): Promise<LinhaDiaria[]> {
   const cols = 'data_ref,retailer_id,mes,cnpj,nome_varejo,consultas,aprovados,vendas,valor_vendas,inadimplencia_aiva,inadimplencia_odres,foto_fora_pct,status,cadastro_em'
   const tudo: LinhaDiaria[] = []
   for (let de = 0; ; de += 1000) {
     // .order() é obrigatório com .range() — sem ordenação estável a paginação do
     // PostgREST pode repetir/pular linhas entre páginas (revisão de código 09/09/2026).
-    const { data, error } = await supabaseAdmin.from('aiva_portal_diario').select(cols).gte('mes', mesDe).lte('mes', mesAte)
+    const { data, error } = await supabaseAdmin.from('aiva_portal_diario').select(cols).gte('mes', mesIni).lte('mes', mesFim)
       .order('data_ref', { ascending: true }).order('retailer_id', { ascending: true }).order('mes', { ascending: true })
       .range(de, de + 999)
     if (error) throw new Error(`ler aiva_portal_diario: ${error.message}`)
@@ -189,12 +199,16 @@ export async function primeiraAparicao(): Promise<Map<string, string>> {
 /**
  * Rederiva aiva_desempenho de um mês (YYYY-MM) a partir do último retrato.
  * Apaga e insere — mesma semântica "reimportar substitui" do importador antigo.
+ *
+ * `primeira` é opcional: o cron roda vários meses no mesmo request e calcula o
+ * mapa UMA vez antes do laço (era um agregado no banco por mês — revisão 09/09).
+ * Sem ele, cada chamada calcula o seu (uso avulso / reprocesso ?mes=).
  */
-export async function salvarMensal(mes: string, hoje = hojeBrt()): Promise<{ lojas: number; aprovados: number; vendas: number; valor: number }> {
+export async function salvarMensal(mes: string, hoje = hojeBrt(), primeira?: Map<string, string>): Promise<{ lojas: number; aprovados: number; vendas: number; valor: number }> {
   const mesPortal = mes + '-01'
   const mesAnt = mesDe(somarDias(mesPortal, -1))
   const serie = await lerSerie(mesAnt, mesPortal)
-  const rows: LinhaMensal[] = agregarMensal(serie, mesPortal, hoje, await primeiraAparicao())
+  const rows: LinhaMensal[] = agregarMensal(serie, mesPortal, hoje, primeira ?? await primeiraAparicao())
   if (!rows.length) throw new Error(`sem retrato do portal pra ${mes}`)
   const atualizado_em = new Date().toISOString()
   const del = await supabaseAdmin.from('aiva_desempenho').delete().eq('mes', mes)
@@ -214,7 +228,10 @@ export async function salvarSemanal(segunda: string): Promise<{ lojas: number; v
   if (new Date(segunda + 'T12:00:00Z').getUTCDay() !== 1) throw new Error(`${segunda} não é segunda-feira`)
   const domAnt = somarDias(segunda, -1), fim = somarDias(segunda, 7)
   const serie = (await lerSerie(mesDe(domAnt), mesDe(fim))).filter((l) => l.data_ref >= domAnt && l.data_ref <= fim)
-  const { data: ant } = await supabaseAdmin.from('aiva_desempenho_semanal').select('cnpj,vendas').eq('semana', somarDias(segunda, -7))
+  // erro aqui não pode passar batido: sem a semana anterior o delta de vendas
+  // sai igual ao absoluto e a semana fecha com número errado (revisão 09/09).
+  const { data: ant, error: eAnt } = await supabaseAdmin.from('aiva_desempenho_semanal').select('cnpj,vendas').eq('semana', somarDias(segunda, -7))
+  if (eAnt) throw new Error(`ler semana anterior (${somarDias(segunda, -7)}): ${eAnt.message}`)
   const vendasAnt = new Map((ant ?? []).map((r) => [r.cnpj as string, Number(r.vendas)]))
   const { linhas, avisos } = derivarSemana(serie, segunda, vendasAnt)
   const rows = linhas.map(({ consultas, ...l }: LinhaSemanal) => ({ ...l, criado_em: new Date().toISOString() }))
@@ -227,19 +244,36 @@ export async function salvarSemanal(segunda: string): Promise<{ lojas: number; v
   return { lojas: rows.length, vendas: rows.reduce((s, r) => s + r.vendas, 0), avisos }
 }
 
+type RegistroCnpj = {
+  id: string | number
+  lead_id: string | null
+  loja: string | null
+  telefone: string | null
+  cnpj: string | number
+  status: string | null
+  rid: string | null
+  ativa_em: string | null
+}
+
 /**
  * CNPJ registrado (sdr_registros_cnpj) que aparece no retrato do dia — decisão
  * do Aldo 09/09: presença no portal = contrato assinado → grava RID; status
  * Ativo = loja ativa. Ou seja:
  *   - QUALQUER CNPJ presente (Ativo OU Inativo) sem RID gravado, ou com RID
  *     diferente do atual, ganha o `rid` atualizado — é o que faz o card do
- *     lead no painel mostrar "✅ RID xxxx".
- *   - SÓ quando o status no portal é 'Ativo' rola o resto: status='ativa',
- *     `ativa_em`, conta espelho no funil 11 (dedupe por UME_RID na descrição)
- *     e linha no digest WhatsApp pro Aldo/Nei.
+ *     lead no painel mostrar "✅ RID xxxx". Por isso a busca traz `status != ativa`
+ *     OU `rid is null`: a loja que já foi ativada antes de existir coluna de RID
+ *     nunca voltaria pela primeira condição e ficaria pra sempre sem RID.
+ *   - SÓ quando o status no portal é 'Ativo' rola o resto: conta espelho no
+ *     funil 11 (dedupe por UME_RID na descrição via `criarContaMrrLoja`),
+ *     depois status='ativa' + `ativa_em`, e linha no digest WhatsApp pro Aldo/Nei.
+ *     O CRM vem ANTES do banco de propósito: se a conta falhar, o registro fica
+ *     como está e a ativação é tentada de novo amanhã (revisão 09/09) — o
+ *     inverso deixava a loja "ativa" sem conta nenhuma, e nada a repescava.
  * Mesma ação do `scripts/detectar-lojas-ativas.mjs` (que fica intacto como
  * rede de segurança de segunda), agora em TS e disparada todo dia pela rota.
- * Retorna as linhas do digest (só ativações); em `dry` não grava nem envia.
+ * Retorna as linhas do digest (ativações + as que só ganharam RID); em `dry`
+ * não lê o Evo, não grava e não envia — só devolve a prévia marcada com [dry].
  */
 export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean): Promise<string[]> {
   // Map<cnpj, LinhaDiaria> — quando o CNPJ tem várias lojas, prefere a linha
@@ -250,12 +284,21 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
     if (!atual || (atual.status !== 'Ativo' && l.status === 'Ativo')) porCnpj.set(l.cnpj, l)
   }
 
-  const { data: pendentes, error } = await supabaseAdmin
-    .from('sdr_registros_cnpj')
-    .select('id,lead_id,loja,telefone,cnpj,status,rid,ativa_em')
-    .neq('status', 'ativa')
-  if (error) throw new Error(`sdr_registros_cnpj: ${error.message}`)
-  const presentes = (pendentes ?? []).filter((r) => porCnpj.has(String(r.cnpj)))
+  // Paginado: o PostgREST corta em 1.000 linhas e a tabela já passa disso —
+  // sem o laço, os registros do fim da fila nunca ativariam (revisão 09/09).
+  const candidatos: RegistroCnpj[] = []
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('id,lead_id,loja,telefone,cnpj,status,rid,ativa_em')
+      .or('status.neq.ativa,rid.is.null')
+      .order('id', { ascending: true })
+      .range(de, de + 999)
+    if (error) throw new Error(`sdr_registros_cnpj: ${error.message}`)
+    candidatos.push(...((data ?? []) as unknown as RegistroCnpj[]))
+    if (!data || data.length < 1000) break
+  }
+  const presentes = candidatos.filter((r) => porCnpj.has(String(r.cnpj)))
   if (!presentes.length) return []
 
   const paraAtivar = presentes.filter((r) => porCnpj.get(String(r.cnpj))!.status === 'Ativo')
@@ -266,50 +309,104 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
   })
   if (!paraAtivar.length && !paraGravarRid.length) return []
 
-  if (!dry) {
-    for (const r of paraGravarRid) {
-      const s = porCnpj.get(String(r.cnpj))!
-      await supabaseAdmin.from('sdr_registros_cnpj').update({ rid: s.retailer_id }).eq('id', r.id)
-    }
-  }
-
-  const opps = dry || !paraAtivar.length ? [] : await getPipeOpportunities(PIPELINE_MRR)
-  const linhas: string[] = []
-  for (const r of paraAtivar) {
+  // --- só RID (portal não diz Ativo) ---------------------------------------
+  const ridLinhas: string[] = []
+  for (const r of paraGravarRid) {
     const s = porCnpj.get(String(r.cnpj))!
-    const rid = s.retailer_id
-    const fone = String(r.telefone ?? '').replace(/\D/g, '')
-    if (dry) { linhas.push(`• ${r.loja} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) [dry]`); continue }
-
-    await supabaseAdmin.from('sdr_registros_cnpj').update({ status: 'ativa', rid, ativa_em: new Date().toISOString() }).eq('id', r.id)
-
-    const re = new RegExp(`UME_RID:\\s*${rid}\\b`)
-    const dup = opps.find((o) => re.test(o.description ?? ''))
-    let contaInfo: string
-    if (dup) contaInfo = `conta MRR já existia (#${dup.id})`
-    else {
-      try {
-        const id = await createOpportunity({ title: (s.nome_varejo ?? r.loja ?? 'Loja AIVA').trim(), number: fone, pipelineId: PIPELINE_MRR, stageId: STAGE_MRR_INICIO, responsableId: 507 })
-        await updateOpportunityDescription(id, `UME_RID: ${rid} | CNPJ: ${r.cnpj} | Loja de ${r.loja} (ativa no portal AIVA em ${s.data_ref}) | Fone lojista: ${fone}`)
-        await addOpportunityTags(id, [TAG_IDS.UME])
-        // read-after-write (lição 26/08: o Evo pode responder 200 sem persistir)
-        const conf = (await getPipeOpportunities(PIPELINE_MRR)).find((o) => o.id === id && re.test(o.description ?? ''))
-        contaInfo = conf ? `conta MRR criada (#${id})` : `⚠️ conta #${id} criada mas descrição NÃO confirmou — conferir`
-      } catch (e) {
-        contaInfo = `⚠️ falha ao criar conta MRR: ${String(e).slice(0, 100)}`
-      }
+    let aviso = dry ? ' [dry]' : ''
+    if (!dry) {
+      // erro do update não pode sumir: o digest é a única evidência de que
+      // gravou — sem isso o Aldo lê "RID gravado" sem RID no banco (revisão 09/09).
+      const { error } = await supabaseAdmin.from('sdr_registros_cnpj').update({ rid: s.retailer_id }).eq('id', r.id)
+      if (error) aviso = ` ⚠️ status/RID não gravou: ${error.message.slice(0, 100)}`
     }
-    linhas.push(`• ${r.loja} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ${contaInfo}`)
+    ridLinhas.push(`• ${r.loja} — ${s.nome_varejo ?? r.cnpj} (RID ${s.retailer_id})${aviso}`)
   }
 
-  if (dry) return linhas
+  // --- ativação (portal = Ativo) -------------------------------------------
+  // Mesmo CNPJ registrado por dois leads = UMA conta no CRM (dedupe por
+  // retailer_id), mas TODOS os registros daquele CNPJ recebem status='ativa'
+  // (revisão 09/09 — antes criava conta duplicada por lead).
+  const porRid = new Map<string, RegistroCnpj[]>()
+  for (const r of paraAtivar) {
+    const rid = porCnpj.get(String(r.cnpj))!.retailer_id
+    const grupo = porRid.get(rid)
+    if (grupo) grupo.push(r)
+    else porRid.set(rid, [r])
+  }
 
-  if (linhas.length || paraGravarRid.length) {
-    const rodape = paraGravarRid.length ? `\n(+${paraGravarRid.length} lojas ganharam RID sem ativar ainda)` : ''
-    const resumo = `🆕 *Lojas novas ATIVARAM no portal AIVA (${retrato[0]?.data_ref ?? hojeBrt()})*\n${linhas.join('\n') || '(nenhuma ativação nova)'}${rodape}`
+  const linhas: string[] = []
+  const criadas: { id: number; rid: string; linha: number }[] = []
+  for (const [rid, grupo] of porRid) {
+    const r = grupo[0]
+    const s = porCnpj.get(String(r.cnpj))!
+    const nomes = grupo.map((g) => g.loja).join(' / ')
+    const fone = String(r.telefone ?? '').replace(/\D/g, '')
+    if (dry) { linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) [dry]`); continue }
+
+    let conta: { id: number; jaExistia: boolean } | null = null
+    try {
+      conta = await criarContaMrrLoja({
+        titulo: (s.nome_varejo ?? r.loja ?? 'Loja AIVA').trim(),
+        telefone: fone,
+        rid,
+        cnpj: String(r.cnpj),
+        leadNome: `${r.loja ?? 'lojista'} (ativa no portal AIVA em ${s.data_ref})`,
+      })
+    } catch (e) {
+      linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ conta MRR falhou, status NÃO gravado (tenta amanhã): ${String(e).slice(0, 100)}`)
+      continue
+    }
+    if (!conta) {
+      linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ⚠️ RID vazio, conta MRR não criada e status NÃO gravado`)
+      continue
+    }
+
+    // CRM ok (criada ou já existia) → agora sim o banco, em todos os registros do CNPJ.
+    let aviso = ''
+    for (const reg of grupo) {
+      const { error } = await supabaseAdmin.from('sdr_registros_cnpj')
+        .update({ status: 'ativa', rid, ativa_em: new Date().toISOString() }).eq('id', reg.id)
+      if (error) aviso = ` ⚠️ status/RID não gravou: ${error.message.slice(0, 100)}`
+    }
+    if (!conta.jaExistia) criadas.push({ id: conta.id, rid, linha: linhas.length })
+    linhas.push(`• ${nomes} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ${conta.jaExistia ? `conta MRR já existia (#${conta.id})` : `conta MRR criada (#${conta.id})`}${aviso}`)
+  }
+
+  // read-after-write UMA vez no fim (lição 26/08: o Evo responde 200 sem
+  // persistir). `criarContaMrrLoja` não confere — uma leitura do funil por
+  // loja criada era desperdício (revisão 09/09).
+  if (!dry && criadas.length) {
+    try {
+      const opps = await getPipeOpportunities(PIPELINE_MRR)
+      for (const c of criadas) {
+        const re = new RegExp(`UME_RID:\\s*${escaparRegex(c.rid)}\\b`)
+        if (!opps.some((o) => o.id === c.id && re.test(o.description ?? ''))) {
+          linhas[c.linha] += ' ⚠️ descrição NÃO confirmou — conferir'
+        }
+      }
+    } catch (e) {
+      linhas.push(`⚠️ não deu pra confirmar as contas MRR criadas: ${String(e).slice(0, 100)}`)
+    }
+  }
+
+  if (dry) return [...linhas, ...ridLinhas]
+
+  const dataRef = retrato[0]?.data_ref ?? hojeBrt()
+  // Digest: com ativação, cabeçalho de ativação + rodapé dos que só ganharam
+  // RID; sem ativação nenhuma, mensagem própria — "ATIVARAM" com a lista vazia
+  // fazia o Aldo procurar loja que não existia (revisão 09/09).
+  let resumo: string | null = null
+  if (linhas.length) {
+    const rodape = ridLinhas.length ? `\n🔖 +${ridLinhas.length} loja(s) ganharam RID sem ativar ainda:\n${ridLinhas.join('\n')}` : ''
+    resumo = `🆕 *Lojas novas ATIVARAM no portal AIVA (${dataRef})*\n${linhas.join('\n')}${rodape}`
+  } else if (ridLinhas.length) {
+    resumo = `🔖 *RID gravado pra ${ridLinhas.length} loja(s) do portal AIVA (${dataRef})* — ainda sem status Ativo\n${ridLinhas.join('\n')}`
+  }
+  if (resumo) {
     for (const tel of [process.env.ALDO_WHATSAPP, process.env.NEI_WHATSAPP].filter(Boolean) as string[]) {
       try { await sendText(tel, resumo) } catch (e) { console.error('[portal-aiva] digest de ativação falhou:', e) }
     }
   }
-  return linhas
+  return [...linhas, ...ridLinhas]
 }
