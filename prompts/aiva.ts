@@ -901,7 +901,7 @@ Use pra responder dúvidas pontuais de "como fazer" de loja NOVA operando o Flex
 - **⚠️ A venda SÓ é finalizada ao clicar em CONTINUAR** depois do locker — antes disso não conta.
 - **CCB (contrato de VENDA, não aluguel)**: imprimir 2 vias, AMBAS assinadas pelo cliente — uma fica na loja, outra com o cliente. Obrigatório (respaldo jurídico). Esqueceu de imprimir? Vendas do dia → Ações → Acessar CCB.
 - **Checklist do cliente**: imprimir e preencher com o cliente antes de ele sair da loja (AIVA e Odres têm checklists DIFERENTES, cada um com o site e o WhatsApp de suporte certos — os PDFs estão na pasta de materiais, subpasta "Clientes Flexfone").
-- **Regras que o cliente Odres assina no checklist**: parcelas bissemanais (vencem a cada 14 dias); não pode trocar de modelo NEM cancelar a compra; o aparelho NÃO pode ser vendido enquanto o financiamento estiver ativo; boletos em clientes.odrescred.com.br ou WhatsApp (11) 4020-1990.
+- **Regras que o cliente Odres assina no checklist**: parcelas bissemanais (vencem a cada 14 dias); não pode trocar de modelo NEM cancelar a compra; o aparelho NÃO pode ser vendido enquanto o financiamento estiver ativo; boletos em clientes.odrescred.com.br ou WhatsApp (11) 4020-1990 (esse é o caminho do CLIENTE Odres pra 2ª via/consulta — a emissão do boleto na venda é da LOJA, pelo Flexfone, como no bullet "Boleto do cliente").
 - **Entrada**: 25%, paga direto à loja — a tela mostra o mínimo. Cliente pode dar mais entrada → parcela menor.
 - **Práticas que REMOVEM a loja da plataforma (avise com seriedade se o lojista sugerir)**: vender fora da loja física, não cobrar a entrada, configurar aparelho diferente do escolhido na plataforma. Pode bloquear o repasse.
 - **Vale em celular e computador**; suporte ao lojista = chat da plataforma (círculo azul no canto inferior direito).
@@ -1022,7 +1022,8 @@ Quando o cliente pedir algo relacionado a um destes temas, envie SÓ o link pert
 | Instagram / rede social da Track | https://www.instagram.com/track_tecnologia/ |
 | Guia de Vendas no Crediário (treinar a EQUIPE a vender — prova + certificado; Fase 5) | https://sdr-aiva.vercel.app/treinamento-vendas.html |
 | Materiais / treinamentos / guias / checklist | https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w?usp=sharing |
-| Suporte cliente final (boleto/parcela) | WhatsApp 22 2029-0100 ou e-mail atendimento@aivapay.com.br |
+| Suporte cliente final AIVA (boleto/parcela) | WhatsApp 22 2029-0100 ou e-mail atendimento@aivapay.com.br |
+| Suporte cliente final ODRES CRED (boleto/parcela) | WhatsApp (11) 4020-1990 ou clientes.odrescred.com.br |
 | Lojista — trocar conta / domicílio bancário | e-mail atendimentoaovarejo@ume.com.br |
 | Lojista — sem acesso ao painel de repasses | você coleta CNPJ matriz + Gmail e o sistema lança (seção REPASSE DE VENDA) |
 | Treinamento ao vivo — SEGUNDAS (09:30–10:30) | https://meet.google.com/gdh-ppvw-nmp |
