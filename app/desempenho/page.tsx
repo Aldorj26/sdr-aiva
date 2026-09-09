@@ -4,10 +4,10 @@ import { casaBusca } from '@/lib/text'
 import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
 
-// Desempenho dos lojistas ativos na AIVA — snapshot mensal importado do
-// Data Studio "Parceiros - AIVA" (rotina semanal via Chrome do Aldo +
-// scripts/importar-desempenho-aiva.mjs). Uma tela só: as "Visões
-// Específicas" do relatório viram filtros aqui.
+// Desempenho dos lojistas na AIVA — retrato diário do Portal Parceiros AIVA
+// (rota /api/cron/portal-aiva, 6h BRT; spec docs/superpowers/specs/2026-09-09-*).
+// Até 09/09/2026 vinha do Data Studio; UF/cidade/status-consulta eram dele e
+// não existem mais no portal — ficaram na tabela só pros meses antigos.
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -29,6 +29,14 @@ type Row = {
   sem_operador: boolean
   telefone: string | null
   atualizado_em: string
+  consultas: number | null
+  rid: string | null
+  status_portal: string | null
+  inadimplencia_aiva: number | null
+  inadimplencia_odres: number | null
+  foto_fora_pct: number | null
+  cadastro_em: string | null
+  atencao: 'novo_sem_engajamento' | 'baixa_performance' | null
 }
 
 // Telefone canônico pra casar desempenho ↔ sdr_leads (tira 55 e o 9º dígito),
@@ -138,7 +146,7 @@ function Card({ label, value, color, href, ativo }: { label: string; value: stri
 export default async function DesempenhoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; filtro?: string; uf?: string; q?: string; sort?: string; dir?: string }>
+  searchParams: Promise<{ mes?: string; filtro?: string; status?: string; q?: string; sort?: string; dir?: string }>
 }) {
   const sp = await searchParams
 
@@ -148,6 +156,19 @@ export default async function DesempenhoPage({
     .order('mes', { ascending: false })
   const mesesDisponiveis = [...new Set((meses ?? []).map((m) => m.mes))]
   const mes = sp.mes && mesesDisponiveis.includes(sp.mes) ? sp.mes : (mesesDisponiveis[0] ?? '')
+
+  // Data do retrato do portal pro mês exibido — `atualizado_em` é a hora da
+  // derivação, não a data dos dados. Mês sem linha em aiva_portal_diario
+  // (ainda não passou pelo backfill) = snapshot antigo do Data Studio.
+  const { data: dr } = mes
+    ? await supabaseAdmin
+        .from('aiva_portal_diario')
+        .select('data_ref')
+        .eq('mes', mes + '-01')
+        .order('data_ref', { ascending: false })
+        .limit(1)
+    : { data: null }
+  const dataRetrato = dr?.[0]?.data_ref as string | undefined
 
   const { data } = await supabaseAdmin
     .from('aiva_desempenho')
@@ -173,18 +194,21 @@ export default async function DesempenhoPage({
   let rows = todas
   if (filtro === 'sem_venda') rows = rows.filter((r) => r.sem_venda)
   if (filtro === 'sem_consulta') rows = rows.filter((r) => r.sem_consulta)
-  if (filtro === 'sem_operador') rows = rows.filter((r) => r.sem_operador)
-  if (sp.uf) rows = rows.filter((r) => r.uf === sp.uf)
+  if (filtro === 'ativas') rows = rows.filter((r) => r.status_portal === 'Ativo')
+  if (filtro === 'novo_sem_engajamento') rows = rows.filter((r) => r.atencao === 'novo_sem_engajamento')
+  if (filtro === 'baixa_performance') rows = rows.filter((r) => r.atencao === 'baixa_performance')
+  if (sp.status === 'ativas') rows = rows.filter((r) => r.status_portal === 'Ativo')
+  if (sp.status === 'inativas') rows = rows.filter((r) => r.status_portal && r.status_portal !== 'Ativo')
   if (sp.q) {
     // Mesma busca do /registros (lib/text.ts): ignora acento/caixa e, pra
     // número, compara só os dígitos — então "52.618.643/0001-05" e
     // "(47) 99608-5000" acham a linha do mesmo jeito que a versão sem máscara.
-    // Campos do lead (e-mail, sócio, telefone) entram junto: o snapshot do Data
-    // Studio não traz e-mail e deixa 58 das 108 lojas sem telefone.
+    // Campos do lead (e-mail, sócio, telefone) entram junto: o retrato do
+    // portal não traz e-mail nem sócio.
     rows = rows.filter((r) => {
       const info = infoDe(r)
       return casaBusca(sp.q!, [
-        r.loja, r.nome_varejo, r.cidade, r.uf, r.cnpj, r.status_consulta,
+        r.loja, r.nome_varejo, r.cnpj, r.rid, r.status_portal,
         r.telefone, info?.telefone, info?.email, info?.socio,
         // vínculos (02/09): funcionários + CNPJs/RIDs de todas as lojas do dono
         info?.id ? blobPorLead.get(info.id) : undefined,
@@ -195,14 +219,16 @@ export default async function DesempenhoPage({
   // Ordenação por clique no cabeçalho: 1º clique = maior→menor, 2º inverte.
   const COLUNAS: Record<string, { rotulo: string; campo: keyof Row; numerica: boolean }> = {
     loja: { rotulo: 'Loja', campo: 'loja', numerica: false },
-    uf: { rotulo: 'UF', campo: 'uf', numerica: false },
-    cidade: { rotulo: 'Cidade', campo: 'cidade', numerica: false },
-    status: { rotulo: 'Status', campo: 'status_consulta', numerica: false },
+    status: { rotulo: 'Status', campo: 'status_portal', numerica: false },
+    consultas: { rotulo: 'Consultas', campo: 'consultas', numerica: true },
     aprovados: { rotulo: 'Aprovados', campo: 'aprovados', numerica: true },
     vendas: { rotulo: 'Vendas', campo: 'vendas', numerica: true },
     conv: { rotulo: 'Conv.', campo: 'conversao', numerica: true },
     valor: { rotulo: 'Valor', campo: 'valor_vendas', numerica: true },
     ticket: { rotulo: 'Ticket', campo: 'ticket_medio', numerica: true },
+    inad_aiva: { rotulo: 'Inad. AIVA', campo: 'inadimplencia_aiva', numerica: true },
+    inad_odres: { rotulo: 'Inad. Odres', campo: 'inadimplencia_odres', numerica: true },
+    foto: { rotulo: 'Foto fora', campo: 'foto_fora_pct', numerica: true },
   }
   const sort = sp.sort && COLUNAS[sp.sort] ? sp.sort : 'valor'
   const dir = sp.dir === 'asc' ? 'asc' : 'desc'
@@ -227,7 +253,10 @@ export default async function DesempenhoPage({
     valor: todas.reduce((s, r) => s + (r.valor_vendas ?? 0), 0),
     semVenda: todas.filter((r) => r.sem_venda).length,
     semConsulta: todas.filter((r) => r.sem_consulta).length,
-    semOperador: todas.filter((r) => r.sem_operador).length,
+    ativas: todas.filter((r) => r.status_portal === 'Ativo').length,
+    consultas: todas.reduce((s, r) => s + (r.consultas ?? 0), 0),
+    novos: todas.filter((r) => r.atencao === 'novo_sem_engajamento').length,
+    baixa: todas.filter((r) => r.atencao === 'baixa_performance').length,
   }
   const convMedia = tot.aprovados > 0 ? tot.vendas / tot.aprovados : null
   const qs = (extra: Record<string, string>) => {
@@ -241,7 +270,7 @@ export default async function DesempenhoPage({
     const p = new URLSearchParams()
     if (mes) p.set('mes', mes)
     if (filtro) p.set('filtro', filtro)
-    if (sp.uf) p.set('uf', sp.uf)
+    if (sp.status) p.set('status', sp.status)
     if (sp.q) p.set('q', sp.q)
     p.set('sort', col)
     p.set('dir', sort === col && dir === 'desc' ? 'asc' : 'desc')
@@ -268,7 +297,9 @@ export default async function DesempenhoPage({
         <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
           {todas.length === 0
             ? 'Nenhum snapshot importado ainda — rode a exportação semanal.'
-            : `${todas.length} lojas no snapshot ${mes} · importado ${atualizadoEm ? new Date(atualizadoEm).toLocaleDateString('pt-BR') : ''} do Data Studio Parceiros-AIVA`}
+            : dataRetrato
+              ? `${todas.length} lojas no retrato de ${new Date(dataRetrato + 'T12:00:00Z').toLocaleDateString('pt-BR')} · Portal Parceiros AIVA`
+              : `${todas.length} lojas no snapshot ${mes} · importado ${atualizadoEm ? new Date(atualizadoEm).toLocaleDateString('pt-BR') : ''} do Data Studio (legado)`}
         </p>
       </header>
 
@@ -278,13 +309,16 @@ export default async function DesempenhoPage({
           ativas agora moram no /atendimento (seção 🟣 CS). */}
       <section style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem', flexShrink: 0 }}>
         <Card label="Lojas" value={String(todas.length)} href={qs({})} ativo={!filtro} />
+        <Card label="Ativas" value={String(tot.ativas)} href={qs({ filtro: 'ativas' })} ativo={filtro === 'ativas'} />
+        <Card label="Consultas" value={tot.consultas.toLocaleString('pt-BR')} href={qs({})} />
         <Card label="Aprovados" value={tot.aprovados.toLocaleString('pt-BR')} href={qs({})} />
         <Card label="Vendas" value={tot.vendas.toLocaleString('pt-BR')} href={qs({})} />
         <Card label="Valor vendido" value={fmtBRL(tot.valor)} href={qs({})} />
         <Card label="Conversão média" value={fmtPct(convMedia)} color="var(--accent)" href={qs({})} />
         <Card label="Sem venda" value={String(tot.semVenda)} color={tot.semVenda > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'sem_venda' })} ativo={filtro === 'sem_venda'} />
         <Card label="Sem consulta" value={String(tot.semConsulta)} color={tot.semConsulta > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'sem_consulta' })} ativo={filtro === 'sem_consulta'} />
-        <Card label="Sem operador" value={String(tot.semOperador)} color={tot.semOperador > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'sem_operador' })} ativo={filtro === 'sem_operador'} />
+        <Card label="⚠️ Novos sem engajamento" value={String(tot.novos)} color={tot.novos > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'novo_sem_engajamento' })} ativo={filtro === 'novo_sem_engajamento'} />
+        <Card label="⚠️ Baixa performance" value={String(tot.baixa)} color={tot.baixa > 0 ? 'var(--red)' : undefined} href={qs({ filtro: 'baixa_performance' })} ativo={filtro === 'baixa_performance'} />
       </section>
 
       <form method="get" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem', flexWrap: 'wrap', flexShrink: 0 }}>
@@ -292,12 +326,11 @@ export default async function DesempenhoPage({
         {filtro && <input type="hidden" name="filtro" value={filtro} />}
         <input type="hidden" name="sort" value={sort} />
         <input type="hidden" name="dir" value={dir} />
-        <input name="q" defaultValue={sp.q ?? ''} placeholder="Loja, CNPJ, cidade, UF, telefone, e-mail, sócio, status…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 330 }} />
-        <select name="uf" defaultValue={sp.uf ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
-          <option value="">Todas as UFs</option>
-          {[...new Set(todas.map((r) => r.uf).filter(Boolean))].sort().map((uf) => (
-            <option key={uf} value={uf!}>{uf}</option>
-          ))}
+        <input name="q" defaultValue={sp.q ?? ''} placeholder="Loja, CNPJ, RID, e-mail, sócio, telefone…" style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 330 }} />
+        <select name="status" defaultValue={sp.status ?? ''} style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)' }}>
+          <option value="">Todas</option>
+          <option value="ativas">Ativas</option>
+          <option value="inativas">Inativas</option>
         </select>
         <button type="submit" style={{ padding: '0.45rem 0.9rem', borderRadius: 6, border: '1px solid var(--accent)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>Filtrar</button>
       </form>
@@ -330,22 +363,28 @@ export default async function DesempenhoPage({
               const tend = ant?.vendas == null || r.vendas == null ? '—' : r.vendas > (ant.vendas ?? 0) ? '▲' : r.vendas < (ant.vendas ?? 0) ? '▼' : '='
               const tendCor = tend === '▲' ? 'var(--green)' : tend === '▼' ? 'var(--red)' : 'var(--text-dim)'
               const leadId = infoDe(r)?.id ?? null
+              // escala assumida 0–1; conferir no 1º retrato real (Task 9 Step 4)
+              const fmtPctNulo = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)
+              const ambar = (v: number | null): React.CSSProperties => (v != null && v > 0 ? { color: '#d97706', fontWeight: 600 } : {})
+              const rotuloAtencao = r.atencao === 'novo_sem_engajamento' ? ' · ⚠️ novo sem engajamento' : r.atencao === 'baixa_performance' ? ' · ⚠️ baixa performance' : ''
               const celulas = (
                 <>
                   <td style={{ padding: '0.45rem 0.6rem', maxWidth: 280 }} title={leadId ? 'Abrir a conversa do lead' : 'Loja sem lead no painel (veio direto da AIVA)'}>
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {leadId ? '💬 ' : ''}{r.loja ?? r.nome_varejo ?? r.cnpj}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{r.cnpj}{r.sem_venda ? ' · sem venda' : ''}{r.sem_consulta ? ' · sem consulta' : ''}{r.sem_operador ? ' · sem operador' : ''}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{r.cnpj}{r.rid ? ` · RID ${r.rid}` : ''}{r.sem_venda ? ' · sem venda' : ''}{r.sem_consulta ? ' · sem consulta' : ''}{rotuloAtencao}</div>
                   </td>
-                  <td style={{ padding: '0.45rem 0.6rem' }}>{r.uf ?? '—'}</td>
-                  <td style={{ padding: '0.45rem 0.6rem' }}>{r.cidade ?? '—'}</td>
-                  <td style={{ padding: '0.45rem 0.6rem' }}>{r.status_consulta ?? '—'}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', color: r.status_portal === 'Ativo' ? 'var(--green)' : 'var(--text-dim)' }}>{r.status_portal ?? '—'}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.consultas ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.aprovados ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.vendas ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPct(r.conversao)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.valor_vendas)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.ticket_medio)}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', ...ambar(r.inadimplencia_aiva) }}>{fmtPctNulo(r.inadimplencia_aiva)}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', ...ambar(r.inadimplencia_odres) }}>{fmtPctNulo(r.inadimplencia_odres)}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPctNulo(r.foto_fora_pct)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', color: tendCor, textAlign: 'center' }}>{tend}</td>
                 </>
               )
