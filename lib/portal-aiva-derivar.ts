@@ -168,6 +168,12 @@ export function agregarMensal(
   // "hoje" (a data real da chamada) não pode entrar no cálculo de vendas30d/atenção, senão
   // vendas de meses seguintes vazam pra classificação de um mês que já fechou (revisão 09/09)
   const ref = hoje < ultimoDiaDoMes(mes) ? hoje : ultimoDiaDoMes(mes)
+  // backfill legado: todo mês antigo carrega o MESMO data_ref (ontem), então o "retrato" do
+  // mês pode cair DEPOIS do próprio mês ter terminado. Nesse caso `ref` (travado no fim do
+  // mês) fica antes de `ultimo`, mtdEm/vendas30d não enxergam nenhum ponto dentro da janela e
+  // todo mundo vira baixa_performance à toa — sem sinal real de inatividade. Não classifica
+  // (revisão final 09/09).
+  const semAtencao = ultimo > ultimoDiaDoMes(mes)
 
   type Acc = LinhaMensal & {
     _maisVendas: number; _aprovDesdeCad: number; _vendasDesdeCad: number; _vendas30d: number
@@ -223,7 +229,7 @@ export function agregarMensal(
       ticket_medio: r.vendas > 0 ? r.valor_vendas / r.vendas : null,
       sem_venda: r.vendas === 0,
       sem_consulta: r.consultas === 0,
-      atencao: classificarAtencao({ cadastro: cadastro_em, hoje: ref, vendasDesdeCadastro: _vendasDesdeCad, aprovadosDesdeCadastro: _aprovDesdeCad, vendas30d: _vendas30d }),
+      atencao: semAtencao ? null : classificarAtencao({ cadastro: cadastro_em, hoje: ref, vendasDesdeCadastro: _vendasDesdeCad, aprovadosDesdeCadastro: _aprovDesdeCad, vendas30d: _vendas30d }),
       valor_vendas: Number(r.valor_vendas.toFixed(2)), // acumulação em float — arredonda só no retorno
     }
   })

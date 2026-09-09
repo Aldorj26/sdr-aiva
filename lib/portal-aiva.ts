@@ -104,8 +104,13 @@ export async function buscarPerformance(s: Sessao, partnerId: string, mesMinimo:
 
 /** Converte a linha do portal pro formato da nossa série diária. */
 export function paraLinhaDiaria(l: LinhaPortal, dataRef: string): LinhaDiaria {
-  const dataCad = typeof l.created_at === 'string' ? l.created_at.slice(0, 10)
-    : typeof l.cadastro_em === 'string' ? l.cadastro_em.slice(0, 10)
+  // `created_at` tirado da cadeia (revisão final 09/09): nessa tabela é quase certo que seja o
+  // timestamp de INSERT da linha (retailer_performance é regravada/atualizada com frequência),
+  // não a data de cadastro do lojista — um cadastro errado alimenta `atencao` direto
+  // (classificarAtencao usa dias desde o cadastro). ⚠️ Confirmar o nome real da coluna de
+  // cadastro no log `chaves` do `?dry=1` (app/api/cron/portal-aiva/route.ts) antes da primeira
+  // rodada real — pode não ser nem `cadastro_em` nem `retailer_created_at`.
+  const dataCad = typeof l.cadastro_em === 'string' ? l.cadastro_em.slice(0, 10)
     : typeof l.retailer_created_at === 'string' ? l.retailer_created_at.slice(0, 10)
     : null
   const retailer_id = String(l.retailer_id)
@@ -344,6 +349,10 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
   // extra (revisão 09/09).
   const soRid = soRidTodos.slice(0, TETO_SO_RID)
   const soRidSobraram = soRidTodos.length - soRid.length
+  // linha do teto do balde 2, pra aparecer tanto no retorno de `dry` quanto no digest
+  // (revisão final 09/09) — antes só ia pro digest via `avisoSoRid`, e `dry` nunca manda
+  // digest, então a prévia escondia que o teto de 200 tinha cortado a lista.
+  const linhaSoRidTeto = soRidSobraram > 0 ? `⏳ +${soRidSobraram} RIDs ficaram pra amanhã (teto do balde 2)` : null
   // Balde 3 (já ativa e com o mesmo RID) não aparece em lugar nenhum: nada a fazer.
   if (!paraAtivar.length && !soRid.length) return []
 
@@ -469,7 +478,7 @@ export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean)
     }
   }
 
-  const tetoLinhas = linhaTeto ? [linhaTeto] : []
+  const tetoLinhas = [linhaTeto, linhaSoRidTeto].filter((l): l is string => l != null)
   if (dry) return [...linhas, ...tetoLinhas, ...ridLinhas]
 
   const dataRef = retrato[0]?.data_ref ?? hojeBrt()

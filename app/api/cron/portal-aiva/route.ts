@@ -32,7 +32,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 120
+// mesmo teto do /followup — a ativação sozinha já pode gastar boa parte dos 60s
+// default (várias chamadas ao Evo por loja), fora scraping+gravação do portal (revisão final 09/09)
+export const maxDuration = 300
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''

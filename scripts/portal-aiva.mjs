@@ -7,7 +7,9 @@
 //   node --env-file=.env.local scripts/portal-aiva.mjs --semana 2026-09-14
 const args = process.argv.slice(2)
 const pega = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null }
-const base = args.includes('--local') ? 'http://localhost:3000' : (process.env.APP_URL ?? 'https://sdr-agent-t5dct1xnn-aldo-7870s-projects.vercel.app')
+// URL estável (mesma dos outros scripts, ex. disparar-fila.mjs) — a *-projects.vercel.app
+// é escopada ao deploy e muda a cada novo deployment (revisão final 09/09)
+const base = args.includes('--local') ? 'http://localhost:3000' : (process.env.APP_URL ?? 'https://sdr-aiva.vercel.app')
 const p = new URLSearchParams()
 if (args.includes('--dry')) p.set('dry', '1')
 if (args.includes('--tudo')) p.set('tudo', '1')

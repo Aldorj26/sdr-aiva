@@ -113,6 +113,19 @@ test('agregarMensal: rederivar um mês fechado usa a data de fechamento do mês,
   assert.equal(rowsBackfill[0].atencao, rowsNoFechamento[0].atencao)
 })
 
+test('agregarMensal: retrato fora do mês (backfill) não marca atenção — revisão final 09/09', () => {
+  // todo mês legado do backfill carrega o MESMO data_ref (ontem) — aqui o retrato de
+  // 08/09 é usado pra "fechar" agosto, que já terminou em 31/08. Sem a trava, mtdEm/vendas30d
+  // não enxergam nenhum retrato dentro da janela do mês e a loja vira baixa_performance à toa.
+  const serie = [
+    linha({ data_ref: '2026-09-08', retailer_id: 'r1', mes: '2026-08-01', cnpj: '11111111000191', vendas: 50, cadastro_em: '2026-03-01' }),
+  ]
+  const rows = agregarMensal(serie, '2026-08-01', '2026-09-09', new Map())
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].vendas, 50)
+  assert.equal(rows[0].atencao, null)
+})
+
 const L = (data_ref: string, retailer_id: string, mes: string, m: Partial<LinhaDiaria>) =>
   linha({ data_ref, retailer_id, mes, cnpj: retailer_id.padStart(14, '0'), nome_varejo: 'Loja ' + retailer_id, ...m })
 
