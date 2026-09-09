@@ -95,3 +95,127 @@ export function classificarAtencao(p: {
   }
   return p.vendas30d === 0 ? 'baixa_performance' : null
 }
+
+export type LinhaMensal = {
+  mes: string               // YYYY-MM (formato da aiva_desempenho)
+  cnpj: string
+  nome_varejo: string | null
+  loja: string | null
+  rid: string | null
+  status_portal: string | null
+  consultas: number
+  aprovados: number
+  vendas: number
+  valor_vendas: number
+  conversao: number
+  ticket_medio: number | null
+  inadimplencia_aiva: number | null
+  inadimplencia_odres: number | null
+  foto_fora_pct: number | null
+  cadastro_em: string | null
+  atencao: Atencao
+  sem_venda: boolean
+  sem_consulta: boolean
+  // colunas do Data Studio que continuam na tabela — sempre nulas/false agora
+  uf: null; cidade: null; status_consulta: null; sem_operador: false; telefone: null; qtd_operadores: null
+}
+
+const maxNulo = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
+const minData = (a: string | null, b: string | null) => (a == null ? b : b == null ? a : a < b ? a : b)
+
+/**
+ * Vendas de uma loja nos últimos 30 dias até `hoje`, pela série: acumulado do
+ * mês corrente + (acumulado final do mês anterior − acumulado do mês anterior
+ * em hoje−30). Sem retrato antigo o mês anterior entra inteiro — é a
+ * aproximação "mês corrente + anterior" da spec, que some sozinha quando a
+ * série tiver 30 dias.
+ */
+function vendas30d(serie: LinhaDiaria[], retailerId: string, hoje: string): number {
+  const mesAtual = mesDe(hoje)
+  const mesAnt = mesDe(somarDias(mesAtual, -1))
+  const inicioJanela = somarDias(hoje, -30)
+  const atual = mtdEm(serie, retailerId, mesAtual, hoje).vendas
+  if (inicioJanela >= mesAtual) return atual
+  const fimAnt = mtdEm(serie, retailerId, mesAnt, ultimoDiaDoMes(mesAnt)).vendas
+  const inicioAnt = mtdEm(serie, retailerId, mesAnt, inicioJanela).vendas
+  return atual + Math.max(0, fimAnt - inicioAnt)
+}
+
+/**
+ * Uma linha por CNPJ pra aiva_desempenho, a partir do ÚLTIMO retrato do mês.
+ * Agrega multi-lojas do mesmo CNPJ (Multicell Loja 1/2/3): soma métricas, fica
+ * o nome/RID da loja que mais vendeu, Ativo se qualquer loja está ativa,
+ * inadimplência = a maior, cadastro = o mais antigo.
+ *
+ * `primeiraAparicao`: retailer_id → primeiro data_ref na série inteira (quem
+ * chama lê do banco). É o cadastro quando o portal não expõe a coluna.
+ */
+export function agregarMensal(
+  serie: LinhaDiaria[],
+  mes: string,
+  hoje: string,
+  primeiraAparicao: Map<string, string>,
+): LinhaMensal[] {
+  const doMes = serie.filter((l) => l.mes === mes)
+  if (!doMes.length) return []
+  const ultimo = doMes.reduce((m, l) => (l.data_ref > m ? l.data_ref : m), doMes[0].data_ref)
+  const retrato = doMes.filter((l) => l.data_ref === ultimo)
+
+  type Acc = LinhaMensal & {
+    _maisVendas: number; _aprovDesdeCad: number; _vendasDesdeCad: number; _vendas30d: number
+    // cadastro real (coluna do portal) e cadastro inferido (primeira aparição na série) ficam
+    // separados até o fim: um cadastro real de QUALQUER loja do CNPJ vence a inferência de outra
+    // loja do mesmo grupo — senão uma Multicell 2 com cadastro real perdia pra Multicell 1 sem
+    // coluna (cuja "primeira aparição" pode ser bem mais antiga que o cadastro de verdade).
+    _cadReal: string | null; _cadFallback: string | null
+  }
+  const porCnpj = new Map<string, Acc>()
+  for (const l of retrato) {
+    const cadastroReal = l.cadastro_em ?? null
+    const cadastroFallback = primeiraAparicao.get(l.retailer_id) ?? null
+    // "desde o cadastro" pra lojas novas (≤ 29 dias) cabe em mês atual + anterior
+    const mesAnt = mesDe(somarDias(mes, -1))
+    const ant = mtdEm(serie, l.retailer_id, mesAnt, ultimoDiaDoMes(mesAnt))
+    const acc = porCnpj.get(l.cnpj)
+    if (!acc) {
+      porCnpj.set(l.cnpj, {
+        mes: mes.slice(0, 7), cnpj: l.cnpj, nome_varejo: l.nome_varejo, loja: l.nome_varejo, rid: l.retailer_id,
+        status_portal: l.status, consultas: l.consultas, aprovados: l.aprovados, vendas: l.vendas, valor_vendas: Number(l.valor_vendas),
+        conversao: 0, ticket_medio: null,
+        inadimplencia_aiva: l.inadimplencia_aiva, inadimplencia_odres: l.inadimplencia_odres, foto_fora_pct: l.foto_fora_pct,
+        cadastro_em: null, atencao: null, sem_venda: false, sem_consulta: false,
+        uf: null, cidade: null, status_consulta: null, sem_operador: false, telefone: null, qtd_operadores: null,
+        _maisVendas: l.vendas, _aprovDesdeCad: l.aprovados + ant.aprovados, _vendasDesdeCad: l.vendas + ant.vendas,
+        _vendas30d: vendas30d(serie, l.retailer_id, hoje), _cadReal: cadastroReal, _cadFallback: cadastroFallback,
+      })
+      continue
+    }
+    acc.consultas += l.consultas
+    acc.aprovados += l.aprovados
+    acc.vendas += l.vendas
+    acc.valor_vendas += Number(l.valor_vendas)
+    if (l.vendas > acc._maisVendas) { acc._maisVendas = l.vendas; acc.loja = l.nome_varejo; acc.rid = l.retailer_id }
+    if (l.status === 'Ativo') acc.status_portal = 'Ativo'
+    acc.inadimplencia_aiva = maxNulo(acc.inadimplencia_aiva, l.inadimplencia_aiva)
+    acc.inadimplencia_odres = maxNulo(acc.inadimplencia_odres, l.inadimplencia_odres)
+    acc.foto_fora_pct = maxNulo(acc.foto_fora_pct, l.foto_fora_pct)
+    acc._cadReal = minData(acc._cadReal, cadastroReal)
+    acc._cadFallback = minData(acc._cadFallback, cadastroFallback)
+    acc._aprovDesdeCad += l.aprovados + ant.aprovados
+    acc._vendasDesdeCad += l.vendas + ant.vendas
+    acc._vendas30d += vendas30d(serie, l.retailer_id, hoje)
+  }
+
+  return [...porCnpj.values()].map(({ _maisVendas, _aprovDesdeCad, _vendasDesdeCad, _vendas30d, _cadReal, _cadFallback, ...r }) => {
+    const cadastro_em = _cadReal ?? _cadFallback
+    return {
+      ...r,
+      cadastro_em,
+      conversao: r.aprovados > 0 ? r.vendas / r.aprovados : 0,
+      ticket_medio: r.vendas > 0 ? r.valor_vendas / r.vendas : null,
+      sem_venda: r.vendas === 0,
+      sem_consulta: r.consultas === 0,
+      atencao: classificarAtencao({ cadastro: cadastro_em, hoje, vendasDesdeCadastro: _vendasDesdeCad, aprovadosDesdeCadastro: _aprovDesdeCad, vendas30d: _vendas30d }),
+    }
+  })
+}
