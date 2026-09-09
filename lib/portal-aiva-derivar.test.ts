@@ -27,3 +27,23 @@ test('mtdEm devolve o retrato mais recente até a data, ou zeros se não há ret
   assert.deepEqual(mtdEm(serie, 'r1', '2026-09-01', '2026-09-04'), { consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 })
   assert.deepEqual(mtdEm(serie, 'r1', '2026-08-01', '2026-09-07'), { consultas: 0, aprovados: 0, vendas: 0, valor_vendas: 0 })
 })
+
+import { classificarAtencao } from './portal-aiva-derivar.ts'
+
+test('classificarAtencao espelha a aba "Precisam de atenção" do portal', () => {
+  const hoje = '2026-09-09'
+  // novo (14 dias), 0 vendas, 2 aprovados → novo sem engajamento
+  assert.equal(classificarAtencao({ cadastro: '2026-08-26', hoje, vendasDesdeCadastro: 0, aprovadosDesdeCadastro: 2, vendas30d: 0 }), 'novo_sem_engajamento')
+  // novo demais (5 dias) → ainda não conta
+  assert.equal(classificarAtencao({ cadastro: '2026-09-04', hoje, vendasDesdeCadastro: 0, aprovadosDesdeCadastro: 0, vendas30d: 0 }), null)
+  // novo com 4 aprovados → engajou
+  assert.equal(classificarAtencao({ cadastro: '2026-08-26', hoje, vendasDesdeCadastro: 0, aprovadosDesdeCadastro: 4, vendas30d: 0 }), null)
+  // novo que vendeu → ok
+  assert.equal(classificarAtencao({ cadastro: '2026-08-26', hoje, vendasDesdeCadastro: 1, aprovadosDesdeCadastro: 1, vendas30d: 1 }), null)
+  // base (83 dias) sem venda em 30d → baixa performance
+  assert.equal(classificarAtencao({ cadastro: '2026-06-18', hoje, vendasDesdeCadastro: 3, aprovadosDesdeCadastro: 20, vendas30d: 0 }), 'baixa_performance')
+  // base vendendo → ok
+  assert.equal(classificarAtencao({ cadastro: '2026-06-18', hoje, vendasDesdeCadastro: 3, aprovadosDesdeCadastro: 20, vendas30d: 2 }), null)
+  // cadastro desconhecido = trata como base
+  assert.equal(classificarAtencao({ cadastro: null, hoje, vendasDesdeCadastro: 0, aprovadosDesdeCadastro: 0, vendas30d: 0 }), 'baixa_performance')
+})

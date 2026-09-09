@@ -70,3 +70,28 @@ export function mtdEm(serie: LinhaDiaria[], retailerId: string, mes: string, dat
   if (!melhor) return { ...ZERO }
   return { consultas: melhor.consultas, aprovados: melhor.aprovados, vendas: melhor.vendas, valor_vendas: Number(melhor.valor_vendas) }
 }
+
+export type Atencao = 'novo_sem_engajamento' | 'baixa_performance' | null
+
+/**
+ * Espelha a aba "Precisam de atenção" do portal, com a nossa série:
+ * - novo sem engajamento: cadastrado há 8–29 dias, sem venda e com no máximo 3
+ *   aprovados desde o cadastro (o portal fala em "baixíssima atividade" sem dar
+ *   o número; 3 é o que a lista dele mostra na prática — decisão 09/09).
+ * - baixa performance: cadastrado há 30+ dias (ou data desconhecida) e sem
+ *   venda nos últimos 30 dias.
+ */
+export function classificarAtencao(p: {
+  cadastro: string | null
+  hoje: string
+  vendasDesdeCadastro: number
+  aprovadosDesdeCadastro: number
+  vendas30d: number
+}): Atencao {
+  const dias = p.cadastro ? diasEntre(p.cadastro, p.hoje) : Infinity
+  if (dias < 8) return null
+  if (dias <= 29) {
+    return p.vendasDesdeCadastro === 0 && p.aprovadosDesdeCadastro <= 3 ? 'novo_sem_engajamento' : null
+  }
+  return p.vendas30d === 0 ? 'baixa_performance' : null
+}
