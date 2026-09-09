@@ -9,7 +9,10 @@
  * Substituiu o Data Studio em 09/09/2026 (coletor-funil-loja.js ficou como legado).
  */
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendText } from '@/lib/evotalks'
+import {
+  sendText, createOpportunity, updateOpportunityDescription, addOpportunityTags,
+  getPipeOpportunities, PIPELINE_MRR, STAGE_MRR_INICIO, TAG_IDS,
+} from '@/lib/evotalks'
 import {
   agregarMensal, derivarSemana, mesDe, somarDias,
   type LinhaDiaria, type LinhaMensal, type LinhaSemanal,
@@ -200,4 +203,91 @@ export async function salvarSemanal(segunda: string): Promise<{ lojas: number; v
     if (ins.error) throw new Error(`gravar semanal ${segunda}: ${ins.error.message}`)
   }
   return { lojas: rows.length, vendas: rows.reduce((s, r) => s + r.vendas, 0), avisos }
+}
+
+/**
+ * CNPJ registrado (sdr_registros_cnpj) que aparece no retrato do dia — decisão
+ * do Aldo 09/09: presença no portal = contrato assinado → grava RID; status
+ * Ativo = loja ativa. Ou seja:
+ *   - QUALQUER CNPJ presente (Ativo OU Inativo) sem RID gravado, ou com RID
+ *     diferente do atual, ganha o `rid` atualizado — é o que faz o card do
+ *     lead no painel mostrar "✅ RID xxxx".
+ *   - SÓ quando o status no portal é 'Ativo' rola o resto: status='ativa',
+ *     `ativa_em`, conta espelho no funil 11 (dedupe por UME_RID na descrição)
+ *     e linha no digest WhatsApp pro Aldo/Nei.
+ * Mesma ação do `scripts/detectar-lojas-ativas.mjs` (que fica intacto como
+ * rede de segurança de segunda), agora em TS e disparada todo dia pela rota.
+ * Retorna as linhas do digest (só ativações); em `dry` não grava nem envia.
+ */
+export async function ativarLojasPresentes(retrato: LinhaDiaria[], dry: boolean): Promise<string[]> {
+  // Map<cnpj, LinhaDiaria> — quando o CNPJ tem várias lojas, prefere a linha
+  // Ativo (uma loja ativa "cobre" o CNPJ mesmo que outra unidade esteja Inativo).
+  const porCnpj = new Map<string, LinhaDiaria>()
+  for (const l of retrato) {
+    const atual = porCnpj.get(l.cnpj)
+    if (!atual || (atual.status !== 'Ativo' && l.status === 'Ativo')) porCnpj.set(l.cnpj, l)
+  }
+
+  const { data: pendentes, error } = await supabaseAdmin
+    .from('sdr_registros_cnpj')
+    .select('id,lead_id,loja,telefone,cnpj,status,rid,ativa_em')
+    .neq('status', 'ativa')
+  if (error) throw new Error(`sdr_registros_cnpj: ${error.message}`)
+  const presentes = (pendentes ?? []).filter((r) => porCnpj.has(String(r.cnpj)))
+  if (!presentes.length) return []
+
+  const paraAtivar = presentes.filter((r) => porCnpj.get(String(r.cnpj))!.status === 'Ativo')
+  // Inativo (ou outro status) mas apareceu com RID novo/ausente — só grava RID.
+  const paraGravarRid = presentes.filter((r) => {
+    const s = porCnpj.get(String(r.cnpj))!
+    return s.status !== 'Ativo' && String(r.rid ?? '') !== s.retailer_id
+  })
+  if (!paraAtivar.length && !paraGravarRid.length) return []
+
+  if (!dry) {
+    for (const r of paraGravarRid) {
+      const s = porCnpj.get(String(r.cnpj))!
+      await supabaseAdmin.from('sdr_registros_cnpj').update({ rid: s.retailer_id }).eq('id', r.id)
+    }
+  }
+
+  const opps = dry || !paraAtivar.length ? [] : await getPipeOpportunities(PIPELINE_MRR)
+  const linhas: string[] = []
+  for (const r of paraAtivar) {
+    const s = porCnpj.get(String(r.cnpj))!
+    const rid = s.retailer_id
+    const fone = String(r.telefone ?? '').replace(/\D/g, '')
+    if (dry) { linhas.push(`• ${r.loja} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) [dry]`); continue }
+
+    await supabaseAdmin.from('sdr_registros_cnpj').update({ status: 'ativa', rid, ativa_em: new Date().toISOString() }).eq('id', r.id)
+
+    const re = new RegExp(`UME_RID:\\s*${rid}\\b`)
+    const dup = opps.find((o) => re.test(o.description ?? ''))
+    let contaInfo: string
+    if (dup) contaInfo = `conta MRR já existia (#${dup.id})`
+    else {
+      try {
+        const id = await createOpportunity({ title: (s.nome_varejo ?? r.loja ?? 'Loja AIVA').trim(), number: fone, pipelineId: PIPELINE_MRR, stageId: STAGE_MRR_INICIO, responsableId: 507 })
+        await updateOpportunityDescription(id, `UME_RID: ${rid} | CNPJ: ${r.cnpj} | Loja de ${r.loja} (ativa no portal AIVA em ${s.data_ref}) | Fone lojista: ${fone}`)
+        await addOpportunityTags(id, [TAG_IDS.UME])
+        // read-after-write (lição 26/08: o Evo pode responder 200 sem persistir)
+        const conf = (await getPipeOpportunities(PIPELINE_MRR)).find((o) => o.id === id && re.test(o.description ?? ''))
+        contaInfo = conf ? `conta MRR criada (#${id})` : `⚠️ conta #${id} criada mas descrição NÃO confirmou — conferir`
+      } catch (e) {
+        contaInfo = `⚠️ falha ao criar conta MRR: ${String(e).slice(0, 100)}`
+      }
+    }
+    linhas.push(`• ${r.loja} — ${s.nome_varejo ?? r.cnpj} (RID ${rid}) → ${contaInfo}`)
+  }
+
+  if (dry) return linhas
+
+  if (linhas.length || paraGravarRid.length) {
+    const rodape = paraGravarRid.length ? `\n(+${paraGravarRid.length} lojas ganharam RID sem ativar ainda)` : ''
+    const resumo = `🆕 *Lojas novas ATIVARAM no portal AIVA (${retrato[0]?.data_ref ?? hojeBrt()})*\n${linhas.join('\n') || '(nenhuma ativação nova)'}${rodape}`
+    for (const tel of [process.env.ALDO_WHATSAPP, process.env.NEI_WHATSAPP].filter(Boolean) as string[]) {
+      try { await sendText(tel, resumo) } catch (e) { console.error('[portal-aiva] digest de ativação falhou:', e) }
+    }
+  }
+  return linhas
 }
