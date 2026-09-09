@@ -884,6 +884,13 @@ export async function criarContaMrr(opts: {
 }
 
 /**
+ * Escapa antes de interpolar em RegExp — o `rid` vem do portal AIVA (dado
+ * externo); um caractere especial ali viraria metacaractere e faria o dedupe
+ * casar com a conta errada (ou explodir a construção do regex) — revisão 09/09.
+ */
+export const escaparRegex = (v: unknown) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
  * Cria conta MRR (funil 11) pra UMA LOJA específica (filial / loja adicional),
  * identificada pelo Retailer ID da UME. Diferente de criarContaMrr, o dedupe é
  * pelo `UME_RID:` na descrição — NÃO por telefone, porque filiais compartilham
@@ -899,7 +906,7 @@ export async function criarContaMrrLoja(opts: {
   const rid = String(opts.rid ?? '').trim()
   if (!rid) return null
   const existentes = await getPipeOpportunities(PIPELINE_MRR)
-  const re = new RegExp(`UME_RID:\\s*${rid}\\b`)
+  const re = new RegExp(`UME_RID:\\s*${escaparRegex(rid)}\\b`)
   const dup = existentes.find((o) => re.test(o.description ?? ''))
   if (dup) return { id: dup.id, jaExistia: true }
 
