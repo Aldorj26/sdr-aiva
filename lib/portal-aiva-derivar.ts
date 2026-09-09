@@ -219,3 +219,89 @@ export function agregarMensal(
     }
   })
 }
+
+export type LinhaSemanal = {
+  semana: string          // segunda-feira YYYY-MM-DD
+  cnpj: string
+  rid: string | null
+  nome_varejo: string | null
+  loja: string | null
+  uf: null
+  cidade: null
+  consultas: number       // não existe na tabela semanal — usado só pro filtro de inclusão
+  aprovados: number
+  vendas: number
+  valor_vendas: number
+}
+
+const chaves: (keyof Metricas)[] = ['consultas', 'aprovados', 'vendas', 'valor_vendas']
+
+/**
+ * Semana fechada (segunda a domingo) a partir dos acumulados do mês:
+ *   semana = MTD(domingo) − MTD(domingo − 7)
+ * Semana que cruza mês: [MTD(último dia do mês antigo) − MTD(dom−7)] + MTD(dom, mês novo).
+ *
+ * Ponto final: o retrato de domingo; se a coleta de segunda falhou, aceita o
+ * retrato de segunda (aviso — inclui a segunda-feira) ; sem nenhum dos dois,
+ * erro — sem ponto final não existe semana.
+ *
+ * Delta negativo (AIVA cancelou/reprocessou contrato) vira 0 e entra em
+ * `avisos` — nunca chega a mensagem pro lojista.
+ *
+ * Quem entra: loja com consultas/aprovados/vendas > 0 na semana OU vendas > 0
+ * na semana anterior (`vendasSemanaAnterior`, por CNPJ, lido de
+ * aiva_desempenho_semanal) — preserva o segmento C "queda" do pulso e o
+ * comportamento do Data Studio, que só listava quem teve atividade.
+ */
+export function derivarSemana(
+  serie: LinhaDiaria[],
+  segunda: string,
+  vendasSemanaAnterior: Map<string, number>,
+): { linhas: LinhaSemanal[]; avisos: string[] } {
+  const avisos: string[] = []
+  const domingo = somarDias(segunda, 6)
+  const domAnt = somarDias(segunda, -1)
+  const temRetrato = (d: string) => serie.some((l) => l.data_ref === d)
+  let fim = domingo
+  if (!temRetrato(domingo)) {
+    if (!temRetrato(somarDias(domingo, 1))) throw new Error(`sem retrato de ${domingo} nem de ${somarDias(domingo, 1)} — não dá pra fechar a semana ${segunda}`)
+    fim = somarDias(domingo, 1)
+    avisos.push(`sem retrato de domingo ${domingo}; usando o de segunda ${fim} (inclui a segunda-feira)`)
+  }
+  const meses = [...new Set([mesDe(segunda), mesDe(domingo)])]
+
+  const porRetailer = new Map<string, LinhaDiaria>()
+  for (const l of serie) if (!porRetailer.has(l.retailer_id)) porRetailer.set(l.retailer_id, l)
+
+  type Acc = LinhaSemanal & { _maisVendas: number }
+  const porCnpj = new Map<string, Acc>()
+  for (const [rid, info] of porRetailer) {
+    const delta: Metricas = { ...ZERO }
+    for (const mes of meses) {
+      const fimMes = mes === mesDe(fim) ? fim : ultimoDiaDoMes(mes)
+      const a = mtdEm(serie, rid, mes, fimMes)
+      const b = mtdEm(serie, rid, mes, domAnt)
+      // um único aviso por loja/mês, mesmo que mais de uma métrica tenha caído junto
+      // (ex.: AIVA cancela uma venda → vendas E valor_vendas ficam negativos na mesma hora)
+      const negativos: string[] = []
+      for (const k of chaves) {
+        const d = a[k] - b[k]
+        if (d < 0) { negativos.push(`${k} (${b[k]} → ${a[k]})`); continue }
+        delta[k] += d
+      }
+      if (negativos.length) avisos.push(`${info.nome_varejo ?? rid} (${rid}): ${negativos.join(', ')} negativo em ${mes}; zerado`)
+    }
+    const acc = porCnpj.get(info.cnpj)
+    if (!acc) {
+      porCnpj.set(info.cnpj, { semana: segunda, cnpj: info.cnpj, rid, nome_varejo: info.nome_varejo, loja: info.nome_varejo, uf: null, cidade: null, ...delta, _maisVendas: delta.vendas })
+      continue
+    }
+    for (const k of chaves) acc[k] += delta[k]
+    if (delta.vendas > acc._maisVendas) { acc._maisVendas = delta.vendas; acc.rid = rid; acc.loja = info.nome_varejo }
+  }
+
+  const linhas = [...porCnpj.values()]
+    .filter((l) => l.consultas > 0 || l.aprovados > 0 || l.vendas > 0 || (vendasSemanaAnterior.get(l.cnpj) ?? 0) > 0)
+    .map(({ _maisVendas, ...l }) => l)
+  return { linhas, avisos }
+}
