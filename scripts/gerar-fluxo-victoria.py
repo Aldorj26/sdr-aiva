@@ -27,7 +27,7 @@ COLS = [
        ],
        rotinas=[
          'HSM 41 "AIVA Dia 1" (D+0) → lead INICIO + card 66',
-         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA desde 17/08',
+         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39): 11h, 14h e 17h seg–sex, 150 por rodada — ▶ reativada 10/09 (esteve pausada 17/08–10/09)',
          'auto-descarte 10h seg–sex: INICIO +15d sem resposta → card 53 + SEM_RESPOSTA',
          'varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.777 na fila)',
        ],
@@ -465,7 +465,7 @@ footer{{margin-top:22px;font-size:12px;color:var(--ink-2)}}
   <ul class="movers">{movers_html}</ul>
   <h3>Transversal — corre o funil inteiro</h3>
   <div class="transgrid">{trans_html}</div>
-  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08, então hoje quem não responde ao Dia 1 só recebe o auto-descarte aos 15 dias. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
+  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 ficou pausada de 17/08 a 10/09 (0,12% de resposta, templates sem botão) e foi reativada em 10/09 com backlog de cerca de 4.100 leads vencidos. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
   <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-10.drawio.</footer>
 </div>
 '''
