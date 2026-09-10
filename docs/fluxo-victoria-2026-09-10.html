@@ -110,7 +110,7 @@ footer{margin-top:22px;font-size:12px;color:var(--ink-2)}
         <p class="auto">automação 88 → opportunity-stage</p>
         <p class="chega">VictorIA muda status quando o lead conversa</p>
       </header>
-      <div class="cell victoria"><ul><li>FASE 1 — coleta 7 dados no chat, um por vez: nome do sócio · CNPJ matriz (cedo) · telefone do sócio · nome da loja · região · nº de lojas · outra financeira?</li><li>CNPJ chega → checagens automáticas (ver Sistemas): DV inválido / não consta na Receita → NÃO pré-aprova</li><li>CNPJ já na base AIVA/Odres → mensagem oficial + transfere pro funil 19 (tag ODRES/UME)</li><li>CNPJ &lt; 1 ano → NAO_QUALIFICADO + card vai pra 93</li><li>Sem sócio na Receita (QSA vazio) → segue igual a qualquer lead (regra 10/09: sem documentos, sem tag)</li><li>Objeções, taxa 12% × juros do cliente, nunca simula parcelas, nunca acusa golpe</li><li>7 dados completos → PRE_APROVACAO + aciona humano (qualificacao_inicial_completa)</li></ul></div>
+      <div class="cell victoria"><ul><li>FASE 1 — coleta 7 dados no chat, um por vez: nome do sócio · CNPJ matriz (cedo) · telefone do sócio · nome da loja · região · nº de lojas · outra financeira?</li><li>CNPJ chega → checagens automáticas (ver Sistemas): DV inválido / não consta na Receita → NÃO pré-aprova</li><li>CNPJ já na base AIVA/Odres → mensagem oficial + transfere pro funil 19 (tag ODRES/UME)</li><li>CNPJ &lt; 1 ano → NAO_QUALIFICADO + card vai pra 93</li><li>CNPJ com situação ≠ ATIVA na Receita (inapta/suspensa/baixada) → avisa o sócio, trava (NAO_QUALIFICADO) + card vai pra 94 (regra 10/09)</li><li>Sem sócio na Receita (QSA vazio) → segue igual a qualquer lead (regra 10/09: sem documentos, sem tag)</li><li>Objeções, taxa 12% × juros do cliente, nunca simula parcelas, nunca acusa golpe</li><li>7 dados completos → PRE_APROVACAO + aciona humano (qualificacao_inicial_completa)</li></ul></div>
       <div class="cell humano"><ul><li>Nei entra quando: +10 lojas · pede contrato · irritado · dúvida técnica/jurídica · já cliente AIVA · confirmar_contato</li></ul></div>
       <div class="cell rotinas"><ul><li>Nenhuma cutucada automática (nudge, reativação, reengajamento e régua-saída removidos em 10/09)</li><li>auto-descarte: INTERESSADO +21d sem msg do lead → AGUARDANDO</li></ul></div>
       <div class="cell sistemas"><ul><li>BrasilAPI (Receita): idade, situação, QSA — marcador [CNPJ_RECEITA] impede revalidar</li><li>aiva_base_cnpjs (6.323 CNPJs, importada 11h todo dia via Data Studio)</li><li>sdr_registros_cnpj (status informada) · formsdata da opp no Evo</li></ul></div>
@@ -205,6 +205,11 @@ footer{margin-top:22px;font-size:12px;color:var(--ink-2)}
         <b>93 · Lojas menos de 01 Ano</b>
         <span class="auto">automação 101</span>
         <p>CNPJ &lt; 1 ano na Receita → NAO_QUALIFICADO (regra 08/09)</p>
+      </div>
+      <div class="saida">
+        <b>94 · CNPJ Irregular na Receita</b>
+        <span class="auto">automação 102</span>
+        <p>Situação ≠ ATIVA (inapta/suspensa/baixada/nula) → sócio avisado, NAO_QUALIFICADO (regra 10/09)</p>
       </div>
       <div class="saida">
         <b>19 · Funil 19 · Odres / UME</b>

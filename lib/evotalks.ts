@@ -602,6 +602,9 @@ const STAGES = {
   // "Lojas menos de 01 Ano" (etapa criada pelo Nei 08/09/2026): destino dos
   // leads desqualificados pela regra de CNPJ < 1 ano (pedido do Aldo 08/09).
   MENOS_1_ANO: 93,
+  // "CNPJ Irregular na Receita" (etapa 94, criada 10/09/2026): situação cadastral
+  // ≠ ATIVA (INAPTA/SUSPENSA/BAIXADA/NULA) no início da jornada → trava + aviso ao sócio.
+  CNPJ_IRREGULAR: 94,
 } as const
 
 // Progressão LINEAR do funil (ordem de avanço) por ID de stage. Usada por
@@ -1131,6 +1134,8 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   // 93 "Lojas menos de 01 Ano" (etapa criada pelo Nei): CNPJ com menos de 1 ano
   // = política de qualificação → NAO_QUALIFICADO (08/09/2026).
   93: 'NAO_QUALIFICADO',
+  // 94 "CNPJ Irregular na Receita": situação ≠ ATIVA = trava (10/09/2026).
+  94: 'NAO_QUALIFICADO',
 }
 
 // Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.

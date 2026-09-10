@@ -631,6 +631,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, lgpd: 'dados_apagados' })
   }
 
+  // 4c. Lead TRAVADO por CNPJ (< 1 ano ou situação ≠ ATIVA) que volta a falar: a
+  // VictorIA não responde (status terminal), mas a mensagem de trava prometeu que o
+  // time retoma — então avisa Nei/Aldo, no máximo 1× por 24h por lead. Reativar é
+  // manual: conferir na Receita, mover o card pra Interessado e clicar Reativar.
+  if (lead.status === 'NAO_QUALIFICADO' && /cnpj_menos_de_1_ano|cnpj_irregular_receita/.test(lead.observacoes ?? '')) {
+    const obsTrava = lead.observacoes ?? ''
+    const ultimoAviso = obsTrava.match(/\[RETORNO_CNPJ_ALERTA:([^\]]+)\]/)?.[1]
+    if (!ultimoAviso || Date.now() - new Date(ultimoAviso).getTime() > 24 * 3600 * 1000) {
+      const sit = /cnpj_irregular_receita:?([A-Z]*)/.exec(obsTrava)
+      const motivoTrava = sit ? `situação ${sit[1] || 'irregular'} na Receita` : 'CNPJ com menos de 1 ano'
+      const aviso =
+        `🔁 *LEAD TRAVADO POR CNPJ VOLTOU A FALAR*\n\n🏪 ${lead.nome}\n📱 ${lead.telefone}\n🧾 Motivo da trava: ${motivoTrava}\n💬 "${String(conteudo ?? '').slice(0, 300)}"\n\n` +
+        `A VictorIA não responde (status travado). Se regularizou: confira na Receita, mova o card pra Interessado e clique Reativar no painel.`
+      if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+      if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+      const carimbo = `[RETORNO_CNPJ_ALERTA:${new Date().toISOString()}]`
+      const novaObs = ultimoAviso ? obsTrava.replace(/\[RETORNO_CNPJ_ALERTA:[^\]]+\]/, carimbo) : `${obsTrava} ${carimbo}`.trim()
+      await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObs }).eq('id', lead.id)
+    }
+    return NextResponse.json({ ok: true, ignorado: 'status_NAO_QUALIFICADO', aviso_retorno_cnpj: true })
+  }
+
   // 5. Ignora leads em status final
   if (STATUS_IGNORAR.includes(lead.status)) {
     return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
@@ -1303,9 +1325,14 @@ export async function POST(req: NextRequest) {
   //      da Odres + funil 19 + encerra. NÃO consulta Receita (evita conflito).
   //   2) Receita (BrasilAPI):
   //      - idade < 1 ano  → NAO_QUALIFICADO automático + mensagem educada
-  //      - situação ≠ ATIVA → alerta pro time (sem mudar status)
+  //      - situação ≠ ATIVA (INAPTA/SUSPENSA/BAIXADA/NULA) → TRAVA (NAO_QUALIFICADO) + aviso ao sócio + etapa 94 (10/09)
   //      - sem sócio (QSA vazio) → nada: fluxo de documentos e tag removidos em 10/09/2026
   let cnpjInfoNovo: import('@/lib/cnpj').CNPJInfo | null = null
+  // As TRAVAS (idade < 1 ano, situação ≠ ATIVA) só valem no INÍCIO DA JORNADA. Em
+  // fase pós-credenciamento o CNPJ que chega é de loja nova/filial ou confirmação
+  // pro painel de repasses — aí só avisa o time (achado do revisor 10/09: sem este
+  // gate, uma loja vendendo viraria NAO_QUALIFICADO e a conversa morreria).
+  const faseInicialCnpj = ['DISPARO_REALIZADO', 'INICIO', 'INTERESSADO', 'SEM_RESPOSTA', 'PRE_APROVACAO', 'AGUARDANDO'].includes(lead.status)
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
     const jaConsultado = (lead.observacoes ?? '').includes(`[CNPJ_RECEITA:cnpj=${cnpjPraChecar}`)
@@ -1405,7 +1432,7 @@ export async function POST(req: NextRequest) {
               (info.abertura ? `📅 Abertura: ${info.abertura.split('-').reverse().join('/')}${info.idadeAnos != null ? ` (${info.idadeAnos} anos)` : ''}\n` : '') +
               (info.cnaeDescricao ? `🏷️ Atividade: ${info.cnaeDescricao}\n` : '')
 
-            if (info.idadeAnos != null && info.idadeAnos < 1) {
+            if (faseInicialCnpj && info.idadeAnos != null && info.idadeAnos < 1) {
               // Regra de corte: CNPJ < 1 ano → desqualifica na hora, mensagem educada.
               // motivo_humano vira o carimbo da razão (entra nas observações e na
               // nota da opp) e é o que manda o card pra etapa 93 no bloco do CRM
@@ -1415,22 +1442,40 @@ export async function POST(req: NextRequest) {
               resposta.motivo_humano = 'cnpj_menos_de_1_ano'
               resposta.mensagem =
                 `Obrigada pelas informações! 😊 Fiz a verificação aqui e o CNPJ informado tem menos de 1 ano de abertura — e hoje, pra cadastrar na AIVA, precisamos de CNPJ com pelo menos 1 ano.\n\n` +
-                `Assim que a loja completar 1 ano de CNPJ, é só me chamar aqui que seguimos com o cadastro na hora, combinado? Vou deixar seu contato guardado! 🙌`
+                `Assim que a loja completar 1 ano de CNPJ, é só me chamar aqui que o nosso time retoma o cadastro com você, combinado? Vou deixar seu contato guardado! 🙌`
               const alerta =
                 `🧾 *CNPJ REPROVADO — MENOS DE 1 ANO*\n\n` + cabecalho +
                 `\n🚫 Desqualificado automaticamente (regra de corte). A VictorIA já respondeu com a mensagem educada. Nenhuma ação necessária.`
               if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
               if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
-            } else {
-              const atencao: string[] = []
-              if (info.situacao && info.situacao !== 'ATIVA') {
-                atencao.push(`🚫 Situação cadastral: *${info.situacao}*`)
-              }
-              if (atencao.length > 0) {
-                const alerta = `🧾 *CONSULTA CNPJ (Receita) — ATENÇÃO*\n\n` + cabecalho + `\n${atencao.join('\n')}`
-                if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
-                if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
-              }
+            } else if (faseInicialCnpj && info.situacao && info.situacao !== 'ATIVA') {
+              // Regra 10/09/2026 (Aldo): CNPJ com situação cadastral ≠ ATIVA na Receita
+              // (INAPTA, SUSPENSA, BAIXADA, NULA) TRAVA no início da jornada. A VictorIA
+              // avisa o sócio da situação e orienta regularizar; o card vai pra etapa 94
+              // "CNPJ Irregular na Receita" no bloco do CRM (via motivo_humano). Antes
+              // (até 09/09) isso só gerava um alerta informativo pro time.
+              const situacao = info.situacao
+              resposta.novo_status = 'NAO_QUALIFICADO'
+              resposta.acionar_humano = false
+              resposta.motivo_humano = `cnpj_irregular_receita:${situacao}`
+              resposta.mensagem =
+                `Obrigada pelas informações! 😊 Fiz a consulta aqui e o CNPJ ${cnpjPraChecar} consta na Receita Federal com a situação cadastral *${situacao}* — e pra credenciar na AIVA o CNPJ precisa estar *ATIVO*.\n\n` +
+                `Vale conferir com o seu contador o que está pendente (costuma ser declaração ou obrigação em atraso) e regularizar. Assim que a situação voltar a ATIVA na Receita, é só me chamar aqui que o nosso time retoma o cadastro com você, combinado? Vou deixar seu contato guardado! 🙌`
+              const alerta =
+                `🧾 *CNPJ TRAVADO — SITUAÇÃO ${situacao} NA RECEITA*\n\n` + cabecalho +
+                `\n🚫 Travado automaticamente (regra 10/09). A VictorIA já avisou o sócio e orientou regularizar com o contador. Card vai pra "CNPJ Irregular na Receita". Nenhuma ação necessária.`
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            } else if ((info.situacao && info.situacao !== 'ATIVA') || (info.idadeAnos != null && info.idadeAnos < 1)) {
+              // Fase pós-credenciamento: não trava — só avisa o time (loja nova/filial
+              // ou CNPJ confirmado pro painel de repasses).
+              const avisos = [
+                info.situacao && info.situacao !== 'ATIVA' ? `🚫 Situação cadastral: *${info.situacao}*` : null,
+                info.idadeAnos != null && info.idadeAnos < 1 ? `⚠️ ${info.idadeAnos.toFixed(1)} ano(s) de abertura` : null,
+              ].filter(Boolean).join('\n')
+              const alerta = `🧾 *CONSULTA CNPJ (Receita) — ATENÇÃO (lead em ${lead.status})*\n\n` + cabecalho + `\n${avisos}\n\nLead já credenciado — sem trava automática; conferir se é loja nova/filial.`
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
             }
             console.log(`[CNPJ] ${cnpjPraChecar}: idade=${info.idadeAnos} situacao=${info.situacao} socios=${info.qsaCount}`)
           }
@@ -2124,6 +2169,16 @@ export async function POST(req: NextRequest) {
             console.log(`CRM: Erro ao mover para Lojas menos de 01 Ano #${oppId}:`, err)
           }
         }
+        // CNPJ com situação ≠ ATIVA na Receita → etapa 94 "CNPJ Irregular na Receita"
+        // (Aldo 10/09/2026): o Nei enxerga quem pode voltar depois de regularizar.
+        if (String(resposta.motivo_humano ?? '').startsWith('cnpj_irregular_receita')) {
+          try {
+            await changeOpportunityStage(oppId, STAGES.CNPJ_IRREGULAR)
+            console.log(`CRM: Oportunidade #${oppId} → CNPJ Irregular na Receita (stage ${STAGES.CNPJ_IRREGULAR})`)
+          } catch (err) {
+            console.log(`CRM: Erro ao mover para CNPJ Irregular na Receita #${oppId}:`, err)
+          }
+        }
       } else if (resposta.novo_status === 'BOT_DETECTADO') {
         // Chatbot/atendimento automático detectado pela VictorIA em qualquer fase.
         // Move opp pro stage 69 (Bot Detectado) no pipeline AIVA, fora do funil ativo.
@@ -2577,7 +2632,7 @@ export async function POST(req: NextRequest) {
             const info = await consultarCNPJ(c).catch(() => null)
             const avisos = [
               info?.idadeAnos != null && info.idadeAnos < 1 ? `⚠️ ${info.idadeAnos.toFixed(1)} ano(s) de abertura — regra de 1 ano pode barrar` : null,
-              info?.situacao && info.situacao !== 'ATIVA' ? `⚠️ situação ${info.situacao}` : null,
+              info?.situacao && info.situacao !== 'ATIVA' ? `⚠️ situação ${info.situacao} — CNPJ ≠ ATIVA não credencia (regra 10/09)` : null,
             ].filter(Boolean).join(' | ')
             linhasAlerta.push(`• ${c}${info?.razaoSocial ? ` — ${info.razaoSocial}` : ''}${avisos ? `\n  ${avisos}` : ''}`)
           }

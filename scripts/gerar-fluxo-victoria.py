@@ -42,6 +42,7 @@ COLS = [
          'CNPJ chega → checagens automáticas (ver Sistemas): DV inválido / não consta na Receita → NÃO pré-aprova',
          'CNPJ já na base AIVA/Odres → mensagem oficial + transfere pro funil 19 (tag ODRES/UME)',
          'CNPJ < 1 ano → NAO_QUALIFICADO + card vai pra 93',
+         'CNPJ com situação ≠ ATIVA na Receita (inapta/suspensa/baixada) → avisa o sócio, trava (NAO_QUALIFICADO) + card vai pra 94 (regra 10/09)',
          'Sem sócio na Receita (QSA vazio) → segue igual a qualquer lead (regra 10/09: sem documentos, sem tag)',
          'Objeções, taxa 12% × juros do cliente, nunca simula parcelas, nunca acusa golpe',
          '7 dados completos → PRE_APROVACAO + aciona humano (qualificacao_inicial_completa)',
@@ -194,6 +195,7 @@ SAIDAS = dict(key='saidas', nome='Saídas do funil', itens=[
   dict(num=53, nome='Interessado (Sem resposta)', auto='automação 98', txt='auto-descarte (Início +15d) · SEM_RESPOSTA +30d → DESCARTADO'),
   dict(num=69, nome='Bot Detectado', auto='automação 100', txt='VictorIA detectou auto-resposta; reativação recomeça do zero'),
   dict(num=93, nome='Lojas menos de 01 Ano', auto='automação 101', txt='CNPJ < 1 ano na Receita → NAO_QUALIFICADO (regra 08/09)'),
+  dict(num=94, nome='CNPJ Irregular na Receita', auto='automação 102', txt='Situação ≠ ATIVA (inapta/suspensa/baixada/nula) → sócio avisado, NAO_QUALIFICADO (regra 10/09)'),
   dict(num=19, nome='Funil 19 · Odres / UME', auto='transferência', txt='CNPJ já na base AIVA/Odres → mensagem oficial + tag ODRES/UME · sdr_leads apaga o lead'),
   dict(num=None, nome='OPT_OUT · LGPD', auto='webhook', txt='"não quero mais" → OPT_OUT · pedido de exclusão → confirma, apaga dados, guarda só o telefone'),
   dict(num=None, nome='DESCARTADO / NAO_QUALIFICADO', auto='terminal', txt='Descarte manual do Nei é respeitado; status terminais nunca são revividos pelo sync'),
@@ -291,7 +293,8 @@ for lk, ltitle in LANES:
     # coluna de saídas: só na lane VictorIA cabem as caixas de saída (mais alta)
     if lk == 'victoria':
         yy = 14
-        hh = (LANE_H[lk]-28 - 5*6) // 6
+        nS = len(SAIDAS['itens'])
+        hh = (LANE_H[lk]-28 - (nS-1)*6) // nS
         for idx, it in enumerate(SAIDAS['itens']):
             num = f'{it["num"]} · ' if it['num'] else ''
             label = f'<b>{num}{escape(it["nome"])}</b> <span style="font-size:8px;color:#8C2F2F">{escape(it["auto"])}</span><br><span style="font-size:8px">{escape(it["txt"])}</span>'
