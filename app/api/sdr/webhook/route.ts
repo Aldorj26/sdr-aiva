@@ -1304,7 +1304,7 @@ export async function POST(req: NextRequest) {
   //   2) Receita (BrasilAPI):
   //      - idade < 1 ano  → NAO_QUALIFICADO automático + mensagem educada
   //      - situação ≠ ATIVA → alerta pro time (sem mudar status)
-  //      - sem sócio → pede os 5 documentos (fluxo Drive + planilha Manual)
+  //      - sem sócio (QSA vazio) → nada: fluxo de documentos e tag removidos em 10/09/2026
   let cnpjInfoNovo: import('@/lib/cnpj').CNPJInfo | null = null
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
@@ -1376,7 +1376,7 @@ export async function POST(req: NextRequest) {
             resposta.mensagem = ehInvalido
               ? // DV não fecha: é digitação errada, quase certeza. Pede de novo sem
                 // acusar o lojista e sem falar em reprovação — o número pode estar certo no papel.
-  //      - sem sócio (QSA vazio) → nada: fluxo de documentos e tag removidos em 10/09/2026
+                `Obrigada! 😊 Tentei validar o CNPJ ${cnpjPraChecar} aqui e ele não passou na verificação — parece que algum dígito ficou trocado ou faltando.\n\n` +
                 `Pode conferir no cartão CNPJ e me mandar de novo? São 14 números. Assim que chegar certinho eu valido na hora e seguimos! 🙌`
               : `Obrigada, ${normalizaNome(lead.nome) || 'tudo bem'}! 😊 Consultei o CNPJ ${cnpjPraChecar} na Receita e ele ainda não aparece na base — isso costuma acontecer quando o CNPJ foi aberto há pouco tempo.\n\n` +
                 `Só pra eu conferir: o número está certinho? Se tiver algum dígito trocado, me manda de novo que eu valido na hora.\n\n` +
@@ -1561,8 +1561,6 @@ export async function POST(req: NextRequest) {
       )
     const partes: string[] = [...marcadores]
     if (cnpjInfoNovo) partes.push(cnpjInfoMarker(cnpjInfoNovo))
-    // Trava de QSA (sem sócio, política 2026-08-03) → marcador persistente:
-    // lead fica retido em Em Análise AIVA até regularizar o quadro societário.
     // Lojista recusou passar faturamento/venda parcelada (regra 2026-08-20).
     // O marcador faz o cron de cobrança parar de pedir esses campos por HSM —
     // sem ele a VictorIA para de insistir no chat mas a automação insiste

@@ -87,7 +87,7 @@ for (const lead of leads) {
   const atencao = []
   if (info.idade != null && info.idade < 1) atencao.push(`CNPJ ${info.idade} ano`)
   if (info.situacao && info.situacao !== 'ATIVA') atencao.push(`situação ${info.situacao}`)
-  if (info.socios === 0) atencao.push('SEM SÓCIO')
+  // (10/09/2026) sem sócio deixou de ser item de atenção — nada a sinalizar
   if (atencao.length) {
     flags.push({ nome: lead.nome, telefone: lead.telefone, status: lead.status, cnpj, ...info, atencao })
   }

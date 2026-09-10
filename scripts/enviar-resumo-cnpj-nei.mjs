@@ -1,3 +1,9 @@
+#!/usr/bin/env node
+/**
+ * ⛔ OBSOLETO desde 10/09/2026: descreve o fluxo de documentos pra empresa sem
+ * sócio, que foi removido (Aldo). NÃO reexecutar — mandaria ao Nei uma regra
+ * revogada. Mantido só como registro.
+ */
 /** Envia o resumo do backfill de CNPJs pro WhatsApp do Nei + registra em sdr_alertas. */
 import { readFileSync } from 'node:fs'
 

@@ -348,10 +348,6 @@ const LABEL_DADOS: Array<[string, string]> = [
   ['faturamento_anual', '💰 Faturamento anual'],
   ['valor_boleto_mensal', '💵 Venda mensal no crediário'],
   ['possui_outra_financeira', '💳 Outra financeira'],
-  ['banco_codigo', '🏦 Banco (código)'],
-  ['banco_agencia', '🏦 Agência'],
-  ['banco_conta', '🏦 Conta'],
-  ['banco_digito', '🏦 Dígito da conta'],
 ]
 
 /**
