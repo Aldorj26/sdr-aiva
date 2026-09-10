@@ -27,7 +27,7 @@ COLS = [
        ],
        rotinas=[
          'HSM 41 "AIVA Dia 1" (D+0) → lead INICIO + card 66',
-         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA (17/08; religada e pausada de novo em 10/09): ~4.100 leads vencidos aguardam o fluxo novo',
+         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA até o Aldo autorizar (única cadência que fica): ~4.100 leads vencidos aguardam o fluxo novo',
          'auto-descarte 10h seg–sex: INICIO +15d sem resposta → card 53 + SEM_RESPOSTA',
          'varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.777 na fila)',
        ],
@@ -48,13 +48,9 @@ COLS = [
        ],
        humano=[
          'Nei entra quando: +10 lojas · pede contrato · irritado · dúvida técnica/jurídica · já cliente AIVA · confirmar_contato',
-         'Reengajamento esgotado (3×) → lead sinalizado; descartar é decisão do Nei',
        ],
        rotinas=[
-         'nudge 12h (Vercel): conversa parada 3–24h → cutucada contextual (máx 2)',
-         'reativação 10h: parado 48h–14d → HSM 48 (20/execução)',
-         'reengajamento 16h seg–sex: follow-up personalizado via HSM 48, até 3× a cada 15d',
-         'régua-saída 10h30: 3 reengajamentos + 15d mudo + bola com o lead → card 53 + SEM_RESPOSTA',
+         'Nenhuma cutucada automática (nudge, reativação, reengajamento e régua-saída removidos em 10/09)',
          'auto-descarte: INTERESSADO +21d sem msg do lead → AGUARDANDO',
        ],
        sistemas=[
@@ -195,7 +191,7 @@ COLS = [
 
 # Coluna final: saídas e estados fora da linha principal
 SAIDAS = dict(key='saidas', nome='Saídas do funil', itens=[
-  dict(num=53, nome='Interessado (Sem resposta)', auto='automação 98', txt='auto-descarte (Início +15d) · régua-saída · SEM_RESPOSTA +30d → DESCARTADO'),
+  dict(num=53, nome='Interessado (Sem resposta)', auto='automação 98', txt='auto-descarte (Início +15d) · SEM_RESPOSTA +30d → DESCARTADO'),
   dict(num=69, nome='Bot Detectado', auto='automação 100', txt='VictorIA detectou auto-resposta; reativação recomeça do zero'),
   dict(num=93, nome='Lojas menos de 01 Ano', auto='automação 101', txt='CNPJ < 1 ano na Receita → NAO_QUALIFICADO (regra 08/09)'),
   dict(num=19, nome='Funil 19 · Odres / UME', auto='transferência', txt='CNPJ já na base AIVA/Odres → mensagem oficial + tag ODRES/UME · sdr_leads apaga o lead'),
@@ -465,7 +461,7 @@ footer{{margin-top:22px;font-size:12px;color:var(--ink-2)}}
   <ul class="movers">{movers_html}</ul>
   <h3>Transversal — corre o funil inteiro</h3>
   <div class="transgrid">{trans_html}</div>
-  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08 (0,12% de resposta, templates sem botão); foi religada em 10/09 e pausada de novo no mesmo dia, pra ativar os cerca de 4.100 leads vencidos já no fluxo novo. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
+  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08 (0,12% de resposta, templates sem botão); foi religada em 10/09 e pausada de novo no mesmo dia, pra ativar os cerca de 4.100 leads vencidos já no fluxo novo. Em 10/09 saíram também nudge, reativação, reengajamento e régua-saída: a etapa Interessado ficou sem nenhuma cutucada automática.</div>
   <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-10.drawio.</footer>
 </div>
 '''

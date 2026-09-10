@@ -36,53 +36,6 @@ export const FALLBACK_MENSAGEM_OVERLOADED =
   'Desculpe, estou com um volume alto de atendimentos. Vou te responder em instantes! 🙏'
 
 /**
- * Gera uma mensagem de REENGAJAMENTO personalizada pra um lead INTERESSADO que
- * parou sem finalizar. Lê a conversa e cria 1 linha contextual (referência ao que
- * ele falou/onde parou + gancho pra retomar). Vai no {{2}} do template HSM 48,
- * cujo corpo já é "Oi {{1}}, tudo bem?\n{{2}} É só responder essa mensagem. 😊" —
- * então a mensagem NÃO repete saudação/nome e tem que ser UMA LINHA (sem \n).
- */
-export async function gerarReengajamento(historico: Mensagem[], nomeLead: string): Promise<string> {
-  const convo = historico
-    .slice(-14)
-    .map((m) => `${m.direcao === 'in' ? 'Lojista' : 'VictorIA'}: ${m.conteudo}`)
-    .join('\n')
-
-  const system = `Você é a VictorIA, SDR da Track — produto AIVA (crediário pra lojas de celular: aprovação do cliente em 2 min, risco de inadimplência ZERO pro lojista, parcelamento em até 12x pro cliente, +2.000 lojas usando).
-
-Abaixo vem a conversa com um lojista que demonstrou interesse mas PAROU sem finalizar o cadastro. Gere UMA mensagem pra trazê-lo de volta.
-
-REGRAS DURAS:
-- A mensagem entra DEPOIS de "Oi [nome], tudo bem?" — então NÃO repita saudação nem o nome, comece direto no assunto.
-- UMA ÚNICA LINHA: sem quebra de linha, sem bullets, sem listas. Curta (1-2 frases).
-- ESPECÍFICA e calorosa: referencie o contexto real da conversa (a dúvida que ele teve, o dado que já passou, onde travou). Se a conversa foi muito rasa, use um gancho de valor (aprovação em 2 min / risco zero / parcela pro cliente).
-- Termine com um convite leve pra retomar ("bora seguir?", "consegue retomar?", "quer que eu continue daqui?").
-- NUNCA invente dados que não estão na conversa.
-- NUNCA prometa recursos/processos que NÃO existem: proibido falar em "link de teste", "link simplificado", "liberar acesso", "testar a aprovação", "simular". O ÚNICO próximo passo real é RETOMAR a coleta do cadastro (ou tirar uma dúvida pontual). Ofereça só isso: continuar o cadastro de onde parou ou esclarecer uma dúvida.
-- Sem aspas, sem markdown, no máximo 1 emoji.
-- Responda SOMENTE com o texto da mensagem (nada além disso).`
-
-  const resp = await callClaudeWithRetry(
-    {
-      model: 'claude-sonnet-4-5',
-      max_tokens: 300,
-      system,
-      messages: [{ role: 'user', content: `Nome do lojista: ${nomeLead || 'lojista'}\n\nConversa:\n${convo || '(praticamente sem histórico — só demonstrou interesse)'}` }],
-    },
-    'reengajamento',
-  )
-
-  const txt = resp.content
-    .filter((c): c is Anthropic.TextBlock => c.type === 'text')
-    .map((c) => c.text)
-    .join(' ')
-    .trim()
-
-  // Garante uma linha só (a sanitização do sendTemplate também cobre) e tira aspas.
-  return txt.replace(/\s*\n+\s*/g, ' ').replace(/^["']|["']$/g, '').trim()
-}
-
-/**
  * Resumo do problema pro registro de CHAMADO na planilha (aba Chamados —
  * pedido do Aldo 2026-08-05). A frase crua do lojista ("tá dando erro") não
  * diz nada pro Edu/Nei; este helper lê a conversa recente e produz 1-2 frases

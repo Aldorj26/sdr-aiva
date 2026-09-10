@@ -8,7 +8,8 @@
  *
  * NOTA: COLETANDO_COMPLEMENTO foi deprecated em 28/05/2026 — colapsou em
  * INTERESSADO (alinhamento com funil Evo). Leads INTERESSADO sem resposta
- * são tratados pelo /nudge (3–24h) e /followup (D+3/D+7/D+14).
+ * são tratados só pela régua /followup (D+3/D+7/D+14) — nudge/reativação/
+ * reengajamento/régua-saída foram removidos em 10/09/2026 (Aldo).
  *
  * Usa o template HSM AIVA_REATIVACAO_TEMPLATE_ID ("Follow Up Aiva" — template 21)
  * com miolo contextualizado gerado pelo Claude via gerarMioloRetomada().

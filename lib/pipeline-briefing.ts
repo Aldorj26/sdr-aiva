@@ -148,6 +148,11 @@ function montarMensagem(opps: OppFromEvo[], aguardandoHumano: number): string {
     linhas.push(``, `🆕 ${novosHoje} novos leads disparados hoje`)
   }
 
+  // Lembrete pedido pelo Aldo (10/09/2026): a régua D+3/D+7/D+14 fica PAUSADA até
+  // ele autorizar religar (vai junto com o fluxo novo). Some daqui quando religar
+  // — apagar este bloco no mesmo commit que readicionar /api/sdr/followup no vercel.json.
+  linhas.push(``, `⏸ *Pendente (Aldo):* régua D+3/D+7/D+14 segue pausada — religar quando o fluxo novo estiver pronto.`)
+
   return linhas.join('\n')
 }
 

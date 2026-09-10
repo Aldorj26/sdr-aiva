@@ -9,14 +9,6 @@
       "schedule": "0 13 * * 1-5"
     },
     {
-      "path": "/api/sdr/reativacao",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/sdr/nudge",
-      "schedule": "0 15 * * *"
-    },
-    {
       "path": "/api/sdr/followup-fase",
       "schedule": "0 16 * * *"
     },
@@ -33,20 +25,12 @@
       "schedule": "0 18 * * 1-5"
     },
     {
-      "path": "/api/sdr/reengajamento",
-      "schedule": "0 19 * * 1-5"
-    },
-    {
       "path": "/api/sdr/auto-reprocess",
       "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/sdr/check-primeira-venda",
       "schedule": "0 13 * * 2"
-    },
-    {
-      "path": "/api/sdr/regua-saida",
-      "schedule": "30 13 * * 1-5"
     },
     {
       "path": "/api/sdr/fila-humano",
