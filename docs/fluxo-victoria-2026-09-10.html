@@ -1,0 +1,231 @@
+<title>Fluxo VictorIA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#F3F5F7; --paper:#FFFFFF; --ink:#1B2430; --ink-2:#4A5563; --line:#D6DBE2;
+  --evo:#1F5FBF; --evo-bg:#E4ECFA;
+  --vic:#6B4FD1; --vic-bg:#ECE7FA;
+  --hum:#B8740A; --hum-bg:#FBEFD6;
+  --rot:#178F80; --rot-bg:#DCF2EE;
+  --sis:#4B5A6A; --sis-bg:#E8ECF1;
+  --out:#C24A3B; --out-bg:#F9E3DF;
+  --tr:#6B6350; --tr-bg:#F2EFE6;
+  --pause:#8A6D00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13181F; --paper:#1B222B; --ink:#E9EDF2; --ink-2:#A7B1BD; --line:#2E3842;
+    --evo:#7FA9F0; --evo-bg:#1B2A45; --vic:#B4A2F2; --vic-bg:#2B2447; --hum:#F0B95A; --hum-bg:#3E2F12;
+    --rot:#6ED2C1; --rot-bg:#123A35; --sis:#B3BEC9; --sis-bg:#232C36; --out:#F08A7C; --out-bg:#452321;
+    --tr:#CFC6AE; --tr-bg:#2A2823; --pause:#F2D26B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13181F; --paper:#1B222B; --ink:#E9EDF2; --ink-2:#A7B1BD; --line:#2E3842;
+  --evo:#7FA9F0; --evo-bg:#1B2A45; --vic:#B4A2F2; --vic-bg:#2B2447; --hum:#F0B95A; --hum-bg:#3E2F12;
+  --rot:#6ED2C1; --rot-bg:#123A35; --sis:#B3BEC9; --sis-bg:#232C36; --out:#F08A7C; --out-bg:#452321;
+  --tr:#CFC6AE; --tr-bg:#2A2823; --pause:#F2D26B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,Segoe UI,Arial,sans-serif;overflow-x:hidden}
+.wrap{padding:28px 24px 48px;max-width:100%}
+h1{font:700 26px/1.1 Archivo,"IBM Plex Sans",Arial,sans-serif;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--ink-2);max-width:68ch;margin:0 0 18px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-size:12px}
+.legend li{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper)}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.rail{display:grid;grid-template-columns:auto 1fr;gap:0 12px;align-items:start;margin:0 0 10px}
+.rail .lab{writing-mode:vertical-rl;transform:rotate(180deg);font:600 11px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:6px 0}
+.board{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.grid{display:grid;grid-template-columns:150px repeat(8,300px) 320px;min-width:max-content}
+.grid > *{border-right:1px solid var(--line)}
+.rowlab{position:sticky;left:0;z-index:2;background:var(--paper);padding:12px 10px;font:600 12px/1.3 "IBM Plex Mono",monospace;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.rowlab small{display:block;font:400 11px/1.3 "IBM Plex Sans",sans-serif;text-transform:none;letter-spacing:0;color:var(--ink-2);margin-top:4px}
+.col{display:contents}
+.stage{grid-row:1;padding:12px 12px 10px;border-bottom:2px solid var(--evo);background:var(--evo-bg);position:relative}
+.stage .num{font:500 11px/1 "IBM Plex Mono",monospace;color:var(--evo);background:var(--paper);border:1px solid var(--evo);border-radius:4px;padding:3px 6px;display:inline-block}
+.stage h2{font:700 16px/1.15 Archivo,sans-serif;margin:8px 0 4px;color:var(--ink)}
+.stage .auto{margin:0;font:500 10.5px/1.3 "IBM Plex Mono",monospace;color:var(--ink-2)}
+.stage .chega{margin:6px 0 0;font-size:12px;color:var(--ink-2)}
+.stage::after{content:"";position:absolute;right:-9px;top:50%;width:0;height:0;border:8px solid transparent;border-left-color:var(--evo);border-right:0;transform:translateY(-50%);z-index:1}
+.cell{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12.5px}
+.cell ul{margin:0;padding-left:16px} .cell li{margin:0 0 5px}
+.cell.victoria{grid-row:2;border-left:3px solid var(--vic)}
+.cell.humano{grid-row:3;border-left:3px solid var(--hum)}
+.cell.rotinas{grid-row:4;border-left:3px solid var(--rot)}
+.cell.sistemas{grid-row:5;border-left:3px solid var(--sis);border-bottom:0}
+.rowlab.r1{grid-row:1;background:var(--evo-bg);color:var(--evo);border-bottom:2px solid var(--evo)}
+.rowlab.r2{grid-row:2;color:var(--vic)} .rowlab.r3{grid-row:3;color:var(--hum)}
+.rowlab.r4{grid-row:4;color:var(--rot)} .rowlab.r5{grid-row:5;color:var(--sis);border-bottom:0}
+.outcol{grid-row:1 / span 5;padding:12px;background:var(--out-bg);border-right:0;display:flex;flex-direction:column;gap:8px}
+.outcol h2{font:700 16px/1.15 Archivo,sans-serif;margin:0 0 2px;color:var(--out)}
+.outcol .sub{font-size:12px;color:var(--ink-2);margin:0 0 6px}
+.saida{background:var(--paper);border:1px solid var(--out);border-radius:8px;padding:8px 10px;font-size:12px}
+.saida b{display:block;color:var(--ink)} .saida .auto{font:500 10px/1 "IBM Plex Mono",monospace;color:var(--out)}
+.saida p{margin:4px 0 0;color:var(--ink-2)}
+.movers{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2)}
+.movers span{font:500 10px/1 "IBM Plex Mono",monospace;color:var(--evo);border:1px solid var(--evo);border-radius:3px;padding:2px 5px;margin-right:6px}
+h3{font:700 18px/1.2 Archivo,sans-serif;margin:30px 0 10px}
+.transgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.trans{background:var(--tr-bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:12.5px}
+.trans b{display:block;color:var(--tr);margin-bottom:4px} .trans p{margin:0;color:var(--ink-2)}
+.note{margin-top:26px;padding:12px 14px;border-left:3px solid var(--pause);background:var(--paper);border-radius:0 8px 8px 0;font-size:13px;max-width:78ch}
+.note b{color:var(--pause)}
+footer{margin-top:22px;font-size:12px;color:var(--ink-2)}
+</style>
+<div class="wrap">
+  <h1>Fluxo atual da VictorIA — AIVA</h1>
+  <p class="lede">Retrato de 10/09/2026, tirado do código em produção. Cada coluna é uma etapa do funil 15 do Evo Talks, na ordem em que o card anda. Cada linha diz quem age naquela etapa. A versão editável está no arquivo .drawio que acompanha esta página.</p>
+  <ul class="legend">
+    <li><i style="background:var(--evo)"></i>Etapa no Evo (quem move)</li>
+    <li><i style="background:var(--vic)"></i>VictorIA (webhook + prompt)</li>
+    <li><i style="background:var(--hum)"></i>Humanos: Nei · Edu (AIVA) · Aldo</li>
+    <li><i style="background:var(--rot)"></i>Rotinas automáticas (crons)</li>
+    <li><i style="background:var(--sis)"></i>Sistemas e dados</li>
+    <li><i style="background:var(--out)"></i>Saídas do funil</li>
+  </ul>
+  <div class="board"><div class="grid">
+    <div class="rowlab r1">Etapa no Evo<small>funil 15 · automação de entrada → painel em ≈1 s</small></div>
+    <div class="rowlab r2">VictorIA<small>o que ela faz e decide</small></div>
+    <div class="rowlab r3">Humanos<small>quando entram e o que movem</small></div>
+    <div class="rowlab r4">Rotinas<small>crons Vercel + tarefas agendadas (hora BRT)</small></div>
+    <div class="rowlab r5">Sistemas<small>onde o dado vive</small></div>
+    
+    <section class="col" id="inicio">
+      <header class="stage">
+        <span class="num">66</span>
+        <h2>Início</h2>
+        <p class="auto">automação 97 → opportunity-stage</p>
+        <p class="chega">Card criado no disparo do HSM Dia 1</p>
+      </header>
+      <div class="cell victoria"><ul><li>Lead responde → webhook (Evo → Vercel)</li><li>Abertura: &quot;Sou a VictorIA, da Track… já trabalham com crediário?&quot;</li><li>Qualifica 1 pergunta por vez: crediário? quantas lojas? marcas?</li><li>Detecta bot/auto-reply (tenta furar, máx trocas) → 69 Bot Detectado</li><li>Opt-out real (&quot;não quero&quot;) → OPT_OUT · só iPhone / não vende celular → NAO_QUALIFICADO</li><li>Fim de semana: responde normal (webhook nunca para)</li></ul></div>
+      <div class="cell humano"><ul><li>Aldo dispara 150 números/dia (painel Campanha ou disparar-fila.mjs), seg–sex</li><li>Filtro no disparo: pula bot, opt-out, lead já em cadência, base AIVA</li></ul></div>
+      <div class="cell rotinas"><ul><li>HSM 41 &quot;AIVA Dia 1&quot; (D+0) → lead INICIO + card 66</li><li>Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA desde 17/08</li><li>auto-descarte 10h seg–sex: INICIO +15d sem resposta → card 53 + SEM_RESPOSTA</li><li>varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.777 na fila)</li></ul></div>
+      <div class="cell sistemas"><ul><li>sdr_leads (status INICIO) · fila_disparo · sdr_mensagens</li><li>Validação de WhatsApp do Evo (checkIfUserExists) fora do ar → sem checagem prévia</li></ul></div>
+    </section>
+    <section class="col" id="interessado">
+      <header class="stage">
+        <span class="num">47</span>
+        <h2>Interessado</h2>
+        <p class="auto">automação 88 → opportunity-stage</p>
+        <p class="chega">VictorIA muda status quando o lead conversa</p>
+      </header>
+      <div class="cell victoria"><ul><li>FASE 1 — coleta 7 dados no chat, um por vez: nome do sócio · CNPJ matriz (cedo) · telefone do sócio · nome da loja · região · nº de lojas · outra financeira?</li><li>CNPJ chega → checagens automáticas (ver Sistemas): DV inválido / não consta na Receita → NÃO pré-aprova</li><li>CNPJ já na base AIVA/Odres → mensagem oficial + transfere pro funil 19 (tag ODRES/UME)</li><li>CNPJ &lt; 1 ano → NAO_QUALIFICADO + card vai pra 93</li><li>Sem sócio na Receita (QSA vazio) → tag SEM_SOCIO → fluxo dos 5 documentos (Drive)</li><li>Objeções, taxa 12% × juros do cliente, nunca simula parcelas, nunca acusa golpe</li><li>7 dados completos → PRE_APROVACAO + aciona humano (qualificacao_inicial_completa)</li></ul></div>
+      <div class="cell humano"><ul><li>Nei entra quando: +10 lojas · pede contrato · irritado · dúvida técnica/jurídica · já cliente AIVA · confirmar_contato</li><li>Reengajamento esgotado (3×) → lead sinalizado; descartar é decisão do Nei</li></ul></div>
+      <div class="cell rotinas"><ul><li>nudge 12h (Vercel): conversa parada 3–24h → cutucada contextual (máx 2)</li><li>reativação 10h: parado 48h–14d → HSM 48 (20/execução)</li><li>reengajamento 16h seg–sex: follow-up personalizado via HSM 48, até 3× a cada 15d</li><li>régua-saída 10h30: 3 reengajamentos + 15d mudo + bola com o lead → card 53 + SEM_RESPOSTA</li><li>auto-descarte: INTERESSADO +21d sem msg do lead → AGUARDANDO</li><li>cobrança-docs 10h: sem sócio parado 2d+ → lembrete HSM 48 (máx 3)</li></ul></div>
+      <div class="cell sistemas"><ul><li>BrasilAPI (Receita): idade, situação, QSA — marcador [CNPJ_RECEITA] impede revalidar</li><li>aiva_base_cnpjs (6.323 CNPJs, importada 11h todo dia via Data Studio)</li><li>sdr_registros_cnpj (status informada) · formsdata da opp no Evo</li></ul></div>
+    </section>
+    <section class="col" id="pre">
+      <header class="stage">
+        <span class="num">54</span>
+        <h2>Pré Aprovação</h2>
+        <p class="auto">automação 99 → opportunity-stage</p>
+        <p class="chega">Automático: VictorIA fechou os 7 dados</p>
+      </header>
+      <div class="cell victoria"><ul><li>FASE 2 — só tranquiliza: &quot;estamos analisando, em breve retorno&quot;. Não pede dado, não promete prazo</li><li>Se o CNPJ tiver ≥ 3 lojas → tag IMPORTANTE (74) na opp</li><li>Alerta Nei + Aldo: pré-aprovação enviada</li></ul></div>
+      <div class="cell humano"><ul><li>Edu (AIVA) analisa a pré-aprovação pela planilha, em até 24h</li><li>Aprovou → Nei move o card 54 → 49 (Cadastro Recebido)</li><li>Reprovou → descarte (Nei marca no Evo)</li></ul></div>
+      <div class="cell rotinas"><ul><li>Nenhuma cobrança automática nessa etapa (espera humana)</li></ul></div>
+      <div class="cell sistemas"><ul><li>Planilha AIVA APROVAÇÃO (Google Sheets) — linha por lead pré-aprovado</li><li>Tags Evo: AIVA (69) sempre · IMPORTANTE (74) se ≥ 3 lojas</li></ul></div>
+    </section>
+    <section class="col" id="cadastro">
+      <header class="stage">
+        <span class="num">49</span>
+        <h2>Cadastro Recebido</h2>
+        <p class="auto">automação 83 → opportunity-stage</p>
+        <p class="chega">Nei move o card após o OK do Edu</p>
+      </header>
+      <div class="cell victoria"><ul><li>Entrada na etapa → HSM 29 &quot;Complete o cadastro&quot; reabre a janela; status volta a INTERESSADO com marcador de Fase 3</li><li>FASE 3 — coleta 5 dados: e-mail do sócio · faturamento anual · boleto mensal · localização das lojas · CNPJs adicionais (só se ≥ 2 lojas)</li><li>Dados sensíveis: explica o porquê, aceita &quot;por alto&quot;; recusa → aciona humano (receio_dados_sensiveis)</li><li>Trava anti-conclusão: sem os 5, nunca diz &quot;cadastro completo&quot;</li><li>12 dados completos → CADASTRO_RECEBIDO + HubSpot + registro do CNPJ + alerta ✅ (cadastro_completo)</li></ul></div>
+      <div class="cell humano"><ul><li>Nei confere no /registros e move o card 49 → 50 (Em Análise)</li><li>Cobrança esgotada (3 toques) → escala pro Nei uma vez</li></ul></div>
+      <div class="cell rotinas"><ul><li>cadastro-recebido-cobranca 15h seg–sex: D+1 · D+3 · D+7 na etapa → HSM 48 + pede o dado que falta (um por vez)</li><li>Fonte da verdade = etapa do Evo (stagebegintime)</li></ul></div>
+      <div class="cell sistemas"><ul><li>HubSpot (contato/empresa) — só quando os 12 dados fecham</li><li>sdr_registros_cnpj (matriz + adicionais) · formsdata da opp</li><li>Painel /registros</li></ul></div>
+    </section>
+    <section class="col" id="analise">
+      <header class="stage">
+        <span class="num">50</span>
+        <h2>Em Análise AIVA</h2>
+        <p class="auto">automação 84 → opportunity-stage</p>
+        <p class="chega">Nei move o card com os 12 dados fechados</p>
+      </header>
+      <div class="cell victoria"><ul><li>Entrada na etapa → HSM 34 (aprovação) com o link do onboarding retail-onboarding-hub + biometria (CAF)</li><li>FASE 4 — acompanha: &quot;conseguiu acessar? concluiu a biometria?&quot;</li><li>Qualquer erro → PEDE O PRINT primeiro (regra 08/09) · dificuldade → aciona humano (dificuldade_onboarding_caf)</li><li>Lead diz que concluiu → aciona humano (cadastro_caf_confirmado)</li><li>Nunca reenvia o link sozinha; status fica EM_ANALISE_AIVA (só o time muda)</li></ul></div>
+      <div class="cell humano"><ul><li>Edu (AIVA) analisa o onboarding + CAF: aprova ou reprova</li><li>Aprovou → Nei move 50 → 70 (Treinar) · Reprovou → descarte</li><li>Print do erro chega no chamado (📷) pro Nei identificar</li></ul></div>
+      <div class="cell rotinas"><ul><li>followup-fase 13h: 24h+ sem resposta → HSM 48 com miolo gerado pela Claude; máx 3 → escala Nei</li><li>Respeita [PAUSA_ATE] e acionar_humano</li></ul></div>
+      <div class="cell sistemas"><ul><li>Onboarding AIVA (retail-onboarding-hub) + CAF (biometria)</li><li>sdr_chamados (erro relatado + print) → planilha Chamados</li></ul></div>
+    </section>
+    <section class="col" id="treinar">
+      <header class="stage">
+        <span class="num">70</span>
+        <h2>Treinar</h2>
+        <p class="auto">automação 31 → opportunity-stage</p>
+        <p class="chega">Nei move após aprovação da AIVA</p>
+      </header>
+      <div class="cell victoria"><ul><li>Entrada na etapa → HSM 69 &quot;Treinamento completo&quot;: link do Meet (seg/qui 9h30), Drive de materiais, cadastro de acessos</li><li>Regra de acessos (27/08): um usuário por loja; logins liberados pela AIVA após o treinamento</li><li>Vacina da reprovação antes das primeiras consultas</li><li>🔒 Trava/desbloqueio de aparelho → só pelo Live Chat (Track não tem autoridade)</li><li>Erro na tela → pede print → abre chamado pro Nei</li><li>Loja nova no meio da conversa → aciona Nei (filial/correção cadastral)</li></ul></div>
+      <div class="cell humano"><ul><li>Nei dá o treinamento (segundas e quintas, 9h30, mesmo link)</li><li>Nei confirma acesso/treino e move 70 → 71 (Login)</li></ul></div>
+      <div class="cell rotinas"><ul><li>treinar-primeira-venda: disparo sob demanda (não é cron) — pergunta se já vendeu</li><li>Lembretes de treinamento: scripts pontuais (ex.: aviso de feriado 04/09)</li></ul></div>
+      <div class="cell sistemas"><ul><li>Drive AIVA (materiais + vídeos Flexfone) · Google Meet</li><li>Apps Script &quot;AIVA Docs&quot; (linha/senha/atendimento manual)</li></ul></div>
+    </section>
+    <section class="col" id="login">
+      <header class="stage">
+        <span class="num">71</span>
+        <h2>Login</h2>
+        <p class="auto">automação 91 → opportunity-stage</p>
+        <p class="chega">Nei move quando o login sai</p>
+      </header>
+      <div class="cell victoria"><ul><li>Espelha status LOGIN no painel (sync em tempo real)</li><li>Orienta primeiro acesso, operação Flexfone, consulta a distância × finalização presencial</li><li>Boleto do cliente: quem emite é a LOJA, dentro do Flexfone (AIVA e Odres) — vídeo &quot;Como emitir boleto&quot;</li><li>Links úteis por tema (portal, treinamento, 2ª via do cliente)</li></ul></div>
+      <div class="cell humano"><ul><li>AIVA libera o login da loja</li><li>Nei acompanha a primeira venda e move 71 → 51</li></ul></div>
+      <div class="cell rotinas"><ul><li>sla-liberacao: digest de lojas paradas em Treinar/Login — ⏸ desativado 06/08 (sob demanda)</li></ul></div>
+      <div class="cell sistemas"><ul><li>Flexfone (plataforma da loja) · clientes.aivapay.com.br (2ª via)</li></ul></div>
+    </section>
+    <section class="col" id="vendendo">
+      <header class="stage">
+        <span class="num">51</span>
+        <h2>Loja Finalizada e Vendendo</h2>
+        <p class="auto">automação 92 → opportunity-stage</p>
+        <p class="chega">Nei move após a primeira venda</p>
+      </header>
+      <div class="cell victoria"><ul><li>Entrada na etapa → liga o relógio da consultoria ([CONSULTORIA_INICIO]) — não fala nada na hora</li><li>FASE 5 — consultoria de vendas: playbook (preparar a loja · do CPF ao fechamento · aproveitar cada real · atrair fluxo)</li><li>Suporte pós-venda: A) lojista (plataforma/financeiro) · B) cliente final (parcelamento) · C) como fazer (Drive)</li><li>Objeção nº 1 &quot;a AIVA não aprova&quot; · prioriza autonomia do lojista</li><li>Loja diz que nunca operou → 🚩 alerta Nei (loja_finalizada_sem_operar)</li><li>Repasse solicitado → planilha Repasses · CS acionamento → /atendimento</li></ul></div>
+      <div class="cell humano"><ul><li>Nei acompanha /desempenho (Portal Parceiros AIVA) e /atendimento (CS)</li><li>Comissão por loja ativada (importação mensal UME)</li><li>⚠️ Etapa 51 não aceita mover card pela API (só na mão)</li></ul></div>
+      <div class="cell rotinas"><ul><li>consultoria-vendas 14h seg–sex: D+7 e depois a cada 15d, 4 toques via HSM 48</li><li>check-primeira-venda terças 10h: loja quieta 7d+ → &quot;a primeira venda saiu?&quot; (máx 2, 30d)</li><li>portal-aiva 6h todo dia: ativa loja (CNPJ registrado + Ativo no portal) + desempenho diário</li><li>pulso semanal segunda 8h30: fecha a semana e manda mensagens segmentadas às lojas ativas</li></ul></div>
+      <div class="cell sistemas"><ul><li>Portal Parceiros AIVA → aiva_portal_diario (fonte) → aiva_desempenho (mês/semana)</li><li>sdr_repasses_solicitados → planilha Repasses · contas MRR no Evo</li></ul></div>
+    </section>
+    <aside class="outcol">
+      <h2>Saídas do funil</h2>
+      <p class="sub">Estados fora da linha principal. Terminais nunca são revividos pelo sync.</p>
+      
+      <div class="saida">
+        <b>53 · Interessado (Sem resposta)</b>
+        <span class="auto">automação 98</span>
+        <p>auto-descarte (Início +15d) · régua-saída · SEM_RESPOSTA +30d → DESCARTADO</p>
+      </div>
+      <div class="saida">
+        <b>69 · Bot Detectado</b>
+        <span class="auto">automação 100</span>
+        <p>VictorIA detectou auto-resposta; reativação recomeça do zero</p>
+      </div>
+      <div class="saida">
+        <b>93 · Lojas menos de 01 Ano</b>
+        <span class="auto">automação 101</span>
+        <p>CNPJ &lt; 1 ano na Receita → NAO_QUALIFICADO (regra 08/09)</p>
+      </div>
+      <div class="saida">
+        <b>19 · Funil 19 · Odres / UME</b>
+        <span class="auto">transferência</span>
+        <p>CNPJ já na base AIVA/Odres → mensagem oficial + tag ODRES/UME · sdr_leads apaga o lead</p>
+      </div>
+      <div class="saida">
+        <b>OPT_OUT · LGPD</b>
+        <span class="auto">webhook</span>
+        <p>&quot;não quero mais&quot; → OPT_OUT · pedido de exclusão → confirma, apaga dados, guarda só o telefone</p>
+      </div>
+      <div class="saida">
+        <b>DESCARTADO / NAO_QUALIFICADO</b>
+        <span class="auto">terminal</span>
+        <p>Descarte manual do Nei é respeitado; status terminais nunca são revividos pelo sync</p>
+      </div>
+    </aside>
+  </div></div>
+  <ul class="movers"><li><span>1</span>VictorIA (lead conversa)</li><li><span>2</span>VictorIA (7 dados)</li><li><span>3</span>Nei, após OK do Edu</li><li><span>4</span>Nei (12 dados)</li><li><span>5</span>Nei, após OK do Edu</li><li><span>6</span>Nei (treinou)</li><li><span>7</span>Nei (1ª venda)</li></ul>
+  <h3>Transversal — corre o funil inteiro</h3>
+  <div class="transgrid"><div class="trans"><b>🔁 Sincronização Evo ↔ painel</b><p>Cada etapa tem uma automação de entrada que chama /opportunity-stage (≈1 s). Reforço: sync-from-evo a cada 5 min, Evo é a fonte da verdade (exceções: descarte manual, terminais, guarda de 2 min).</p></div><div class="trans"><b>🛠 Auto-reprocess (10 min)</b><p>Mensagem do lead sem resposta da VictorIA → reprocessa; falha da Claude → até N tentativas e depois escala humano.</p></div><div class="trans"><b>👤 Fila humana</b><p>acionar_humano=true entra na fila: 🔴 ação · 📄 docs · 🟡 mover card. WhatsApp pro Nei 8h seg–sex + painel /atendimento (chamados, CS, travados, CNPJ).</p></div><div class="trans"><b>📋 Chamados</b><p>Erro relatado → pede print → sdr_chamados + planilha Chamados. Nei clica Resolver → planilha recebe &quot;sim&quot; e o chamado some.</p></div><div class="trans"><b>📣 Alertas</b><p>Transições de status alertam Nei/Aldo via WhatsApp (pré-aprovação, cadastro ✅, CAF confirmado, loja sem operar, contato a confirmar).</p></div><div class="trans"><b>📰 Briefings</b><p>briefing-pipeline 5h seg–sex (Aldo + Nei) · auditoria Evo × Supabase (só alerta) · destilador semanal sex 10h (curadoria).</p></div><div class="trans"><b>🧠 VictorIA Analista</b><p>Widget do painel: consulta leads, conversas, chamados, repasses, desempenho semanal e curadoria. Só leitura.</p></div><div class="trans"><b>🗓 Data injetada a cada turno</b><p>A VictorIA não sabe o dia — lib/claude.ts injeta a data BRT fora do cache. Feriados/avisos entram como bloco dinâmico.</p></div></div>
+  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08, então hoje quem não responde ao Dia 1 só recebe o auto-descarte aos 15 dias. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
+  <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-10.drawio.</footer>
+</div>
