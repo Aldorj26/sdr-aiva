@@ -45,6 +45,10 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 // está no ar pros novos credenciamentos AIVA; as lojas que já usam a Odres
 // serão migradas aos poucos pelo time da Odres. Sem promessa de data, e o
 // contato final segue sendo do time da ODRES, não nosso.
+// ⚠️ 10/09/2026: a Odres foi CONGELADA pra credenciamentos novos (só lojas já
+// abertas com a Odres seguem). Este texto fala em consulta combinada pra loja
+// que JÁ é Odres — mantido até o Aldo confirmar se a migração dessas lojas
+// continua; se não continuar, reescrever o 2º parágrafo.
 const ODRES_MENSAGEM =
   'Vimos que sua loja já utiliza o crediário da Odres — ótima notícia, porque a AIVA e a Odres são parceiras.\n\n' +
   'Juntas, elas criaram o Flexfone: uma plataforma única onde a loja faz uma só consulta e já recebe o resultado de qual financeira aprovou o cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta. A plataforma já está no ar e está sendo liberada pras lojas parceiras aos poucos.\n\n' +

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /**
+ * ⛔ OBSOLETO desde 10/09/2026: a Odres foi congelada pra credenciamentos novos —
+ * o pitch "AIVA + Odres numa consulta" NÃO vale mais. NÃO reexecutar nem usar
+ * como modelo. Mantido só como registro do que foi enviado aos 933 leads.
+ *
  * Disparo 27/08/2026 — novidade Flexfone (AIVA + Odres numa consulta) pros
  * leads na etapa INTERESSADO (stage 47), aprovado pelo Aldo ("pode disparar
  * pros 933"). Lista congelada em scratchpad/interessados-flexfone.json

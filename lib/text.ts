@@ -186,7 +186,7 @@ export function buildKitPosFechamentoMsg(nome: string): string {
     `🏷️ *Precificação:* na venda parcelada, o valor do aparelho pode ser acrescido em até *15%* sobre o seu preço à vista (explicado no vídeo do curso, na pasta de materiais).\n` +
     `💵 *Repasse:* você recebe à vista, em até *2 dias úteis* após a venda.\n` +
     `🛡️ *Inadimplência:* risco *zero* pra você — a AIVA assume 100%. Se o cliente atrasar, o problema é dela, não seu.\n` +
-    `📲 *Pro seu cliente:* aprovação em ~2 minutos, com DUAS financeiras na mesma consulta — pela AIVA o parcelamento é mensal (6x, 9x ou 12x) e, se ela não aprovar, a Odres Cred tenta na hora (bissemanal, 12x ou 18x). Menos venda perdida!\n` +
+    `📲 *Pro seu cliente:* aprovação em ~2 minutos, direto no Flexfone — parcelamento mensal em 6x, 9x ou 12x pela AIVA. Sem cadastro por foto de documento: cliente na loja, CPF e código SMS.\n` +
     `🎲 *Sobre aprovação (importante!):* cada consulta depende do perfil do cliente — é normal as primeiras consultas reprovarem, isso NÃO significa que "não aprova". A regra de ouro é consultar TODO cliente: quem consulta todo mundo aprova mais e vende mais no fim do mês. Não desanima com as primeiras! 💪\n\n` +
     `*Próximos passos:*\n` +
     // EXCEÇÃO ÚNICA feriado 07/09/2026: turma de segunda vira TERÇA 08/09 (auto-expira)
