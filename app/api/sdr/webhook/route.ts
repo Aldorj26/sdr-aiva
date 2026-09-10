@@ -41,18 +41,16 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 
 // Mensagem oficial da Odres — enviada VERBATIM quando o lojista informa que já
 // trabalha com a Odres (novo_status = ODRES). Texto fixo (não parafrasear).
-// Atualizada 2026-08-27 (treinamento AIVA 20/08): o Flexfone SAIU DO PAPEL —
-// está no ar pros novos credenciamentos AIVA; as lojas que já usam a Odres
-// serão migradas aos poucos pelo time da Odres. Sem promessa de data, e o
-// contato final segue sendo do time da ODRES, não nosso.
-// ⚠️ 10/09/2026: a Odres foi CONGELADA pra credenciamentos novos (só lojas já
-// abertas com a Odres seguem). Este texto fala em consulta combinada pra loja
-// que JÁ é Odres — mantido até o Aldo confirmar se a migração dessas lojas
-// continua; se não continuar, reescrever o 2º parágrafo.
+// [REVOGADO 10/09/2026] versão de 27/08 prometia o Flexfone (plataforma única,
+// consulta combinada) e a migração das lojas Odres "aos poucos" — NÃO restaurar.
+// 10/09/2026 (Aldo): a Odres foi CONGELADA pra credenciamentos novos E a migração
+// das lojas Odres pro Flexfone também parou. O texto NÃO cita Flexfone, consulta
+// combinada nem "quando chegar a vez da sua loja": a loja segue na Odres como
+// está; qualquer novidade vem do time da Odres. (Texto anterior, 27/08, prometia
+// a plataforma única — não usar mais.)
 const ODRES_MENSAGEM =
-  'Vimos que sua loja já utiliza o crediário da Odres — ótima notícia, porque a AIVA e a Odres são parceiras.\n\n' +
-  'Juntas, elas criaram o Flexfone: uma plataforma única onde a loja faz uma só consulta e já recebe o resultado de qual financeira aprovou o cliente — Odres ou AIVA. Menos retrabalho e mais chance de aprovação na mesma consulta. A plataforma já está no ar e está sendo liberada pras lojas parceiras aos poucos.\n\n' +
-  'Você não precisa fazer nenhum cadastro novo agora. Quando chegar a vez da sua loja, o time da Odres entra em contato com o passo a passo.\n\n' +
+  'Vimos que sua loja já trabalha com o crediário da Odres — e a AIVA e a Odres são parceiras, então você já está bem atendido por lá. 😊\n\n' +
+  'Por enquanto nada muda pra você: continua operando com a Odres normalmente, sem nenhum cadastro novo. Se surgir alguma novidade pras lojas parceiras da Odres, é o próprio time da Odres que entra em contato.\n\n' +
   'Agradecemos pela parceria!'
 
 // Mensagem oficial da UME — enviada VERBATIM quando o lojista informa que já
@@ -1414,7 +1412,7 @@ export async function POST(req: NextRequest) {
                 `📞 ${lead.telefone}\n` +
                 `🏢 CNPJ: ${cnpjPraChecar}\n` +
                 `📄 Na base como: ${naBase.nome ?? '—'}\n\n` +
-                `Barrado automaticamente: a VictorIA enviou o comunicado do Flexfone (parceria AIVA+Odres) e a oportunidade vai pro funil de integração com a tag ODRES. Nenhuma ação necessária.`
+                `Barrado automaticamente: a VictorIA enviou o comunicado oficial da Odres (a loja segue na Odres, sem cadastro novo — regra 10/09) e a oportunidade vai pro funil de integração com a tag ODRES. Nenhuma ação necessária.`
               : `📇 *LEAD JÁ É DA BASE — CLIENTE AIVA/UME*\n\n` +
                 `🏪 ${lead.nome}\n` +
                 `📞 ${lead.telefone}\n` +
@@ -1524,9 +1522,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ⛔ TRAVA (2026-08-27): cliente JÁ CREDENCIADO nunca vira ODRES/UME. Com o
-  // Flexfone, todo cliente novo opera a Odres normalmente — "meu cliente caiu
-  // na Odres" é o produto funcionando, não gatilho de transferência. Retornar
+  // ⛔ TRAVA (2026-08-27, justificativa revista 10/09): cliente JÁ CREDENCIADO
+  // nunca vira ODRES/UME. "Meu cliente caiu na Odres" só acontece em loja aberta
+  // com a Odres antes do congelamento de 10/09 (cliente novo é só AIVA) — e mesmo
+  // assim é a plataforma dele funcionando, não gatilho de transferência. Retornar
   // ODRES aqui apagaria a opp AIVA (funil 19) e silenciaria a conversa pra
   // sempre. A regra de transferência vale só na prospecção/qualificação.
   const STATUS_POS_CREDENCIAMENTO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
