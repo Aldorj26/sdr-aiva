@@ -1,12 +1,9 @@
 /**
- * lib/manual-docs.ts — integração do fluxo de cadastro manual (empresa sem sócio).
- *
- * Fluxo (definido pelo Aldo 2026-07-27): quando a Receita mostra que o CNPJ não
- * tem quadro societário, a VictorIA pede 5 itens (contrato social, e-mail p/
- * assinatura, selfie, RG/CNH, dados bancários). Este módulo encaminha:
- *   - ARQUIVOS  → pasta compartilhada no Google Drive ("AIVA - Documentos
- *                 Cadastro Manual", compartilhada com Nei e Edu)
- *   - DADOS     → aba "Manual" da planilha AIVA APROVAÇÃO
+ * lib/manual-docs.ts — integração com a planilha AIVA APROVAÇÃO via Apps Script
+ * (chamados, repasses, atendimentos, senhas). O fluxo de cadastro manual pra
+ * empresa sem sócio (docs → Drive + aba "Manual") foi REMOVIDO em 10/09/2026
+ * (Aldo: sem sócio não precisa de informação nem de tag). As ações 'doc' e
+ * 'linha' seguem existindo no Apps Script, mas ninguém mais as chama.
  *
  * Transporte: Google Apps Script Web App (mesmo padrão do sendToGoogleSheets).
  * Código do script: docs/apps-script-manual-docs.gs (deploy manual pelo Aldo).
@@ -34,28 +31,6 @@ async function postManual(body: Record<string, unknown>): Promise<Record<string,
     return (await res.json()) as Record<string, unknown>
   } catch {
     return { ok: true }
-  }
-}
-
-/**
- * Envia um documento do lead pra pasta do Drive (subpasta "LOJA — CNPJ").
- * Retorna a URL do arquivo no Drive, ou null se indisponível/falha.
- */
-export async function enviarDocParaDrive(params: {
-  loja: string
-  cnpj: string
-  telefone: string
-  nomeArquivo: string
-  mimeType: string
-  base64: string
-}): Promise<string | null> {
-  try {
-    const resp = await postManual({ acao: 'doc', ...params })
-    const url = resp?.url
-    return typeof url === 'string' ? url : null
-  } catch (err) {
-    console.error('[MANUAL_DOCS] Falha ao enviar doc pro Drive:', err)
-    return null
   }
 }
 
@@ -176,34 +151,3 @@ export async function registrarSenhaColab(params: {
   }
 }
 
-/**
- * Registra a linha do lead na aba "Manual" da planilha AIVA APROVAÇÃO.
- * Campos seguem as colunas da aba; o que não tivermos vai vazio (Edu completa
- * a partir dos documentos na pasta do Drive).
- */
-export async function enviarLinhaManual(params: {
-  signer_name?: string | null
-  signer_email?: string | null
-  razao_social?: string | null
-  endereco?: string | null
-  cnpj?: string | null
-  nome_varejo?: string | null
-  nome_completo?: string | null
-  fantasia?: string | null
-  telefone?: string | null
-  link_pasta?: string | null
-  // Coletados no chat pela VictorIA (2026-07-31) — colunas J e O-R da aba Manual
-  cpf?: string | null
-  banco_codigo?: string | null
-  banco_agencia?: string | null
-  banco_conta?: string | null
-  banco_digito?: string | null
-}): Promise<boolean> {
-  try {
-    const resp = await postManual({ acao: 'linha', ...params })
-    return !!resp
-  } catch (err) {
-    console.error('[MANUAL_DOCS] Falha ao enviar linha pra aba Manual:', err)
-    return false
-  }
-}

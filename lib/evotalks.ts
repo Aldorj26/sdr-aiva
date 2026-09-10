@@ -705,7 +705,7 @@ export const TAG_IDS = {
   INBOUND: 77,            // aplicada em toda opp criada a partir de lead inbound (TRIAGEM)
   ODRES: 79,              // lojista que já usa o crediário da Odres (transferido pro funil 19)
   UME: 7,                 // lojista que já usa a UME — já é cliente AIVA (transferido pro funil 19)
-  SEM_SOCIO: 80,          // empresário individual (Receita sem quadro societário) — fluxo de documentos
+  // SEM_SOCIO (80) removida em 10/09/2026 — sem sócio não é mais tagueado (Aldo)
 } as const
 
 // ─── Funil 19 "Leads de Campanha AIVA" (etapa "Parcelex" 84) ────────────────────

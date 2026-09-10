@@ -42,7 +42,7 @@ COLS = [
          'CNPJ chega → checagens automáticas (ver Sistemas): DV inválido / não consta na Receita → NÃO pré-aprova',
          'CNPJ já na base AIVA/Odres → mensagem oficial + transfere pro funil 19 (tag ODRES/UME)',
          'CNPJ < 1 ano → NAO_QUALIFICADO + card vai pra 93',
-         'Sem sócio na Receita (QSA vazio) → tag SEM_SOCIO → fluxo dos 5 documentos (Drive)',
+         'Sem sócio na Receita (QSA vazio) → segue igual a qualquer lead (regra 10/09: sem documentos, sem tag)',
          'Objeções, taxa 12% × juros do cliente, nunca simula parcelas, nunca acusa golpe',
          '7 dados completos → PRE_APROVACAO + aciona humano (qualificacao_inicial_completa)',
        ],
@@ -56,7 +56,6 @@ COLS = [
          'reengajamento 16h seg–sex: follow-up personalizado via HSM 48, até 3× a cada 15d',
          'régua-saída 10h30: 3 reengajamentos + 15d mudo + bola com o lead → card 53 + SEM_RESPOSTA',
          'auto-descarte: INTERESSADO +21d sem msg do lead → AGUARDANDO',
-         'cobrança-docs 10h: sem sócio parado 2d+ → lembrete HSM 48 (máx 3)',
        ],
        sistemas=[
          'BrasilAPI (Receita): idade, situação, QSA — marcador [CNPJ_RECEITA] impede revalidar',

@@ -348,9 +348,6 @@ const LABEL_DADOS: Array<[string, string]> = [
   ['faturamento_anual', '💰 Faturamento anual'],
   ['valor_boleto_mensal', '💵 Venda mensal no crediário'],
   ['possui_outra_financeira', '💳 Outra financeira'],
-  // Fluxo sem sócio (coletados no chat — vão pra aba Manual da planilha)
-  ['cpf_responsavel', '🧾 CPF do responsável'],
-  ['nome_fantasia', '🏷️ Nome fantasia'],
   ['banco_codigo', '🏦 Banco (código)'],
   ['banco_agencia', '🏦 Agência'],
   ['banco_conta', '🏦 Conta'],

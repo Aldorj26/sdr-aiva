@@ -35,7 +35,7 @@ export function categoriaFila(motivo: string, status?: string): CategoriaFila {
     // "cadastro completo" não pede movimento nenhum.
     return status && STATUS_POS_CADASTRO.includes(status) ? 'acao' : 'mover'
   }
-  if (/documentos_sem_socio_completos|dados_colaborador/.test(m)) return 'docs'
+  if (/dados_colaborador/.test(m)) return 'docs'
   return 'acao'
 }
 

@@ -15,7 +15,7 @@ import {
 } from '@/lib/supabase'
 import {
   sendText, alertHuman, downloadAudio,
-  createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, mergeOpportunityTag, transferirParaFunil19, STAGES, TAG_IDS,
+  createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
   getOpportunity, getChatMessages, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
@@ -27,7 +27,7 @@ import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_M
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { RE_PEDIDO_EXCLUSAO, MARCADOR_DADOS_APAGADOS, apagarDadosLead, resumoExclusao } from '@/lib/lgpd'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
-import { enviarDocParaDrive, enviarLinhaManual, registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
+import { registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
 import { solicitarPainelRepasses, ehGmail, linkRepassesPreenchido } from '@/lib/repasses-form'
 import { capturarColaborador } from '@/lib/colab-rede-seguranca'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
@@ -1059,78 +1059,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8e. FLUXO DE DOCUMENTOS (empresa sem sócio) — encaminha mídias pro Drive.
-    // Varre o HISTÓRICO (não só o fileId do request atual): em bursts o turno de
-    // uma mídia pode ser absorvido pelo lock e ela ficaria de fora (caso
-    // Macinplace: selfie nunca subiu). Idempotência via [DOCS_UP:id1,id2] em
-    // observacoes — o mesmo arquivo reenviado pelo lead não sobe de novo (caso
-    // Macinplace: CNH 3× no Drive). Best-effort: falha não interrompe o fluxo.
-    if ((lead.observacoes ?? '').includes('[DOCS_SEM_SOCIO]')) {
-      try {
-        const obsDocs = lead.observacoes ?? ''
-        const jaEnviados = new Set(
-          (obsDocs.match(/\[DOCS_UP:([\d,]+)\]/)?.[1] ?? '').split(',').filter(Boolean),
-        )
-        // Mídias do lead no histórico + a do request atual (pode ainda não estar lá)
-        const pendentes = new Map<string, { mime: string; nome: string }>()
-        for (const m of historicoRaw) {
-          if (m.direcao !== 'in') continue
-          for (const mm of (m.conteudo ?? '').matchAll(/\[LEAD_ENVIOU_IMAGEM:(\d+)\]/g)) {
-            if (!jaEnviados.has(mm[1])) pendentes.set(mm[1], { mime: '', nome: '' })
-          }
-          for (const mm of (m.conteudo ?? '').matchAll(/\[LEAD_ENVIOU_ARQUIVO:(\d+):([^:\]]*):([^\]]*)\]/g)) {
-            if (!jaEnviados.has(mm[1])) pendentes.set(mm[1], { mime: mm[2], nome: mm[3] })
-          }
-        }
-        if (fileId && fileId > 0 && !jaEnviados.has(String(fileId))) {
-          pendentes.set(String(fileId), {
-            mime: mimeType || '',
-            nome: fileName && fileName !== 'undefined' ? fileName : '',
-          })
-        }
-        const cnpjLead = obsDocs.match(/cnpj_matriz=(\d{14})/)?.[1] ?? ''
-        const enviadosAgora: string[] = []
-        for (const [idStr, info] of pendentes) {
-          try {
-            const arq = await downloadAudio(Number(idStr)) // downloader genérico do Evo
-            const mime = arq.mimeType || info.mime || 'application/octet-stream'
-            // Áudio é conversa (já transcrito no fluxo normal), não documento
-            if (mime.startsWith('audio/')) {
-              enviadosAgora.push(idStr)
-              continue
-            }
-            const ext = mime.includes('pdf') ? '.pdf' : mime.includes('png') ? '.png' : mime.includes('jpe') ? '.jpg' : ''
-            const nomeArq = info.nome && info.nome !== 'undefined' ? info.nome : `documento-${idStr}${ext}`
-            const urlDrive = await enviarDocParaDrive({
-              loja: lead.nome,
-              cnpj: cnpjLead,
-              telefone: lead.telefone,
-              nomeArquivo: nomeArq,
-              mimeType: mime,
-              base64: arq.buffer.toString('base64'),
-            })
-            if (urlDrive) {
-              enviadosAgora.push(idStr)
-              console.log(`[MANUAL_DOCS] Doc ${idStr} do lead ${lead.telefone} salvo no Drive: ${urlDrive}`)
-            }
-          } catch (err) {
-            // id fica fora do marcador → nova tentativa no próximo turno do lead
-            console.error(`[MANUAL_DOCS] Falha ao encaminhar mídia ${idStr} pro Drive:`, err)
-          }
-        }
-        if (enviadosAgora.length) {
-          const todos = [...jaEnviados, ...enviadosAgora]
-          const novaObs = obsDocs.includes('[DOCS_UP:')
-            ? obsDocs.replace(/\[DOCS_UP:[\d,]*\]/, `[DOCS_UP:${todos.join(',')}]`)
-            : `${obsDocs} [DOCS_UP:${todos.join(',')}]`.trim()
-          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObs }).eq('id', lead.id)
-          lead.observacoes = novaObs // remonte de observacoes lá embaixo parte daqui
-        }
-      } catch (err) {
-        console.error(`[MANUAL_DOCS] Falha na varredura de docs pro Drive (${lead.telefone}):`, err)
-      }
-    }
-
     // 9. Processa com Claude (VictorIA)
     // Passa o status atual pra Claude saber em qual fase do fluxo está
     // (Fase 1 = INTERESSADO, Fase 2 = PRE_APROVACAO, Fase 3 = INTERESSADO).
@@ -1378,8 +1306,6 @@ export async function POST(req: NextRequest) {
   //      - situação ≠ ATIVA → alerta pro time (sem mudar status)
   //      - sem sócio → pede os 5 documentos (fluxo Drive + planilha Manual)
   let cnpjInfoNovo: import('@/lib/cnpj').CNPJInfo | null = null
-  // Sem sócio na Receita — só sinaliza a tag no Evo (trava removida 2026-08-24)
-  let semSocioNaReceita = false
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
     const jaConsultado = (lead.observacoes ?? '').includes(`[CNPJ_RECEITA:cnpj=${cnpjPraChecar}`)
@@ -1450,7 +1376,7 @@ export async function POST(req: NextRequest) {
             resposta.mensagem = ehInvalido
               ? // DV não fecha: é digitação errada, quase certeza. Pede de novo sem
                 // acusar o lojista e sem falar em reprovação — o número pode estar certo no papel.
-                `Obrigada! 😊 Tentei validar o CNPJ ${cnpjPraChecar} aqui e ele não passou na verificação — parece que algum dígito ficou trocado ou faltando.\n\n` +
+  //      - sem sócio (QSA vazio) → nada: fluxo de documentos e tag removidos em 10/09/2026
                 `Pode conferir no cartão CNPJ e me mandar de novo? São 14 números. Assim que chegar certinho eu valido na hora e seguimos! 🙌`
               : `Obrigada, ${normalizaNome(lead.nome) || 'tudo bem'}! 😊 Consultei o CNPJ ${cnpjPraChecar} na Receita e ele ainda não aparece na base — isso costuma acontecer quando o CNPJ foi aberto há pouco tempo.\n\n` +
                 `Só pra eu conferir: o número está certinho? Se tiver algum dígito trocado, me manda de novo que eu valido na hora.\n\n` +
@@ -1499,13 +1425,6 @@ export async function POST(req: NextRequest) {
               const atencao: string[] = []
               if (info.situacao && info.situacao !== 'ATIVA') {
                 atencao.push(`🚫 Situação cadastral: *${info.situacao}*`)
-              }
-              if (info.qsaCount === 0) {
-                // TRAVA REMOVIDA em 2026-08-24 (o Nei resolveu com a AIVA): QSA
-                // vazio não retém mais ninguém. A flag segue só pra marcar a tag
-                // "Sem Socio" no card do Evo — informação pro Nei/Edu, não bloqueio.
-                semSocioNaReceita = true
-                atencao.push(`ℹ️ Empresa *sem quadro societário (QSA)* na Receita — apenas informativo: o lead segue o funil normalmente (trava removida em 24/08).`)
               }
               if (atencao.length > 0) {
                 const alerta = `🧾 *CONSULTA CNPJ (Receita) — ATENÇÃO*\n\n` + cabecalho + `\n${atencao.join('\n')}`
@@ -1843,15 +1762,6 @@ export async function POST(req: NextRequest) {
             console.log(`CRM: Erro ao adicionar tag Importante na oportunidade #${oppId}:`, err)
           }
         }
-      }
-
-      // Empresa sem sócio detectada na Receita (neste turno) → tag "Sem Socio"
-      // (id 80) na oportunidade, pro Nei/Edu enxergarem o fluxo de documentos
-      // direto no card do Evo (pedido do Aldo 2026-07-28). mergeOpportunityTag
-      // preserva as tags existentes (AIVA/INBOUND) — updateOpportunity substitui
-      // o array inteiro, então NUNCA usar addOpportunityTags com uma tag só aqui.
-      if (semSocioNaReceita) {
-        await mergeOpportunityTag(oppId, TAG_IDS.SEM_SOCIO)
       }
 
       // NOTA (29/05/2026): a etiqueta "Atend Humano" no Evo foi DESCONTINUADA.
@@ -2279,43 +2189,6 @@ export async function POST(req: NextRequest) {
   // Dados coletados frescos (acumulado + o que chegou nesta volta) — pros alertas
   // detalhados que o Nei usa pra acompanhar sem abrir o painel (pedido do Aldo 22/07).
   const dadosAlerta = { ...dadosAcumulados, ...((resposta.dados_coletados as Record<string, string>) ?? {}) }
-
-  // Fluxo de documentos (sem sócio) COMPLETO → registra a linha na aba "Manual"
-  // da planilha AIVA APROVAÇÃO (razão social/endereço/fantasia vêm da Receita;
-  // CPF e dados bancários o Edu completa a partir dos docs na pasta do Drive).
-  if (resposta.motivo_humano === 'documentos_sem_socio_completos' && !(lead.observacoes ?? '').includes('[LINHA_MANUAL_OK]')) {
-    try {
-      const cnpjLead = String(dadosAlerta.cnpj_matriz ?? '').replace(/\D/g, '') ||
-        ((lead.observacoes ?? '').match(/cnpj_matriz=(\d{14})/)?.[1] ?? '')
-      const infoReceita = cnpjLead.length === 14 ? await consultarCNPJ(cnpjLead) : null
-      const okLinha = await enviarLinhaManual({
-        signer_name: dadosAlerta.nome_socio ?? null,
-        signer_email: dadosAlerta.email_socio ?? null,
-        razao_social: infoReceita?.razaoSocial ?? null,
-        endereco: infoReceita?.endereco ?? null,
-        cnpj: cnpjLead || null,
-        nome_varejo: dadosAlerta.nome_varejo ?? lead.nome,
-        // Nome fantasia dito pelo lojista vence o da Receita (muitas vezes vazio lá)
-        fantasia: (dadosAlerta as Record<string, string>).nome_fantasia ?? infoReceita?.nomeFantasia ?? null,
-        telefone: lead.telefone,
-        link_pasta: 'https://drive.google.com/drive/folders/1yAtSYdjDISW2SX965f925KjMBTMHD2gp',
-        cpf: (dadosAlerta as Record<string, string>).cpf_responsavel ?? null,
-        banco_codigo: (dadosAlerta as Record<string, string>).banco_codigo ?? null,
-        banco_agencia: (dadosAlerta as Record<string, string>).banco_agencia ?? null,
-        banco_conta: (dadosAlerta as Record<string, string>).banco_conta ?? null,
-        banco_digito: (dadosAlerta as Record<string, string>).banco_digito ?? null,
-      })
-      if (okLinha) {
-        await supabaseAdmin
-          .from('sdr_leads')
-          .update({ observacoes: `${(updates.observacoes as string | null) ?? lead.observacoes ?? ''} [LINHA_MANUAL_OK]`.trim() })
-          .eq('id', lead.id)
-        console.log(`[MANUAL_DOCS] Linha da aba Manual registrada pra ${lead.telefone}`)
-      }
-    } catch (err) {
-      console.error(`[MANUAL_DOCS] Falha ao registrar linha Manual pra ${lead.telefone}:`, err)
-    }
-  }
 
   if (resposta.novo_status === 'PRE_APROVACAO' && lead.status !== 'PRE_APROVACAO' && !regressaoFalsa('PRE_APROVACAO')) {
     const detalhe = formatarDadosLead(dadosAlerta)
