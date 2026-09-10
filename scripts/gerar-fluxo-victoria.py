@@ -27,7 +27,7 @@ COLS = [
        ],
        rotinas=[
          'HSM 41 "AIVA Dia 1" (D+0) → lead INICIO + card 66',
-         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39): 11h, 14h e 17h seg–sex, 150 por rodada — ▶ reativada 10/09 (esteve pausada 17/08–10/09)',
+         'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA (17/08; religada e pausada de novo em 10/09): ~4.100 leads vencidos aguardam o fluxo novo',
          'auto-descarte 10h seg–sex: INICIO +15d sem resposta → card 53 + SEM_RESPOSTA',
          'varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.777 na fila)',
        ],
@@ -153,7 +153,8 @@ COLS = [
        victoria=[
          'Espelha status LOGIN no painel (sync em tempo real)',
          'Orienta primeiro acesso, operação Flexfone, consulta a distância × finalização presencial',
-         'Boleto do cliente: quem emite é a LOJA, dentro do Flexfone (AIVA e Odres) — vídeo "Como emitir boleto"',
+         'Boleto do cliente: quem emite é a LOJA, dentro do Flexfone — vídeo "Como emitir boleto"',
+         '⛔ Regra 10/09: cliente novo = só AIVA no Flexfone; Odres congelada (segue só em lojas já abertas com ela)',
          'Links úteis por tema (portal, treinamento, 2ª via do cliente)',
        ],
        humano=[
@@ -465,7 +466,7 @@ footer{{margin-top:22px;font-size:12px;color:var(--ink-2)}}
   <ul class="movers">{movers_html}</ul>
   <h3>Transversal — corre o funil inteiro</h3>
   <div class="transgrid">{trans_html}</div>
-  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 ficou pausada de 17/08 a 10/09 (0,12% de resposta, templates sem botão) e foi reativada em 10/09 com backlog de cerca de 4.100 leads vencidos. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
+  <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08 (0,12% de resposta, templates sem botão); foi religada em 10/09 e pausada de novo no mesmo dia, pra ativar os cerca de 4.100 leads vencidos já no fluxo novo. E o nudge externo de hora em hora não existe mais: fica só o do Vercel, uma vez ao dia, ao meio-dia.</div>
   <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-10.drawio.</footer>
 </div>
 '''
