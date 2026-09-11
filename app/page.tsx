@@ -6,6 +6,7 @@ import TimelineRow from './_components/TimelineRow'
 import SearchBar from './_components/SearchBar'
 import { getPipeOpportunities, getTagCatalog, PIPELINE_AIVA } from '@/lib/evotalks'
 import TagChips, { type TagChip } from './_components/TagChips'
+import Copiavel from '@/app/_components/Copiavel'
 
 // Dinâmico pra suportar ?q= e ?status= sem cache
 export const dynamic = 'force-dynamic'
@@ -854,7 +855,7 @@ export default async function Page({
                   max={3}
                 />
               </td>
-              <td style={{ color: 'var(--text-dim)' }}>{l.telefone}</td>
+              <td style={{ color: 'var(--text-dim)' }}><Copiavel valor={l.telefone} /></td>
               <td style={{ color: 'var(--text-dim)' }}>{etapasEvo[chaveTel(l.telefone)]?.label ?? '—'}</td>
               <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                 {l.data_ultimo_contato

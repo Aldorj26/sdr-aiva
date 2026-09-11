@@ -1,5 +1,7 @@
 'use client'
 
+import Copiavel from '@/app/_components/Copiavel'
+
 export interface LeadCard {
   id: string
   nome: string
@@ -184,7 +186,7 @@ function Board({
                     {lead.nome}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    {lead.telefone}
+                    <Copiavel valor={lead.telefone} />
                     {lead.cidade ? ` · ${lead.cidade}` : ''}
                   </div>
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>

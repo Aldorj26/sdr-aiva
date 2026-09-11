@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { casaBusca } from '@/lib/text'
 import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
+import Copiavel from '@/app/_components/Copiavel'
 
 // Desempenho dos lojistas na AIVA — retrato diário do Portal Parceiros AIVA
 // (rota /api/cron/portal-aiva, 6h BRT; spec docs/superpowers/specs/2026-09-09-*).
@@ -423,7 +424,7 @@ export default async function DesempenhoPage({
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {leadId ? '💬 ' : ''}{r.loja ?? r.nome_varejo ?? r.cnpj}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{r.cnpj}{r.rid ? ` · RID ${r.rid}` : ''}{r.sem_venda ? ' · sem venda' : ''}{r.sem_consulta ? ' · sem consulta' : ''}{rotuloAtencao(r.atencao)}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}><Copiavel valor={r.cnpj} />{r.rid ? <> · RID <Copiavel valor={String(r.rid)} /></> : null}{r.sem_venda ? ' · sem venda' : ''}{r.sem_consulta ? ' · sem consulta' : ''}{rotuloAtencao(r.atencao)}</div>
                   </td>
                   <td style={{ padding: '0.45rem 0.6rem', color: r.status_portal === 'Ativo' ? 'var(--green)' : 'var(--text-dim)' }}>{r.status_portal ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.consultas ?? '—'}</td>

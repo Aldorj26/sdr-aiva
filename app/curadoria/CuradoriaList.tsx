@@ -1,5 +1,7 @@
 'use client'
 
+import Copiavel from '@/app/_components/Copiavel'
+
 import { useCallback, useEffect, useState } from 'react'
 
 interface Item {
@@ -177,7 +179,7 @@ function CuradoriaCard({ item, onSalvo }: { item: Item; onSalvo: () => void }) {
         <strong style={{ fontSize: '0.9rem' }}>
           {item.lead_nome}{' '}
           <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.78rem' }}>
-            {item.lead_telefone}
+            {item.lead_telefone ? <Copiavel valor={item.lead_telefone} /> : null}
           </span>
         </strong>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>

@@ -7,6 +7,7 @@ import CheckEnviado from './CheckEnviado'
 import AbrirFormLink from './AbrirFormLink'
 import ClickableRow from '@/app/_components/ClickableRow'
 import LeadDrawer from '@/app/_components/LeadDrawer'
+import Copiavel from '@/app/_components/Copiavel'
 
 export const dynamic = 'force-dynamic'
 
@@ -174,8 +175,8 @@ export default async function RegistrosPage({
                 const celulas = (
                   <>
                     <td style={td}><CheckEnviado id={r.id} enviado={r.enviado} origem={r.origem} /></td>
-                    <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.telefone}</div></td>
-                    <td style={{ ...td, fontFamily: 'monospace' }}>{formatarCnpj(r.cnpj)}</td>
+                    <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}><Copiavel valor={r.telefone} /></div></td>
+                    <td style={td}><Copiavel valor={r.cnpj} exibir={formatarCnpj(r.cnpj)} mono /></td>
                     <td style={td}>{r.tipo === 'matriz' ? '🏢 matriz' : '➕ adicional'}</td>
                     <td style={td}>
                       {r.status === 'ativa'
@@ -221,10 +222,10 @@ export default async function RegistrosPage({
                   <td style={td}>{r.form_ok
                     ? <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.78rem' }}>✓ lançado</span>
                     : <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.78rem' }}>✗ falhou</span>}</td>
-                  <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>CNPJ {r.cnpj_loja}</div></td>
+                  <td style={td}>{r.loja ?? '—'}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>CNPJ {r.cnpj_loja ? <Copiavel valor={r.cnpj_loja} /> : '—'}</div></td>
                   <td style={td}>{r.nome}</td>
                   <td style={{ ...td, fontFamily: 'monospace' }}>{r.cpf}</td>
-                  <td style={td}>{r.email}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.telefone}</div></td>
+                  <td style={td}>{r.email}<div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.telefone ? <Copiavel valor={r.telefone} /> : '—'}</div></td>
                   <td style={td}>{dataBr(r.criado_em)}</td>
                   <td style={td}>
                     {!r.form_ok && (

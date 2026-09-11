@@ -5,6 +5,7 @@ import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
 import ChamadoResolver from '../_components/ChamadoResolver'
 import AtendidoButton from '../_components/AtendidoButton'
+import Copiavel from '@/app/_components/Copiavel'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
@@ -140,7 +141,7 @@ function LinhaLead({ l, botao }: { l: LeadFila; botao: React.ReactNode }) {
   const cnpj = cnpjDeObs(l.observacoes)
   return (
     <ClickableRow leadId={l.id}>
-      <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}{cnpj ? ` · ${cnpj}` : ''}</div></td>
+      <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={l.telefone} />{cnpj ? <> · <Copiavel valor={cnpj.replace(/\D/g, '')} exibir={cnpj} /></> : null}</div></td>
       <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
       <td style={{ ...td, color: 'var(--yellow)', fontSize: '0.8rem' }}>{motivo || 'ver conversa'}</td>
       <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
@@ -197,7 +198,7 @@ export default async function AtendimentoPage() {
             {chamados.map((c) => {
               const celulas = (
                 <>
-                  <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.telefone}{c.cnpj ? ` · ${c.cnpj}` : ''}</div></td>
+                  <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={c.telefone} />{c.cnpj ? <> · <Copiavel valor={c.cnpj.replace(/\D/g, '')} exibir={c.cnpj} /></> : null}</div></td>
                   <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>
                     {(c.problema ?? 'ver conversa').slice(0, 110)}
                     {(c.prints?.length ?? 0) > 0 && (
@@ -233,7 +234,7 @@ export default async function AtendimentoPage() {
           <tbody>
             {travados.map((l) => (
               <ClickableRow key={l.id} leadId={l.id}>
-                <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.telefone}{cnpjDeObs(l.observacoes) ? ` · ${cnpjDeObs(l.observacoes)}` : ''}</div></td>
+                <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={l.telefone} />{cnpjDeObs(l.observacoes) ? <> · <Copiavel valor={cnpjDeObs(l.observacoes)!.replace(/\D/g, '')} exibir={cnpjDeObs(l.observacoes)!} /></> : null}</div></td>
                 <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{l.status_alterado_em ? new Date(l.status_alterado_em).toLocaleDateString('pt-BR') : '—'}</td>
                 <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
               </ClickableRow>

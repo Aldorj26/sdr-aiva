@@ -7,6 +7,7 @@ import ImportarForm from './ImportarForm'
 import GravarRidButton from './GravarRidButton'
 import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
+import Copiavel from '@/app/_components/Copiavel'
 
 // Painel de Comissões AIVA/UME — importa as planilhas mensais de apuração da
 // UME e confere automaticamente contra o funil 11 (Contas fechadas MRR).
@@ -368,7 +369,7 @@ export default async function ComissoesPage({
                     )}
                   </td>
                   <td style={td}>{l.umeRid ?? '—'}</td>
-                  <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }}>{l.cnpj ?? '—'}</td>
+                  <td style={{ ...td, fontSize: '0.72rem', whiteSpace: 'nowrap' }}>{l.cnpj ? <Copiavel valor={l.cnpj} /> : '—'}</td>
                   <td style={{ ...td, fontSize: '0.72rem' }}>{l.relatorio?.grupo ?? '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.relatorio?.contratos)}</td>
                   <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(l.relatorio?.originacao)}</td>

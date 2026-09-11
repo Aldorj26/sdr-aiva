@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { ClienteRow } from '@/lib/clientes'
+import Copiavel from '@/app/_components/Copiavel'
 
 function abrirLead(leadId: string | null) {
   if (!leadId) return
@@ -165,9 +166,9 @@ export default function ClientesTable({ clientes }: { clientes: ClienteRow[] }) 
                 style={{ cursor: c.leadId ? 'pointer' : 'default' }}
                 title={c.leadId ? 'Abrir lead' : 'Lead não encontrado no Supabase'}
               >
-                <td style={td}>{c.cnpj || '—'}</td>
+                <td style={td}>{c.cnpj ? <Copiavel valor={c.cnpj} /> : '—'}</td>
                 <td style={{ ...td, fontWeight: 600 }}>{c.empresa}</td>
-                <td style={td}>{c.telefone || '—'}</td>
+                <td style={td}>{c.telefone ? <Copiavel valor={c.telefone} /> : '—'}</td>
                 <td style={td}>{c.cidade || '—'}</td>
                 <td style={td}>{c.numeroLojas || '—'}</td>
               </tr>

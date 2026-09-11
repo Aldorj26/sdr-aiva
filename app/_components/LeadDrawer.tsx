@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import TagChips, { type TagChip } from './TagChips'
+import Copiavel from '@/app/_components/Copiavel'
 
 interface Lead {
   id: string
@@ -537,7 +538,7 @@ export default function LeadDrawer() {
                 conversa, etapa do funil no Evo e etiquetas — sempre visíveis. */}
             {data && (
               <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                <span style={{ whiteSpace: 'nowrap' }}>📞 {data.lead.telefone}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>📞 <Copiavel valor={data.lead.telefone} /></span>
                 <span style={{ color: STATUS_COLOR[data.lead.status] ?? 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{data.lead.status}</span>
                 {data.etapaEvo && (
                   <span style={{ color: 'var(--text)', whiteSpace: 'nowrap' }} title="Etapa do card no funil do Evo Talks">
@@ -582,7 +583,7 @@ export default function LeadDrawer() {
                     title={`${lj.tipo === 'matriz' ? 'Matriz' : 'Filial/adicional'} — ${lj.status === 'ativa' ? 'ativa' : lj.status === 'pre_cadastro_enviado' ? 'pré-cadastro enviado' : 'informada'}${lj.rid ? ` · RID ${lj.rid} (conta no funil Contas Fechadas MRR)` : ''}`}
                     style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '2px 7px', background: 'var(--bg-elev)', color: 'var(--text-dim)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}
                   >
-                    {lj.tipo === 'matriz' ? '🏢' : '➕'} {lj.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}{' '}
+                    {lj.tipo === 'matriz' ? '🏢' : '➕'} <Copiavel valor={lj.cnpj} exibir={lj.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')} />{' '}
                     {lj.status === 'ativa' ? <span style={{ color: '#34d399' }}>✅{lj.rid ? ` RID ${lj.rid}` : ''}</span> : lj.status === 'pre_cadastro_enviado' ? '📤' : '🆕'}
                   </span>
                 ))}
@@ -1190,8 +1191,8 @@ export default function LeadDrawer() {
                 {data.funcionarios!.map((f, i) => (
                   <div key={i} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', padding: '0.15rem 0', color: 'var(--text)' }}>
                     <span>{f.nome}</span>
-                    {f.telefone && <span style={{ color: 'var(--text-muted)' }}>📱 {f.telefone}</span>}
-                    {f.cnpj_loja && <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>loja {f.cnpj_loja}</span>}
+                    {f.telefone && <span style={{ color: 'var(--text-muted)' }}>📱 <Copiavel valor={f.telefone} /></span>}
+                    {f.cnpj_loja && <span style={{ color: 'var(--text-muted)' }}>loja <Copiavel valor={f.cnpj_loja} mono /></span>}
                   </div>
                 ))}
               </div>
