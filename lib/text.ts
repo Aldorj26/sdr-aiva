@@ -174,7 +174,7 @@ export function buildAvisoTreinamentoMsgs(): string[] {
   const msgCadastro =
     `🔑 *Acessos (regra nova):*\n` +
     `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n` +
-    `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 48h úteis. 😊`
+    `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 2 dias. 📵 Se não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊`
 
   return [msgReuniao, msgMateriais, msgCadastro]
 }
@@ -194,7 +194,7 @@ export function buildKitPosFechamentoMsg(nome: string): string {
       ? `1️⃣ Participa do treinamento ao vivo — nesta semana a turma é *TERÇA 08/09, 9h30–10h30* (segunda 07/09 é feriado; depois volta ao normal: segundas e quintas). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`
       : `1️⃣ Participa do treinamento ao vivo — turmas às *segundas e quintas, 9h30–10h30* (o vídeo Curso_Treinamento na pasta de materiais adianta tudo)\n`) +
     `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n` +
-    `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 48h úteis). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
+    `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )
 }

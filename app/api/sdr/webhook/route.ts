@@ -961,6 +961,16 @@ export async function POST(req: NextRequest) {
       // "travou" abria chamado pro Nei e a VictorIA prometia "cobrar o time".
       const travaAparelho = /(retirar|tirar|remover|liberar) a trava|destrav|desbloque(?:ar|io|ia)/i.test(txt)
 
+      // Senha de VENDEDOR que não chegou por SMS (regra do Edu/AIVA 14/09): NÃO é
+      // erro de sistema — o prazo é de até 2 dias e a mensagem costuma cair no
+      // SPAM do SMS. Pedir print de um SMS que não chegou não faz sentido, e abrir
+      // chamado antes da checagem do spam contraria a regra. Fica FORA do print e
+      // do chamado, como travaAparelho.
+      const senhaUsuarioSms =
+        /n[ãa]o (?:chegou|chega|recebi|recebeu|veio|vem)/i.test(txt) &&
+        /senha|acesso|login|usu[áa]rio/i.test(txt) &&
+        /\bsms\b|vendedor|funcion[áa]ri|colaborador|usu[áa]rio|equipe|cadastrar\s*\/?\s*remover/i.test(txt)
+
       // 📸 REGRA DO PRINT (Aldo 08/09/2026): qualquer erro relatado → a VictorIA
       // pede o print da tela, se ainda não veio nesta conversa. Determinístico
       // (instrução injetada no turno), pra não depender só do prompt. O print
@@ -968,7 +978,7 @@ export async function POST(req: NextRequest) {
       // travaAparelho fica FORA: desbloqueio é só Live Chat — não há time nosso
       // pra ver print, e pedir "assim o time vê" reabriria o caso Center Celulares.
       const naoAbre = /n[ãa]o (?:abre|abriu|carrega|carregou)/i.test(txt)
-      const relatouErro = erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal)
+      const relatouErro = !senhaUsuarioSms && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
       const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
       if (relatouErro && !temPrintRecente) {
         instrucaoPedirPrint =
@@ -977,7 +987,7 @@ export async function POST(req: NextRequest) {
 
       // "não abre/carrega" com contexto de portal também vira chamado (Aldo: qualquer
       // erro) — assim o print pedido tem onde ficar guardado no painel.
-      if (!travaAparelho && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
+      if (!travaAparelho && !senhaUsuarioSms && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
         try {
           const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: jaAlertou } = await supabaseAdmin
@@ -2454,7 +2464,7 @@ export async function POST(req: NextRequest) {
         partesForm.push(
           `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO pela AIVA — nada foi lançado.\n` +
             `${nomes}\n` +
-            `➡️ Orientar o SÓCIO a criar esses usuários pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).`,
+            `➡️ Orientar o SÓCIO a criar esses usuários pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 2 dias; pode cair no spam do SMS).`,
         )
       }
       if (incompletos > 0) {
@@ -2529,7 +2539,7 @@ export async function POST(req: NextRequest) {
           `🏪 ${lead.nome}\n📞 ${lead.telefone}\n\n` +
           `👤 ${colab.nome}\n🆔 CPF: ${colab.cpf}\n📧 ${colab.email}\n📱 ${colab.telefone}\n\n` +
           `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO — nada foi lançado automaticamente. ` +
-          `Orientar o SÓCIO a criar esse usuário pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 48h úteis).`
+          `Orientar o SÓCIO a criar esse usuário pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 2 dias; pode cair no spam do SMS).`
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
         console.log(`[REDE_COLAB] ${lead.telefone}: ${colab.nome} (${colab.cpf}) capturado — form_ok=${formOk}`)
