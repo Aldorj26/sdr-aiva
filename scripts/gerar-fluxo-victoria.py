@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Gera o mapa do fluxo atual da VictorIA em 2 formatos a partir de UMA fonte:
-   1) docs/fluxo-victoria-2026-09-10.drawio  (editável no diagrams.net)
+   1) docs/fluxo-victoria-2026-09-14.drawio  (editável no diagrams.net)
    2) scratchpad/fluxo-victoria.html          (página de visualização / artifact)
 """
 import io, sys, html
@@ -29,7 +29,7 @@ COLS = [
          'HSM 41 "AIVA Dia 1" (D+0) → lead INICIO + card 66',
          'Régua D+3 (HSM 35) · D+7 (HSM 38) · D+14 (HSM 39) — ⏸ PAUSADA até o Aldo autorizar (única cadência que fica): ~4.100 leads vencidos aguardam o fluxo novo',
          'auto-descarte 10h seg–sex: INICIO +15d sem resposta → card 53 + SEM_RESPOSTA',
-         'varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.777 na fila)',
+         'varredura de lojas 10h (todo dia) → Excel parcial + fila_disparo (4.477 na fila em 14/09)',
        ],
        sistemas=[
          'sdr_leads (status INICIO) · fila_disparo · sdr_mensagens',
@@ -120,6 +120,7 @@ COLS = [
        ],
        sistemas=[
          'Onboarding AIVA (retail-onboarding-hub) + CAF (biometria)',
+         'API de onboardings do portal diz o passo real: dados_varejo → biometria → cadastro_finalizado (ou not_approved)',
          'sdr_chamados (erro relatado + print) → planilha Chamados',
        ]),
   dict(key='treinar', num=70, nome='Treinar', auto='automação 31',
@@ -142,6 +143,7 @@ COLS = [
        ],
        sistemas=[
          'Drive AIVA (materiais + vídeos Flexfone) · Google Meet',
+         'API de onboardings do portal: confere se o cadastro realmente terminou antes de dar a loja como ativa (usada na ação em massa de 11/09)',
          'Apps Script "AIVA Docs" (linha/senha/atendimento manual)',
        ]),
   dict(key='login', num=71, nome='Login', auto='automação 91',
@@ -176,7 +178,7 @@ COLS = [
        humano=[
          'Nei acompanha /desempenho (Portal Parceiros AIVA) e /atendimento (CS)',
          'Comissão por loja ativada (importação mensal UME)',
-         '⚠️ Etapa 51 não aceita mover card pela API (só na mão)',
+         'Mover card pra cá PELA API funciona (descoberto 11/09: exige queueId + chave da FILA) — usado na ação em massa Treinar→51',
        ],
        rotinas=[
          'consultoria-vendas 14h seg–sex: D+7 e depois a cada 15d, 4 toques via HSM 48',
@@ -186,6 +188,7 @@ COLS = [
        ],
        sistemas=[
          'Portal Parceiros AIVA → aiva_portal_diario (fonte) → aiva_desempenho (mês/semana)',
+         'API pública de parceiro (/api/public/partner/onboardings, chave da Track): etapa real do onboarding por CNPJ — pré-cadastro, formulário, biometria, RID (11/09)',
          'sdr_repasses_solicitados → planilha Repasses · contas MRR no Evo',
        ]),
 ]
@@ -248,7 +251,7 @@ def colx(i): return X0 + i * (COLW + GAP)
 
 y = 20
 # Título
-vertex('titulo', '1', '<b style="font-size:20px">Fluxo atual da VictorIA — AIVA</b><br><span style="font-size:11px">Retrato de 10/09/2026 · colunas = etapas do funil 15 do Evo Talks · linhas = quem faz o quê · edite à vontade, cada caixa é solta</span>',
+vertex('titulo', '1', '<b style="font-size:20px">Fluxo atual da VictorIA — AIVA</b><br><span style="font-size:11px">Retrato de 14/09/2026 · colunas = etapas do funil 15 do Evo Talks · linhas = quem faz o quê · edite à vontade, cada caixa é solta</span>',
        20, y, 900, 50, 'text;html=1;align=left;verticalAlign=middle;fontFamily=Helvetica;')
 # Legenda
 lx = 960
@@ -321,8 +324,8 @@ for i, (t, d) in enumerate(TRANSVERSAL):
            f'rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=5;fontSize=9;fillColor=#FFFFFF;strokeColor={s};')
 y += TH + 20
 
-xml = f'''<mxfile host="app.diagrams.net" modified="2026-09-10T16:00:00.000Z" agent="claude" version="24.7.0">
-  <diagram id="fluxo-victoria" name="Fluxo VictorIA 10/09/2026">
+xml = f'''<mxfile host="app.diagrams.net" modified="2026-09-14T12:00:00.000Z" agent="claude" version="24.7.0">
+  <diagram id="fluxo-victoria" name="Fluxo VictorIA 14/09/2026">
     <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="{TOTAL_W+40}" pageHeight="{y+40}" background="#F4F6F8" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
@@ -333,7 +336,7 @@ xml = f'''<mxfile host="app.diagrams.net" modified="2026-09-10T16:00:00.000Z" ag
   </diagram>
 </mxfile>
 '''
-io.open('docs/fluxo-victoria-2026-09-10.drawio', 'w', encoding='utf-8', newline='\n').write(xml)
+io.open('docs/fluxo-victoria-2026-09-14.drawio', 'w', encoding='utf-8', newline='\n').write(xml)
 print('drawio ok', len(cells), 'células', TOTAL_W, 'x', y)
 
 # ─────────────────────────── HTML ───────────────────────────
@@ -439,7 +442,7 @@ footer{{margin-top:22px;font-size:12px;color:var(--ink-2)}}
 </style>
 <div class="wrap">
   <h1>Fluxo atual da VictorIA — AIVA</h1>
-  <p class="lede">Retrato de 10/09/2026, tirado do código em produção. Cada coluna é uma etapa do funil 15 do Evo Talks, na ordem em que o card anda. Cada linha diz quem age naquela etapa. A versão editável está no arquivo .drawio que acompanha esta página.</p>
+  <p class="lede">Retrato de 14/09/2026, tirado do código em produção. Cada coluna é uma etapa do funil 15 do Evo Talks, na ordem em que o card anda. Cada linha diz quem age naquela etapa. A versão editável está no arquivo .drawio que acompanha esta página.</p>
   <ul class="legend">
     <li><i style="background:var(--evo)"></i>Etapa no Evo (quem move)</li>
     <li><i style="background:var(--vic)"></i>VictorIA (webhook + prompt)</li>
@@ -465,7 +468,7 @@ footer{{margin-top:22px;font-size:12px;color:var(--ink-2)}}
   <h3>Transversal — corre o funil inteiro</h3>
   <div class="transgrid">{trans_html}</div>
   <div class="note"><b>Dois pontos que o desenho deixa à mostra.</b> A régua D+3 / D+7 / D+14 está pausada desde 17/08 (0,12% de resposta, templates sem botão); foi religada em 10/09 e pausada de novo no mesmo dia, pra ativar os cerca de 4.100 leads vencidos já no fluxo novo. Em 10/09 saíram também nudge, reativação, reengajamento e régua-saída: a etapa Interessado ficou sem nenhuma cutucada automática.</div>
-  <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-10.drawio.</footer>
+  <footer>Fontes: vercel.json, app/api/sdr/*, prompts/aiva.ts, lib/evotalks.ts, etapas do funil 15 via MCP do Evo, tarefas agendadas locais. Gerado junto com docs/fluxo-victoria-2026-09-14.drawio.</footer>
 </div>
 '''
 io.open(sys.argv[1], 'w', encoding='utf-8', newline='\n').write(page)

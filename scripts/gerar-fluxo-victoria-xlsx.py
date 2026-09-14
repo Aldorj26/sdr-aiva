@@ -39,7 +39,7 @@ wb = Workbook()
 # ── Aba 1: Resumo
 ws = wb.active; ws.title = 'Resumo'
 ws['A1'] = 'Fluxo atual da VictorIA — AIVA'; ws['A1'].font = fonte(True, size=14)
-ws['A2'] = 'Retrato de 10/09/2026 tirado do código em produção. Colunas do mapa = etapas do funil 15 do Evo Talks; linhas = quem age. Edite à vontade — a aba "Itens" tem a coluna NOVO FLUXO em branco pra você redesenhar.'
+ws['A2'] = 'Retrato de 14/09/2026 tirado do código em produção. Colunas do mapa = etapas do funil 15 do Evo Talks; linhas = quem age. Edite à vontade — a aba "Itens" tem a coluna NOVO FLUXO em branco pra você redesenhar.'
 ws['A2'].font = fonte(); ws['A2'].alignment = WRAP; ws.merge_cells('A2:G2'); ws.row_dimensions[2].height = 42
 cabecalho(ws, 4, ['Ordem', 'Etapa no Evo', 'ID', 'Automação de entrada', 'Como o card chega', 'Quem move pra próxima', 'Itens VictorIA', 'Itens Humanos', 'Itens Rotinas', 'Itens Sistemas'])
 for i, c in enumerate(COLS):
