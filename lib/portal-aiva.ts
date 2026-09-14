@@ -281,6 +281,96 @@ type RegistroCnpj = {
 }
 
 /**
+ * Backfill de RID pela API PÚBLICA DE ONBOARDINGS do portal (chave de parceiro).
+ *
+ * POR QUE EXISTE (buraco achado pelo Aldo em 14/09/2026): `ativarLojasPresentes`
+ * só enxerga quem está no retrato de DESEMPENHO (retailer_performance). A loja
+ * recém-criada na AIVA já tem `retailer_id`, mas só ganha linha de desempenho
+ * quando começa a operar — então ficava com `rid` null por dias, e sem RID ela
+ * não entra na ativação nem no relatório. Foi o caso dos RIDs 6777/6778/6779/
+ * 6781 (criados em 14/09) e de mais 6 leads em Treinar/Em Análise.
+ *
+ * Esta função fecha o buraco na origem: o onboarding traz o RID no instante em
+ * que a AIVA cria a loja. Só PREENCHE `rid` vazio — RID divergente continua
+ * sendo tratado pelo balde 2 de `ativarLojasPresentes`, que tem o desempenho
+ * como fonte e é mais recente.
+ *
+ * Best-effort: sem AIVA_PORTAL_API_KEY configurada, loga e devolve o aviso —
+ * não derruba a rodada do cron.
+ */
+export async function backfillRidsOnboarding(dry: boolean): Promise<string[]> {
+  const chave = process.env.AIVA_PORTAL_API_KEY
+  if (!chave) {
+    console.warn('[portal-aiva] AIVA_PORTAL_API_KEY ausente — backfill de RID por onboarding pulado')
+    return ['⚠️ AIVA_PORTAL_API_KEY não configurada — RID por onboarding não rodou']
+  }
+
+  const soDigitos = (c: unknown) => String(c ?? '').replace(/\D/g, '')
+
+  // 1) Onboardings do parceiro (paginado por cursor; 500 é o teto da API).
+  const ridPorCnpj = new Map<string, string>()
+  let cursor: string | null = null
+  try {
+    do {
+      const q = new URLSearchParams({ limit: '500' })
+      if (cursor) q.set('cursor', cursor)
+      const res = await fetch(`https://parceiro-aiva.lovable.app/api/public/partner/onboardings?${q}`, {
+        headers: { 'x-api-key': chave },
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const d = (await res.json()) as { records?: Array<{ cnpj?: string; retailer_id?: string | number }>; next_cursor?: string | null }
+      for (const r of d.records ?? []) {
+        const cnpj = soDigitos(r.cnpj)
+        if (cnpj.length === 14 && r.retailer_id) ridPorCnpj.set(cnpj, String(r.retailer_id))
+      }
+      cursor = d.next_cursor ?? null
+    } while (cursor)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[portal-aiva] falha ao ler onboardings:', msg)
+    return [`⚠️ API de onboardings falhou (${msg}) — RID por onboarding não rodou`]
+  }
+  if (!ridPorCnpj.size) return []
+
+  // 2) Registros sem RID (paginado — a tabela passa de 1.000 linhas).
+  const semRid: Array<{ id: string | number; cnpj: string | number; loja: string | null }> = []
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('id,cnpj,loja')
+      .is('rid', null)
+      .order('id', { ascending: true })
+      .range(de, de + 999)
+    if (error) throw new Error(`sdr_registros_cnpj (rid null): ${error.message}`)
+    semRid.push(...((data ?? []) as unknown as typeof semRid))
+    if (!data || data.length < 1000) break
+  }
+
+  const alvos = semRid
+    .map((r) => ({ ...r, rid: ridPorCnpj.get(soDigitos(r.cnpj)) }))
+    .filter((r): r is typeof r & { rid: string } => Boolean(r.rid))
+  if (!alvos.length) return []
+
+  if (dry) return alvos.map((r) => `• ${r.loja ?? soDigitos(r.cnpj)} → RID ${r.rid} [dry]`)
+
+  const linhas: string[] = []
+  for (const r of alvos) {
+    // `.is('rid', null)` no update: se outra rodada preencheu nesse meio-tempo,
+    // não sobrescreve.
+    const { error } = await supabaseAdmin.from('sdr_registros_cnpj').update({ rid: r.rid }).eq('id', r.id).is('rid', null)
+    if (error) {
+      console.error(`[portal-aiva] falha ao gravar RID ${r.rid} (registro ${r.id}):`, error.message)
+      linhas.push(`• ${r.loja ?? soDigitos(r.cnpj)} → RID ${r.rid} ⚠️ ${error.message}`)
+      continue
+    }
+    linhas.push(`• ${r.loja ?? soDigitos(r.cnpj)} → RID ${r.rid}`)
+  }
+  console.log(`[portal-aiva] backfill de RID por onboarding: ${linhas.length} registro(s)`)
+  return linhas
+}
+
+/**
  * CNPJ registrado (sdr_registros_cnpj) que aparece no retrato do dia — decisão
  * do Aldo 09/09: presença no portal = contrato assinado → grava RID; status
  * Ativo = loja ativa. Cada registro presente cai em UM de três baldes:

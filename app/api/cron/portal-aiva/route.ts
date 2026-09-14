@@ -27,6 +27,7 @@ import {
   salvarMensal, salvarSemanal, ativarLojasPresentes, avisarAldo, hojeBrt,
   primeiraAparicao,
 } from '@/lib/portal-aiva'
+import { backfillRidsOnboarding } from '@/lib/portal-aiva'
 import { mesDe, somarDias } from '@/lib/portal-aiva-derivar'
 import { supabaseAdmin } from '@/lib/supabase'
 
@@ -103,8 +104,9 @@ export async function GET(req: NextRequest) {
       log.push(`chaves: ${Object.keys(brutas[0] ?? {}).join(',')}`)
       // Dry-run mostra também o que ativaria (sem gravar/enviar) — ativarLojasPresentes
       // com dry=true só lê e devolve as linhas do digest (lib/portal-aiva.ts).
+      const rids_previstos = await backfillRidsOnboarding(true).catch((e) => [`falhou: ${e instanceof Error ? e.message : String(e)}`])
       const ativacoes_previstas = await ativarLojasPresentes(linhas.filter((l) => l.mes === mesAtual), true)
-      return NextResponse.json({ ok: true, dry: true, data_ref: ontem, log, totais: mesesDoRetrato.map(totais), ativacoes_previstas })
+      return NextResponse.json({ ok: true, dry: true, data_ref: ontem, log, totais: mesesDoRetrato.map(totais), ativacoes_previstas, rids_previstos })
     }
 
     await gravarDiario(linhas, brutas)
@@ -139,13 +141,24 @@ export async function GET(req: NextRequest) {
     // Coleta e derivações já estão gravadas; ativação é passo independente e
     // repetível amanhã. Deixar a exceção subir jogaria 500 e WhatsApp de falha
     // numa rodada que, no essencial, deu certo (revisão 09/09).
+    // RID por onboarding ANTES da ativação: a loja criada hoje na AIVA ainda não
+    // tem linha de desempenho, então só esta fonte traz o RID dela — e com o RID
+    // já gravado ela pode ativar na mesma rodada (buraco achado pelo Aldo 14/09).
+    let rids_por_onboarding: string[] | null = null
+    try {
+      rids_por_onboarding = await backfillRidsOnboarding(false)
+      if (rids_por_onboarding.length) log.push(`RID por onboarding: ${rids_por_onboarding.length}`)
+    } catch (e) {
+      log.push(`backfill de RID por onboarding falhou: ${e instanceof Error ? e.message : String(e)}`)
+    }
+
     let ativacoes: string[] | null = null
     try {
       ativacoes = await ativarLojasPresentes(linhas.filter((l) => l.mes === mesAtual), false)
     } catch (e) {
       log.push(`ativação falhou: ${e instanceof Error ? e.message : String(e)}`)
     }
-    return NextResponse.json({ ok: true, data_ref: ontem, log, mensal, semanal, ativacoes })
+    return NextResponse.json({ ok: true, data_ref: ontem, log, mensal, semanal, ativacoes, rids_por_onboarding })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[portal-aiva]', msg, log)
