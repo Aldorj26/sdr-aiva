@@ -1081,6 +1081,46 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 8e. CHECK TREINAMENTO (Aldo 14/09/2026) — o lojista respondeu a pergunta
+    // "já fez o treinamento?" que sai toda segunda e quinta à tarde
+    // (/api/sdr/check-treinamento). Avisa o Nei UMA vez por rodada de pergunta
+    // pra ele mover o card: quem já treinou vai pra Login. A VictorIA segue
+    // respondendo normalmente — este bloco só notifica, não muda status.
+    if (lead.status === 'TREINAR' && conteudoEfetivo) {
+      const obsCheck = lead.observacoes ?? ''
+      const enviadoIso = obsCheck.match(/\[CHECK_TREINAMENTO:([^\]]+)\]/)?.[1]
+      const enviadoMs = enviadoIso ? Date.parse(enviadoIso) : NaN
+      const respondidoIso = obsCheck.match(/\[CHECK_TREINAMENTO_RESP:([^\]]+)\]/)?.[1]
+      const respondidoMs = respondidoIso ? Date.parse(respondidoIso) : NaN
+      // Só alerta se a pergunta saiu nos últimos 7 dias E ainda não avisamos
+      // sobre ESTA rodada (o marcador de resposta é mais novo que o de envio).
+      // 3 dias: a cadência é segunda/quinta, então a janela cobre a rodada
+      // corrente sem transformar qualquer 'bom dia' da semana em alerta.
+      const perguntaRecente = Number.isFinite(enviadoMs) && Date.now() - enviadoMs < 3 * 24 * 60 * 60 * 1000
+      const jaAvisado = Number.isFinite(respondidoMs) && respondidoMs > enviadoMs
+      if (perguntaRecente && !jaAvisado) {
+        try {
+          const alerta =
+            `🎓 *RESPONDEU O CHECK DE TREINAMENTO*\n\n` +
+            `🏪 ${lead.nome}\n` +
+            `📞 ${lead.telefone}\n` +
+            `📌 Etapa no funil: Treinar\n\n` +
+            `💬 "${conteudoEfetivo.slice(0, 300)}"\n\n` +
+            `Se ele confirmou o treinamento, mova o card pra *Login* no Evo. ` +
+            `Se ainda não fez, a VictorIA já ofereceu a próxima turma (segundas e quintas, 9h30).`
+          if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+          const novaObs = respondidoIso
+            ? obsCheck.replace(/\[CHECK_TREINAMENTO_RESP:[^\]]*\]/, `[CHECK_TREINAMENTO_RESP:${new Date().toISOString()}]`)
+            : `${obsCheck} [CHECK_TREINAMENTO_RESP:${new Date().toISOString()}]`.trim()
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObs }).eq('id', lead.id)
+          lead.observacoes = novaObs // o remonte de observacoes lá embaixo parte daqui
+          console.log(`[CHECK_TREINAMENTO] ${lead.telefone} respondeu — Nei avisado`)
+        } catch (err) {
+          console.error(`[CHECK_TREINAMENTO] Falha ao avisar o Nei sobre ${lead.telefone}:`, err)
+        }
+      }
+    }
+
     // 9. Processa com Claude (VictorIA)
     // Passa o status atual pra Claude saber em qual fase do fluxo está
     // (Fase 1 = INTERESSADO, Fase 2 = PRE_APROVACAO, Fase 3 = INTERESSADO).
