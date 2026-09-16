@@ -143,6 +143,15 @@ export async function GET(req: NextRequest) {
         continue
       }
 
+      // Clientes importados do portal AIVA (16/09/2026): já operam com a AIVA, não
+      // há CAF pra cobrar, e o telefone é fixo da Receita ou marcador "000+CNPJ" —
+      // sem WhatsApp real. Cobrar aqui só geraria falha de envio e escalação pro Nei.
+      if ((lead.observacoes ?? '').includes('[IMPORTADO_PORTAL:')) {
+        ignorados++
+        resultados.push({ telefone: lead.telefone, status: lead.status, acao: 'ignorado_importado_portal' })
+        continue
+      }
+
       // Pula se já enviou follow-up nas últimas 24h (proteção dupla contra spam)
       const lastFollowup = getLastFollowupAt(lead.observacoes)
       if (
