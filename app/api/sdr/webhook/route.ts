@@ -1145,7 +1145,12 @@ export async function POST(req: NextRequest) {
       // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
       // fallback — o status sozinho não distingue Fase 1 de Fase 3.
       const instrucaoTurno = [lead.instrucao_silvia, instrucaoPedirPrint].filter((s) => s && String(s).trim()).join('\n\n') || null
-      resposta = await processarMensagem(conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, leadEmFase3)
+      resposta = await processarMensagem(
+        conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, leadEmFase3,
+        // cliente Track já ativo na AIVA (lote importado do portal 16/09): a FASE 4
+        // normal cobraria formulário e mandaria link de onboarding pra quem já vende
+        (lead.observacoes ?? '').includes('[IMPORTADO_PORTAL:'),
+      )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const errStack = err instanceof Error ? err.stack : undefined

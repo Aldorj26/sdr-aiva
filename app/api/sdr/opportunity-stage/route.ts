@@ -521,7 +521,8 @@ export async function POST(req: NextRequest) {
         ])
 
         // Muda status para EM_ANALISE_AIVA — VictorIA passa a responder nessa fase
-        // e o cron followup-fase monitora se o lead concluiu o cadastro CAF.
+        // e o cron cobranca-formulario (D+1/3/7/14, pela etapa real do portal) cobra
+        // o formulário do varejo enquanto o portal seguir em dados_varejo.
         await supabaseAdmin
           .from('sdr_leads')
           .update({

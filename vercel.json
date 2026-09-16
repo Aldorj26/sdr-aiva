@@ -9,8 +9,8 @@
       "schedule": "0 13 * * 1-5"
     },
     {
-      "path": "/api/sdr/followup-fase",
-      "schedule": "0 16 * * *"
+      "path": "/api/sdr/cobranca-formulario",
+      "schedule": "0 16 * * 1-5"
     },
     {
       "path": "/api/sdr/briefing-pipeline",

@@ -307,6 +307,8 @@ function buildFaseInstrucao(
   statusAtual: string,
   dadosAcumulados?: Record<string, string>,
   emFase3 = false,
+  /** lead com [IMPORTADO_PORTAL:] — cliente Track que JÁ opera com a AIVA (lote de 16/09/2026) */
+  importadoPortal = false,
 ): string | null {
   // Monta o bloco de dados já coletados (se houver) para prefixar qualquer instrução de fase
   let dadosBlock = ''
@@ -323,8 +325,16 @@ function buildFaseInstrucao(
     }
   }
 
+  if (statusAtual === 'EM_ANALISE_AIVA' && importadoPortal) {
+    // Os 82 clientes Track importados do portal em 16/09/2026: já operam com a AIVA,
+    // não têm formulário pendente pra nós cobrarmos e o telefone pode ser fixo. O
+    // status EM_ANALISE_AIVA aqui é só espelho do portal — a FASE 4 normal cobraria
+    // formulário e mandaria link de onboarding pra uma loja que já vende.
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA, mas esta loja é CLIENTE TRACK QUE JÁ OPERA COM A AIVA (importada do portal da AIVA em 16/09/2026 — não passou pelo nosso funil).\nNÃO cobre formulário de onboarding, NÃO envie o link do onboarding, NÃO peça dados de qualificação e NÃO trate como lead novo. Trate como loja ativa: dúvidas de operação/plataforma → seção PÓS-APROVAÇÃO e Fase 5 do seu conhecimento; problema que você não resolve, pedido de filial, repasse ou qualquer coisa que dependa do time → acionar_humano = true, motivo_humano = "cliente_importado_portal".\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM). EXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
+  }
+
   if (statusAtual === 'EM_ANALISE_AIVA') {
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/).\nEle precisa: acessar o link, preencher 7 etapas com dados da empresa e fazer reconhecimento facial (CAF) ao final.\nSeu papel agora:\n- Verificar se ele concluiu o cadastro e a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas, biometria no final)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n- Se tiver dificuldade (link não abre, trava em alguma etapa, erro na tela): PEÇA O PRINT da tela primeiro, se ainda não mandou (regra 📸) — depois ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\n🏪 Se ele disser que abriu/quer incluir OUTRA loja (filial, segundo CNPJ): peça o CNPJ da LOJA NOVA — única exceção ao "não pergunte de novo" (seção LOJA NOVA NO MEIO DA CONVERSA). Diga que o time confere o CNPJ e lança o pré-cadastro — NÃO prometa ativação.\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM).\nEXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/).\nEle precisa: acessar o link, preencher 7 etapas com dados da empresa e fazer reconhecimento facial (CAF) ao final.\nSeu papel agora:\n- Verificar se ele concluiu o cadastro e a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas, biometria no final)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n- Se tiver dificuldade (link não abre, trava em alguma etapa, erro na tela): PEÇA O PRINT da tela primeiro, se ainda não mandou (regra 📸) — depois ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\n- Ele pode ter recebido a cobrança automática do formulário ("só falta preencher o formulário do varejo…"). Se pedir o link de novo, perdeu ou não achou: REENVIE https://retail-onboarding-hub.vercel.app/ na hora — ele já está nessa etapa, então mandar o link aqui é permitido e esperado (não acione humano só pra isso)\n🏪 Se ele disser que abriu/quer incluir OUTRA loja (filial, segundo CNPJ): peça o CNPJ da LOJA NOVA — única exceção ao "não pergunte de novo" (seção LOJA NOVA NO MEIO DA CONVERSA). Diga que o time confere o CNPJ e lança o pré-cadastro — NÃO prometa ativação.\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM).\nEXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'CADASTRO_RECEBIDO') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = CADASTRO_RECEBIDO. Ele JÁ COMPLETOU TODOS os 12 dados de qualificação (Fase 1 + Fase 3) e está aguardando o time mover pra próxima etapa (Em Análise CAF, Treinar, etc.).\nNUNCA pergunte dados de qualificação novamente (CNPJ, faturamento, lojas, email, etc.) — todos já foram coletados. (Exceções: CNPJ de LOJA NOVA que ele queira incluir — seção LOJA NOVA — e confirmar CNPJ matriz + coletar Gmail pro PAINEL DE REPASSES — seção REPASSE DE VENDA.)\nO lead provavelmente está perguntando sobre:\n- Treinamento (próxima data, link Meet, materiais)\n- Login / liberação do sistema AIVA\n- Cadastro de funcionários (regra 27/08: o sócio solicita pelo Live Chat da plataforma — você NÃO coleta dados nem envia formulário)\n- Dúvidas operacionais (como vender, fluxo do crediário)\nResponda do que SOUBER pela seção PÓS-APROVAÇÃO. Se for dúvida específica que você não sabe (login travado, prazo, problema técnico) → acionar_humano = true, motivo_humano = "duvida_pos_cadastro: [contexto]".\nRetorne SEMPRE novo_status = "CADASTRO_RECEBIDO" (não regrida pra INTERESSADO ou outras fases anteriores).\n[FIM INSTRUÇÃO DO SISTEMA]`
@@ -653,6 +663,8 @@ export async function processarMensagem(
   /** @deprecated trava de QSA removida em 2026-08-24 — parâmetro mantido só pela ordem posicional dos argumentos */
   _docsPendentesDepreciado?: boolean,
   emFase3?: boolean,
+  /** lead com [IMPORTADO_PORTAL:] — cliente Track que já opera com a AIVA (ver buildFaseInstrucao) */
+  importadoPortal?: boolean,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -714,7 +726,7 @@ export async function processarMensagem(
   // histórico é longo. Isso impede de voltar pra fase anterior.
   // (Vem DEPOIS do envelope <mensagem_lead> — fica fora dele, como instrução real.)
   const status = statusAtual ?? 'INTERESSADO'
-  let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true)
+  let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true, importadoPortal === true)
   // Docs do sem-sócio pendentes → cobra em QUALQUER fase (sobrepõe o "não
   // peça dados" das fases de espera). Anexado mesmo sem instrução de fase.
   if (faseInstrucao) {
