@@ -103,16 +103,20 @@ test('lead com matriz e filial: vale o CNPJ mais avançado', () => {
   assert.deepEqual(r.registrosEnviados, [2])
 })
 
-test('reprovado: só quando nenhum CNPJ do lead seguiu, uma vez, e não em status terminal', () => {
+test('reprovado: vai pra 95 de qualquer etapa; avisa só uma vez; não toca 95/bot/93/94 nem OPT_OUT; outro CNPJ aprovado prevalece', () => {
   const o = [onb({ cnpj: '11111111000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' })]
   const reg = (l: string) => ({ id: l, cnpj: '11111111000191', lead_id: l, status: 'pre_cadastro_enviado' })
   const r = calcularEspelho(base({
     onboardings: [...o, onb({ cnpj: '22222222000191', stage: 'dados_varejo' })],
-    registros: [reg('novo'), reg('jamarcado'), reg('terminal'), reg('temoutro'), { id: 'x', cnpj: '22222222000191', lead_id: 'temoutro', status: 'pre_cadastro_enviado' }],
-    leads: [lead('novo', 1), lead('jamarcado', 2, 'EM_ANALISE_AIVA', '[PORTAL_REPROVADO:2026-09-01T00:00:00Z]'), lead('terminal', 3, 'NAO_QUALIFICADO'), lead('temoutro', 4)],
-    stageAtual: new Map([[1, 50], [2, 50], [3, 50], [4, 49]]),
+    registros: [reg('novo'), reg('jamarcado'), reg('descartado'), reg('ja95'), reg('bot'), reg('optout'), reg('semopp'), reg('temoutro'), { id: 'x', cnpj: '22222222000191', lead_id: 'temoutro', status: 'pre_cadastro_enviado' }],
+    leads: [
+      lead('novo', 1), lead('jamarcado', 2, 'EM_ANALISE_AIVA', '[PORTAL_REPROVADO:2026-09-01T00:00:00Z]'), lead('descartado', 3, 'DESCARTADO'),
+      lead('ja95', 5, 'NAO_QUALIFICADO', '[PORTAL_REPROVADO:2026-09-01T00:00:00Z]'), lead('bot', 6, 'BOT_DETECTADO'), lead('optout', 7, 'OPT_OUT'), lead('semopp', null), lead('temoutro', 4),
+    ],
+    stageAtual: new Map([[1, 50], [2, 50], [3, 53], [4, 49], [5, 95], [6, 69], [7, 50]]),
   }))
-  assert.deepEqual(r.reprovados.map((x) => x.lead_id), ['novo'])
+  assert.deepEqual(r.reprovados.map((x) => [x.lead_id, x.de, x.jaAvisado]), [['novo', 50, false], ['jamarcado', 50, true], ['descartado', 53, false]])
   assert.equal(r.reprovados[0].cnpj, '11111111000191')
+  assert.deepEqual(r.pulados.map((p) => p.lead_id).sort(), ['optout', 'semopp'])
   assert.deepEqual(r.movimentos.map((m) => m.lead_id), ['temoutro'])
 })

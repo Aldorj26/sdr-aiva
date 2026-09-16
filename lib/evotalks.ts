@@ -605,6 +605,9 @@ const STAGES = {
   // "CNPJ Irregular na Receita" (etapa 94, criada 10/09/2026): situação cadastral
   // ≠ ATIVA (INAPTA/SUSPENSA/BAIXADA/NULA) no início da jornada → trava + aviso ao sócio.
   CNPJ_IRREGULAR: 94,
+  // "Loja Descartada pela Aiva" (etapa 95, criada pelo Aldo 16/09/2026): pré-cadastro
+  // not_approved no portal → o espelho move o card pra cá e trava o lead.
+  REPROVADO_AIVA: 95,
 } as const
 
 // Progressão LINEAR do funil (ordem de avanço) por ID de stage. Usada por
@@ -1136,6 +1139,8 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   93: 'NAO_QUALIFICADO',
   // 94 "CNPJ Irregular na Receita": situação ≠ ATIVA = trava (10/09/2026).
   94: 'NAO_QUALIFICADO',
+  // 95 "Loja Descartada pela Aiva": pré-cadastro reprovado no portal (16/09/2026).
+  95: 'NAO_QUALIFICADO',
 }
 
 // Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.

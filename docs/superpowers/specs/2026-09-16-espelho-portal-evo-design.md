@@ -25,7 +25,7 @@ Cron `/api/sdr/espelho-portal` a cada 15 min (`*/15 * * * *`):
 | `stage` cadastro_finalizado (tem `retailer_id`) | 70 Treinar |
 | `login_sends.credentials_sent_at` preenchido | 71 Login |
 | alguma linha com `n_vendas > 0` em `retailer_performance` | 51 Vendendo |
-| `stage` not_approved (e nenhum outro CNPJ do lead avançou) | não move; marca `[PORTAL_REPROVADO:ISO]` e avisa Nei + Aldo uma vez |
+| `stage` not_approved (e nenhum outro CNPJ do lead avançou) | **95 "Loja Descartada pela Aiva"** (etapa criada pelo Aldo 16/09, sem automação) + lead `NAO_QUALIFICADO`; marca `[PORTAL_REPROVADO:ISO]` e avisa Nei + Aldo uma vez. Vale de qualquer etapa/status (menos OPT_OUT); se o lead voltar a falar, o webhook 4c avisa o time |
 
 - **Só avança.** Ordem linear 66 → 47 → 54 → 49 → 50 → 70 → 71 → 51 (a mesma do
   `changeStageSeAvanco`). Sem Resposta (53) pode avançar. Bot (69), Menos de 1 Ano (93)
@@ -51,7 +51,7 @@ chamar a rota duplicaria o HSM.
 
 ## O que NÃO faz (ainda)
 
-- Não descarta reprovado (passo 2 da Fase 1 — precisa de uma etapa de destino no Evo).
+- Não avisa o lojista da reprovação (só o time) — decisão pendente do Aldo.
 - Não cobra formulário pendente, não envia biometria, não inscreve em turma (passos 3–5).
 - Não cria pré-cadastro (Google Forms exige login — pergunta 17 da reunião).
 

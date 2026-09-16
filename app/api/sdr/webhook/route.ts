@@ -631,19 +631,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, lgpd: 'dados_apagados' })
   }
 
-  // 4c. Lead TRAVADO por CNPJ (< 1 ano ou situação ≠ ATIVA) que volta a falar: a
-  // VictorIA não responde (status terminal), mas a mensagem de trava prometeu que o
-  // time retoma — então avisa Nei/Aldo, no máximo 1× por 24h por lead. Reativar é
-  // manual: conferir na Receita, mover o card pra Interessado e clicar Reativar.
-  if (lead.status === 'NAO_QUALIFICADO' && /cnpj_menos_de_1_ano|cnpj_irregular_receita/.test(lead.observacoes ?? '')) {
+  // 4c. Lead TRAVADO por CNPJ (< 1 ano ou situação ≠ ATIVA) ou REPROVADO pela AIVA
+  // (espelho do portal, etapa 95) que volta a falar: a VictorIA não responde (status
+  // terminal), mas o time precisa saber — avisa Nei/Aldo, no máximo 1× por 24h por
+  // lead. Reativar é manual: conferir, mover o card pra Interessado e clicar Reativar.
+  if (lead.status === 'NAO_QUALIFICADO' && /cnpj_menos_de_1_ano|cnpj_irregular_receita|\[PORTAL_REPROVADO:/.test(lead.observacoes ?? '')) {
     const obsTrava = lead.observacoes ?? ''
     const ultimoAviso = obsTrava.match(/\[RETORNO_CNPJ_ALERTA:([^\]]+)\]/)?.[1]
     if (!ultimoAviso || Date.now() - new Date(ultimoAviso).getTime() > 24 * 3600 * 1000) {
       const sit = /cnpj_irregular_receita:?([A-Z]*)/.exec(obsTrava)
-      const motivoTrava = sit ? `situação ${sit[1] || 'irregular'} na Receita` : 'CNPJ com menos de 1 ano'
+      const reprovado = obsTrava.includes('[PORTAL_REPROVADO:')
+      const motivoTrava = reprovado
+        ? 'pré-cadastro REPROVADO pela AIVA (portal)'
+        : sit ? `situação ${sit[1] || 'irregular'} na Receita` : 'CNPJ com menos de 1 ano'
       const aviso =
-        `🔁 *LEAD TRAVADO POR CNPJ VOLTOU A FALAR*\n\n🏪 ${lead.nome}\n📱 ${lead.telefone}\n🧾 Motivo da trava: ${motivoTrava}\n💬 "${String(conteudo ?? '').slice(0, 300)}"\n\n` +
-        `A VictorIA não responde (status travado). Se regularizou: confira na Receita, mova o card pra Interessado e clique Reativar no painel.`
+        `🔁 *LEAD TRAVADO VOLTOU A FALAR*\n\n🏪 ${lead.nome}\n📱 ${lead.telefone}\n🧾 Motivo da trava: ${motivoTrava}\n💬 "${String(conteudo ?? '').slice(0, 300)}"\n\n` +
+        (reprovado
+          ? 'A VictorIA não responde (status travado). Se a AIVA reconsiderar: mova o card pra Interessado e clique Reativar no painel.'
+          : 'A VictorIA não responde (status travado). Se regularizou: confira na Receita, mova o card pra Interessado e clique Reativar no painel.')
       if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
       const carimbo = `[RETORNO_CNPJ_ALERTA:${new Date().toISOString()}]`

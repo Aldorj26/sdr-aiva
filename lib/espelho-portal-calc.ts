@@ -18,8 +18,11 @@
  *     link do treinamento); nunca passa por 50 quando o destino é além (o HSM
  *     34 pede pra preencher um formulário que já foi preenchido).
  *   - Lead com vários CNPJs: vale o mais avançado.
- *   - not_approved sem nenhum outro CNPJ aprovado → reprovado (alerta; a
- *     trava/etapa de destino é o passo 2 da Fase 1).
+ *   - not_approved sem nenhum outro CNPJ aprovado → REPROVADO: card vai pra 95
+ *     "Loja Descartada pela Aiva" (etapa criada pelo Aldo 16/09), lead trava em
+ *     NAO_QUALIFICADO, Nei+Aldo avisados uma vez ([PORTAL_REPROVADO]). Vale de
+ *     qualquer etapa (inclusive Sem Resposta/Descartado); só não mexe em 69/93/94/95
+ *     nem em OPT_OUT.
  */
 
 export type OnbApi = {
@@ -47,7 +50,17 @@ export type Movimento = {
   via: number[]
   motivo: string
 }
-export type Reprovado = { lead_id: string; nome: string; opp: number | null; cnpj: string; loja: string | null }
+export type Reprovado = {
+  lead_id: string
+  nome: string
+  opp: number
+  /** etapa atual do card (de onde sai pra 95) */
+  de: number
+  cnpj: string
+  loja: string | null
+  /** já tinha [PORTAL_REPROVADO] — não avisa de novo, só move/trava */
+  jaAvisado: boolean
+}
 export type Pulado = { lead_id: string; nome: string; motivo: string }
 export type Entrada = {
   onboardings: OnbApi[]
@@ -68,11 +81,11 @@ export type Resultado = {
   pulados: Pulado[]
 }
 
-export const ETAPA = { EM_ANALISE: 50, TREINAR: 70, LOGIN: 71, VENDENDO: 51 } as const
+export const ETAPA = { EM_ANALISE: 50, TREINAR: 70, LOGIN: 71, VENDENDO: 51, REPROVADO: 95 } as const
 /** Mesma progressão linear do ORDEM_FUNIL de lib/evotalks (duplicada aqui pra manter este módulo sem imports). */
 export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 70: 5, 71: 6, 51: 7 }
 const SEM_RESPOSTA = 53
-const NAO_MEXER = new Set([69, 93, 94])
+const NAO_MEXER = new Set([69, 93, 94, 95])
 const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO'])
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
 
@@ -131,12 +144,17 @@ export function calcularEspelho(e: Entrada): Resultado {
     const oppId = lead.evotalks_opportunity_id != null ? Number(lead.evotalks_opportunity_id) : NaN
     const opp = Number.isFinite(oppId) && oppId > 0 ? oppId : null
 
-    // 2) reprovado pela AIVA (e nenhum outro CNPJ do lead seguiu adiante)
+    // 2) reprovado pela AIVA (e nenhum outro CNPJ do lead seguiu adiante) → etapa 95.
+    //    Vale de qualquer etapa e de qualquer status que não seja OPT_OUT: reprovado é
+    //    reprovado. Quem já está em 95 (ou bot/93/94) não é tocado.
     if (!melhor && reprovadoEm) {
-      const jaMarcado = (lead.observacoes ?? '').includes(`[${MARCADOR_REPROVADO}:`)
-      if (!jaMarcado && !STATUS_TERMINAL.has(lead.status)) {
-        out.reprovados.push({ lead_id: leadId, nome, opp, cnpj: soDigitos(reprovadoEm.cnpj), loja: reprovadoEm.legal_name ?? null })
-      }
+      const jaAvisado = (lead.observacoes ?? '').includes(`[${MARCADOR_REPROVADO}:`)
+      if (lead.status === 'OPT_OUT') { out.pulados.push({ lead_id: leadId, nome, motivo: 'reprovado pela AIVA, mas OPT_OUT' }); continue }
+      if (!opp) { out.pulados.push({ lead_id: leadId, nome, motivo: 'reprovado pela AIVA, sem oportunidade no Evo' }); continue }
+      const atual = e.stageAtual.get(opp)
+      if (atual == null) { out.pulados.push({ lead_id: leadId, nome, motivo: `reprovado pela AIVA, opp #${opp} não está aberta no funil 15` }); continue }
+      if (NAO_MEXER.has(atual)) continue
+      out.reprovados.push({ lead_id: leadId, nome, opp, de: atual, cnpj: soDigitos(reprovadoEm.cnpj), loja: reprovadoEm.legal_name ?? null, jaAvisado })
       continue
     }
     if (!melhor) continue

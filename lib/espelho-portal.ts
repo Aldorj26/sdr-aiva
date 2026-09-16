@@ -21,7 +21,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, soDigitos, MARCADOR_REPROVADO,
+  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 
@@ -169,24 +169,32 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   }
   saida.sobraram = r.movimentos.length - i
 
-  // 6) reprovados pela AIVA: marca o lead e avisa Nei + Aldo (uma vez por lead)
-  if (r.reprovados.length) {
-    const linhas: string[] = []
-    for (const x of r.reprovados) {
-      try {
-        await marcar(x.lead_id, MARCADOR_REPROVADO, new Date().toISOString())
-        linhas.push(`• ${x.nome}${x.loja ? ` — ${x.loja}` : ''} (CNPJ ${soDigitos(x.cnpj)})${x.opp ? ` · opp #${x.opp}` : ''}`)
-      } catch (e) {
-        avisos.push(`reprovado ${x.nome} não marcado: ${String(e).slice(0, 100)}`)
-      }
+  // 6) reprovados pela AIVA → card pra 95 "Loja Descartada pela Aiva" + lead travado
+  //    (NAO_QUALIFICADO; o webhook 4c avisa se ele voltar a falar). Aviso ao Nei/Aldo
+  //    só pra quem ainda não tinha o marcador. Mesmo teto de tempo da rodada.
+  const novos: string[] = []
+  const reprovadosFeitos: Resultado['reprovados'] = []
+  for (const x of r.reprovados) {
+    if (Date.now() - inicio > TETO_MS) { saida.sobraram += 1; continue }
+    try {
+      await changeOpportunityStage(x.opp, ETAPA.REPROVADO)
+      await supabaseAdmin.from('sdr_leads').update({ status: 'NAO_QUALIFICADO', acionar_humano: false }).eq('id', x.lead_id)
+      if (!x.jaAvisado) await marcar(x.lead_id, MARCADOR_REPROVADO, new Date().toISOString())
+      console.log(`[espelho-portal] opp #${x.opp} ${x.de} → 95 (reprovado pela AIVA) · ${x.nome}`)
+      reprovadosFeitos.push(x)
+      if (!x.jaAvisado) novos.push(`• ${x.nome}${x.loja ? ` — ${x.loja}` : ''} (CNPJ ${soDigitos(x.cnpj)}) · opp #${x.opp}`)
+      await new Promise((res) => setTimeout(res, 800))
+    } catch (e) {
+      avisos.push(`reprovado ${x.nome} (opp #${x.opp}) não movido: ${String(e).slice(0, 100)}`)
     }
-    if (linhas.length) {
-      const texto =
-        `⛔ *Pré-cadastro REPROVADO pela AIVA* (${linhas.length})\n${linhas.join('\n')}\n\n` +
-        'O lead continua ativo no funil — decidir o que fazer com o card (o espelho não descarta ninguém).'
-      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
-        try { await sendText(tel, texto) } catch (e) { avisos.push(`aviso de reprovado não enviado: ${String(e).slice(0, 100)}`) }
-      }
+  }
+  saida.reprovados = reprovadosFeitos
+  if (novos.length) {
+    const texto =
+      `⛔ *Pré-cadastro REPROVADO pela AIVA* (${novos.length})\n${novos.join('\n')}\n\n` +
+      'Card movido pra "Loja Descartada pela Aiva" e lead travado. Se a AIVA reconsiderar: mover o card pra Interessado e clicar Reativar no painel.'
+    for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+      try { await sendText(tel, texto) } catch (e) { avisos.push(`aviso de reprovado não enviado: ${String(e).slice(0, 100)}`) }
     }
   }
 
