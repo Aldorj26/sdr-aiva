@@ -49,6 +49,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/sdr/senha-pendente",
+      "schedule": "0 14 * * 1-5"
+    },
+    {
       "path": "/api/sdr/biometria",
       "schedule": "0 12-21 * * 1-5"
     }

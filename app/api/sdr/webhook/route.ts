@@ -850,6 +850,9 @@ export async function POST(req: NextRequest) {
         const msgsPraReenviar: string[] = []
         // agenda oficial do portal AIVA (só busca se algum aviso de treinamento/kit for reenviado)
         const turmas = aviso70Pendente || aviso70KitPendente ? (await proximasTurmas(3)).turmas : []
+        // acesso do sócio pedido e não enviado: os textos fixos não podem prometer
+        // que o login "chega automático" (revisor 16/09)
+        const senhaPendente = obs.includes('[SENHA_PENDENTE_DESDE:')
         if (aviso49Pendente) {
           msgsPraReenviar.push(buildAvisoColetandoComplementoMsg(nomeContato))
         }
@@ -860,10 +863,10 @@ export async function POST(req: NextRequest) {
           msgsPraReenviar.push(buildAvisoCadastroMsg(nomeContato))
         }
         if (aviso70Pendente) {
-          msgsPraReenviar.push(...buildAvisoTreinamentoMsgs(turmas))
+          msgsPraReenviar.push(...buildAvisoTreinamentoMsgs(turmas, senhaPendente))
         }
         if (aviso70KitPendente) {
-          msgsPraReenviar.push(buildKitPosFechamentoMsg(nomeContato, turmas))
+          msgsPraReenviar.push(buildKitPosFechamentoMsg(nomeContato, turmas, senhaPendente))
         }
         for (const msg of msgsPraReenviar) {
           try {
@@ -1158,6 +1161,8 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').includes('[IMPORTADO_PORTAL:'),
         // link do reconhecimento facial gravado pelo cron /api/sdr/biometria (portal em `biometria`)
         (lead.observacoes ?? '').match(/\[BIOMETRIA_LINK:([^\]\s]+)\]/)?.[1] ?? null,
+        // acesso pedido à AIVA e senha ainda não enviada (cron /api/sdr/senha-pendente)
+        (lead.observacoes ?? '').match(/\[SENHA_PENDENTE_DESDE:([^\]]+)\]/)?.[1] ?? null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

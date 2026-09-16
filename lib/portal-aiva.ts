@@ -299,6 +299,35 @@ type RegistroCnpj = {
  * não derruba a rodada do cron.
  */
 /**
+ * Acessos SOLICITADOS à AIVA que ainda não tiveram a senha enviada
+ * (`login_sends.credentials_sent_at` nulo). Um registro por loja (store_id).
+ */
+export async function listarSenhasPendentes(s: Sessao): Promise<Array<{ retailer_id: string; store_id: string | null; permission_requested_at: string }>> {
+  const tudo: Array<{ retailer_id: string; store_id: string | null; permission_requested_at: string }> = []
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<typeof tudo>(
+      s, 'login_sends?select=retailer_id,store_id,permission_requested_at&credentials_sent_at=is.null&permission_requested_at=not.is.null&order=permission_requested_at.asc', [de, de + 999],
+    )
+    tudo.push(...data)
+    if (data.length < 1000) break
+  }
+  return tudo
+}
+
+/** retailer_id → dados do onboarding (nome, CNPJ) pra dar nome aos RIDs. */
+export async function onboardingsPorRetailer(s: Sessao): Promise<Map<string, { cnpj: string; legal_name: string | null }>> {
+  const out = new Map<string, { cnpj: string; legal_name: string | null }>()
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<Array<{ retailer_id: string | number | null; cnpj: string; legal_name: string | null }>>(
+      s, 'onboardings?select=retailer_id,cnpj,legal_name&retailer_id=not.is.null', [de, de + 999],
+    )
+    for (const o of data) if (o.retailer_id != null) out.set(String(o.retailer_id), { cnpj: String(o.cnpj ?? ''), legal_name: o.legal_name })
+    if (data.length < 1000) break
+  }
+  return out
+}
+
+/**
  * Onboardings da Track parados na BIOMETRIA, com o link do reconhecimento facial
  * (onboardings.liveness_url — só existe no banco do portal, a API pública não devolve).
  * RLS do login de parceiro já restringe à Track.

@@ -106,7 +106,7 @@ export function contextoDeData(): {
  * Reutilizado pelo opportunity-stage (envio imediato) e pelo webhook
  * (reforço quando lead responde — Caminho 2).
  */
-export function buildAvisoTreinamentoMsgs(turmas: Turma[]): string[] {
+export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente = false): string[] {
   const proxima = turmas[0]
   const msgReuniao =
     `🎓 *Treinamento:*\n` +
@@ -123,13 +123,17 @@ export function buildAvisoTreinamentoMsgs(turmas: Turma[]): string[] {
 
   const msgCadastro =
     `🔑 *Acessos (regra nova):*\n` +
-    `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n` +
+    // senhaPendente: a AIVA ainda não enviou o acesso desta loja — não prometer
+    // que "chega automático" nem mandar procurar mensagem que não existe (revisor 16/09)
+    (senhaPendente
+      ? `O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou isso pra eles. Assim que sair, chega aqui no seu WhatsApp pelo número +55 21 4020-2024.\n`
+      : `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n`) +
     `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 2 dias. 📵 Se não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊`
 
   return [msgReuniao, msgMateriais, msgCadastro]
 }
 
-export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = []): string {
+export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], senhaPendente = false): string {
   return (
     `${nome}, enquanto o treinamento não acontece, aqui vai um resumo de como funciona a parceria — pra você já ficar por dentro de tudo: 👇\n\n` +
     `💰 *Taxa:* 12% por venda aprovada — única cobrança. Sem mensalidade e sem custo de ativação.\n` +
@@ -143,7 +147,9 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = []): st
     (turmas.length
       ? `1️⃣ Participa do treinamento ao vivo — próxima turma *${rotulo(turmas[0])}* (1h; turmas às ${resumoDias(turmas)}). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`
       : `1️⃣ Participa do treinamento ao vivo (me pergunta a data da próxima turma). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`) +
-    `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n` +
+    (senhaPendente
+      ? `2️⃣ O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou pra eles; assim que sair chega no seu WhatsApp pelo +55 21 4020-2024\n`
+      : `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n`) +
     `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )

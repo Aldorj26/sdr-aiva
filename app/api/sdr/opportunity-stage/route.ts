@@ -591,7 +591,7 @@ export async function POST(req: NextRequest) {
       // Busca lead no Supabase
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
-        .select('id, nome')
+        .select('id, nome, observacoes')
         .eq('telefone', telefone)
         .maybeSingle()
 
@@ -647,7 +647,7 @@ export async function POST(req: NextRequest) {
         // Texto livre → só entrega com a janela 24h aberta; se fechada, marca
         // flag e o webhook reenvia quando o lead responder (Caminho 2).
         try {
-          const kitMsg = buildKitPosFechamentoMsg(nomeContato, turmas)
+          const kitMsg = buildKitPosFechamentoMsg(nomeContato, turmas, (lead?.observacoes ?? '').includes('[SENHA_PENDENTE_DESDE:'))
           const janelaAberta = await janela24hAberta(lead.id)
           if (janelaAberta) {
             await sendText(telefone, kitMsg)
