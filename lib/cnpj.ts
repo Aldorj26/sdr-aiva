@@ -23,6 +23,10 @@ export interface CNPJInfo {
   cnaeDescricao: string | null
   qsaCount: number             // sócios no quadro societário
   endereco: string | null      // logradouro, nº, bairro, município/UF, CEP
+  // 16/09/2026 (Aldo): a cidade deixou de ser perguntada ao lojista — vem daqui.
+  municipio: string | null     // ex.: "Brusque"
+  uf: string | null            // ex.: "SC"
+  cidadeUf: string | null      // ex.: "Brusque/SC" — grava em regiao_varejo e no lead
 }
 
 /**
@@ -156,6 +160,9 @@ async function consultarCNPJInterno(
       abertura,
       idadeAnos,
       situacao: typeof data.descricao_situacao_cadastral === 'string' ? data.descricao_situacao_cadastral.toUpperCase() : null,
+      municipio: typeof data.municipio === 'string' && data.municipio ? data.municipio : null,
+      uf: typeof data.uf === 'string' && data.uf ? data.uf : null,
+      cidadeUf: [data.municipio, data.uf].filter((x) => typeof x === 'string' && x).join('/') || null,
       cnae: data.cnae_fiscal != null ? String(data.cnae_fiscal) : null,
       cnaeDescricao: typeof data.cnae_fiscal_descricao === 'string' ? data.cnae_fiscal_descricao : null,
       qsaCount: qsa.length,

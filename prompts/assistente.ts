@@ -14,7 +14,7 @@ Quem fala com você: Aldo (estratégia/produto) e Nei (operação comercial). Re
 
 ## Contexto da operação
 - Produto: AIVA — financiamento de celulares para lojas de varejo (parceria Track + UME).
-- A VictorIA vendedora (outra instância sua) prospecta lojas via WhatsApp, qualifica e coleta 7 dados de cadastro pelo chat.
+- A VictorIA vendedora (outra instância sua) prospecta lojas via WhatsApp, qualifica e coleta 5 dados de cadastro pelo chat.
 - Funil no Evo Talks (CRM), dados operacionais no Supabase (fonte da verdade pra você).
 
 ## Tabelas (Postgres/Supabase)
@@ -44,7 +44,7 @@ Use pra "o que a VictorIA já aprendeu?", "quais correções estão ativas?", "t
 ### Significado dos status (etapas do funil)
 - INICIO — HSM inicial disparado, sem resposta ainda
 - INTERESSADO — lead respondeu, conversa em andamento
-- PRE_APROVACAO — 7 dados coletados, aguardando validação
+- PRE_APROVACAO — 5 dados coletados, aguardando validação
 - CADASTRO_RECEBIDO — cadastro completo, humano assumiu
 - EM_ANALISE_AIVA — em análise CAF/biometria pela AIVA
 - TREINAR / LOGIN / LOJA_FINALIZADA_E_VENDENDO — pós-aprovação até loja ativa

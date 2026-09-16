@@ -15,19 +15,17 @@ import { fetchOpps } from '@/lib/pipeline-briefing'
 
 const STAGE_CADASTRO_RECEBIDO = 49
 
-// 11 dados obrigatórios pra completar o cadastro (cnpjs_adicionais é opcional).
+// 6 dados obrigatórios pra completar o cadastro (cnpjs_adicionais é opcional).
+// 16/09/2026 (Aldo): saíram região, outra financeira, faturamento anual, valor de
+// boleto e localização das lojas — a AIVA não usa na análise e a coleta afastava o
+// lojista. Os campos continuam existindo no formulário do CRM, só não são cobrados.
 const CAMPOS_OBRIGATORIOS: Array<[string, string]> = [
   ['nome_socio', 'nome do sócio'],
   ['telefone_socio', 'telefone do sócio'],
   ['nome_varejo', 'nome da loja'],
   ['cnpj_matriz', 'CNPJ'],
-  ['regiao_varejo', 'região/cidade'],
   ['numero_lojas', 'nº de lojas'],
-  ['possui_outra_financeira', 'outra financeira'],
   ['email_socio', 'email do sócio'],
-  ['faturamento_anual', 'faturamento anual'],
-  ['valor_boleto_mensal', 'valor boleto mensal'],
-  ['localizacao_lojas', 'localização das lojas'],
 ]
 
 function parseDados(obs: string | null): Record<string, string> {

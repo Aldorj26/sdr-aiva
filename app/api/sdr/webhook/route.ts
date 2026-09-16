@@ -1684,7 +1684,7 @@ export async function POST(req: NextRequest) {
     // sem ele a VictorIA para de insistir no chat mas a automação insiste
     // D+1/D+3/D+7 por fora (achado do revisor).
     if (
-      String(resposta.motivo_humano ?? '').startsWith('receio_dados_sensiveis') &&
+      String(resposta.motivo_humano ?? '').startsWith('recusou_email_socio') &&
       !obsPrev.includes('[RECUSA_DADO_SENSIVEL')
     ) {
       partes.push(`[RECUSA_DADO_SENSIVEL:${new Date().toISOString()}]`)
@@ -1861,6 +1861,18 @@ export async function POST(req: NextRequest) {
         ...dadosAcumulados,
         ...(resposta.dados_coletados as Record<string, string | null | undefined> ?? {}),
       } as Record<string, string | null | undefined>
+      // Cidade/UF vem da RECEITA, não do lojista (regra 16/09/2026, Aldo): a
+      // pergunta "em que cidade fica a loja?" saiu do fluxo, mas o dado continua
+      // útil (tela de Clientes, relatórios). Só preenche se ainda estiver vazio —
+      // o que o lojista já tiver dito antes vale mais que o cadastro da Receita.
+      if (cnpjInfoNovo?.cidadeUf && !dadosCompletos.regiao_varejo) {
+        dadosCompletos.regiao_varejo = cnpjInfoNovo.cidadeUf
+        if (!lead.cidade) {
+          try {
+            await supabaseAdmin.from('sdr_leads').update({ cidade: cnpjInfoNovo.cidadeUf }).eq('id', lead.id)
+          } catch (e) { console.warn('[cidade-receita] não gravou no lead:', e) }
+        }
+      }
       if (Object.keys(dadosCompletos).length > 0) {
         await updateOpportunityForms(oppId, dadosCompletos, lead.telefone)
       }
@@ -1894,7 +1906,10 @@ export async function POST(req: NextRequest) {
       // como caminho alternativo. Idempotência via flag [CAD_ALERTADO] em observacoes
       // (o write geral §12 preserva marcadores [..] entre turnos) — imune ao sync 4b
       // marcar CADASTRO_RECEBIDO antes (que roubava a transição do guard por status).
-      const FASE3_CAMPOS_DADOS = ['email_socio', 'faturamento_anual', 'valor_boleto_mensal', 'localizacao_lojas'] as const
+      // 16/09/2026: a Fase 3 encolheu pro e-mail do sócio. Se esta lista mantivesse os
+      // campos removidos, `fase3NosDados` nunca mais seria true e a conclusão dependeria
+      // só do modelo marcar CADASTRO_RECEBIDO — que é exatamente o bug Allshopp (10/07).
+      const FASE3_CAMPOS_DADOS = ['email_socio'] as const
       const fase3NosDados = FASE3_CAMPOS_DADOS.every((k) => dadosCompletos[k]?.toString().trim())
       const cadJaAlertado = (lead.observacoes ?? '').includes('[CAD_ALERTADO]')
       const cadEntrouPeloModelo = resposta.novo_status === 'CADASTRO_RECEBIDO'
@@ -1919,9 +1934,7 @@ export async function POST(req: NextRequest) {
           telefone:                { fieldId: 'db8569f0', dadosKey: 'telefone_socio' },
           nome_varejo:             { fieldId: 'dcacfa00', dadosKey: 'nome_varejo' },
           cnpj_matriz:             { fieldId: 'dd2ab580', dadosKey: 'cnpj_matriz' },
-          regiao_varejo:           { fieldId: 'dede58f0', dadosKey: 'regiao_varejo' },
           numero_lojas:            { fieldId: 'df6f9c70', dadosKey: 'numero_lojas' },
-          possui_outra_financeira: { fieldId: 'e07d62f0', dadosKey: 'possui_outra_financeira' },
         }
         const dadosMergedCheck: Record<string, string | undefined> = {
           ...dadosAcumulados,
@@ -1957,9 +1970,7 @@ export async function POST(req: NextRequest) {
             nome_socio: 'Ah, só faltou um dado pra eu fechar: qual o nome do responsável pela loja (o sócio)?',
             cnpj_matriz: 'Ah, só faltou um dado pra eu fechar: qual o CNPJ da loja? (são 14 números)',
             nome_varejo: 'Ah, só faltou um dado pra eu fechar: qual o nome da loja?',
-            regiao_varejo: 'Ah, só faltou um dado pra eu fechar: em qual cidade e estado fica a loja?',
             numero_lojas: 'Ah, só faltou um dado pra eu fechar: quantas lojas vocês têm?',
-            possui_outra_financeira: 'Ah, só faltou um dado pra eu fechar: vocês já trabalham com a Odres ou a UME hoje?',
             telefone: 'Ah, só faltou um dado pra eu fechar: qual o telefone do responsável? (pode ser este mesmo)',
           }
           const perguntaFaltante = PERGUNTA_FALTANTE[faltantesFase1[0]]
@@ -2053,12 +2064,11 @@ export async function POST(req: NextRequest) {
           telefone:                { fieldId: 'db8569f0', dadosKey: 'telefone_socio' },
           nome_varejo:             { fieldId: 'dcacfa00', dadosKey: 'nome_varejo' },
           cnpj_matriz:             { fieldId: 'dd2ab580', dadosKey: 'cnpj_matriz' },
-          faturamento_anual:       { fieldId: 'ddb960f0', dadosKey: 'faturamento_anual' },
-          valor_boleto_mensal:     { fieldId: 'de2cbc30', dadosKey: 'valor_boleto_mensal' },
-          regiao_varejo:           { fieldId: 'dede58f0', dadosKey: 'regiao_varejo' },
           numero_lojas:            { fieldId: 'df6f9c70', dadosKey: 'numero_lojas' },
-          localizacao_lojas:       { fieldId: 'e0099280', dadosKey: 'localizacao_lojas' },
-          possui_outra_financeira: { fieldId: 'e07d62f0', dadosKey: 'possui_outra_financeira' },
+          // 16/09/2026 (Aldo): faturamento_anual, valor_boleto_mensal, regiao_varejo,
+          // localizacao_lojas e possui_outra_financeira SAÍRAM da coleta. Se
+          // continuassem aqui, o cadastro nunca fecharia — o lead ficaria em loop
+          // na Fase 3 esperando um dado que ninguém mais pede.
           cnpjs_adicionais:        { fieldId: 'e0f66380', dadosKey: 'cnpjs_adicionais' },
         }
         // Valor resolvido: Evo Talks formsdata OU Supabase (o que tiver preenchido)
@@ -2145,19 +2155,24 @@ export async function POST(req: NextRequest) {
           // Sobrescreve a resposta pra quem ler depois saber que não foi transição real
           resposta.novo_status = 'INTERESSADO'
         } else {
-          // Monta os 12 dados a partir do valor resolvido (Evo Talks OU Supabase).
+          // Monta o pacote de dados a partir do valor resolvido (Evo Talks OU Supabase).
+          // Os 5 campos que saíram da coleta em 16/09/2026 não são mais exigidos, mas
+          // seguem no pacote quando EXISTEM (lead antigo, ou a cidade que o sistema
+          // preenche sozinho pela Receita) — por isso são lidos direto, sem passar
+          // por camposObrigatorios, que já não os contém.
+          const valorLegado = (fieldId: string, dadosKey: string) => valorF3({ fieldId, dadosKey })
           const dados12 = {
             nome_socio:              valorF3(camposObrigatorios.nome_socio),
             email_socio:             valorF3(camposObrigatorios.email_socio),
             telefone:                valorF3(camposObrigatorios.telefone),
             nome_varejo:             valorF3(camposObrigatorios.nome_varejo),
             cnpj_matriz:             valorF3(camposObrigatorios.cnpj_matriz),
-            faturamento_anual:       valorF3(camposObrigatorios.faturamento_anual),
-            valor_boleto_mensal:     valorF3(camposObrigatorios.valor_boleto_mensal),
-            regiao_varejo:           valorF3(camposObrigatorios.regiao_varejo),
+            faturamento_anual:       valorLegado('ddb960f0', 'faturamento_anual'),
+            valor_boleto_mensal:     valorLegado('de2cbc30', 'valor_boleto_mensal'),
+            regiao_varejo:           valorLegado('dede58f0', 'regiao_varejo'),
             numero_lojas:            valorF3(camposObrigatorios.numero_lojas),
-            localizacao_lojas:       valorF3(camposObrigatorios.localizacao_lojas),
-            possui_outra_financeira: valorF3(camposObrigatorios.possui_outra_financeira),
+            localizacao_lojas:       valorLegado('e0099280', 'localizacao_lojas'),
+            possui_outra_financeira: valorLegado('e07d62f0', 'possui_outra_financeira'),
             cnpjs_adicionais:        valorF3(camposObrigatorios.cnpjs_adicionais),
           }
 

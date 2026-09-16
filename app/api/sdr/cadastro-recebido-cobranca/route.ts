@@ -36,28 +36,20 @@ const GAP_MIN_MS = 20 * 60 * 60 * 1000
 // primeiro: do mais fácil de responder (e-mail, cidade) pro que exige o lojista
 // parar e pensar (faturamento). Pedir UM de cada vez converte melhor que listar
 // todos — a VictorIA coleta o resto na conversa quando ele responde.
+// 16/09/2026 (Aldo): saíram daqui localizacao_lojas, regiao_varejo,
+// possui_outra_financeira, valor_boleto_mensal e faturamento_anual — os dados não
+// são mais coletados. Deixar o texto pronto no arquivo era risco: qualquer key que
+// voltasse a aparecer mandaria "me manda o faturamento anual" por HSM.
 const PEDIDO_AMIGAVEL: Record<string, string> = {
   email_socio: 'o seu melhor e-mail',
-  localizacao_lojas: 'em qual cidade fica a sua loja',
-  regiao_varejo: 'em qual cidade fica a sua loja',
   nome_varejo: 'o nome da sua loja',
   nome_socio: 'o seu nome completo',
   telefone_socio: 'o seu telefone de contato',
   cnpj_matriz: 'o CNPJ da loja',
   numero_lojas: 'quantas lojas você tem',
-  possui_outra_financeira: 'se você já trabalha com outra financeira hoje',
-  // Copy 2026-08-20: lojista tem receio de passar faturamento/vendas — o pedido
-  // carrega o PORQUÊ e aceita valor aproximado. Vocabulário da FASE (a frase-mãe
-  // diz "sua loja já passou na análise"): aqui é "concluir o credenciamento" /
-  // "liberar o crediário" — NUNCA "concluir a análise" ou "aprovar", que soaria
-  // como se a aprovação não tivesse saído (achado do revisor 20/08).
-  valor_boleto_mensal: 'uma média de quanto a loja vende por mês no parcelado (a AIVA usa pra dimensionar seu credenciamento — pode ser por alto)',
-  faturamento_anual: 'o faturamento anual aproximado da loja (é o que falta pra AIVA concluir seu credenciamento — pode ser por alto)',
 }
 const ORDEM_PEDIDO = [
-  'email_socio', 'localizacao_lojas', 'regiao_varejo', 'nome_varejo', 'nome_socio',
-  'telefone_socio', 'cnpj_matriz', 'numero_lojas', 'possui_outra_financeira',
-  'valor_boleto_mensal', 'faturamento_anual',
+  'email_socio', 'nome_varejo', 'nome_socio', 'telefone_socio', 'cnpj_matriz', 'numero_lojas',
 ]
 
 function pedidoAmigavel(faltandoKeys: string[]): string {
@@ -146,11 +138,11 @@ export async function GET(req: NextRequest) {
     // toques com ela. Nova abordagem: lidera com o ganho (loja JÁ aprovada) e pede
     // UM dado só, o mais fácil primeiro. O resto a VictorIA coleta na conversa.
     // Recusa registrada ([RECUSA_DADO_SENSIVEL], gravada pelo webhook quando o
-    // lojista se nega a passar faturamento/vendas) → o cron NÃO volta a cobrar
-    // esses dois campos por HSM; se só faltarem eles, o caso é do time (o
-    // acionamento humano já saiu no turno da recusa), não da automação.
+    // lojista se nega a passar o e-mail) → o cron NÃO volta a cobrar esse campo
+    // por HSM; se só faltar ele, o caso é do time (o acionamento humano já saiu
+    // no turno da recusa), não da automação. (16/09: era faturamento/vendas.)
     const keysCobraveis = obs.includes('[RECUSA_DADO_SENSIVEL')
-      ? c.faltandoKeys.filter((k) => k !== 'faturamento_anual' && k !== 'valor_boleto_mensal')
+      ? c.faltandoKeys.filter((k) => k !== 'email_socio')
       : c.faltandoKeys
     if (keysCobraveis.length === 0) {
       console.log(`[cobranca] ${c.telefone}: só faltam dados recusados — pulado (caso do time)`)

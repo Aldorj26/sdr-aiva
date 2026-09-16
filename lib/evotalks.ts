@@ -1145,13 +1145,16 @@ export const STAGE_TO_STATUS: Record<number, string> = {
 
 // Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.
 // (cnpjs_adicionais é OPCIONAL — alinhado com CAMPOS_OBRIGATORIOS de lib/cadastro-recebido.)
-const FASE3_OBRIGATORIOS = ['email_socio', 'faturamento_anual', 'valor_boleto_mensal', 'localizacao_lojas'] as const
+// 16/09/2026 (Aldo): faturamento_anual, valor_boleto_mensal e localizacao_lojas saíram
+// da coleta — sobrou o e-mail do sócio. Os campos seguem no formulário (histórico), só
+// não são mais pedidos nem exigidos.
+const FASE3_OBRIGATORIOS = ['email_socio'] as const
 
 function campoPreenchido(v: string | null | undefined): boolean {
   return !!v && String(v).trim() !== '' && String(v).trim().toLowerCase() !== 'null'
 }
 
-/** True só quando os 4 dados obrigatórios da Fase 3 estão preenchidos no formulário. */
+/** True quando o dado obrigatório da Fase 3 (e-mail do sócio) está preenchido no formulário. */
 export function fase3Completa(forms: Record<string, string | null> | null | undefined): boolean {
   const f = forms ?? {}
   return FASE3_OBRIGATORIOS.every((k) => campoPreenchido(f[FORM_FIELD_MAP[k]]))

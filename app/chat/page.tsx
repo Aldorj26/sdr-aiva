@@ -14,9 +14,9 @@ interface Resposta {
 
 // Fases da conversa real — o status define qual instrução de fase a VictorIA recebe.
 const FASES = [
-  { valor: 'INTERESSADO', rotulo: 'Fase 1 — Qualificação (7 dados)' },
+  { valor: 'INTERESSADO', rotulo: 'Fase 1 — Qualificação (5 dados)' },
   { valor: 'PRE_APROVACAO', rotulo: 'Fase 2 — Pré-aprovação (espera)' },
-  { valor: 'CADASTRO_RECEBIDO', rotulo: 'Fase 3 — Cadastro (5 dados)' },
+  { valor: 'CADASTRO_RECEBIDO', rotulo: 'Fase 3 — Cadastro (e-mail + CNPJs)' },
   { valor: 'EM_ANALISE_AIVA', rotulo: 'Em Análise AIVA (onboarding)' },
 ]
 

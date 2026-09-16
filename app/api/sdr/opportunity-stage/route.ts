@@ -358,7 +358,7 @@ export async function POST(req: NextRequest) {
       try {
         const msg =
           `🟢 *${lead?.nome ?? nomeSocio}* (${telefone}) movido pra Cadastro Recebido.\n` +
-          `HSM 20 disparado — VictorIA vai coletar os 5 dados restantes (email, faturamento, valor boleto, localização, CNPJs adicionais).` +
+          `HSM 20 disparado — VictorIA vai coletar o e-mail do sócio (e os CNPJs adicionais, se 2+ lojas).` +
           (cnpjMatriz49
             ? `\n\n📝 *Pré-cadastro já LIBERADO (antecipado):* CNPJ matriz ${cnpjMatriz49} está no painel com o form preenchido — pode lançar agora:\nhttps://sdr-aiva.vercel.app/registros`
             : `\n\n⚠️ CNPJ matriz não encontrado nos dados — o pré-cadastro vai ser liberado na conclusão do cadastro, como antes.`)

@@ -744,7 +744,7 @@ export default async function Page({
         <Card
           label="Cadastro completo"
           value={agora.cadastroCompleto}
-          hint="12 dados — mover p/ Em Análise"
+          hint="cadastro completo — mover p/ Em Análise"
           color={agora.cadastroCompleto > 0 ? 'var(--green)' : 'var(--text-muted)'}
           href="/?cadastro_completo=true"
         />

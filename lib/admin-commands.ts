@@ -86,24 +86,19 @@ export async function respondToAdmin(telefone: string, response: string): Promis
   await sendText(telefone, response)
 }
 
-// ─── Verificação de dados de qualificação (12 campos) ─────────────────────────
+// ─── Verificação de dados de qualificação (7 campos) ─────────────────────────
 
-// Os 12 dados coletados ficam em sdr_leads.observacoes no formato
+// Os dados coletados ficam em sdr_leads.observacoes no formato
 // [DADOS_COLETADOS:chave=valor|chave2=valor2]. Estes são os campos esperados.
 const CAMPOS_FASE1: [string, string][] = [
   ['nome_socio', 'Nome do sócio'],
   ['telefone_socio', 'Telefone do sócio'],
   ['nome_varejo', 'Nome da loja'],
   ['cnpj_matriz', 'CNPJ matriz'],
-  ['regiao_varejo', 'Região/cidade'],
   ['numero_lojas', 'Número de lojas'],
-  ['possui_outra_financeira', 'Possui outra financeira'],
 ]
 const CAMPOS_FASE3: [string, string][] = [
   ['email_socio', 'E-mail do sócio'],
-  ['faturamento_anual', 'Faturamento anual'],
-  ['valor_boleto_mensal', 'Valor boleto mensal'],
-  ['localizacao_lojas', 'Localização das lojas'],
 ]
 // Opcional — só existe quando a loja tem mais de 1 CNPJ. Não conta como "faltando".
 const CAMPO_OPCIONAL: [string, string][] = [['cnpjs_adicionais', 'CNPJs adicionais (opcional)']]
@@ -124,7 +119,7 @@ function parseDados(obs: string | null): Record<string, string> {
   return out
 }
 
-/** Lista as chaves obrigatórias (11) que estão faltando nos dados coletados. */
+/** Lista as chaves obrigatórias que estão faltando nos dados coletados. */
 function camposFaltando(dados: Record<string, string>): string[] {
   return [...CAMPOS_FASE1, ...CAMPOS_FASE3]
     .filter(([k]) => !dados[k])
@@ -140,7 +135,7 @@ function cmdHelp(): string {
     '/status — métricas do sistema',
     '/pipeline — resumo do funil AIVA (mesmo do briefing das 5h)',
     '/lead <telefone> — detalhes de um lead',
-    '/dados <telefone> — checklist dos 12 dados de qualificação (o que falta)',
+    '/dados <telefone> — checklist dos dados de qualificação (o que falta)',
     '/incompletos — oportunidades em Cadastro Recebido com dados faltando',
     '/disparar <telefone> [nome] — disparar campanha',
     '/followup — rodar follow-ups pendentes',
@@ -290,7 +285,7 @@ async function cmdDados(telefone?: string): Promise<string> {
 
   const faltando = camposFaltando(dados)
   const veredito = faltando.length === 0
-    ? '✅ QUALIFICAÇÃO COMPLETA (11 dados obrigatórios)'
+    ? '✅ QUALIFICAÇÃO COMPLETA'
     : `⚠️ FALTAM ${faltando.length}: ${faltando.join(', ')}`
 
   return [

@@ -24,7 +24,7 @@ const STATUS_BLOQUEADOS: Record<string, string> = {
   OPT_OUT: 'lead pediu para não ser contatado',
   NAO_QUALIFICADO: 'lead já descartado por não se encaixar no perfil',
   INTERESSADO: 'conversa ativa em andamento (não interromper)',
-  PRE_APROVACAO: 'em pré-aprovação (7 dados coletados)',
+  PRE_APROVACAO: 'em pré-aprovação (5 dados coletados)',
   CADASTRO_RECEBIDO: 'já qualificado — humano assumiu',
   EM_ANALISE_AIVA: 'em análise CAF/biometria pela AIVA',
   TREINAR: 'loja em treinamento',
