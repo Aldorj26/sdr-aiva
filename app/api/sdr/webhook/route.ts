@@ -25,6 +25,7 @@ import {
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
+import { proximasTurmas } from '@/lib/turmas-treinamento'
 import { RE_PEDIDO_EXCLUSAO, MARCADOR_DADOS_APAGADOS, apagarDadosLead, resumoExclusao } from '@/lib/lgpd'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
 import { registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
@@ -847,6 +848,8 @@ export async function POST(req: NextRequest) {
       try {
         const nomeContato = normalizaNome(lead.nome) || 'Lojista'
         const msgsPraReenviar: string[] = []
+        // agenda oficial do portal AIVA (só busca se algum aviso de treinamento/kit for reenviado)
+        const turmas = aviso70Pendente || aviso70KitPendente ? (await proximasTurmas(3)).turmas : []
         if (aviso49Pendente) {
           msgsPraReenviar.push(buildAvisoColetandoComplementoMsg(nomeContato))
         }
@@ -857,10 +860,10 @@ export async function POST(req: NextRequest) {
           msgsPraReenviar.push(buildAvisoCadastroMsg(nomeContato))
         }
         if (aviso70Pendente) {
-          msgsPraReenviar.push(...buildAvisoTreinamentoMsgs())
+          msgsPraReenviar.push(...buildAvisoTreinamentoMsgs(turmas))
         }
         if (aviso70KitPendente) {
-          msgsPraReenviar.push(buildKitPosFechamentoMsg(nomeContato))
+          msgsPraReenviar.push(buildKitPosFechamentoMsg(nomeContato, turmas))
         }
         for (const msg of msgsPraReenviar) {
           try {
@@ -1100,7 +1103,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 8e. CHECK TREINAMENTO (Aldo 14/09/2026) — o lojista respondeu a pergunta
-    // "já fez o treinamento?" que sai toda segunda e quinta à tarde
+    // "já fez o treinamento?" que sai à tarde de cada dia de turma
     // (/api/sdr/check-treinamento). Avisa o Nei UMA vez por rodada de pergunta
     // pra ele mover o card: quem já treinou vai pra Login. A VictorIA segue
     // respondendo normalmente — este bloco só notifica, não muda status.
@@ -1125,7 +1128,7 @@ export async function POST(req: NextRequest) {
             `📌 Etapa no funil: Treinar\n\n` +
             `💬 "${conteudoEfetivo.slice(0, 300)}"\n\n` +
             `Se ele confirmou o treinamento, mova o card pra *Login* no Evo. ` +
-            `Se ainda não fez, a VictorIA já ofereceu a próxima turma (segundas e quintas, 9h30).`
+            `Se ainda não fez, a VictorIA já ofereceu a próxima turma (agenda do portal AIVA).`
           if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
           const novaObs = respondidoIso
             ? obsCheck.replace(/\[CHECK_TREINAMENTO_RESP:[^\]]*\]/, `[CHECK_TREINAMENTO_RESP:${new Date().toISOString()}]`)

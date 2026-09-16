@@ -42,7 +42,7 @@
     },
     {
       "path": "/api/sdr/check-treinamento",
-      "schedule": "0 17 * * 1,4"
+      "schedule": "0 17 * * 1-5"
     },
     {
       "path": "/api/sdr/espelho-portal",

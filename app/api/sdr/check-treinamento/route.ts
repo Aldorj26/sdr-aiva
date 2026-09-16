@@ -2,8 +2,8 @@
  * check-treinamento/route.ts (AIVA)
  *
  * Pedido do Aldo 14/09/2026: perguntar aos leads da etapa TREINAR (stage 70)
- * se já fizeram o treinamento — TODA SEGUNDA E QUINTA À TARDE (as turmas são
- * de manhã, 9h30, então a pergunta vai depois da aula do dia).
+ * se já fizeram o treinamento — à TARDE DE CADA DIA DE TURMA (agenda do portal
+ * AIVA; as turmas são de manhã, então a pergunta vai depois da aula do dia).
  *
  * Entrega: template coringa HSM 48 (AIVA_REATIVACAO_TEMPLATE_ID), corpo
  *   "Oi {{1}}, tudo bem?\n{{2}} É só responder essa mensagem. 😊"
@@ -26,13 +26,15 @@
  *                       [CHECK_TREINAMENTO_ESGOTADO_AVISADO]
  *
  * Params: ?dry=true (preview sem enviar) · ?max=N (lote) · ?force=true (ignora a espera)
- * Schedule (vercel.json): `0 17 * * 1,4` UTC = 14h BRT, segundas e quintas.
+ * Schedule (vercel.json): `0 17 * * 1-5` UTC = 14h BRT todo dia útil — mas só age em dia
+ * que teve turma de manhã (agenda do portal AIVA via houveTurmaHoje; 16/09: seg/qua/sex).
  * Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate, alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
+import { proximasTurmas, houveTurmaHoje, rotulo, type Turma } from '@/lib/turmas-treinamento'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,13 +43,20 @@ export const maxDuration = 300
 const REOPEN_TEMPLATE_ID = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
 const DIA_MS = 24 * 60 * 60 * 1000
 const ESPERA_DIAS = 2
-const MAX_TOQUES = 8 // 4 semanas de segundas+quintas
+const MAX_TOQUES = 8 // ~3 semanas de turmas (seg/qua/sex)
 const TETO_TEMPO_MS = 240_000 // a função morre em 300s
 
 // {{2}} do template — UMA linha, sem \n. O corpo já abre com "Oi {nome}, tudo bem?"
 // e fecha com "É só responder essa mensagem. 😊" — não repetir saudação aqui.
-const MIOLO =
-  'Passando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são segunda e quinta, às 9h30, online — me avisa que eu te mando o link certinho do dia.'
+// Dias vêm da agenda oficial do portal AIVA (lib/turmas-treinamento) — desde 16/09
+// nada de "segunda e quinta" fixo (a AIVA mudou pra seg/qua/sex a partir de 21/09).
+function montarMiolo(turmas: Turma[]): string {
+  const proximas = turmas.slice(0, 2)
+  const quando = proximas.length
+    ? `as próximas turmas são ${proximas.map(rotulo).join(' e ')}, online`
+    : 'tem turma toda semana, online'
+  return `Passando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, ${quando} — me avisa que eu te mando o link certinho do dia.`
+}
 
 function toques(obs: string | null): number {
   return Number((obs ?? '').match(/\[CHECK_TREINAMENTO_N:(\d+)\]/)?.[1] ?? 0)
@@ -95,6 +104,13 @@ async function executar(req: NextRequest) {
   const dry = url.searchParams.get('dry') === 'true'
   const force = url.searchParams.get('force') === 'true'
   const max = Math.min(Number(url.searchParams.get('max')) || 60, 100)
+  // Roda todo dia útil à tarde, mas só pergunta em dia que TEVE turma de manhã —
+  // a agenda vem do portal AIVA (16/09: seg/qui → seg/qua/sex a partir de 21/09).
+  if (!force && !dry && !(await houveTurmaHoje())) {
+    return NextResponse.json({ ok: true, ignorado: 'sem_turma_hoje' })
+  }
+  const { turmas } = await proximasTurmas(3)
+  const MIOLO = montarMiolo(turmas)
 
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')

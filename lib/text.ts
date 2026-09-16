@@ -1,3 +1,4 @@
+import { calendarLink, linhasTurmas, resumoDias, rotulo, type Turma } from '@/lib/turmas-treinamento-calc'
 /**
  * Normaliza o nome do sócio/lead para uso em saudações:
  * - Pega só o primeiro nome
@@ -55,11 +56,6 @@ export const APROVACAO_TEMPLATE_VAR =
   'https://retail-onboarding-hub.vercel.app/'
 
 /**
- * (nome histórico) Devolve o PRÓXIMO dia de treinamento — segunda ou quinta,
- * 09:30 BRT (12:30 UTC). Atualizado 2026-08-27: turmas às segundas E quintas.
- * Treinamento dura 1h (09:30 às 10:30 BRT).
- */
-/**
  * Contexto temporal pro prompt. A VictorIA não tem noção de "hoje" — sem isso ela
  * INVENTA data (caso Carlos Celulares 12/08/2026: prometeu os acessos pra
  * "quarta, dia 15/01"; 15/01 é outro mês e 15/08 caía num sábado).
@@ -99,72 +95,26 @@ export function contextoDeData(): {
   }
 }
 
-// Links Meet dos treinamentos AIVA — CADA DIA TEM O SEU (Aldo, 27/08):
-// segunda usa a sala nova, quinta segue na sala original.
-export const MEET_TREINO_SEGUNDA = 'https://meet.google.com/gdh-ppvw-nmp'
-export const MEET_TREINO_QUINTA = 'https://meet.google.com/hqn-vcrr-dxo'
-
-export function proximaQuintaFeira09h30(): { start: string; end: string; dia: 'segunda' | 'quinta' | 'terça'; meet: string } {
-  // ATUALIZADO 2026-08-27: treinamentos agora às SEGUNDAS e QUINTAS 9h30–10h30
-  // (aviso do Edu). O nome da função ficou histórico — devolve o PRÓXIMO dia de
-  // treinamento (segunda ou quinta, o que vier primeiro; se hoje é dia de
-  // treino, pega o próximo — o convite é pra próxima turma) e o link Meet do dia.
-  const agoraBrt = new Date(Date.now() - 3 * 60 * 60 * 1000)
-  const DIAS_TREINO = [1, 4] // segunda, quinta (UTC-3 aplicado acima)
-  for (let add = 1; add <= 8; add++) {
-    const d = new Date(agoraBrt.getTime() + add * 24 * 60 * 60 * 1000)
-    const y = d.getUTCFullYear(), m = String(d.getUTCMonth() + 1).padStart(2, '0'), dd = String(d.getUTCDate()).padStart(2, '0')
-    const iso = `${y}-${m}-${dd}`
-    // EXCEÇÃO ÚNICA (Aldo 04/09): 07/09/2026 é feriado da Independência — a
-    // turma de segunda vira TERÇA 08/09, mesmo horário e mesmo link da segunda.
-    // Código morto após 08/09/2026 (auto-expira); pode ser removido depois.
-    if (iso === '2026-09-07') continue
-    if (DIAS_TREINO.includes(d.getUTCDay()) || iso === '2026-09-08') {
-      const dia = iso === '2026-09-08' ? 'terça' as const
-        : d.getUTCDay() === 1 ? 'segunda' as const : 'quinta' as const
-      return {
-        start: `${y}${m}${dd}T123000Z`,
-        end: `${y}${m}${dd}T133000Z`,
-        dia,
-        meet: dia === 'quinta' ? MEET_TREINO_QUINTA : MEET_TREINO_SEGUNDA,
-      }
-    }
-  }
-  // inalcançável (8 dias sempre contêm seg/qui) — fallback defensivo
-  return { start: '', end: '', dia: 'quinta', meet: MEET_TREINO_QUINTA }
-}
-
 /**
- * Monta os 3 textos enviados após o template HSM 25 [AIVA] TREINAMENTO (stage 70):
- * 1. Reunião ao vivo (link Meet + link Google Calendar pré-preenchido)
+ * Monta os 3 textos enviados após o template HSM 69 [AIVA] TREINAMENTO (stage 70):
+ * 1. Reunião ao vivo (próximas turmas com link Meet + Google Calendar da primeira)
  * 2. Materiais de apoio (Drive)
- * 3. Cadastro dos funcionários (Google Forms)
+ * 3. Acessos (regra 27/08)
  *
+ * `turmas` vem de proximasTurmas() (lib/turmas-treinamento — agenda oficial do
+ * portal AIVA; desde 16/09/2026 os dias e links NÃO são mais fixos no código).
  * Reutilizado pelo opportunity-stage (envio imediato) e pelo webhook
  * (reforço quando lead responde — Caminho 2).
  */
-export function buildAvisoTreinamentoMsgs(): string[] {
-  const proximoTreino = proximaQuintaFeira09h30()
-  const calendarLink =
-    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-    `&text=${encodeURIComponent('Treinamento AIVA')}` +
-    `&dates=${proximoTreino.start}/${proximoTreino.end}` +
-    `&details=${encodeURIComponent(`Link da reunião: ${proximoTreino.meet}`)}` +
-    `&location=${encodeURIComponent(proximoTreino.meet)}`
-
+export function buildAvisoTreinamentoMsgs(turmas: Turma[]): string[] {
+  const proxima = turmas[0]
   const msgReuniao =
     `🎓 *Treinamento:*\n` +
-    `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento de segunda ou quinta.\n\n` +
-    (proximoTreino.dia === 'terça'
-      // EXCEÇÃO ÚNICA feriado 07/09/2026 (auto-expira junto com proximaQuintaFeira09h30)
-      ? `Se preferir participar ao vivo: nesta semana a turma é *TERÇA 08/09, das 9h30 às 10h30* (segunda 07/09 é feriado; depois volta ao normal — segundas e quintas):\n` +
-        `🔗 Terça 08/09 👉 ${MEET_TREINO_SEGUNDA.replace('https://', '')}\n` +
-        `🔗 Quintas 👉 ${MEET_TREINO_QUINTA.replace('https://', '')}\n\n`
-      : `Se preferir participar ao vivo, temos turmas às *segundas e quintas, das 9h30 às 10h30* (cada dia tem seu link):\n` +
-        `🔗 Segundas 👉 ${MEET_TREINO_SEGUNDA.replace('https://', '')}\n` +
-        `🔗 Quintas 👉 ${MEET_TREINO_QUINTA.replace('https://', '')}\n\n`) +
-    `📲 *Adicionar a próxima turma (${proximoTreino.dia}) ao seu calendário:*\n` +
-    `👉 ${calendarLink}`
+    `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento.\n\n` +
+    (turmas.length
+      ? `Se preferir participar ao vivo, as próximas turmas (1h, horário de Brasília) são:\n${linhasTurmas(turmas).join('\n')}\n\n` +
+        `📲 *Adicionar a próxima turma (${rotulo(proxima)}) ao seu calendário:*\n👉 ${calendarLink(proxima)}`
+      : `Se preferir participar ao vivo, me avisa que eu te passo a data e o link da próxima turma.`)
 
   const msgMateriais =
     `📚 *Materiais de apoio:*\n` +
@@ -179,7 +129,7 @@ export function buildAvisoTreinamentoMsgs(): string[] {
   return [msgReuniao, msgMateriais, msgCadastro]
 }
 
-export function buildKitPosFechamentoMsg(nome: string): string {
+export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = []): string {
   return (
     `${nome}, enquanto o treinamento não acontece, aqui vai um resumo de como funciona a parceria — pra você já ficar por dentro de tudo: 👇\n\n` +
     `💰 *Taxa:* 12% por venda aprovada — única cobrança. Sem mensalidade e sem custo de ativação.\n` +
@@ -189,10 +139,10 @@ export function buildKitPosFechamentoMsg(nome: string): string {
     `📲 *Pro seu cliente:* aprovação em ~2 minutos, direto no Flexfone — parcelamento mensal em 6x, 9x ou 12x pela AIVA. Sem cadastro por foto de documento: cliente na loja, CPF e código SMS.\n` +
     `🎲 *Sobre aprovação (importante!):* cada consulta depende do perfil do cliente — é normal as primeiras consultas reprovarem, isso NÃO significa que "não aprova". A regra de ouro é consultar TODO cliente: quem consulta todo mundo aprova mais e vende mais no fim do mês. Não desanima com as primeiras! 💪\n\n` +
     `*Próximos passos:*\n` +
-    // EXCEÇÃO ÚNICA feriado 07/09/2026: turma de segunda vira TERÇA 08/09 (auto-expira)
-    (contextoDeData().hojeISO <= '2026-09-08'
-      ? `1️⃣ Participa do treinamento ao vivo — nesta semana a turma é *TERÇA 08/09, 9h30–10h30* (segunda 07/09 é feriado; depois volta ao normal: segundas e quintas). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`
-      : `1️⃣ Participa do treinamento ao vivo — turmas às *segundas e quintas, 9h30–10h30* (o vídeo Curso_Treinamento na pasta de materiais adianta tudo)\n`) +
+    // dias/links vêm da agenda oficial do portal AIVA (lib/turmas-treinamento) — nunca fixos aqui
+    (turmas.length
+      ? `1️⃣ Participa do treinamento ao vivo — próxima turma *${rotulo(turmas[0])}* (1h; turmas às ${resumoDias(turmas)}). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`
+      : `1️⃣ Participa do treinamento ao vivo (me pergunta a data da próxima turma). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`) +
     `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n` +
     `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`

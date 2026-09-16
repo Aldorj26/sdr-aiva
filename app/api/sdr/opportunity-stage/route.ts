@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, contextoDeData } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
+import { proximasTurmas, resumoDias, rotulo } from '@/lib/turmas-treinamento'
 
 /**
  * Normaliza telefone brasileiro para o formato E.164 (com 55 no início).
@@ -607,17 +608,18 @@ export async function POST(req: NextRequest) {
       //   {{2}}..{{5}} = texto fixo (treinamento, reunião, materiais, cadastro)
       // Enviar menos que 5 causa #131008 (Meta: "parameter is missing text value").
       const TREINAMENTO_TEMPLATE_ID = 69
-      // EXCEÇÃO ÚNICA feriado 07/09/2026 (Aldo 04/09): a turma de segunda vira
-      // TERÇA 08/09, mesmo horário e mesmo link. Auto-expira depois de 08/09.
-      const feriadoSemana = contextoDeData().hojeISO <= '2026-09-08'
+      // Dias e links vêm da agenda oficial do portal AIVA (lib/turmas-treinamento) —
+      // desde 16/09/2026 nada de "segundas e quintas" nem link fixo no código.
+      const { turmas } = await proximasTurmas(3)
+      const linkTurmas = turmas.length
+        ? `🔗 Reunião ao vivo (1h, horário de Brasília) — próximas turmas: ${turmas.map((t) => `${rotulo(t)} ${t.link}`).join(' | ')}`
+        : '🔗 Reunião ao vivo: me responde aqui que eu te passo a data e o link da próxima turma.'
       await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
-        feriadoSemana
-          ? '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30. ATENÇÃO nesta semana: segunda 07/09 é feriado — a turma será na TERÇA 08/09, mesmo horário. O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.'
-          : '🎓 Treinamento: temos turmas ao vivo às segundas e quintas, das 9h30 às 10h30 — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
-        feriadoSemana
-          ? '🔗 Reunião — nesta semana: TERÇA 08/09 https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo'
-          : '🔗 Reunião — cada dia tem seu link: segundas https://meet.google.com/gdh-ppvw-nmp | quintas https://meet.google.com/hqn-vcrr-dxo',
+        turmas.length
+          ? `🎓 Treinamento: temos turmas ao vivo às ${resumoDias(turmas)} (1h cada; horários e links na próxima linha) — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.`
+          : '🎓 Treinamento: temos turmas ao vivo durante a semana — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
+        linkTurmas,
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
         '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS).',
       ])
@@ -645,7 +647,7 @@ export async function POST(req: NextRequest) {
         // Texto livre → só entrega com a janela 24h aberta; se fechada, marca
         // flag e o webhook reenvia quando o lead responder (Caminho 2).
         try {
-          const kitMsg = buildKitPosFechamentoMsg(nomeContato)
+          const kitMsg = buildKitPosFechamentoMsg(nomeContato, turmas)
           const janelaAberta = await janela24hAberta(lead.id)
           if (janelaAberta) {
             await sendText(telefone, kitMsg)
