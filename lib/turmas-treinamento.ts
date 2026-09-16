@@ -12,7 +12,7 @@
  * Parte pura (formatação, fallback, bloco do prompt): lib/turmas-treinamento-calc.ts.
  */
 import { loginPortal, rest } from '@/lib/portal-aiva'
-import { futuras, gerarFallback, linkMeet, REGRA_FALLBACK, TOLERANCIA_MS, type Fonte, type Turma } from '@/lib/turmas-treinamento-calc'
+import { futuras, gerarFallback, linkMeet, REGRA_FALLBACK, TOLERANCIA_MS, type Fonte, type Inscricao, type Turma } from '@/lib/turmas-treinamento-calc'
 
 export * from '@/lib/turmas-treinamento-calc'
 
@@ -41,6 +41,43 @@ export async function proximasTurmas(n = 4, agora = new Date()): Promise<{ turma
   }
   if (cache) { const t = futuras(cache.turmas, agora, n); if (t.length) return { turmas: t, fonte: 'cache' } }
   return { turmas: gerarFallback(agora, n), fonte: 'fallback' }
+}
+
+/**
+ * Inscrições em turmas (training_bookings) por CNPJ do lojista. A AIVA importa a
+ * lista de inscritos pra lá (source=external) e o painel do parceiro também grava.
+ * Serve pra NÃO perguntar "já fez o treinamento?" a quem tem turma marcada e pra
+ * perguntar certo a quem já passou pela turma.
+ *
+ * Mapa devolvido: CNPJ (só dígitos) → inscrições daquele onboarding.
+ */
+export async function inscricoesPorCnpj(cnpjs: string[]): Promise<Map<string, Inscricao[]>> {
+  const out = new Map<string, Inscricao[]>()
+  const alvo = new Set(cnpjs.map((c) => c.replace(/\D/g, '')).filter((c) => c.length === 14))
+  if (!alvo.size) return out
+  const s = await loginPortal()
+  // onboardings: id → cnpj (só os que interessam)
+  const idParaCnpj = new Map<string, string>()
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<Array<{ id: string; cnpj: string }>>(s, 'onboardings?select=id,cnpj', [de, de + 999])
+    for (const o of data) { const c = (o.cnpj ?? '').replace(/\D/g, ''); if (alvo.has(c)) idParaCnpj.set(o.id, c) }
+    if (data.length < 1000) break
+  }
+  if (!idParaCnpj.size) return out
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<Array<{ onboarding_id: string; starts_at: string; invite_id: string; first_name: string | null }>>(
+      s, 'training_bookings?select=onboarding_id,starts_at,invite_id,first_name&order=starts_at.asc', [de, de + 999],
+    )
+    for (const b of data) {
+      const cnpj = idParaCnpj.get(b.onboarding_id)
+      if (!cnpj || !b.starts_at) continue
+      const lista = out.get(cnpj) ?? []
+      lista.push({ startsAt: b.starts_at, inviteId: b.invite_id, link: linkMeet(b.invite_id), firstName: b.first_name })
+      out.set(cnpj, lista)
+    }
+    if (data.length < 1000) break
+  }
+  return out
 }
 
 /**

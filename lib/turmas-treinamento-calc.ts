@@ -57,6 +57,22 @@ export function linhasTurmas(turmas: Turma[]): string[] {
   return turmas.map((t) => `🔗 ${rotulo(t)} 👉 ${t.link.replace('https://', '')}`)
 }
 
+/** Inscrição do lojista numa turma (training_bookings do portal — a AIVA importa a lista de inscritos). */
+export type Inscricao = { startsAt: string; inviteId: string; link: string; firstName: string | null }
+
+/**
+ * Separa as inscrições de um lojista: a próxima turma em que ele está inscrito
+ * (ainda não aconteceu) e a última que já passou (até `janelaDias` atrás) — é
+ * nessa que faz sentido perguntar "conseguiu participar?".
+ */
+export function classificarInscricoes(ins: Inscricao[], agora: Date, janelaDias = 14): { futura: Inscricao | null; passada: Inscricao | null } {
+  const corte = agora.getTime() - TOLERANCIA_MS
+  const ordenadas = [...ins].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+  const futura = ordenadas.find((i) => Date.parse(i.startsAt) >= corte) ?? null
+  const passadas = ordenadas.filter((i) => Date.parse(i.startsAt) < corte && Date.parse(i.startsAt) >= agora.getTime() - janelaDias * 24 * 60 * 60 * 1000)
+  return { futura, passada: passadas.at(-1) ?? null }
+}
+
 /** Bloco pro prompt dinâmico (fora do cache). */
 export function blocoTurmasPrompt(turmas: Turma[], fonte: Fonte): string {
   const linhas = turmas.map((t) => `- ${rotulo(t)} (Brasília) → ${t.link}`).join('\n')

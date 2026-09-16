@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { gerarFallback, futuras, rotulo, resumoDias, linhasTurmas, blocoTurmasPrompt, calendarLink, type Turma } from './turmas-treinamento-calc.ts'
+import { gerarFallback, futuras, rotulo, resumoDias, linhasTurmas, blocoTurmasPrompt, calendarLink, classificarInscricoes, type Turma } from './turmas-treinamento-calc.ts'
 
 const t = (iso: string, id = 'vou-gpmy-rtp'): Turma => ({ startsAt: iso, inviteId: id, link: `https://meet.google.com/${id}`, label: null })
 
@@ -37,6 +37,18 @@ test('linhas do WhatsApp e bloco do prompt trazem cada turma com seu link', () =
   assert.doesNotMatch(b, /portal indisponível/)
   assert.match(blocoTurmasPrompt(turmas, 'fallback'), /portal indisponível/)
   assert.match(blocoTurmasPrompt([], 'portal'), /nenhuma turma publicada/)
+})
+
+test('classificarInscricoes: próxima futura e última passada dentro da janela', () => {
+  const i = (iso: string) => ({ startsAt: iso, inviteId: 'x', link: 'https://meet.google.com/x', firstName: 'Ana' })
+  const agora = new Date('2026-09-17T15:00:00Z') // quinta 12h BRT: turma das 9h30 de hoje já passou (>90 min)
+  const r = classificarInscricoes([i('2026-09-21T12:30:00Z'), i('2026-09-17T12:30:00Z'), i('2026-09-14T12:30:00Z'), i('2026-08-01T12:30:00Z')], agora)
+  assert.equal(r.futura?.startsAt, '2026-09-21T12:30:00Z')
+  assert.equal(r.passada?.startsAt, '2026-09-17T12:30:00Z')
+  // só passada antiga (fora da janela de 14 dias) → nada
+  assert.deepEqual(classificarInscricoes([i('2026-08-01T12:30:00Z')], agora), { futura: null, passada: null })
+  // turma de hoje ainda dentro da tolerância conta como futura
+  assert.equal(classificarInscricoes([i('2026-09-17T12:30:00Z')], new Date('2026-09-17T13:30:00Z')).futura?.startsAt, '2026-09-17T12:30:00Z')
 })
 
 test('calendarLink: 1h de duração no formato do Google', () => {
