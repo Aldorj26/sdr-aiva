@@ -21,6 +21,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: 'Pipeline', href: '/', icon: '📊' },
       { label: 'Atendimento', href: '/atendimento', icon: '🎧' },
+      { label: 'Exceções', href: '/excecoes', icon: '🚨' },
       { label: 'Registros AIVA', href: '/registros', icon: '📋' },
       { label: 'Alertas', href: '/alertas', icon: '🔔' },
       { label: 'Clientes', href: '/clientes', icon: '🏪' },
