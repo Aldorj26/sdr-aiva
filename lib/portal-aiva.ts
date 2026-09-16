@@ -61,7 +61,7 @@ export async function loginPortal(): Promise<Sessao> {
   return { token: j.access_token, userId: j.user.id }
 }
 
-async function rest<T>(s: Sessao, path: string, range?: [number, number]): Promise<{ data: T; total: number | null }> {
+export async function rest<T>(s: Sessao, path: string, range?: [number, number]): Promise<{ data: T; total: number | null }> {
   const headers: Record<string, string> = { apikey: ANON(), Authorization: `Bearer ${s.token}`, Prefer: 'count=exact' }
   if (range) headers.Range = `${range[0]}-${range[1]}`
   // função Vercel tem orçamento duro de 120s; portal travado não pode
@@ -298,34 +298,56 @@ type RegistroCnpj = {
  * Best-effort: sem AIVA_PORTAL_API_KEY configurada, loga e devolve o aviso —
  * não derruba a rodada do cron.
  */
-export async function backfillRidsOnboarding(dry: boolean): Promise<string[]> {
-  const chave = process.env.AIVA_PORTAL_API_KEY
-  if (!chave) {
-    console.warn('[portal-aiva] AIVA_PORTAL_API_KEY ausente — backfill de RID por onboarding pulado')
-    return ['⚠️ AIVA_PORTAL_API_KEY não configurada — RID por onboarding não rodou']
-  }
+/** Registro da API pública de onboardings do parceiro (só os campos que usamos). */
+export type OnboardingApi = {
+  id?: string
+  cnpj?: string | null
+  legal_name?: string | null
+  stage?: string | null
+  pre_cadastro_status?: string | null
+  formulario_status?: string | null
+  biometry_status?: string | null
+  retailer_id?: string | number | null
+  retailer_registered_at?: string | null
+  updated_at?: string | null
+  [extra: string]: unknown
+}
 
+/**
+ * Lê TODOS os onboardings da Track na API pública do portal (chave
+ * AIVA_PORTAL_API_KEY; paginado por cursor, 500 é o teto por página).
+ * Lança se a chave faltar ou a API falhar — quem chama decide o que fazer.
+ */
+export async function listarOnboardingsApi(): Promise<OnboardingApi[]> {
+  const chave = process.env.AIVA_PORTAL_API_KEY
+  if (!chave) throw new Error('AIVA_PORTAL_API_KEY não configurada')
+  const tudo: OnboardingApi[] = []
+  let cursor: string | null = null
+  do {
+    const q = new URLSearchParams({ limit: '500' })
+    if (cursor) q.set('cursor', cursor)
+    const res = await fetch(`https://parceiro-aiva.lovable.app/api/public/partner/onboardings?${q}`, {
+      headers: { 'x-api-key': chave },
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (!res.ok) throw new Error(`API de onboardings HTTP ${res.status}`)
+    const d = (await res.json()) as { records?: OnboardingApi[]; next_cursor?: string | null }
+    tudo.push(...(d.records ?? []))
+    cursor = d.next_cursor ?? null
+  } while (cursor)
+  return tudo
+}
+
+export async function backfillRidsOnboarding(dry: boolean): Promise<string[]> {
   const soDigitos = (c: unknown) => String(c ?? '').replace(/\D/g, '')
 
-  // 1) Onboardings do parceiro (paginado por cursor; 500 é o teto da API).
+  // 1) Onboardings do parceiro → RID por CNPJ.
   const ridPorCnpj = new Map<string, string>()
-  let cursor: string | null = null
   try {
-    do {
-      const q = new URLSearchParams({ limit: '500' })
-      if (cursor) q.set('cursor', cursor)
-      const res = await fetch(`https://parceiro-aiva.lovable.app/api/public/partner/onboardings?${q}`, {
-        headers: { 'x-api-key': chave },
-        signal: AbortSignal.timeout(20_000),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const d = (await res.json()) as { records?: Array<{ cnpj?: string; retailer_id?: string | number }>; next_cursor?: string | null }
-      for (const r of d.records ?? []) {
-        const cnpj = soDigitos(r.cnpj)
-        if (cnpj.length === 14 && r.retailer_id) ridPorCnpj.set(cnpj, String(r.retailer_id))
-      }
-      cursor = d.next_cursor ?? null
-    } while (cursor)
+    for (const r of await listarOnboardingsApi()) {
+      const cnpj = soDigitos(r.cnpj)
+      if (cnpj.length === 14 && r.retailer_id) ridPorCnpj.set(cnpj, String(r.retailer_id))
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[portal-aiva] falha ao ler onboardings:', msg)

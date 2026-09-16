@@ -43,6 +43,10 @@
     {
       "path": "/api/sdr/check-treinamento",
       "schedule": "0 17 * * 1,4"
+    },
+    {
+      "path": "/api/sdr/espelho-portal",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
