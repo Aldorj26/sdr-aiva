@@ -303,7 +303,10 @@ export function removeFonesNaoOficiais(
   )
   const removidos: string[] = []
 
-  const achados = mensagem.match(RE_FONE) ?? []
+  // URLs ficam fora da caça a telefone: o token do link da biometria (cadastro.io/<hex>)
+  // tem corridas de 10-11 dígitos em ~5% dos casos e a sentença inteira sumia (revisor 16/09).
+  const semUrls = mensagem.replace(/https?:\/\/\S+/g, (u) => 'x'.repeat(u.length))
+  const achados = semUrls.match(RE_FONE) ?? []
   const proibidos = achados.filter((f) => !whitelist.has(chaveFone(soDigitos(f))))
   if (proibidos.length === 0) return { texto: mensagem, removidos }
 

@@ -298,6 +298,36 @@ type RegistroCnpj = {
  * Best-effort: sem AIVA_PORTAL_API_KEY configurada, loga e devolve o aviso —
  * não derruba a rodada do cron.
  */
+/**
+ * Onboardings da Track parados na BIOMETRIA, com o link do reconhecimento facial
+ * (onboardings.liveness_url — só existe no banco do portal, a API pública não devolve).
+ * RLS do login de parceiro já restringe à Track.
+ */
+export async function listarBiometriaPendente(s: Sessao): Promise<Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }>> {
+  const tudo: Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }> = []
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<typeof tudo>(s, 'onboardings?select=id,cnpj,legal_name,liveness_url,phone_number&stage=eq.biometria', [de, de + 999])
+    tudo.push(...data)
+    if (data.length < 1000) break
+  }
+  return tudo
+}
+
+/**
+ * Registra no portal que o link da biometria foi enviado (tabela liveness_sends —
+ * o mesmo que o painel do parceiro grava quando o Nei clica em "enviar"). Só log:
+ * o portal não dispara nada. Falha aqui não pode derrubar o envio ao lojista.
+ */
+export async function registrarLivenessSend(s: Sessao, partnerId: string, x: { onboardingId: string; url: string; telefone: string; nome: string }): Promise<void> {
+  const res = await fetch(`${URL_PORTAL()}/rest/v1/liveness_sends`, {
+    method: 'POST',
+    headers: { apikey: ANON(), Authorization: `Bearer ${s.token}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ onboarding_id: x.onboardingId, partner_id: partnerId, liveness_url: x.url, sent_at: new Date().toISOString(), sent_by: s.userId, sent_phone: x.telefone, sent_name: x.nome }),
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!res.ok) throw new Error(`liveness_sends HTTP ${res.status} ${(await res.text()).slice(0, 120)}`)
+}
+
 /** Registro da API pública de onboardings do parceiro (só os campos que usamos). */
 export type OnboardingApi = {
   id?: string

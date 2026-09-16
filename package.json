@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test:portal": "node --test lib/portal-aiva-derivar.test.ts",
     "test:espelho": "node --test lib/espelho-portal-calc.test.ts",
-    "test:cobranca": "node --test lib/cobranca-formulario-calc.test.ts"
+    "test:cobranca": "node --test lib/cobranca-formulario-calc.test.ts",
+    "test:biometria": "node --test lib/biometria-calc.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

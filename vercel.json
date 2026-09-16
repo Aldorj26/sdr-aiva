@@ -47,6 +47,10 @@
     {
       "path": "/api/sdr/espelho-portal",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/sdr/biometria",
+      "schedule": "0 12-21 * * 1-5"
     }
   ]
 }

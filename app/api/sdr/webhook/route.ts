@@ -850,7 +850,10 @@ export async function POST(req: NextRequest) {
         if (aviso49Pendente) {
           msgsPraReenviar.push(buildAvisoColetandoComplementoMsg(nomeContato))
         }
-        if (aviso50Pendente) {
+        // Portal já em BIOMETRIA ([BIOMETRIA_LINK] gravado pelo cron): o formulário
+        // fechou — reenviar "preencha o cadastro" contradiria a VictorIA no mesmo turno.
+        // A flag é limpa do mesmo jeito abaixo (revisor 16/09).
+        if (aviso50Pendente && !obs.includes('[BIOMETRIA_LINK:')) {
           msgsPraReenviar.push(buildAvisoCadastroMsg(nomeContato))
         }
         if (aviso70Pendente) {
@@ -1150,6 +1153,8 @@ export async function POST(req: NextRequest) {
         // cliente Track já ativo na AIVA (lote importado do portal 16/09): a FASE 4
         // normal cobraria formulário e mandaria link de onboarding pra quem já vende
         (lead.observacoes ?? '').includes('[IMPORTADO_PORTAL:'),
+        // link do reconhecimento facial gravado pelo cron /api/sdr/biometria (portal em `biometria`)
+        (lead.observacoes ?? '').match(/\[BIOMETRIA_LINK:([^\]\s]+)\]/)?.[1] ?? null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
