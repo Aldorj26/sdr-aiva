@@ -21,7 +21,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO,
+  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 
@@ -65,7 +65,7 @@ async function registrosComLead(): Promise<RegistroCnpj[]> {
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabaseAdmin
       .from('sdr_registros_cnpj')
-      .select('id,cnpj,lead_id,status')
+      .select('id,cnpj,lead_id,status,rid')
       .not('lead_id', 'is', null)
       .order('id', { ascending: true })
       .range(de, de + 999)
@@ -105,6 +105,7 @@ export type SaidaEspelho = {
   movidos: Array<Movimento & { erro?: string }>
   sobraram: number
   reprovados: Resultado['reprovados']
+  conferir: Resultado['conferir']
   registros_enviados: number
   pulados: Resultado['pulados']
 }
@@ -132,7 +133,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
 
   const saida: SaidaEspelho = {
     ok: true, dry, avisos, onboardings: onboardings.length, leads: leads.length,
-    movidos: [], sobraram: 0, reprovados: r.reprovados, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
+    movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
   }
   if (dry) { saida.movidos = r.movimentos; return saida }
 
@@ -189,10 +190,33 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     }
   }
   saida.reprovados = reprovadosFeitos
+
+  // 7) reprovado no portal mas com sinal de loja operando: não mexe, avisa uma vez
+  const conferirNovos: string[] = []
+  for (const x of r.conferir) {
+    if (x.jaAvisado) continue
+    try {
+      await marcar(x.lead_id, MARCADOR_CONFERIR, new Date().toISOString())
+      conferirNovos.push(`• ${x.nome}${x.loja ? ` — ${x.loja}` : ''} (CNPJ ${soDigitos(x.cnpj)}) · opp #${x.opp} · ${x.motivo}`)
+    } catch (e) {
+      avisos.push(`conferir ${x.nome} não marcado: ${String(e).slice(0, 100)}`)
+    }
+  }
+
+  const blocos: string[] = []
   if (novos.length) {
-    const texto =
+    blocos.push(
       `⛔ *Pré-cadastro REPROVADO pela AIVA* (${novos.length})\n${novos.join('\n')}\n\n` +
-      'Card movido pra "Loja Descartada pela Aiva" e lead travado. Se a AIVA reconsiderar: mover o card pra Interessado e clicar Reativar no painel.'
+      'Card movido pra "Loja Descartada pela Aiva" e lead travado. Se a AIVA reconsiderar: mover o card pra Interessado e clicar Reativar no painel.',
+    )
+  }
+  if (conferirNovos.length) {
+    blocos.push(
+      `🔎 *Reprovado no portal, mas parece que a loja opera* (${conferirNovos.length}) — o espelho NÃO mexeu:\n${conferirNovos.join('\n')}\n\n` +
+      'Conferir com a AIVA: se for reprovado mesmo, mover o card pra "Loja Descartada pela Aiva" na mão; se a loja opera, o portal é que está errado.',
+    )
+  }
+  for (const texto of blocos) {
     for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
       try { await sendText(tel, texto) } catch (e) { avisos.push(`aviso de reprovado não enviado: ${String(e).slice(0, 100)}`) }
     }

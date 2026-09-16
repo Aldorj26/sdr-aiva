@@ -32,7 +32,7 @@ export type OnbApi = {
   retailer_id?: string | number | null
   legal_name?: string | null
 }
-export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null }
+export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null }
 export type LeadEspelho = {
   id: string
   nome: string | null
@@ -62,6 +62,8 @@ export type Reprovado = {
   jaAvisado: boolean
 }
 export type Pulado = { lead_id: string; nome: string; motivo: string }
+/** Reprovado no portal, mas com sinal de loja operando (card em Vendendo, RID ou registro ativo): não move, o time confere. */
+export type Conferir = { lead_id: string; nome: string; opp: number; de: number; cnpj: string; loja: string | null; motivo: string; jaAvisado: boolean }
 export type Entrada = {
   onboardings: OnbApi[]
   /** retailer_ids com credentials_sent_at preenchido em login_sends */
@@ -79,6 +81,7 @@ export type Resultado = {
   /** ids de sdr_registros_cnpj que ganham status pre_cadastro_enviado */
   registrosEnviados: Array<string | number>
   pulados: Pulado[]
+  conferir: Conferir[]
 }
 
 export const ETAPA = { EM_ANALISE: 50, TREINAR: 70, LOGIN: 71, VENDENDO: 51, REPROVADO: 95 } as const
@@ -88,6 +91,7 @@ const SEM_RESPOSTA = 53
 const NAO_MEXER = new Set([69, 93, 94, 95])
 const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO'])
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
+export const MARCADOR_CONFERIR = 'PORTAL_REPROVADO_CONFERIR'
 
 export const soDigitos = (c: unknown): string => String(c ?? '').replace(/\D/g, '')
 
@@ -118,7 +122,7 @@ export function calcularEspelho(e: Entrada): Resultado {
     else registrosPorLead.set(r.lead_id, [r])
   }
 
-  const out: Resultado = { movimentos: [], reprovados: [], registrosEnviados: [], pulados: [] }
+  const out: Resultado = { movimentos: [], reprovados: [], registrosEnviados: [], pulados: [], conferir: [] }
 
   for (const [leadId, regs] of registrosPorLead) {
     const lead = leadPorId.get(leadId)
@@ -154,7 +158,16 @@ export function calcularEspelho(e: Entrada): Resultado {
       const atual = e.stageAtual.get(opp)
       if (atual == null) { out.pulados.push({ lead_id: leadId, nome, motivo: `reprovado pela AIVA, opp #${opp} não está aberta no funil 15` }); continue }
       if (NAO_MEXER.has(atual)) continue
-      out.reprovados.push({ lead_id: leadId, nome, opp, de: atual, cnpj: soDigitos(reprovadoEm.cnpj), loja: reprovadoEm.legal_name ?? null, jaAvisado })
+      // Sinal de loja operando contradiz o "reprovado" (ex.: Vandertech, reprovado no
+      // portal mas com RID e vendas): não descarta sozinho — o time confere.
+      const comRid = regs.filter((r) => r.rid != null && String(r.rid) !== '' || r.status === 'ativa')
+      const sinal = atual === ETAPA.VENDENDO ? 'card em Loja Finalizada e Vendendo' : comRid.length ? `RID ${comRid.map((r) => r.rid ?? 'ativa').join('/')} no registro` : null
+      const base = { lead_id: leadId, nome, opp, de: atual, cnpj: soDigitos(reprovadoEm.cnpj), loja: reprovadoEm.legal_name ?? null }
+      if (sinal) {
+        out.conferir.push({ ...base, motivo: sinal, jaAvisado: (lead.observacoes ?? '').includes(`[${MARCADOR_CONFERIR}:`) })
+        continue
+      }
+      out.reprovados.push({ ...base, jaAvisado })
       continue
     }
     if (!melhor) continue

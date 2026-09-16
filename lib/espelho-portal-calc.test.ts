@@ -119,4 +119,24 @@ test('reprovado: vai pra 95 de qualquer etapa; avisa só uma vez; não toca 95/b
   assert.equal(r.reprovados[0].cnpj, '11111111000191')
   assert.deepEqual(r.pulados.map((p) => p.lead_id).sort(), ['optout', 'semopp'])
   assert.deepEqual(r.movimentos.map((m) => m.lead_id), ['temoutro'])
+  assert.equal(r.conferir.length, 0)
+})
+
+test('reprovado com sinal de loja operando (card em 51, RID ou registro ativo) NÃO é movido: vai pra "conferir"', () => {
+  const o = [onb({ cnpj: '11111111000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' })]
+  const r = calcularEspelho(base({
+    onboardings: o,
+    registros: [
+      { id: 1, cnpj: '11111111000191', lead_id: 'vendendo', status: 'pre_cadastro_enviado' },
+      { id: 2, cnpj: '11111111000191', lead_id: 'comrid', status: 'pre_cadastro_enviado', rid: '5819' },
+      { id: 3, cnpj: '11111111000191', lead_id: 'ativa', status: 'ativa' },
+      { id: 4, cnpj: '11111111000191', lead_id: 'normal', status: 'pre_cadastro_enviado' },
+    ],
+    leads: [lead('vendendo', 1, 'LOJA_FINALIZADA_E_VENDENDO'), lead('comrid', 2, 'TREINAR'), lead('ativa', 3, 'LOGIN', '[PORTAL_REPROVADO_CONFERIR:2026-09-16T00:00:00Z]'), lead('normal', 4, 'TREINAR')],
+    stageAtual: new Map([[1, 51], [2, 70], [3, 71], [4, 70]]),
+  }))
+  assert.deepEqual(r.conferir.map((c) => [c.lead_id, c.de, c.jaAvisado]), [['vendendo', 51, false], ['comrid', 70, false], ['ativa', 71, true]])
+  assert.match(r.conferir[0].motivo, /Vendendo/)
+  assert.match(r.conferir[1].motivo, /RID 5819/)
+  assert.deepEqual(r.reprovados.map((x) => x.lead_id), ['normal'])
 })
