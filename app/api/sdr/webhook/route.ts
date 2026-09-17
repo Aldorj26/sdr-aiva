@@ -2397,7 +2397,8 @@ export async function POST(req: NextRequest) {
     const msg =
       `✅ *${lead.nome}* (${lead.telefone} — ${lead.cidade ?? 'cidade n/d'}) completou o cadastro!\n` +
       (detalhe ? `\n${detalhe}\n` : '') +
-      `\n📤 12 dados enviados pro HubSpot. Pronto pra mover pra Análise AIVA.\n` +
+      `\n📤 Dados enviados pro HubSpot.\n` +
+      `➡️ *Não mova o card pra Em Análise.* Quando a AIVA aprovar o pré-cadastro, o espelho move sozinho em até 15 min.\n` +
       linksForm
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)

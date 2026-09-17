@@ -7,9 +7,9 @@ import { changeStageSeAvanco, STAGES } from '@/lib/evotalks'
  * "CNPJs registrados na base" do painel (/registros).
  * Protegida pelo middleware (cookie do painel).
  *
- * Desde 17/09/2026 (Aldo) marcar como enviado também AVANÇA o card no Evo pra
- * "Cadastro Recebido" (49) — antes o Nei lançava o CNPJ aqui e depois tinha que
- * ir no Evo arrastar o card na mão. Quem faz o resto (HSM 20, alerta, início da
+ * Desde 17/09/2026 (Aldo) marcar o CNPJ MATRIZ como enviado também AVANÇA o card
+ * no Evo pra "Cadastro Recebido" (49) — antes o Nei lançava o CNPJ aqui e depois
+ * tinha que ir no Evo arrastar o card na mão. Quem faz o resto (HSM 20, alerta, início da
  * Fase 3) é a automação do Evo + o handler de /api/sdr/opportunity-stage, como
  * sempre: esta rota só move.
  */
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   // Sem isso, reabrir o form de um CNPJ já enviado tentaria mover de novo.
   const { data: antes } = await supabaseAdmin
     .from('sdr_registros_cnpj')
-    .select('enviado, lead_id, cnpj')
+    .select('enviado, lead_id, cnpj, tipo')
     .eq('id', body.id)
     .maybeSingle()
 
@@ -51,8 +51,14 @@ export async function POST(req: NextRequest) {
   // `changeStageSeAvanco` só AVANÇA: card já em 49+ (ou em Bot/93/94/95, que
   // estão fora da progressão linear) fica onde está. Desmarcar NÃO traz o card
   // de volta — a etapa é do time, e o HSM 20 já saiu.
+  //
+  // Só a MATRIZ move (17/09): o card só está em Pré Aprovação quando existe
+  // exatamente um registro, o da matriz — os CNPJs das filiais só nascem na
+  // conclusão da Fase 3, com o card já em 49. Então marcar filial nunca deveria
+  // mover nada, e restringir aqui evita que abrir o form de uma filial pra
+  // conferir um CNPJ dispare HSM por engano.
   let card: { movido: boolean; motivo?: string; opp?: number } = { movido: false, motivo: 'nao_aplicavel' }
-  if (body.enviado && !antes?.enviado && antes?.lead_id) {
+  if (body.enviado && !antes?.enviado && antes?.lead_id && antes?.tipo === 'matriz') {
     try {
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
