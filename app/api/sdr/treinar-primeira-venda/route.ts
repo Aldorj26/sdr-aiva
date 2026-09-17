@@ -22,6 +22,7 @@ import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin, getLeadByTelefone } from '@/lib/supabase'
 import { fetchOpps } from '@/lib/pipeline-briefing'
 import { normalizaNome } from '@/lib/text'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,8 +60,8 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
-  const force = url.searchParams.get('force') === 'true'
+  const dry = flag(url.searchParams, 'dry')
+  const force = flag(url.searchParams, 'force')
   const maxRun = Math.min(Number(url.searchParams.get('max')) || 60, 60)
 
   const naEtapa = (await fetchOpps()).filter((o) => o.fkStage === STAGE_TREINAR)

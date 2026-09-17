@@ -29,6 +29,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import { decidir, lerMarcadores, remontarObs, MIOLOS, MAX_TOQUES } from '@/lib/cobranca-formulario-calc'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +48,7 @@ async function executar(req: NextRequest) {
   if (!TEMPLATE_ID) return NextResponse.json({ ok: false, erro: 'AIVA_REATIVACAO_TEMPLATE_ID não configurado' }, { status: 500 })
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
+  const dry = flag(url.searchParams, 'dry')
   const max = Math.min(Number(url.searchParams.get('max')) || 60, 100)
   const agora = Date.now()
 

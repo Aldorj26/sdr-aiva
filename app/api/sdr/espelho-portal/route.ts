@@ -15,6 +15,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { executarEspelho } from '@/lib/espelho-portal'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,7 @@ async function handler(req: NextRequest) {
   if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}` && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
-  const dry = req.nextUrl.searchParams.get('dry') === '1'
+  const dry = flag(req.nextUrl.searchParams, 'dry')
   try {
     const saida = await executarEspelho(dry)
     console.log(`[espelho-portal] ${dry ? '[dry] ' : ''}onboardings=${saida.onboardings} leads=${saida.leads} movidos=${saida.movidos.length} sobraram=${saida.sobraram} reprovados=${saida.reprovados.length} registros=${saida.registros_enviados}`)

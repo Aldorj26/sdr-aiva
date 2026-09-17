@@ -1,8 +1,15 @@
 /**
  * Cobrança do formulário do varejo (portal AIVA em `dados_varejo`) — parte PURA.
  *
- * Cadência D+1, D+3, D+7, D+14 contada a partir do momento em que o lead entrou
- * na fila ([COBRANCA_FORM_INICIO]), um toque por marco, nunca dois no mesmo dia.
+ * Cadência D+1, D+3, D+7, D+14 contada em VIRADAS DE DIA (fuso de Brasília) a
+ * partir do dia em que o lead entrou na fila ([COBRANCA_FORM_INICIO]), um toque
+ * por marco, nunca dois no mesmo dia.
+ *
+ * ⚠️ Por que dia civil e não múltiplo de 24h (corrigido 17/09/2026): o cron roda
+ * num horário FIXO (13h BRT). Se o INICIO for carimbado 14h35 — como aconteceu
+ * com os 49 primeiros, carimbados numa execução manual —, no dia seguinte às 13h
+ * ainda faltam 1h35 pra fechar as 24h e o toque não sai. Como o marco seguinte
+ * conta do mesmo INICIO, o atraso não se corrige: a régua vira D+2/D+4/D+8/D+15.
  * Depois do 4º toque sem o formulário preenchido, o lead vira "esgotado": o time
  * é avisado uma vez e a cobrança para (o lead NÃO vai pra fila humana).
  *
@@ -20,6 +27,15 @@
 export const DIAS_TOQUE = [1, 3, 7, 14] as const
 export const MAX_TOQUES = DIAS_TOQUE.length
 const DIA_MS = 24 * 60 * 60 * 1000
+
+/** Data civil em Brasília (AAAA-MM-DD) — a unidade da régua. */
+export function diaBrt(ms: number): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms))
+}
+/** Quantas viradas de dia (BRT) separam os dois instantes. */
+export function diasCorridos(deMs: number, ateMs: number): number {
+  return Math.round((Date.parse(diaBrt(ateMs)) - Date.parse(diaBrt(deMs))) / DIA_MS)
+}
 
 // {{2}} do HSM 48 — UMA linha, sem \n, sem link (a Meta rejeita \n em variável;
 // o link do onboarding a VictorIA manda na conversa quando o lojista pede).
@@ -75,10 +91,10 @@ export function decidir(m: Marcadores, respondeuRecente: boolean, agora = Date.n
   if (m.inicioMs == null) return { acao: 'iniciar' }
   if (m.toques >= MAX_TOQUES) return { acao: 'esgotou' }
   if (respondeuRecente) return { acao: 'nada', motivo: 'conversa_recente' }
-  const dias = (agora - m.inicioMs) / DIA_MS
+  const dias = diasCorridos(m.inicioMs, agora)
   const proximo = m.toques + 1
   if (dias < DIAS_TOQUE[proximo - 1]) return { acao: 'nada', motivo: `aguardando D+${DIAS_TOQUE[proximo - 1]}` }
-  if (m.ultimoToqueMs != null && agora - m.ultimoToqueMs < DIA_MS) return { acao: 'nada', motivo: 'toque_hoje' }
+  if (m.ultimoToqueMs != null && diaBrt(m.ultimoToqueMs) === diaBrt(agora)) return { acao: 'nada', motivo: 'toque_hoje' }
   return { acao: 'enviar', toque: proximo }
 }
 

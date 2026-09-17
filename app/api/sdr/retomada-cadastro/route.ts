@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome } from '@/lib/text'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
   if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}` && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const dry = new URL(req.url).searchParams.get('dry') === 'true'
+  const dry = flag(new URL(req.url).searchParams, 'dry')
 
   if (!REOPEN_TEMPLATE_ID) {
     return NextResponse.json({ ok: false, erro: 'AIVA_REATIVACAO_TEMPLATE_ID não configurado' }, { status: 500 })

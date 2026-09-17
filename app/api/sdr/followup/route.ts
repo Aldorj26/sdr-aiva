@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getLeadsForFollowup, updateLeadStatus, saveMensagem, supabaseAdmin } from '@/lib/supabase'
 import { sendTemplate, changeOpportunityStage, addOpportunityNote, STAGES, checkUserExists } from '@/lib/evotalks'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
+import { flag } from '@/lib/req-flags'
 
 // Templates HSM aprovados pela Meta (Evo Talks)
 // IDs dos templates HSM de follow-up. Atualizados 2026-05-15: número WhatsApp
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
+  const dry = flag(url.searchParams, 'dry')
   const max = Math.max(1, Number(url.searchParams.get('max')) || MAX_POR_RODADA)
 
   const fila = await getLeadsForFollowup()

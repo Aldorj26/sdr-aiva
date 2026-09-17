@@ -28,6 +28,7 @@ export const maxDuration = 60
 // Classificação compartilhada com a página /atendimento (lib/fila.ts, 03/09) —
 // uma fonte só pra motivo/categoria, digest e painel nunca divergem.
 import { motivoDeObs, categoriaFila as categoria } from '@/lib/fila'
+import { flag } from '@/lib/req-flags'
 
 type Item = { nome: string; telefone: string; status: string; motivo: string; ultimaMsg: string | null }
 
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}` && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const dry = new URL(req.url).searchParams.get('dry') === 'true'
+  const dry = flag(new URL(req.url).searchParams, 'dry')
 
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')

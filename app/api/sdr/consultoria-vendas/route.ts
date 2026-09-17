@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome } from '@/lib/text'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
   //   ?force=true  → ignora a espera (7d/15d) e dispara o próximo toque devido agora
   //   ?max=N       → limita quantos envios nesta chamada (lote teste)
   const url = new URL(req.url)
-  const force = url.searchParams.get('force') === 'true'
+  const force = flag(url.searchParams, 'force')
   const maxRun = Math.min(Number(url.searchParams.get('max')) || MAX_POR_EXECUCAO, MAX_POR_EXECUCAO)
 
   // Guarda de horário comercial BRT (8h–18h) — pulada em disparo forçado

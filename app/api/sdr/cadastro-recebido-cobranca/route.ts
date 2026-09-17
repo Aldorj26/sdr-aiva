@@ -22,6 +22,7 @@ import { sendTemplate, alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { listarCadastroRecebidoIncompletos } from '@/lib/cadastro-recebido'
 import { normalizaNome } from '@/lib/text'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
   const url = new URL(req.url)
-  const force = url.searchParams.get('force') === 'true'
+  const force = flag(url.searchParams, 'force')
   const maxRun = Math.min(Number(url.searchParams.get('max')) || 40, 40)
 
   const horasBRT = new Date().getUTCHours() - 3

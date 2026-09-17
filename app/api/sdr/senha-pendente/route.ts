@@ -15,8 +15,13 @@
  *
  * Não fala com o lojista: é alerta interno + contexto pra VictorIA.
  *
+ * ⚠️ Loja SEM lead nosso (não casa por RID nem por CNPJ) entra no alerta do mesmo
+ * jeito, mas a memória do aviso não cabe em observacoes — vai pra
+ * `sdr_avisos_chave` (chave "senha_pendente:<rid>"). Sem isso ela voltava no
+ * digest TODO dia útil: era o caso do RID 6413 desde 16/09 (achado de 17/09).
+ *
  * Regras puras: lib/senha-pendente-calc.ts (`npm run test:senha`).
- * Params: ?dry=true
+ * Params: ?dry (aceita 1/true/sim — lib/req-flags)
  * Schedule (vercel.json): `0 14 * * 1-5` UTC = 11h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -24,6 +29,7 @@ import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { loginPortal, listarSenhasPendentes, onboardingsPorRetailer } from '@/lib/portal-aiva'
 import { decidir, lerPendenteDesde, lerUltimoAviso, linhaAlerta, remontarObs, DIAS_UTEIS_PRAZO } from '@/lib/senha-pendente-calc'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,7 +43,7 @@ async function executar(req: NextRequest) {
   if (auth !== `Bearer ${process.env.WEBHOOK_SECRET}` && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const dry = new URL(req.url).searchParams.get('dry') === 'true'
+  const dry = flag(new URL(req.url).searchParams, 'dry')
   const agora = Date.now()
 
   // 1) portal: quem pediu acesso e não recebeu senha
@@ -81,6 +87,22 @@ async function executar(req: NextRequest) {
     : { data: [] }
   const leadDe = (id: string | null) => (id ? (leads ?? []).find((l) => l.id === id) ?? null : null)
 
+  // 2b) memória das lojas SEM lead nosso.
+  //     O marcador [SENHA_PENDENTE_AVISO] mora em sdr_leads.observacoes; sem lead
+  //     não há onde gravar, e até 17/09/2026 essas lojas voltavam no alerta TODO
+  //     dia útil (era o caso do RID 6413, avisado desde 16/09). A regra de reaviso
+  //     de 7 dias agora vale pra elas também, guardada em sdr_avisos_chave.
+  const chaveDe = (rid: string) => `senha_pendente:${rid}`
+  const ridsSemLead = alvos.filter((a) => !leadDe(a.leadId)).map((a) => chaveDe(a.rid))
+  const avisoPorChave = new Map<string, number>()
+  if (ridsSemLead.length) {
+    const { data: memoria } = await supabaseAdmin.from('sdr_avisos_chave').select('chave, ultimo_aviso').in('chave', ridsSemLead)
+    for (const m of memoria ?? []) {
+      const ms = Date.parse(m.ultimo_aviso)
+      if (Number.isFinite(ms)) avisoPorChave.set(m.chave, ms)
+    }
+  }
+
   // 3) decisão por loja
   const avisar: Array<{ alvo: Alvo; diasUteis: number; reaviso: boolean }> = []
   const semLead: string[] = []
@@ -88,8 +110,8 @@ async function executar(req: NextRequest) {
   for (const a of alvos) {
     const lead = leadDe(a.leadId)
     if (!lead) { semLead.push(`${a.loja} (RID ${a.rid})`) }
-    const obs = lead?.observacoes ?? null
-    const d = decidir({ pedidoMs: Date.parse(a.pedido), avisoMs: lerUltimoAviso(obs) }, agora)
+    const avisoMs = lead ? lerUltimoAviso(lead.observacoes) : avisoPorChave.get(chaveDe(a.rid)) ?? null
+    const d = decidir({ pedidoMs: Date.parse(a.pedido), avisoMs }, agora)
     if (d.acao === 'nada') { silenciosos++; continue }
     avisar.push({ alvo: a, diasUteis: d.diasUteis, reaviso: d.acao === 'reavisar' })
   }
@@ -124,11 +146,24 @@ async function executar(req: NextRequest) {
   const agoraISO = new Date().toISOString()
   for (const a of avisar) {
     const lead = leadDe(a.alvo.leadId)
-    if (!lead) continue
+    if (!lead) {
+      // sem lead: a memória do aviso vai pra tabela de chaves (senão reavisa todo dia)
+      await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: chaveDe(a.alvo.rid), ultimo_aviso: agoraISO }, { onConflict: 'chave' })
+      continue
+    }
     const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
     await supabaseAdmin.from('sdr_leads')
       .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { desde: new Date(a.alvo.pedido).toISOString(), aviso: agoraISO }) })
       .eq('id', lead.id)
+  }
+  // senha chegou → a chave some junto com o pendente (o próximo pedido começa limpo).
+  // Varre TODAS as chaves do assunto, não só as carregadas: quem saiu da lista de
+  // pendentes não aparece em `alvos` e nunca seria lido de volta.
+  {
+    const { data: todas } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').like('chave', 'senha_pendente:%')
+    const vivas = new Set(alvos.map((a) => chaveDe(a.rid)))
+    const mortas = (todas ?? []).map((r) => r.chave).filter((k) => !vivas.has(k))
+    if (mortas.length) await supabaseAdmin.from('sdr_avisos_chave').delete().in('chave', mortas)
   }
   for (const r of resolvidos) {
     const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', r.id).maybeSingle()

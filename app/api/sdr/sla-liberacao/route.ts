@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { alertHuman } from '@/lib/evotalks'
+import { flag } from '@/lib/req-flags'
 
 export const maxDuration = 60
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
+  const dry = flag(url.searchParams, 'dry')
   const dias = Math.max(1, Number(url.searchParams.get('dias')) || 3)
   const cutoff = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString()
 

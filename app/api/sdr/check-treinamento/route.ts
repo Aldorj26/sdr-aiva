@@ -39,6 +39,7 @@ import { sendTemplate, alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { proximasTurmas, houveTurmaHoje, inscricoesPorCnpj, classificarInscricoes, rotulo, type Inscricao, type Turma } from '@/lib/turmas-treinamento'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -122,8 +123,8 @@ async function executar(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
-  const force = url.searchParams.get('force') === 'true'
+  const dry = flag(url.searchParams, 'dry')
+  const force = flag(url.searchParams, 'force')
   const max = Math.min(Number(url.searchParams.get('max')) || 60, 100)
   // Roda todo dia útil à tarde, mas só pergunta em dia que TEVE turma de manhã —
   // a agenda vem do portal AIVA (16/09: seg/qui → seg/qua/sex a partir de 21/09).

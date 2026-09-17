@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { decidir, lerMarcadores, remontarObs, MIOLOS, MAX_TOQUES } from './cobranca-formulario-calc.ts'
 
 const DIA = 24 * 60 * 60 * 1000
+const HORA = 60 * 60 * 1000
 const T0 = Date.parse('2026-09-16T16:00:00Z')
 const iso = (ms: number) => new Date(ms).toISOString()
 
@@ -17,7 +18,8 @@ test('sem marcador: iniciar (carimba D0, não envia)', () => {
 
 test('escada D+1 / D+3 / D+7 / D+14 a partir do INICIO', () => {
   const obs0 = `[COBRANCA_FORM_INICIO:${iso(T0)}]`
-  assert.equal(decidir(lerMarcadores(obs0, T0 + 0.5 * DIA), false, T0 + 0.5 * DIA).acao, 'nada')
+  // ainda no MESMO dia BRT (T0 = 13h, aqui 19h) → não manda
+  assert.equal(decidir(lerMarcadores(obs0, T0 + 6 * HORA), false, T0 + 6 * HORA).acao, 'nada')
   assert.deepEqual(decidir(lerMarcadores(obs0, T0 + 1 * DIA), false, T0 + 1 * DIA), { acao: 'enviar', toque: 1 })
   const obs1 = remontarObs(obs0, { toque: 1 }, new Date(T0 + 1 * DIA))
   assert.equal(decidir(lerMarcadores(obs1, T0 + 2 * DIA), false, T0 + 2 * DIA).acao, 'nada')          // D+3 ainda não
@@ -54,4 +56,24 @@ test('remontarObs não duplica marcadores', () => {
   assert.equal((c.match(/\[COBRANCA_FORM:\d+:/g) ?? []).length, 1)
   assert.match(c, /\[COBRANCA_FORM:2:/)
   assert.match(c, /^\[X\] texto/)
+})
+
+test('o marco vale na virada do dia, não no múltiplo exato de 24h', () => {
+  // Bug de 17/09/2026: os 49 primeiros INICIO foram carimbados 14h35 BRT numa
+  // execução manual; o cron das 13h do dia seguinte não fechava as 24h e a régua
+  // inteira escorregava um dia. Agora conta dia civil de Brasília.
+  const inicio = Date.parse('2026-09-16T17:35:33Z')   // 14h35 BRT de 16/09
+  const cron = Date.parse('2026-09-17T16:00:00Z')     // 13h BRT de 17/09
+  assert.ok(cron - inicio < DIA, 'o cenário só faz sentido com menos de 24h entre os dois')
+  assert.deepEqual(decidir(lerMarcadores(`[COBRANCA_FORM_INICIO:${iso(inicio)}]`, cron), false, cron), { acao: 'enviar', toque: 1 })
+})
+
+test('virada de dia não atropela o "um toque por dia"', () => {
+  // toque 1 às 23h BRT; o cron da manhã seguinte é outro dia civil, mas o marco
+  // seguinte (D+3) ainda não venceu — quem segura é a escada, não o relógio.
+  const inicio = Date.parse('2026-09-16T16:00:00Z')
+  const toque1 = Date.parse('2026-09-18T02:00:00Z')   // 23h BRT de 17/09
+  const obs = remontarObs(`[COBRANCA_FORM_INICIO:${iso(inicio)}]`, { toque: 1 }, new Date(toque1))
+  const manha = Date.parse('2026-09-18T16:00:00Z')    // 13h BRT de 18/09
+  assert.deepEqual(decidir(lerMarcadores(obs, manha), false, manha), { acao: 'nada', motivo: 'aguardando D+3' })
 })

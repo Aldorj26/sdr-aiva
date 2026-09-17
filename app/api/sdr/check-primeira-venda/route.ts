@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome } from '@/lib/text'
+import { flag } from '@/lib/req-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const dry = url.searchParams.get('dry') === 'true'
+  const dry = flag(url.searchParams, 'dry')
   const max = Math.min(Number(url.searchParams.get('max')) || 30, 50)
 
   const seteDiasAtras = new Date(Date.now() - 7 * DIA_MS).toISOString()
