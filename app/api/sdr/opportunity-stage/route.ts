@@ -353,13 +353,32 @@ export async function POST(req: NextRequest) {
         console.error(`[PRE_CADASTRO_49] Falha ao registrar CNPJ matriz de ${telefone}:`, err)
       }
 
+      // 17/09/2026: o card pode ter chegado aqui PELO clique do Nei no /registros
+      // (POST /api/registros avança pra 49 quando ele marca o CNPJ como enviado).
+      // Nesse caso o alerta não pode mandar ele "lançar agora" o que ele acabou
+      // de lançar — a mensagem muda de tom.
+      let jaLancado = false
+      try {
+        if (cnpjMatriz49 && lead?.id) {
+          const { data: reg } = await supabaseAdmin
+            .from('sdr_registros_cnpj')
+            .select('enviado')
+            .eq('lead_id', lead.id)
+            .eq('cnpj', cnpjMatriz49)
+            .maybeSingle()
+          jaLancado = reg?.enviado === true
+        }
+      } catch { /* alerta é secundário: na dúvida, manda o texto padrão */ }
+
       // Alerta Aldo + Nei de que a oportunidade foi aprovada internamente e
       // a VictorIA vai começar a Fase 3 (coleta dos 5 dados complementares).
       try {
         const msg =
           `🟢 *${lead?.nome ?? nomeSocio}* (${telefone}) movido pra Cadastro Recebido.\n` +
           `HSM 20 disparado — VictorIA vai coletar o e-mail do sócio (e os CNPJs adicionais, se 2+ lojas).` +
-          (cnpjMatriz49
+          (jaLancado
+            ? `\n\n📝 Pré-cadastro do CNPJ ${cnpjMatriz49} já foi lançado por você no painel — foi ele que trouxe o card pra cá. Nada a fazer.`
+            : cnpjMatriz49
             ? `\n\n📝 *Pré-cadastro já LIBERADO (antecipado):* CNPJ matriz ${cnpjMatriz49} está no painel com o form preenchido — pode lançar agora:\nhttps://sdr-aiva.vercel.app/registros`
             : `\n\n⚠️ CNPJ matriz não encontrado nos dados — o pré-cadastro vai ser liberado na conclusão do cadastro, como antes.`)
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)

@@ -2028,6 +2028,30 @@ export async function POST(req: NextRequest) {
           opportunity_id: String(oppId),
         }
         await sendToGoogleSheets(sheetsData)
+
+        // ─── PRÉ-CADASTRO LIBERADO JÁ NA PRÉ-APROVAÇÃO (Aldo 17/09/2026) ────────
+        // Antes isto só rodava quando o card chegava na etapa 49 — e quem movia
+        // pra 49 era o Nei, na mão, no Evo. Ou seja: o CNPJ ficava invisível no
+        // /registros até ele lembrar de arrastar o card. Agora o registro nasce
+        // aqui, junto com a pré-aprovação: o Nei abre o /registros, lança o CNPJ
+        // no form da AIVA e o clique move o card pra Cadastro Recebido sozinho
+        // (POST /api/registros). O upsert é idempotente — o handler da etapa 49
+        // continua rodando o dele sem duplicar, e os CNPJs adicionais entram na
+        // conclusão da Fase 3, como sempre.
+        try {
+          const cnpjMatriz54 = extrairCnpjs(String(forms['dd2ab580'] ?? dadosCompletos.cnpj_matriz ?? ''))[0] ?? null
+          if (cnpjMatriz54) {
+            await supabaseAdmin.from('sdr_registros_cnpj').upsert(
+              [{ lead_id: lead.id, loja: lead.nome, telefone: lead.telefone, cnpj: cnpjMatriz54, tipo: 'matriz', status: 'informada' }],
+              { onConflict: 'lead_id,cnpj', ignoreDuplicates: true },
+            )
+            console.log(`[PRE_CADASTRO_54] ${lead.telefone}: matriz ${cnpjMatriz54} liberada pro pré-cadastro na Pré Aprovação`)
+          } else {
+            console.warn(`[PRE_CADASTRO_54] ${lead.telefone}: sem CNPJ matriz válido — registro não criado`)
+          }
+        } catch (err) {
+          console.error(`[PRE_CADASTRO_54] Falha ao registrar CNPJ matriz de ${lead.telefone}:`, err)
+        }
       }
       // FASE 3 completa (12 dados) → envia HubSpot.
       // GUARD DE TRANSIÇÃO REAL: lead.status é o valor sincronizado com o Evo NO
@@ -2346,7 +2370,9 @@ export async function POST(req: NextRequest) {
     const msg =
       `🟡 *${lead.nome}* (${lead.telefone} — ${lead.cidade ?? 'cidade n/d'}) qualificado p/ pré-aprovação.\n` +
       (detalhe ? `\n${detalhe}\n` : '') +
-      `\n➡️ Mover pra Cadastro Recebido no Evo Talks quando aprovar.`
+      `\n📝 *Pré-cadastro liberado:* o CNPJ já está no painel pra lançar no form da AIVA:\n` +
+      `https://sdr-aiva.vercel.app/registros\n` +
+      `➡️ Assim que você marcar como enviado lá, o card vai sozinho pra *Cadastro Recebido* — não precisa arrastar no Evo.`
     await alertHuman(process.env.NEI_WHATSAPP!, msg)
     await alertHuman(process.env.ALDO_WHATSAPP!, msg)
   } else if (cadastroCompletoConfirmado) {
