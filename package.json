@@ -12,7 +12,8 @@
     "test:cobranca": "node --test lib/cobranca-formulario-calc.test.ts",
     "test:biometria": "node --test lib/biometria-calc.test.ts",
     "test:turmas": "node --test lib/turmas-treinamento-calc.test.ts",
-    "test:senha": "node --test lib/senha-pendente-calc.test.ts"
+    "test:senha": "node --test lib/senha-pendente-calc.test.ts",
+    "test:reconhecimento": "node --test lib/reconhecimento.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

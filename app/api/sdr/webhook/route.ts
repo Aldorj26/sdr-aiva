@@ -35,6 +35,7 @@ import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido, type Colaborador } from '@/lib/colaborador-form'
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
+import { ehSoReconhecimento } from '@/lib/reconhecimento'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1122,7 +1123,16 @@ export async function POST(req: NextRequest) {
       // corrente sem transformar qualquer 'bom dia' da semana em alerta.
       const perguntaRecente = Number.isFinite(enviadoMs) && Date.now() - enviadoMs < 3 * 24 * 60 * 60 * 1000
       const jaAvisado = Number.isFinite(respondidoMs) && respondidoMs > enviadoMs
-      if (perguntaRecente && !jaAvisado) {
+      // 17/09/2026 (Aldo): "ok" NAO e resposta. Antes qualquer mensagem carimbava
+      // [CHECK_TREINAMENTO_RESP], o Nei era avisado de que ele "respondeu" e a
+      // cadencia morria ali - sem ninguem saber se o lojista treinou. Um aceno
+      // deixa tudo como esta: a VictorIA repergunta fechado no mesmo turno
+      // (regra "OK" NAO E CONFIRMACAO DE FATO) e o proximo toque continua de pe.
+      const soAceno = ehSoReconhecimento(conteudoEfetivo)
+      if (perguntaRecente && !jaAvisado && soAceno) {
+        console.log(`[CHECK_TREINAMENTO] ${lead.telefone} respondeu so "${conteudoEfetivo.slice(0, 20)}" - aceno, nao conta como resposta`)
+      }
+      if (perguntaRecente && !jaAvisado && !soAceno) {
         try {
           const alerta =
             `🎓 *RESPONDEU O CHECK DE TREINAMENTO*\n\n` +
