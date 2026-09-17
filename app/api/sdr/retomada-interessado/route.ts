@@ -95,9 +95,12 @@ async function executar(req: NextRequest) {
   const nada: Record<string, number> = {}
   for (const l of elegiveis) {
     const ult = ultimaIn.get(l.id)
-    // nunca falou nada: usa o silêncio máximo (ele respondeu ao HSM inicial de
-    // alguma forma pra estar em INTERESSADO, mas se não há registro, não segura)
-    const dias = ult ? Math.floor((agora - ult) / DIA_MS) : 999
+    // Nunca mandou mensagem nenhuma (5 casos em 18/09: viraram INTERESSADO por
+    // reengajamento ou mudança manual de status). O texto da retomada diz "a
+    // gente conversou" / "paramos no meio" — com quem nunca respondeu isso é
+    // mentira. Fica de fora; se for pra falar com eles, é outra abordagem.
+    if (!ult) { nada.nunca_falou = (nada.nunca_falou ?? 0) + 1; continue }
+    const dias = Math.floor((agora - ult) / DIA_MS)
     const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora)
     if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados: (l.observacoes ?? '').includes('[DADOS_COLETADOS:'), dias })
     else if (d.acao === 'encerrar') encerrar.push(l)
