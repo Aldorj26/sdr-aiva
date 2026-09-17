@@ -50,13 +50,15 @@ async function busca(like: string, limite = 200): Promise<Lead[]> {
 }
 
 async function getDados() {
-  const [senha, biometria, formulario, treinamento, conferir, cnpjVoltou] = await Promise.all([
+  const [senha, biometria, formulario, treinamento, conferir, cnpjVoltou, cnpjIrregular, cnpjInvalido] = await Promise.all([
     busca('%[SENHA_PENDENTE_DESDE:%'),
     busca('%[BIOMETRIA_ESGOTADO]%'),
     busca('%[COBRANCA_FORM_ESGOTADO]%'),
     busca('%[CHECK_TREINAMENTO_ESGOTADO]%'),
     busca('%[PORTAL_REPROVADO_CONFERIR:%'),
     busca('%[RETORNO_CNPJ_ALERTA:%'),
+    busca('%[CNPJ_IRREGULAR_AIVA:%'),
+    busca('%[CNPJ_PORTAL_INVALIDO:%'),
   ])
   const agora = Date.now()
   return {
@@ -80,6 +82,12 @@ async function getDados() {
       .filter((l) => l.status === 'NAO_QUALIFICADO')
       .map((l) => ({ ...l, quando: marcadorISO(l.observacoes, 'RETORNO_CNPJ_ALERTA') }))
       .sort((a, b) => (b.quando ?? '').localeCompare(a.quando ?? '')),
+    cnpjIrregular: cnpjIrregular
+      .map((l) => ({ ...l, situacao: (l.observacoes ?? '').match(/\[CNPJ_IRREGULAR_AIVA:([^:\]]+)/)?.[1] ?? '?' }))
+      .sort((a, b) => a.situacao.localeCompare(b.situacao)),
+    cnpjInvalido: cnpjInvalido
+      .map((l) => ({ ...l, situacao: (l.observacoes ?? '').match(/\[CNPJ_PORTAL_INVALIDO:([^:\]]+)/)?.[1] ?? '?' }))
+      .sort((a, b) => a.situacao.localeCompare(b.situacao)),
   }
 }
 
@@ -148,6 +156,8 @@ export default async function ExcecoesPage() {
         <Card label="🎓 Treinamento sem resposta" value={d.treinamento.length} href="#treinamento" cor="var(--yellow)" />
         <Card label="🔎 Reprovado a conferir" value={d.conferir.length} href="#conferir" cor="#a855f7" />
         <Card label="🔁 Travado voltou a falar" value={d.cnpjVoltou.length} href="#cnpj" cor="#a855f7" />
+        <Card label="🧾 CNPJ irregular" value={d.cnpjIrregular.length} href="#cnpj-irregular" cor="var(--red)" />
+        <Card label="🔢 CNPJ não confere" value={d.cnpjInvalido.length} href="#cnpj-invalido" cor="#a855f7" />
       </div>
 
       <Secao id="senha" titulo="🔑 Senha não enviada pela AIVA" count={d.senha.length}
@@ -213,6 +223,32 @@ export default async function ExcecoesPage() {
             <Ident l={l} />
             <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
             <td style={{ ...td, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{fmtData(l.quando)}</td>
+          </ClickableRow>
+        ))}</tbody>
+      </Secao>
+
+      <Secao id="cnpj-irregular" titulo="🧾 CNPJ irregular na Receita (checagem da AIVA)" count={d.cnpjIrregular.length}
+        oque="a AIVA checou o CNPJ e voltou INAPTA, BAIXADA ou SUSPENSA — preencher o formulário não destrava nada"
+        acao="Falar com o lojista pra regularizar com o contador. A cobrança do formulário já parou sozinha; quando o CNPJ voltar a ficar ativo o marcador some e a régua volta.">
+        {cabecalho('Situação')}
+        <tbody>{d.cnpjIrregular.map((l) => (
+          <ClickableRow key={l.id} leadId={l.id}>
+            <Ident l={l} />
+            <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
+            <td style={{ ...td, fontSize: '0.8rem', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{l.situacao}</td>
+          </ClickableRow>
+        ))}</tbody>
+      </Secao>
+
+      <Secao id="cnpj-invalido" titulo="🔢 CNPJ do portal não confere" count={d.cnpjInvalido.length}
+        oque="o CNPJ cadastrado no portal da AIVA tem dígito inválido ou não consta na Receita — quase sempre erro de digitação (tem loja vendendo assim)"
+        acao="Conferir o CNPJ certo com o lojista e pedir a correção pra AIVA. NÃO é problema da loja: não trave o lead nem pare de atender.">
+        {cabecalho('Retorno')}
+        <tbody>{d.cnpjInvalido.map((l) => (
+          <ClickableRow key={l.id} leadId={l.id}>
+            <Ident l={l} />
+            <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
+            <td style={{ ...td, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{l.situacao === 'invalid' ? 'dígito inválido' : 'não consta'}</td>
           </ClickableRow>
         ))}</tbody>
       </Secao>

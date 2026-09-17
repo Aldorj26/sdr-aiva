@@ -19,7 +19,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
-import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
+import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, cnpjsIrregularesPortal, type CnpjIrregular, type Sessao } from '@/lib/portal-aiva'
 import {
   calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
@@ -30,13 +30,18 @@ const PIPELINE_AIVA = 15
 const TETO_MOVIMENTOS = 30
 const TETO_MS = 200_000
 export const MARCADOR_ESPELHO = 'ESPELHO_PORTAL'
+/** CNPJ com situação real ruim na Receita (inapta/baixada/suspensa) segundo a AIVA. */
+export const MARCADOR_CNPJ_IRREGULAR = 'CNPJ_IRREGULAR_AIVA'
+/** CNPJ que não fecha (DV inválido / não consta) — quase sempre erro de digitação no portal. */
+export const MARCADOR_CNPJ_INVALIDO = 'CNPJ_PORTAL_INVALIDO'
+const SITUACAO_REAL = new Set(['inapta', 'baixada', 'suspensa'])
 
-async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<string>; aviso: string | null }> {
+async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<string>; irregulares: Map<string, CnpjIrregular>; aviso: string | null }> {
   let s: Sessao
   try {
     s = await loginPortal()
   } catch (e) {
-    return { loginEnviado: new Set(), vendeu: new Set(), aviso: `login do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo não avaliados nesta rodada` }
+    return { loginEnviado: new Set(), vendeu: new Set(), irregulares: new Map(), aviso: `login do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo e checagem de CNPJ não avaliados nesta rodada` }
   }
   try {
     const partner = await partnerIdTrack(s)
@@ -54,9 +59,10 @@ async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<
       for (const l of data) vendeu.add(String(l.retailer_id))
       if (data.length < 1000) break
     }
-    return { loginEnviado, vendeu, aviso: null }
+    const irregulares = await cnpjsIrregularesPortal(s)
+    return { loginEnviado, vendeu, irregulares, aviso: null }
   } catch (e) {
-    return { loginEnviado: new Set(), vendeu: new Set(), aviso: `leitura do banco do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo não avaliados nesta rodada` }
+    return { loginEnviado: new Set(), vendeu: new Set(), irregulares: new Map(), aviso: `leitura do banco do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo e checagem de CNPJ não avaliados nesta rodada` }
   }
 }
 
@@ -96,6 +102,14 @@ async function marcar(leadId: string, marcador: string, valor: string): Promise<
   await supabaseAdmin.from('sdr_leads').update({ observacoes: `${obs} [${marcador}:${valor}]`.trim() }).eq('id', leadId)
 }
 
+/** Tira o marcador [X:...] do lead (CNPJ voltou a ficar regular). */
+async function desmarcar(leadId: string, marcador: string): Promise<void> {
+  const { data } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
+  const obs = (data?.observacoes ?? '')
+  const limpo = obs.replace(new RegExp(`\s*\[${marcador}:[^\]]*\]`, 'g'), '').trim()
+  if (limpo !== obs.trim()) await supabaseAdmin.from('sdr_leads').update({ observacoes: limpo }).eq('id', leadId)
+}
+
 export type SaidaEspelho = {
   ok: boolean
   dry: boolean
@@ -108,6 +122,8 @@ export type SaidaEspelho = {
   conferir: Resultado['conferir']
   registros_enviados: number
   pulados: Resultado['pulados']
+  /** CNPJ reprovado na checagem da AIVA (colunas de 17/09): irregular = situação real; invalido = não fecha */
+  cnpj: { irregular: number; invalido: number; novos: string[]; regularizados: number }
 }
 
 export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
@@ -134,6 +150,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   const saida: SaidaEspelho = {
     ok: true, dry, avisos, onboardings: onboardings.length, leads: leads.length,
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
+    cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
   }
   if (dry) { saida.movidos = r.movimentos; return saida }
 
@@ -203,6 +220,46 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     }
   }
 
+  // 8) checagem de CNPJ da AIVA (colunas liberadas em 17/09). A gente só MARCA e
+  //    avisa: quem decide descartar loja é o time. Dois marcadores porque as
+  //    ações são opostas — inapta/baixada/suspensa é problema REAL da empresa
+  //    (a cobrança do formulário para); invalid/not_found quase sempre é CNPJ
+  //    digitado errado no portal (há loja VENDENDO assim), então é conferência.
+  const cnpjNovos: string[] = []
+  if (sinais.irregulares.size) {
+    const leadPorId = new Map(leads.map((l) => [l.id, l]))
+    const vistos = new Set<string>()
+    for (const reg of registros) {
+      const info = sinais.irregulares.get(soDigitos(reg.cnpj))
+      const lead = reg.lead_id ? leadPorId.get(reg.lead_id) : null
+      if (!info || !lead || vistos.has(lead.id)) continue
+      vistos.add(lead.id)
+      const real = SITUACAO_REAL.has(info.status)
+      const marcador = real ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO
+      if (real) saida.cnpj.irregular++
+      else saida.cnpj.invalido++
+      if ((lead.observacoes ?? '').includes(`[${marcador}:`)) continue
+      try {
+        await marcar(lead.id, marcador, `${info.status}:${new Date().toISOString()}`)
+        const nome = (lead.nome ?? '').trim() || lead.id
+        cnpjNovos.push(`• ${nome} — CNPJ ${soDigitos(reg.cnpj)} · ${info.situacao ?? info.status}${info.motivo ? ` (${info.motivo})` : ''}`)
+      } catch (e) {
+        avisos.push(`cnpj de ${lead.nome} não marcado: ${String(e).slice(0, 100)}`)
+      }
+    }
+    // Voltou a ficar regular (o lojista regularizou, ou a AIVA corrigiu o CNPJ)
+    // → o marcador some sozinho e a cobrança do formulário volta a valer.
+    for (const lead of leads) {
+      const obs = lead.observacoes ?? ''
+      for (const m of [MARCADOR_CNPJ_IRREGULAR, MARCADOR_CNPJ_INVALIDO]) {
+        if (!obs.includes(`[${m}:`)) continue
+        const aindaRuim = registros.some((reg) => reg.lead_id === lead.id && sinais.irregulares.has(soDigitos(reg.cnpj)))
+        if (!aindaRuim) { await desmarcar(lead.id, m); saida.cnpj.regularizados++ }
+      }
+    }
+  }
+  saida.cnpj.novos = cnpjNovos
+
   const blocos: string[] = []
   if (novos.length) {
     blocos.push(
@@ -214,6 +271,15 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     blocos.push(
       `🔎 *Reprovado no portal, mas parece que a loja opera* (${conferirNovos.length}) — o espelho NÃO mexeu:\n${conferirNovos.join('\n')}\n\n` +
       'Conferir com a AIVA: se for reprovado mesmo, mover o card pra "Loja Descartada pela Aiva" na mão; se a loja opera, o portal é que está errado.',
+    )
+  }
+  if (cnpjNovos.length) {
+    blocos.push(
+      `🧾 *CNPJ reprovado na checagem da AIVA* (${cnpjNovos.length} loja(s) nova(s))\n${cnpjNovos.slice(0, 25).join('\n')}` +
+      (cnpjNovos.length > 25 ? `\n… +${cnpjNovos.length - 25}` : '') +
+      '\n\nINAPTA/BAIXADA/SUSPENSA = situação real: a cobrança do formulário parou sozinha, a loja precisa regularizar na Receita.' +
+      '\nDÍGITO INVÁLIDO / NÃO ENCONTRADO = o CNPJ digitado no portal não fecha (tem loja vendendo assim) — conferir com a AIVA, não é problema da loja.' +
+      '\nA lista completa fica em https://sdr-aiva.vercel.app/excecoes',
     )
   }
   for (const texto of blocos) {

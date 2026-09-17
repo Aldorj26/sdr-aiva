@@ -14,7 +14,9 @@
  * sem link — quem responde cai na VictorIA (FASE 4), que reenvia o link do
  * onboarding se o lojista pedir.
  *
- * Não cobra: acionar_humano, [PAUSA_ATE], [COBRANCA_FORM_OPTOUT], importados
+ * Não cobra: CNPJ inapto/baixado/suspenso na checagem da AIVA
+ * ([CNPJ_IRREGULAR_AIVA], marcado pelo espelho — 17/09), acionar_humano,
+ * [PAUSA_ATE], [COBRANCA_FORM_OPTOUT], importados
  * do portal sem WhatsApp ([IMPORTADO_PORTAL] / telefone 000…), quem mandou
  * mensagem nas últimas 48h (conversa viva), lead sem onboarding no portal
  * (pré-cadastro nunca lançado — aparece no retorno como `sem_onboarding`).
@@ -111,6 +113,15 @@ async function executar(req: NextRequest) {
   const esgotar: typeof pendentes = []
   const nada: Record<string, number> = {}
   for (const l of pendentes) {
+    // CNPJ inapto/baixado/suspenso na Receita segundo a checagem da AIVA
+    // (colunas liberadas em 17/09; o espelho marca o lead). Preencher o
+    // formulário não destrava nada enquanto a empresa não regularizar —
+    // cobrar seria queimar HSM prometendo o que não vai acontecer.
+    // O marcador some sozinho quando o CNPJ volta a ficar regular.
+    if ((l.observacoes ?? '').includes('[CNPJ_IRREGULAR_AIVA:')) {
+      nada.cnpj_irregular = (nada.cnpj_irregular ?? 0) + 1
+      continue
+    }
     const d = decidir(lerMarcadores(l.observacoes, agora), recentes.has(l.id), agora)
     if (d.acao === 'iniciar') iniciar.push(l)
     else if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque })
