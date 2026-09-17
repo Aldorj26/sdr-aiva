@@ -377,6 +377,14 @@ export type OnboardingApi = {
   cnpj_situacao?: string | null
   cnpj_checked_at?: string | null
   cnpj_opened_at?: string | null
+  /** Contato e biometria do lojista — na API pública desde 18/09/2026. */
+  phone_number?: string | null
+  email?: string | null
+  liveness_url?: string | null
+  /** Agendamento de treinamento mais recente (training_label vem sempre nulo). */
+  training_at?: string | null
+  training_id?: string | number | null
+  training_source?: string | null
   [extra: string]: unknown
 }
 
@@ -400,6 +408,42 @@ export async function listarOnboardingsApi(): Promise<OnboardingApi[]> {
     if (!res.ok) throw new Error(`API de onboardings HTTP ${res.status}`)
     const d = (await res.json()) as { records?: OnboardingApi[]; next_cursor?: string | null }
     tudo.push(...(d.records ?? []))
+    cursor = d.next_cursor ?? null
+  } while (cursor)
+  return tudo
+}
+
+/**
+ * Mesma lista de `listarBiometriaPendente`, porém pela API pública — sem senha.
+ *
+ * O Mauricio expôs `liveness_url`, `phone_number` e `email` em 18/09/2026, e o
+ * filtro `?stage=biometria` devolve exatamente os campos que o cron usa. Isso
+ * importa porque antes o cron morria inteiro (502) quando o login do portal
+ * falhava: ninguém recebia o link da biometria e o erro era silencioso.
+ */
+export async function listarBiometriaPendenteApi(): Promise<Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }>> {
+  const chave = process.env.AIVA_PORTAL_API_KEY
+  if (!chave) throw new Error('AIVA_PORTAL_API_KEY não configurada')
+  const tudo: Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }> = []
+  let cursor: string | null = null
+  do {
+    const q = new URLSearchParams({ limit: '500', stage: 'biometria' })
+    if (cursor) q.set('cursor', cursor)
+    const res = await fetch(`https://parceiro-aiva.lovable.app/api/public/partner/onboardings?${q}`, {
+      headers: { 'x-api-key': chave },
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (!res.ok) throw new Error(`API de onboardings (biometria) HTTP ${res.status}`)
+    const d = (await res.json()) as { records?: OnboardingApi[]; next_cursor?: string | null }
+    for (const o of d.records ?? []) {
+      tudo.push({
+        id: String(o.id ?? ''),
+        cnpj: String(o.cnpj ?? ''),
+        legal_name: (o.legal_name as string | null) ?? null,
+        liveness_url: (o.liveness_url as string | null) ?? null,
+        phone_number: (o.phone_number as string | null) ?? null,
+      })
+    }
     cursor = d.next_cursor ?? null
   } while (cursor)
   return tudo

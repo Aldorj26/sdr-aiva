@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate, alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
-import { loginPortal, partnerIdTrack, listarBiometriaPendente, registrarLivenessSend } from '@/lib/portal-aiva'
+import { loginPortal, partnerIdTrack, listarBiometriaPendenteApi, registrarLivenessSend } from '@/lib/portal-aiva'
 import { decidir, lerMarcadores, remontarObs, miolo, MAX_TOQUES } from '@/lib/biometria-calc'
 import { flag } from '@/lib/req-flags'
 
@@ -48,13 +48,23 @@ async function executar(req: NextRequest) {
   const agora = Date.now()
 
   // 1) portal: quem está na biometria (com o link)
-  let sessao, partnerId, pendentesPortal
+  // A LISTA vem da API pública (sem senha) desde 18/09: o cron não morre mais
+  // quando o login do portal falha — antes era 502 e ninguém recebia o link.
+  let pendentesPortal
+  try {
+    pendentesPortal = await listarBiometriaPendenteApi()
+  } catch (e) {
+    return NextResponse.json({ ok: false, erro: `portal (API): ${String(e).slice(0, 160)}` }, { status: 502 })
+  }
+  // O login continua necessário só pra REGISTRAR o envio em liveness_sends (o
+  // painel do Nei lê de lá). Se falhar, a gente manda o link assim mesmo e só
+  // perde o registro do lado da AIVA — melhor que não mandar nada.
+  let sessao = null, partnerId = null
   try {
     sessao = await loginPortal()
     partnerId = await partnerIdTrack(sessao)
-    pendentesPortal = await listarBiometriaPendente(sessao)
   } catch (e) {
-    return NextResponse.json({ ok: false, erro: `portal: ${String(e).slice(0, 160)}` }, { status: 502 })
+    console.warn('[biometria] login do portal falhou — envios seguem, sem registrar liveness_sends:', String(e).slice(0, 120))
   }
   const porCnpj = new Map(pendentesPortal.map((o) => [soDigitos(o.cnpj), o]))
 
@@ -127,7 +137,7 @@ async function executar(req: NextRequest) {
         .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { inicio: true, link, toque, esgotado: toque >= MAX_TOQUES }), data_ultimo_contato: new Date().toISOString() })
         .eq('id', lead.id)
       enviados++
-      try { await registrarLivenessSend(sessao, partnerId, { onboardingId: onb.id, url: link, telefone: lead.telefone, nome }) }
+      try { if (sessao && partnerId) await registrarLivenessSend(sessao, partnerId, { onboardingId: onb.id, url: link, telefone: lead.telefone, nome }) }
       catch (e) { avisos.push(`liveness_sends não gravado p/ ${lead.nome}: ${String(e).slice(0, 80)}`) }
       console.log(`[biometria] ✅ ${lead.nome} (${lead.telefone}) — toque ${toque}/${MAX_TOQUES}`)
     } catch (err) {
