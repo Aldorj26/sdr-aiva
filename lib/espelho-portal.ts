@@ -108,11 +108,18 @@ async function marcar(leadId: string, marcador: string, valor: string): Promise<
 }
 
 /** Tira o marcador [X:...] do lead (CNPJ voltou a ficar regular). */
-async function desmarcar(leadId: string, marcador: string): Promise<void> {
+/** Tira o marcador [X:...] do lead. Devolve true se REALMENTE removeu algo.
+ *  ⚠️ O escape tem que ser duplo (`\\s`, `\\[`) porque isto é template literal: com
+ *  barra simples o JS engole o escape e o regex vira `s*[...` — que não casa com
+ *  nada. Foi o que aconteceu em 17/09: a função dizia ter limpado 3 marcadores e
+ *  não limpava nenhum. O `marcar` acima sempre teve o escape certo. */
+async function desmarcar(leadId: string, marcador: string): Promise<boolean> {
   const { data } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
   const obs = (data?.observacoes ?? '')
-  const limpo = obs.replace(new RegExp(`\s*\[${marcador}:[^\]]*\]`, 'g'), '').trim()
-  if (limpo !== obs.trim()) await supabaseAdmin.from('sdr_leads').update({ observacoes: limpo }).eq('id', leadId)
+  const limpo = obs.replace(new RegExp(`\\s*\\[${marcador}:[^\\]]*\\]`, 'g'), '').trim()
+  if (limpo === obs.trim()) return false
+  const { error } = await supabaseAdmin.from('sdr_leads').update({ observacoes: limpo }).eq('id', leadId)
+  return !error
 }
 
 export type SaidaEspelho = {
@@ -292,7 +299,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       for (const m of [MARCADOR_CNPJ_IRREGULAR, MARCADOR_CNPJ_INVALIDO]) {
         if (!obs.includes(`[${m}:`)) continue
         const aindaRuim = registros.some((reg) => reg.lead_id === lead.id && irregulares.has(soDigitos(reg.cnpj)))
-        if (!aindaRuim) { await desmarcar(lead.id, m); saida.cnpj.regularizados++ }
+        if (!aindaRuim && await desmarcar(lead.id, m)) saida.cnpj.regularizados++
       }
     }
   }
