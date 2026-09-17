@@ -59,6 +59,14 @@
     {
       "path": "/api/sdr/followup",
       "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/fase3-destravada",
+      "schedule": "0 19 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/vigia",
+      "schedule": "0 20 * * 1-5"
     }
   ]
 }
