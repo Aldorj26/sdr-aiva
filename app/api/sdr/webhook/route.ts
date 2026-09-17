@@ -45,8 +45,10 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 // trabalha com a Odres (novo_status = ODRES). Texto fixo (não parafrasear).
 // [REVOGADO 10/09/2026] versão de 27/08 prometia o Flexfone (plataforma única,
 // consulta combinada) e a migração das lojas Odres "aos poucos" — NÃO restaurar.
-// 10/09/2026 (Aldo): a Odres foi CONGELADA pra credenciamentos novos E a migração
-// das lojas Odres pro Flexfone também parou. O texto NÃO cita Flexfone, consulta
+// 17/09/2026 (Aldo): a Odres VOLTOU pros NOSSOS clientes (regra 17/09 em
+// prompts/aiva.ts) — mas este texto NÃO muda. Ele é pro cliente da BASE da Odres,
+// que é da venda direta DELES e continua barrado: "nós somos distribuidores deles
+// e trazemos clientes novos". O texto NÃO cita Flexfone, consulta
 // combinada nem "quando chegar a vez da sua loja": a loja segue na Odres como
 // está; qualquer novidade vem do time da Odres. (Texto anterior, 27/08, prometia
 // a plataforma única — não usar mais.)
