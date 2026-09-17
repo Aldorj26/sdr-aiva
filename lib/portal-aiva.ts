@@ -358,38 +358,6 @@ export async function registrarLivenessSend(s: Sessao, partnerId: string, x: { o
 }
 
 /** Registro da API pública de onboardings do parceiro (só os campos que usamos). */
-/**
- * CNPJs que a AIVA checou na Receita e NÃO passaram.
- *
- * Colunas liberadas pelo Mauricio em 17/09/2026 (`cnpj_check_status`,
- * `cnpj_situacao`, `cnpj_check_reason`): a AIVA passou a rodar a própria
- * checagem e checou os 536 onboardings de uma vez. ⚠️ Só existe no BANCO do
- * portal — a API pública continua com os mesmos 14 campos.
- *
- * Dois grupos com significados opostos:
- *   inapta/baixada/suspensa → situação REAL da empresa na Receita
- *   invalid/not_found       → o CNPJ digitado no portal não fecha (quase sempre
- *                             erro de digitação: há loja VENDENDO assim)
- */
-export type CnpjIrregular = { status: string; situacao: string | null; motivo: string | null }
-
-export async function cnpjsIrregularesPortal(s: Sessao): Promise<Map<string, CnpjIrregular>> {
-  const out = new Map<string, CnpjIrregular>()
-  for (let de = 0; ; de += 1000) {
-    const { data } = await rest<Array<{ cnpj: string; cnpj_check_status: string | null; cnpj_situacao: string | null; cnpj_check_reason: string | null }>>(
-      s, 'onboardings?select=cnpj,cnpj_check_status,cnpj_situacao,cnpj_check_reason&cnpj_check_status=neq.valid', [de, de + 999],
-    )
-    for (const o of data) {
-      const c = String(o.cnpj ?? '').replace(/\D/g, '')
-      if (c.length === 14 && o.cnpj_check_status) {
-        out.set(c, { status: o.cnpj_check_status, situacao: o.cnpj_situacao ?? null, motivo: o.cnpj_check_reason ?? null })
-      }
-    }
-    if (data.length < 1000) break
-  }
-  return out
-}
-
 export type OnboardingApi = {
   id?: string
   cnpj?: string | null
@@ -401,6 +369,14 @@ export type OnboardingApi = {
   retailer_id?: string | number | null
   retailer_registered_at?: string | null
   updated_at?: string | null
+  /** Checagem da Receita feita pela AIVA — na API pública desde 18/09/2026.
+   *  pending = ainda não conferido (NÃO é irregular). */
+  cnpj_check_status?: string | null
+  cnpj_check_reason?: string | null
+  cnpj_official_name?: string | null
+  cnpj_situacao?: string | null
+  cnpj_checked_at?: string | null
+  cnpj_opened_at?: string | null
   [extra: string]: unknown
 }
 

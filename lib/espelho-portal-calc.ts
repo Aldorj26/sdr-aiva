@@ -31,6 +31,12 @@ export type OnbApi = {
   pre_cadastro_status?: string | null
   retailer_id?: string | number | null
   legal_name?: string | null
+  /** Checagem da Receita feita pela AIVA. Desde 18/09 vem na API pública
+   *  (antes só no banco do portal): valid · invalid · not_found · inapta ·
+   *  baixada · suspensa · pending (= ainda não conferido, NÃO é irregular). */
+  cnpj_check_status?: string | null
+  cnpj_situacao?: string | null
+  cnpj_check_reason?: string | null
 }
 export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null }
 export type LeadEspelho = {
