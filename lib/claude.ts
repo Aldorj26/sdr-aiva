@@ -1,4 +1,5 @@
 import { proximasTurmas, blocoTurmasPrompt } from '@/lib/turmas-treinamento'
+import { blocoOdresPrompt } from '@/lib/odres-liberacao-calc'
 import Anthropic from '@anthropic-ai/sdk'
 import Groq, { toFile } from 'groq-sdk'
 import { AIVA_SYSTEM_PROMPT } from '@/prompts/aiva'
@@ -819,11 +820,14 @@ export async function processarMensagem(
   // Bloco dinâmico (varia por lead/turno) — sempre por último e SEM cache_control.
   // A DATA vem aqui de propósito: fora do cache, senão congelaria no dia em que o
   // bloco foi cacheado e voltaria a mentir.
-  const { hojeExtenso } = contextoDeData()
+  const { hojeExtenso, hojeISO } = contextoDeData()
   // Agenda de treinamento — lida do portal AIVA a cada turno (cache 1h), FORA do
   // cache do prompt: a AIVA muda dias e links sem avisar (16/09: seg/qui → seg/qua/sex).
   const agenda = await proximasTurmas(4)
   const blocoTurmas = blocoTurmasPrompt(agenda.turmas, agenda.fonte)
+  // A regra da Odres INVERTE de sinal na liberação (22/09) — por isso vive aqui,
+  // fora do cache, e não em prompts/aiva.ts. Ver lib/odres-liberacao-calc.ts.
+  const blocoOdres = blocoOdresPrompt(hojeISO)
   let blocoDinamico = `## HOJE (referência obrigatória de data)
 
 - Agora: **${hojeExtenso}** (horário de Brasília)
@@ -837,6 +841,8 @@ Logins de VENDEDORES: o sócio pede no Live Chat da plataforma (Cadastrar/Remove
 senha por SMS em até 2 dias; pode cair no SPAM do SMS — peça pra conferir antes de acionar o time). NUNCA prometa quarta-feira nem qualquer data fixa.
 
 ${blocoTurmas}
+
+${blocoOdres}
 
 ⚠️ Se o lojista citar uma data qualquer (fora das turmas do bloco TURMAS), **não diga que dia da semana ela cai, nem se é
 "amanhã", "hoje" ou "semana que vem"** — você não sabe, e já errou isso ("15/08 é amanhã,
