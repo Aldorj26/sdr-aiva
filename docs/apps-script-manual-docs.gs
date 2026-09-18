@@ -39,6 +39,21 @@ function doPost(e) {
       return saida({ ok: true, url: arquivo.getUrl(), pasta: sub.getUrl() });
     }
 
+    // FILIAIS (Aldo 18/09/2026): linha no modelo padrao da AIVA. O array `valores`
+    // ja vem na ordem das 15 colunas da aba (ID VAREJO ... TELEFONE) montado por
+    // lib/filiais-aiva.ts — aqui e so append, sem reordenar nada.
+    // ⚠️ Escreve como TEXTO: CNPJ, CPF, CEP e telefone nao podem virar numero
+    // (o zero a esquerda do CPF some e o CNPJ vira notacao cientifica).
+    if (body.acao === 'filial') {
+      var ssF = SpreadsheetApp.getActiveSpreadsheet();
+      var abaF = ssF.getSheetByName('Filiais');
+      if (!abaF) return saida({ ok: false, erro: 'aba Filiais nao encontrada' });
+      var vals = (body.valores || []).map(function (v) { return v == null ? '' : String(v); });
+      var linhaF = abaF.getLastRow() + 1;
+      abaF.getRange(linhaF, 1, 1, vals.length).setNumberFormat('@').setValues([vals]);
+      return saida({ ok: true, linha: linhaF });
+    }
+
     if (body.acao === 'linha') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var aba = ss.getSheetByName(ABA_MANUAL);

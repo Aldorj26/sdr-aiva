@@ -128,6 +128,25 @@ export async function registrarAtendimento(params: {
 }
 
 /**
+ * Acrescenta uma FILIAL na aba "Filiais" da planilha AIVA APROVAÇÃO, no modelo
+ * padrão do Mauricio (Aldo 18/09/2026). A ordem das 15 colunas é a de
+ * COLUNAS_FILIAL_AIVA (lib/filiais-aiva) — o Apps Script só faz appendRow com o
+ * array que chega aqui, então a ordem é responsabilidade DESTE lado.
+ *
+ * Best-effort como o resto do arquivo: se o Apps Script estiver fora, a linha
+ * continua no alerta do Nei e no /registros — nada se perde.
+ */
+export async function registrarFilialAiva(valores: string[]): Promise<boolean> {
+  try {
+    const resp = await postManual({ acao: 'filial', valores })
+    return !!resp
+  } catch (err) {
+    console.error('[MANUAL_DOCS] Falha ao registrar filial na planilha:', err)
+    return false
+  }
+}
+
+/**
  * Registra um colaborador lançado no form de acesso na aba "Senhas" da
  * planilha AIVA APROVAÇÃO (pedido do Aldo 2026-07-28). Colunas:
  * Nome do Varejo | CNPJ da Loja | Nome | CPF | Email | Telefone | Senha | Enviado

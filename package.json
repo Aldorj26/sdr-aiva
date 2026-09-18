@@ -15,7 +15,8 @@
     "test:senha": "node --test lib/senha-pendente-calc.test.ts",
     "test:reconhecimento": "node --test lib/reconhecimento.test.ts",
     "test:odres": "node --test lib/odres-liberacao-calc.test.ts",
-    "test:retomada": "node --test lib/retomada-interessado-calc.test.ts"
+    "test:retomada": "node --test lib/retomada-interessado-calc.test.ts",
+    "test:filiais": "node --test lib/filiais-aiva.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

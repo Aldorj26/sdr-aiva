@@ -37,6 +37,8 @@ import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } 
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
 import { reenviarSenhaApi } from '@/lib/portal-aiva'
+import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, pendenciasDaLinha, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
+import { registrarFilialAiva } from '@/lib/manual-docs'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -2847,6 +2849,43 @@ export async function POST(req: NextRequest) {
           for (const c of dvRuimNovos) {
             linhasAlerta.push(`• ${c} — ❌ dígito verificador NÃO fecha (digitação errada?) — NÃO registrado; pedir o número de novo`)
           }
+          // ─── LINHA DA FILIAL NO MODELO DA AIVA (Aldo 18/09/2026) ───
+          // Até hoje o Nei montava essa linha na mão: procurava o endereço, copiava
+          // CPF e e-mail do sócio e digitava na aba Filiais. O endereço (que o modelo
+          // exige e a gente NÃO coleta no chat) vem da Receita pelo CNPJ da filial.
+          // Idempotente por [FILIAL_AIVA:cnpj] — CNPJ repetido não vira linha nova.
+          const filiaisLancadas: string[] = []
+          const filiaisPendentes: string[] = []
+          for (const c of novos) {
+            const { data: frescoF } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
+            const obsF = frescoF?.observacoes ?? lead.observacoes ?? ''
+            if (obsF.includes(marcadorFilial(c))) continue
+            const receitaF = await enderecoDaReceita(c)
+            const { data: regsMatriz } = await supabaseAdmin
+              .from('sdr_registros_cnpj').select('cnpj, rid, tipo').eq('lead_id', leadId).eq('tipo', 'matriz')
+            const matrizF = regsMatriz?.[0]?.cnpj ?? String(dadosAcumulados?.cnpj_matriz ?? '')
+            const linhaF = montarLinhaFilial({
+              cnpjFilial: c,
+              cnpjMatriz: matrizF,
+              nomeLoja: leadNome,
+              nomeOperador: String(dadosAcumulados?.nome_socio ?? ''),
+              // ⚠️ O fluxo não coleta CPF em fase nenhuma — sai vazio de propósito
+              // e a pendência vai no alerta. Inventar CPF aqui cadastraria loja errada.
+              cpf: null,
+              email: String(dadosAcumulados?.email_socio ?? ''),
+              telefone: String(dadosAcumulados?.telefone_socio ?? '') || leadTel,
+              idVarejo: regsMatriz?.[0]?.rid ?? null,
+              receita: receitaF,
+            })
+            const pend = pendenciasDaLinha(linhaF, !!receitaF)
+            const ok = await registrarFilialAiva(COLUNAS_FILIAL_AIVA.map((col) => linhaF[col] ?? ''))
+            await supabaseAdmin.from('sdr_leads')
+              .update({ observacoes: `${obsF} ${marcadorFilial(c)}`.trim() }).eq('id', leadId)
+            if (ok) filiaisLancadas.push(`${c}${pend.length ? ` (falta: ${pend.join('; ')})` : ''}`)
+            else filiaisPendentes.push(c)
+            console.log(`[FILIAL_AIVA] ${leadTel}: ${c} → planilha=${ok} pendências=${pend.length}`)
+          }
+
           // Rótulo neutro de propósito: CNPJ desconhecido também pode ser
           // CORREÇÃO/TROCA do cadastral, não só loja nova — quem decide é o Nei.
           const aviso =
@@ -2857,6 +2896,14 @@ export async function POST(req: NextRequest) {
               ? `\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
                 `\nSe for LOJA NOVA: lançar o pré-cadastro (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
                 `\nSe for TROCA/CORREÇÃO do CNPJ cadastral: ajustar na mão e desconsiderar o registro.`
+              : '') +
+            (filiaisLancadas.length
+              ? `\n\n📄 Linha(s) já criada(s) na aba *Filiais* da planilha (modelo da AIVA, endereço puxado da Receita):\n` +
+                filiaisLancadas.map((l) => `• ${l}`).join('\n') +
+                `\nO CPF do operador é o único campo que o fluxo não coleta — completar na planilha antes de enviar.`
+              : '') +
+            (filiaisPendentes.length
+              ? `\n\n⚠️ Não consegui escrever na aba Filiais (${filiaisPendentes.join(', ')}) — lançar na mão desta vez.`
               : '')
           if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
           if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
