@@ -34,6 +34,12 @@ export const MARCADOR_ESPELHO = 'ESPELHO_PORTAL'
 export const MARCADOR_CNPJ_IRREGULAR = 'CNPJ_IRREGULAR_AIVA'
 /** CNPJ que não fecha (DV inválido / não consta) — quase sempre erro de digitação no portal. */
 export const MARCADOR_CNPJ_INVALIDO = 'CNPJ_PORTAL_INVALIDO'
+/** Etapa do onboarding da AIVA quando ele AINDA NÃO fechou: dados_varejo | biometria.
+ *  A VictorIA usa isso pra não falar de senha com quem nem terminou o cadastro
+ *  (regra do Aldo 18/09/2026 — é a msg que o Nei manda na mão hoje). */
+export const MARCADOR_ONB_ETAPA = 'ONB_ETAPA'
+/** Etapas do portal em que o cadastro do lojista ainda está EM ABERTO. */
+const ONB_EM_ABERTO = ['dados_varejo', 'biometria'] as const
 /** Situação REAL ruim na Receita — a loja precisa regularizar. */
 const SITUACAO_REAL = new Set(['inapta', 'baixada', 'suspensa'])
 /** CNPJ que não fecha — quase sempre erro de digitação no portal. */
@@ -136,6 +142,8 @@ export type SaidaEspelho = {
   pulados: Resultado['pulados']
   /** CNPJ reprovado na checagem da AIVA (colunas de 17/09): irregular = situação real; invalido = não fecha */
   cnpj: { irregular: number; invalido: number; novos: string[]; regularizados: number }
+  /** cadastro do lojista ainda aberto no portal (form ou biometria) — contexto pra VictorIA */
+  onboarding_aberto: { dados_varejo: number; biometria: number; marcados: number; limpos: number }
 }
 
 export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
@@ -178,6 +186,38 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     ok: true, dry, avisos, onboardings: onboardings.length, leads: leads.length,
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
+    onboarding_aberto: { dados_varejo: 0, biometria: 0, marcados: 0, limpos: 0 },
+  }
+
+  // Etapa do onboarding por lead. dados_varejo vence biometria quando o lojista tem
+  // mais de uma loja: enquanto UM formulário estiver aberto, o cadastro dele não fechou.
+  const etapaPorLead = new Map<string, string>()
+  {
+    const stagePorCnpj = new Map<string, string>()
+    for (const o of onboardings) {
+      const st = String(o.stage ?? '')
+      if ((ONB_EM_ABERTO as readonly string[]).includes(st)) stagePorCnpj.set(soDigitos(o.cnpj), st)
+    }
+    // Fora: quem JÁ OPERA. Duas portas de erro, as duas reais:
+    //  - importado do portal (lote de 16/09): o portal os tem em dados_varejo, mas
+    //    são clientes Track que vendem há meses (mesma exclusão do cron da biometria).
+    //  - lojista com matriz vendendo e FILIAL nova em cadastro: o marcador é do LEAD,
+    //    a etapa é do CNPJ — sem esta trava, a VictorIA diria "você não tem acesso"
+    //    a quem está logado e vendendo.
+    const opera = new Set<string>()
+    for (const l of leads) if ((l.observacoes ?? '').includes('[IMPORTADO_PORTAL:')) opera.add(l.id)
+    for (const reg of registros) if (reg.lead_id && (reg.rid || reg.status === 'ativa')) opera.add(reg.lead_id)
+    for (const reg of registros) {
+      if (!reg.lead_id || opera.has(reg.lead_id)) continue
+      const st = stagePorCnpj.get(soDigitos(reg.cnpj))
+      if (!st) continue
+      const atual = etapaPorLead.get(reg.lead_id)
+      if (!atual || st === 'dados_varejo') etapaPorLead.set(reg.lead_id, st)
+    }
+    for (const st of etapaPorLead.values()) {
+      if (st === 'dados_varejo') saida.onboarding_aberto.dados_varejo++
+      else saida.onboarding_aberto.biometria++
+    }
   }
   if (dry) {
     saida.movidos = r.movimentos
@@ -304,6 +344,26 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     }
   }
   saida.cnpj.novos = cnpjNovos
+
+  // 9) etapa do onboarding em aberto → marcador pro contexto da VictorIA.
+  //    POR QUE (Aldo 18/09/2026): muita loja pede a senha sem ter concluído o termo
+  //    de adesão / o cadastro / a biometria. Hoje é o Nei que percebe e explica na
+  //    mão. Sem esse marcador a VictorIA responde sobre senha — e senha não existe
+  //    antes do cadastro fechar (é o cadastro que cria o ID da loja).
+  //    Só escreve quando MUDA de etapa: o cron roda a cada 15 min.
+  for (const lead of leads) {
+    const obs = lead.observacoes ?? ''
+    const alvo = etapaPorLead.get(lead.id) ?? null
+    const atual = obs.match(/\[ONB_ETAPA:([^:\]]+)/)?.[1] ?? null
+    if (alvo === atual) continue
+    try {
+      if (atual) await desmarcar(lead.id, MARCADOR_ONB_ETAPA)
+      if (alvo) { await marcar(lead.id, MARCADOR_ONB_ETAPA, `${alvo}:${new Date().toISOString()}`); saida.onboarding_aberto.marcados++ }
+      else saida.onboarding_aberto.limpos++
+    } catch (e) {
+      avisos.push(`etapa de ${lead.nome} não marcada: ${String(e).slice(0, 100)}`)
+    }
+  }
 
   const blocos: string[] = []
   if (novos.length) {

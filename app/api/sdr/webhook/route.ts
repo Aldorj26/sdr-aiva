@@ -1177,6 +1177,8 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').match(/\[SENHA_PENDENTE_DESDE:([^\]]+)\]/)?.[1] ?? null,
         // acesso JÁ enviado pela AIVA (mesmo cron) — "não recebi" aqui vira reenvio pelo painel
         (lead.observacoes ?? '').match(/\[SENHA_ENVIADA:([^\]]+)\]/)?.[1] ?? null,
+        // cadastro ainda aberto no portal (espelho): quem não concluiu não tem senha pra receber
+        (lead.observacoes ?? '').match(/\[ONB_ETAPA:([^:\]]+)/)?.[1] ?? null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
