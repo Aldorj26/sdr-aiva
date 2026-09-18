@@ -36,6 +36,7 @@ import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido,
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
+import { reenviarSenhaApi } from '@/lib/portal-aiva'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1181,6 +1182,8 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').match(/\[SENHA_ENVIADA:([^\]]+)\]/)?.[1] ?? null,
         // cadastro ainda aberto no portal (espelho): quem não concluiu não tem senha pra receber
         (lead.observacoes ?? '').match(/\[ONB_ETAPA:([^:\]]+)/)?.[1] ?? null,
+        // reenvio de senha JÁ pedido por nós — sem isso ela reprometeria a cada "não chegou"
+        (lead.observacoes ?? '').match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1] ?? null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -2347,6 +2350,78 @@ export async function POST(req: NextRequest) {
 
   // 14. Alertas para humanos — só disparam na TRANSIÇÃO de status, não em cada msg.
   //
+  // ─── REENVIO DE SENHA — A VICTORIA RESOLVE, NÃO SÓ AVISA (Aldo/Mauricio 18/09) ───
+  // De manhã o pedido do Aldo era: "a VictorIA podia checar se tem o botão Reenviar
+  // senha no card e reenviar". Não dava — a API pública só escrevia remover/restaurar.
+  // Pedimos o endpoint ao Mauricio e ele liberou no mesmo dia. Agora o motivo
+  // `reenviar_senha_painel` (bloco [SENHA_ENVIADA] em lib/claude.ts) não vira fila
+  // humana: o sistema chama o mesmo caminho do botão e só informa o time.
+  // Travas: exige [SENHA_ENVIADA] (senão não há o que reenviar), 1 reenvio por lead
+  // a cada 24h, e o telefone/nome são os do cadastro DA AIVA — não somos nós que
+  // escolhemos pra onde a senha vai.
+  let reenvioNota: string | null = null
+  const FASES_SENHA_SOCIO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+  // ⚠️ O motivo vem do modelo: exige prefixo exato E fase pós-cadastro. A separação
+  //    sócio × vendedor vivia só no prompt — se ela usasse esse motivo num pedido de
+  //    senha de VENDEDOR, o sistema reenviaria a do SÓCIO e diria que reenviou a dele.
+  if ((resposta.motivo_humano ?? '').trim().startsWith('reenviar_senha_painel') && FASES_SENHA_SOCIO.includes(lead.status)) {
+    try {
+      const obsR = lead.observacoes ?? ''
+      const ultimo = obsR.match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1]
+      const horas = ultimo && Number.isFinite(Date.parse(ultimo)) ? (Date.now() - Date.parse(ultimo)) / 3_600_000 : Infinity
+      if (!obsR.includes('[SENHA_ENVIADA:')) {
+        reenvioNota = 'não reenviei: o portal não registra senha enviada pra esta loja (não há o que reenviar)'
+      } else if (horas < 24) {
+        reenvioNota = `não repeti: já pedi o reenvio há ${Math.floor(horas)}h`
+      } else {
+        const { data: regsR } = await supabaseAdmin
+          .from('sdr_registros_cnpj').select('rid').eq('lead_id', lead.id).not('rid', 'is', null)
+        const rids = [...new Set((regsR ?? []).map((r) => String(r.rid)))]
+        if (!rids.length) {
+          reenvioNota = 'não reenviei: nenhum RID no registro desta loja'
+        } else {
+          const res = await reenviarSenhaApi(rids)
+          const ok = res.filter((r) => r.success)
+          if (ok.length) {
+            const agoraR = new Date().toISOString()
+            const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+            const limpo = (fresco?.observacoes ?? obsR).replace(/\s*\[SENHA_REENVIADA:[^\]]*\]/g, '').trim()
+            await supabaseAdmin.from('sdr_leads')
+              .update({ observacoes: `${limpo} [SENHA_REENVIADA:${agoraR}]`.trim(), acionar_humano: false }).eq('id', lead.id)
+            resposta.acionar_humano = false   // resolvido: não vira fila humana
+            const avisoLojista =
+              'Pedi o reenvio do seu acesso à AIVA 🙂 Quando sair, chega pelo WhatsApp do +55 21 4020-2024 ' +
+              '(Comunicados Aiva Pay), no número que está no cadastro da loja — é só clicar em "Sim, quero" ' +
+              'que o login e a senha vêm na sequência. Se não aparecer, me avisa aqui que eu chamo o time.'
+            try {
+              await sendText(lead.telefone, avisoLojista, lead.evotalks_chat_id)
+              await saveMensagem(lead.id, 'out', avisoLojista)
+            } catch (e) { console.error('[REENVIO_SENHA] aviso ao lojista falhou:', e) }
+            reenvioNota = `reenvio pedido à AIVA (RID ${ok.map((r) => r.retailer_id ?? r.id).join(', ')})`
+          } else {
+            reenvioNota = `a AIVA recusou: ${res[0]?.error ?? 'sem detalhe'}`
+          }
+        }
+      }
+      console.log(`[REENVIO_SENHA] ${lead.telefone}: ${reenvioNota}`)
+      const notaTime =
+        `🔑 *REENVIO DE SENHA* — ${lead.nome} (${lead.telefone})
+` +
+        `${reenvioNota}
+
+` +
+        (resposta.acionar_humano
+          ? 'A VictorIA não conseguiu resolver sozinha — esse ainda precisa de vocês.'
+          : 'Resolvido pelo sistema (mesmo caminho do botão "Reenviar senha" do painel). Nada a fazer.')
+      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+        try { await alertHuman(tel, notaTime) } catch (e) { console.error('[REENVIO_SENHA] aviso ao time falhou:', e) }
+      }
+    } catch (err) {
+      console.error(`[REENVIO_SENHA] falhou para ${lead.telefone}:`, err)
+      // deixa acionar_humano como veio: se o reenvio quebrou, o time precisa saber
+    }
+  }
+
   // GATE ANTI-REGRESSÃO (fonte da verdade = etapa REAL da opp no Evo):
   // O rebaixamento intencional (stage 49 "Cadastro Recebido" + Fase 3 incompleta →
   // status derivado INTERESSADO) fazia o alerta comparar contra um status "atrás" da

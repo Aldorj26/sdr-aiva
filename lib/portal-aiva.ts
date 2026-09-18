@@ -345,6 +345,38 @@ export async function listarSenhasEnviadas(s: Sessao): Promise<Map<string, strin
   return out
 }
 
+/**
+ * Reenvia a senha do sócio pelo mesmo caminho do botão "Reenviar senha" do painel
+ * (endpoint liberado pelo Mauricio em 18/09/2026, a pedido nosso da mesma manhã).
+ *
+ * ⚠️ HTTP 200 NÃO quer dizer que reenviou: o resultado é POR CADASTRO, em
+ * `results[].success`. Cadastro sem histórico de envio devolve
+ * "reenvio de senha indisponível para este cadastro" — que é o caso de quem a AIVA
+ * nunca criou senha (BUSSIS STORE, RID 5126). Ou seja: o próprio endpoint confirma
+ * a distinção que a gente faz por `login_sends.credentials_sent_at`.
+ *
+ * Sem `phone`/`name` a AIVA usa o telefone e o nome do sócio no cadastro dela —
+ * é o que a gente quer: não somos nós que escolhemos pra onde a senha vai.
+ */
+export async function reenviarSenhaApi(
+  retailerIds: string[],
+  opts: { phone?: string; name?: string } = {},
+): Promise<Array<{ retailer_id?: string; id?: string; success: boolean; error?: string }>> {
+  const chave = process.env.AIVA_PORTAL_API_KEY
+  if (!chave) throw new Error('AIVA_PORTAL_API_KEY não configurada')
+  const ids = [...new Set(retailerIds.map((r) => String(r).trim()).filter(Boolean))].slice(0, 200)
+  if (!ids.length) return []
+  const res = await fetch('https://parceiro-aiva.lovable.app/api/public/partner/onboardings/resend-password', {
+    method: 'POST',
+    headers: { 'x-api-key': chave, 'content-type': 'application/json' },
+    body: JSON.stringify({ retailer_ids: ids, ...opts }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) throw new Error(`reenvio de senha HTTP ${res.status}`)
+  const d = (await res.json()) as { results?: Array<{ retailer_id?: string; id?: string; success?: boolean; error?: string }> }
+  return (d.results ?? []).map((r) => ({ retailer_id: r.retailer_id, id: r.id, success: r.success === true, error: r.error }))
+}
+
 /** retailer_id → dados do onboarding (nome, CNPJ) pra dar nome aos RIDs. */
 export async function onboardingsPorRetailer(s: Sessao): Promise<Map<string, { cnpj: string; legal_name: string | null }>> {
   const out = new Map<string, { cnpj: string; legal_name: string | null }>()
