@@ -314,6 +314,37 @@ export async function listarSenhasPendentes(s: Sessao): Promise<Array<{ retailer
   return tudo
 }
 
+/**
+ * retailer_id → quando a AIVA ENVIOU a senha do sócio (`credentials_sent_at`).
+ *
+ * O complemento de `listarSenhasPendentes`. Serve pra distinguir dois casos que o
+ * lojista descreve com a MESMA frase ("não recebi a senha"):
+ *   - sem registro / credentials_sent_at nulo → a AIVA nunca criou. Não há o que
+ *     reenviar; é esperar (e o alerta de senha pendente já cobra a AIVA).
+ *   - credentials_sent_at preenchido → a senha SAIU. Se ele não viu, o caminho é
+ *     o botão "Reenviar senha" no card do painel da AIVA, que só o time aperta.
+ *
+ * ⚠️ Descoberto em 18/09/2026: o botão "Reenviar senha" aparece no card MESMO
+ * quando a senha nunca foi criada (BUSSIS STORE, RID 5126, pedido em 27/08 e
+ * `credentials_sent_at` nulo até hoje). Então a presença do botão NÃO é sinal de
+ * nada — quem sabe a verdade é este campo.
+ */
+export async function listarSenhasEnviadas(s: Sessao): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  for (let de = 0; ; de += 1000) {
+    const { data } = await rest<Array<{ retailer_id: string | number; credentials_sent_at: string }>>(
+      s, 'login_sends?select=retailer_id,credentials_sent_at&credentials_sent_at=not.is.null&order=credentials_sent_at.desc', [de, de + 999],
+    )
+    for (const l of data) {
+      const rid = String(l.retailer_id)
+      // o order é desc, então o primeiro que aparece é o envio mais recente
+      if (!out.has(rid)) out.set(rid, l.credentials_sent_at)
+    }
+    if (data.length < 1000) break
+  }
+  return out
+}
+
 /** retailer_id → dados do onboarding (nome, CNPJ) pra dar nome aos RIDs. */
 export async function onboardingsPorRetailer(s: Sessao): Promise<Map<string, { cnpj: string; legal_name: string | null }>> {
   const out = new Map<string, { cnpj: string; legal_name: string | null }>()

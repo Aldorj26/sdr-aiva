@@ -679,6 +679,8 @@ export async function processarMensagem(
   biometriaLink?: string | null,
   /** [SENHA_PENDENTE_DESDE:ISO] gravado pelo cron /api/sdr/senha-pendente — acesso pedido e senha não enviada */
   senhaPendenteDesde?: string | null,
+  /** [SENHA_ENVIADA:ISO] gravado pelo mesmo cron — a AIVA JÁ enviou o acesso desta loja */
+  senhaEnviadaEm?: string | null,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -745,8 +747,18 @@ export async function processarMensagem(
   // /api/sdr/senha-pendente, lido do portal). Sem isso a VictorIA manda o lojista
   // procurar no spam um SMS que a AIVA nunca enviou (regra 16/09/2026).
   const FASES_POS_CADASTRO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
-  if (senhaPendenteDesde && FASES_POS_CADASTRO.includes(status)) {
+  if (senhaPendenteDesde && !senhaEnviadaEm && FASES_POS_CADASTRO.includes(status)) {
     faseInstrucao = `${faseInstrucao ?? ''}\n[INSTRUÇÃO DO SISTEMA — ACESSO DO SÓCIO DESTA LOJA]\nO acesso do SÓCIO desta loja foi solicitado à AIVA e ela AINDA NÃO ENVIOU (informação do portal da AIVA, não do lojista; o prazo já venceu). Se ele cobrar o acesso/login DA LOJA:\n- NÃO mande procurar a mensagem do +55 21 4020-2024 nem o spam do SMS: não há mensagem pra procurar, ela não foi disparada pra esta loja.\n- NÃO diga que já foi enviada e NÃO repita o prazo de "2 dias" — ele já passou.\n- Diga a verdade, sem prometer data nem retorno seu: o pedido está com a AIVA e o nosso time já sinalizou isso pra eles. Quando sair, chega no WhatsApp dele pelo +55 21 4020-2024.\n- Se ele cobrar: acionar_humano = true, motivo_humano = "acesso_flexfone_nao_chegou" (o prazo já venceu — não peça checagem de spam antes).\n- Se ELE disser que já recebeu ("já chegou", "já recebi"), acredite nele e siga normalmente (⚠️ "ok" não é "já recebi" — regra "OK" NÃO É CONFIRMAÇÃO DE FATO) (o portal pode estar defasado).\n⚠️ Isto vale SÓ pro acesso do SÓCIO/da loja. Senha de VENDEDOR pedida no Live Chat é outro caso: ali a regra 📵 do spam do SMS continua valendo integralmente.\n[FIM INSTRUÇÃO DO SISTEMA]`.trim()
+  }
+  // Senha JÁ ENVIADA pela AIVA (marcador do mesmo cron, lido de login_sends.
+  // credentials_sent_at). É o OUTRO LADO do bloco acima e por isso exclui ele:
+  // as duas frases do lojista são idênticas ("não recebi a senha"), mas a ação é
+  // oposta — lá é esperar a AIVA criar, aqui é o time apertar "Reenviar senha" no
+  // card. ⚠️ O botão aparecer no card NÃO prova que saiu (BUSSIS STORE, RID 5126:
+  // botão presente, credentials_sent_at nulo desde 27/08) — quem decide é o campo.
+  if (senhaEnviadaEm && !senhaPendenteDesde && FASES_POS_CADASTRO.includes(status)) {
+    faseInstrucao = `${faseInstrucao ?? ''}
+[INSTRUÇÃO DO SISTEMA — O ACESSO DESTA LOJA JÁ FOI ENVIADO]\nO portal da AIVA registra que o acesso do SÓCIO desta loja JÁ FOI ENVIADO (informação do sistema, não do lojista). Isso muda o que fazer quando ele diz que não recebeu:\n- NÃO diga que a AIVA ainda não criou o acesso e NÃO peça pra ele aguardar a criação: ela já foi feita.\n- Aqui, SIM, vale pedir pra ele conferir o WhatsApp do número +55 21 4020-2024 (inclusive arquivadas/bloqueadas) — diferente do caso em que nada foi enviado, aqui existe mensagem pra procurar.\n- Se ele disser que procurou e não achou, ou repetir que não recebeu: acionar_humano = true, motivo_humano = "reenviar_senha_painel". O time reenvia pelo painel da AIVA — a VictorIA NÃO reenvia senha, nunca diga que você mesma vai reenviar.\n- Pode dizer que vai pedir o reenvio pro time. NÃO prometa prazo ("em X minutos/horas") nem diga que "já reenviei".\n- Este bloco SOBREPÕE, só neste assunto, dois pontos da instrução de fase: (1) em TREINAR, o ⛔ "não diga que vai pedir/liberar o acesso" vale pra PRIMEIRA liberação em leva — aqui o acesso já saiu e pedir REENVIO pro time é o certo; (2) em LOGIN, o bullet "Se NÃO recebeu o login do SÓCIO" manda acionar com motivo acesso_flexfone_nao_chegou — com o acesso já enviado o motivo é reenviar_senha_painel, e não importa se ele participou de treinamento.\n- ⚠️ "ok" não é "recebi" (regra "OK" NÃO É CONFIRMAÇÃO DE FATO): só considere resolvido se ele DISSER que chegou ou mandar print.\n⚠️ Isto vale SÓ pro acesso do SÓCIO/da loja. Senha de VENDEDOR pedida no Live Chat segue com a regra 📵 do spam do SMS.\n[FIM INSTRUÇÃO DO SISTEMA]`.trim()
   }
   // Docs do sem-sócio pendentes → cobra em QUALQUER fase (sobrepõe o "não
   // peça dados" das fases de espera). Anexado mesmo sem instrução de fase.

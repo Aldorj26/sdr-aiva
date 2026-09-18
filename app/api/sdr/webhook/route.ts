@@ -1175,6 +1175,8 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').match(/\[BIOMETRIA_LINK:([^\]\s]+)\]/)?.[1] ?? null,
         // acesso pedido à AIVA e senha ainda não enviada (cron /api/sdr/senha-pendente)
         (lead.observacoes ?? '').match(/\[SENHA_PENDENTE_DESDE:([^\]]+)\]/)?.[1] ?? null,
+        // acesso JÁ enviado pela AIVA (mesmo cron) — "não recebi" aqui vira reenvio pelo painel
+        (lead.observacoes ?? '').match(/\[SENHA_ENVIADA:([^\]]+)\]/)?.[1] ?? null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

@@ -27,7 +27,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { loginPortal, listarSenhasPendentes, onboardingsPorRetailer } from '@/lib/portal-aiva'
+import { loginPortal, listarSenhasPendentes, listarSenhasEnviadas, onboardingsPorRetailer } from '@/lib/portal-aiva'
 import { decidir, lerPendenteDesde, lerUltimoAviso, linhaAlerta, remontarObs, DIAS_UTEIS_PRAZO } from '@/lib/senha-pendente-calc'
 import { flag } from '@/lib/req-flags'
 
@@ -47,11 +47,13 @@ async function executar(req: NextRequest) {
   const agora = Date.now()
 
   // 1) portal: quem pediu acesso e não recebeu senha
-  let pendentes, porRetailer
+  let pendentes, porRetailer, enviadas
   try {
     const s = await loginPortal()
     pendentes = await listarSenhasPendentes(s)
     porRetailer = await onboardingsPorRetailer(s)
+    // senhas que JÁ saíram — o outro lado da moeda (ver listarSenhasEnviadas)
+    enviadas = await listarSenhasEnviadas(s)
   } catch (e) {
     return NextResponse.json({ ok: false, erro: `portal: ${String(e).slice(0, 160)}` }, { status: 502 })
   }
@@ -132,6 +134,7 @@ async function executar(req: NextRequest) {
     reavisos: avisar.filter((a) => a.reaviso).length,
     dentro_do_prazo: silenciosos,
     resolvidos: resolvidos.length,
+    senhas_ja_enviadas: enviadas.size,
   }
   if (dry) {
     return NextResponse.json({
@@ -165,6 +168,44 @@ async function executar(req: NextRequest) {
     const mortas = (todas ?? []).map((r) => r.chave).filter((k) => !vivas.has(k))
     if (mortas.length) await supabaseAdmin.from('sdr_avisos_chave').delete().in('chave', mortas)
   }
+  // Senha JÁ ENVIADA → marca o lead. Sem isto a VictorIA não distingue "a AIVA
+  // nunca criou" de "saiu e ele não viu", e as duas frases do lojista são iguais
+  // ("não recebi a senha"). O primeiro caso é esperar; o segundo é o time apertar
+  // "Reenviar senha" no card. (Aldo 18/09/2026)
+  //
+  // ⚠️ NÃO toca nos marcadores de PENDÊNCIA: as duas listas podem conter o MESMO
+  // retailer (login_sends é por store_id — matriz enviada e filial pendente, ou um
+  // pedido novo depois de um envio antigo). Quem limpa [SENHA_PENDENTE_*] é o bloco
+  // dos "resolvidos" acima, que olha a fila real de pendentes. Se os dois marcadores
+  // coexistirem, quem manda na conversa é o PENDENTE (lib/claude.ts) — é o lado
+  // conservador: não manda o lojista procurar mensagem que pode não existir.
+  let marcadosEnviada = 0
+  for (const r of regs ?? []) {
+    if (!r.rid || !r.lead_id) continue
+    const quando = enviadas.get(String(r.rid))
+    if (!quando) continue
+    const { data: l } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', r.lead_id).maybeSingle()
+    const obs = l?.observacoes ?? ''
+    if (obs.includes(`[SENHA_ENVIADA:${quando}]`)) continue          // já marcado com ESTA data
+    const limpo = obs.replace(/\s*\[SENHA_ENVIADA:[^\]]*\]/g, '').trim()
+    await supabaseAdmin.from('sdr_leads').update({ observacoes: `${limpo} [SENHA_ENVIADA:${quando}]`.trim() }).eq('id', r.lead_id)
+    marcadosEnviada++
+  }
+  // marcador órfão: o portal deixou de reportar envio pra esse RID (correção da AIVA,
+  // registro removido). Sem isto a VictorIA seguiria mandando procurar no WhatsApp.
+  let limposEnviada = 0
+  {
+    const { data: comMarcador } = await supabaseAdmin.from('sdr_leads').select('id, observacoes').like('observacoes', '%[SENHA_ENVIADA:%')
+    const ridsComEnvio = new Set<string>()
+    for (const r of regs ?? []) if (r.rid && r.lead_id && enviadas.get(String(r.rid))) ridsComEnvio.add(r.lead_id)
+    for (const l of comMarcador ?? []) {
+      if (ridsComEnvio.has(l.id)) continue
+      await supabaseAdmin.from('sdr_leads')
+        .update({ observacoes: (l.observacoes ?? '').replace(/\s*\[SENHA_ENVIADA:[^\]]*\]/g, '').trim() }).eq('id', l.id)
+      limposEnviada++
+    }
+  }
+
   for (const r of resolvidos) {
     const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', r.id).maybeSingle()
     await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(fresco?.observacoes ?? r.observacoes, { limpar: true }) }).eq('id', r.id)
@@ -188,7 +229,7 @@ async function executar(req: NextRequest) {
   }
 
   console.log(`[senha-pendente] portal=${porRid.size} avisados=${avisar.length} resolvidos=${resolvidos.length} sem_lead=${semLead.length}`)
-  return NextResponse.json({ ok: true, ...resumo })
+  return NextResponse.json({ ok: true, ...resumo, senha_enviada_marcados: marcadosEnviada, senha_enviada_limpos: limposEnviada })
 }
 
 export const GET = executar
