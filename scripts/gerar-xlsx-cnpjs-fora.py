@@ -64,6 +64,10 @@ linhas += [
     ('Já receberam 1 toque da cobrança automática do formulário', sum(1 for x in d if x['cobranca_toque'] >= 1)),
     ('Nunca receberam toque da cobrança', sum(1 for x in d if x['cobranca_toque'] == 0)),
 ]
+linhas += [('', ''), ('RECOMENDAÇÃO (ver aba Detalhe)', '')]
+import collections as _c
+for k, v in sorted(_c.Counter(x['recomendacao'] for x in d).items(), key=lambda kv: -kv[1]):
+    linhas.append((f'  {k}', v))
 for t, v in linhas:
     ws.append([t, v])
 for row in ws.iter_rows(min_row=1):
@@ -72,37 +76,43 @@ for row in ws.iter_rows(min_row=1):
         if str(cel.value or '').startswith('⚠️'): cel.font = Font(name=ARIAL, size=10, bold=True, color='C00000')
 
 # ── Detalhe ──
-COLS = ['CNPJ', 'DV ok', 'Loja (nossa base)', 'Razão social (portal)', 'Telefone', 'Status do lead',
+COLS = ['Recomendação', 'CNPJ', 'DV ok', 'Loja (nossa base)', 'Razão social (portal)', 'Telefone', 'Status do lead',
         'Etapa do card', 'Opp', 'Tipo registro', 'RID', 'Lojista já tem loja ativa', 'Stage portal',
-        'Formulário', 'Biometria', 'Criado no portal', 'Atualizado no portal', 'Toques cobrança', 'Marcadores']
-LARG = [20, 7, 30, 34, 16, 20, 18, 9, 13, 8, 22, 15, 12, 11, 18, 18, 15, 28]
+        'Formulário', 'Biometria', 'Criado no portal', 'Atualizado no portal', 'Toques cobrança', 'Marcadores', 'Última msg do lojista', 'Silêncio (dias)']
+LARG = [46, 20, 7, 30, 34, 16, 20, 18, 9, 13, 8, 22, 15, 12, 11, 18, 18, 15, 28, 20, 16]
 def linha(x):
-    return [x['cnpj'], 'sim' if x['dv_valido'] else 'NÃO', x['nossa_loja'], x['nome_portal'], x['telefone'],
+    return [x['recomendacao'], x['cnpj'], 'sim' if x['dv_valido'] else 'NÃO', x['nossa_loja'], x['nome_portal'], x['telefone'],
             x['status_lead'], x['etapa_card'] or '(sem card)', x['card_opp'], x['tipo_registro'], x['rid'],
             'SIM' if x['lead_tem_loja_ativa'] else '', x['stage_portal'], x['formulario'], x['biometria'],
-            (x['criado_portal'] or '')[:10], (x['atualizado_portal'] or '')[:10], x['cobranca_toque'], x['marcadores']]
+            (x['criado_portal'] or '')[:10], (x['atualizado_portal'] or '')[:10], x['cobranca_toque'], x['marcadores'], x['ultima_msg_lojista'], x['silencio_dias']]
 
-ordem = {'Em Análise AIVA': 0, 'Treinar': 1, 'Login': 2, 'Vendendo': 3}
+ordem = {'RETIRAR': 0, 'CORRIGIR': 1, 'ESPERAR': 2, 'MANTER': 3}
 ws = wb.create_sheet('Detalhe')
 cabecalho(ws, COLS, LARG)
-for x in sorted(d, key=lambda y: (ordem.get(y['etapa_card'], 9), y['nossa_loja'] or 'zzz')):
+for x in sorted(d, key=lambda y: (ordem.get(y['recomendacao'].split(' ')[0], 9), y['recomendacao'], y['nossa_loja'] or 'zzz')):
     ws.append(linha(x))
-fmt(ws, textuais=('A', 'E'))
+fmt(ws, textuais=('B', 'F'))
 for row in ws.iter_rows(min_row=2):
-    if row[10].value == 'SIM':
+    if row[11].value == 'SIM':
         for cel in row: cel.fill = PERIGO
+
+ws = wb.create_sheet('RETIRAR (recomendado)')
+cabecalho(ws, COLS, LARG)
+for x in [y for y in d if y['recomendacao'].startswith('RETIRAR')]:
+    ws.append(linha(x))
+fmt(ws, textuais=('B', 'F'))
 
 ws = wb.create_sheet('NÃO descartar')
 cabecalho(ws, COLS, LARG)
 for x in [y for y in d if y['lead_tem_loja_ativa']]:
     ws.append(linha(x))
-fmt(ws, textuais=('A', 'E'))
+fmt(ws, textuais=('B', 'F'))
 
 ws = wb.create_sheet('Sem lead nosso')
 cabecalho(ws, COLS, LARG)
 for x in [y for y in d if not y['temos_registro']]:
     ws.append(linha(x))
-fmt(ws, textuais=('A', 'E'))
+fmt(ws, textuais=('B', 'F'))
 
 wb.save(r'C:\projetos claude\sdr-aiva\docs\CNPJs-fora-do-pipe-AIVA-2026-09-18.xlsx')
 print('ok')

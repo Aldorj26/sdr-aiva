@@ -27,7 +27,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "46904131000102",
@@ -57,7 +60,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "82599879000102",
@@ -87,7 +93,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "22346612000173",
@@ -117,7 +126,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "60764696000154",
@@ -147,7 +159,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "68182669000185",
@@ -177,7 +192,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "48220430000145",
@@ -207,7 +225,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "48595594000157",
@@ -237,7 +258,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "68586006000126",
@@ -267,7 +291,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "50666149000182",
@@ -297,7 +324,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "51367528000134",
@@ -327,7 +357,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "22124583000103",
@@ -357,7 +390,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "25118982000141",
@@ -387,7 +423,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "30874078000104",
@@ -417,7 +456,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "38197899000157",
@@ -447,7 +489,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-11",
+  "silencio_dias": 6,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "32432527000181",
@@ -477,7 +522,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "43555011000140",
@@ -507,7 +555,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "46618959000277",
@@ -537,7 +588,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "51408782000133",
@@ -567,7 +621,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-11",
+  "silencio_dias": 6,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "54994533000165",
@@ -597,7 +654,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "12383479000171",
@@ -627,7 +687,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-18",
+  "silencio_dias": 0,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "07193003000107",
@@ -657,7 +720,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "50645610000110",
@@ -687,7 +753,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-10",
+  "silencio_dias": 8,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "51080159000102",
@@ -717,7 +786,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "07523497000171",
@@ -747,7 +819,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-11",
+  "silencio_dias": 6,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "56928001000155",
@@ -777,7 +852,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 8,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "37886899000100",
@@ -807,7 +885,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "39581000000168",
@@ -837,7 +918,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "65106723000115",
@@ -867,7 +951,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "52734312000122",
@@ -897,7 +984,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "34476611000122",
@@ -927,7 +1017,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "44101572000132",
@@ -957,7 +1050,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "63724222000177",
@@ -987,7 +1083,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "53363045000197",
@@ -1017,7 +1116,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-10",
+  "silencio_dias": 7,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "28952119000183",
@@ -1047,7 +1149,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "50361461000168",
@@ -1077,7 +1182,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "59365644000126",
@@ -1107,7 +1215,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-18",
+  "silencio_dias": 0,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "53207810000180",
@@ -1137,7 +1248,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "60084469000188",
@@ -1167,7 +1281,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "52519263000105",
@@ -1197,7 +1314,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "59325952000128",
@@ -1227,7 +1347,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 10,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "52790239000106",
@@ -1257,7 +1380,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 8,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "36387638000174",
@@ -1287,7 +1413,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 8,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "61356343000188",
@@ -1317,7 +1446,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-09",
+  "silencio_dias": 8,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "45740215000187",
@@ -1347,7 +1479,10 @@
   "formulario": "completed",
   "biometria": "aprovado",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-18",
+  "silencio_dias": 0,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "56049023000145",
@@ -1377,7 +1512,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-05",
+  "silencio_dias": 12,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "60920953000108",
@@ -1407,7 +1545,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "40027430000111",
@@ -1437,7 +1578,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-05",
+  "silencio_dias": 12,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "41618602000194",
@@ -1467,7 +1611,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "04312475000107",
@@ -1497,7 +1644,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "CORRIGIR CNPJ — dígito verificador inválido"
  },
  {
   "cnpj": "36500279000110",
@@ -1527,7 +1677,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "15181544000174",
@@ -1557,7 +1710,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "44781966000189",
@@ -1587,7 +1743,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "59093974000100",
@@ -1617,7 +1776,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 10,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "61400659000120",
@@ -1647,7 +1809,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "40459346000177",
@@ -1677,7 +1842,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "40502789000101",
@@ -1707,7 +1875,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "44372831000160",
@@ -1737,7 +1908,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "34938637000145",
@@ -1767,7 +1941,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "37202080000178",
@@ -1797,7 +1974,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "31141808000131",
@@ -1827,7 +2007,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "52069022000101",
@@ -1857,7 +2040,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "42003401000145",
@@ -1887,7 +2073,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "13337781000821",
@@ -1917,7 +2106,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "13337781000903",
@@ -1947,7 +2139,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "38949181000170",
@@ -1977,7 +2172,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "61455518000104",
@@ -2007,7 +2205,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "40500989000117",
@@ -2037,7 +2238,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "61469255000192",
@@ -2067,7 +2271,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "47825670000100",
@@ -2097,7 +2304,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "29352108000125",
@@ -2127,7 +2337,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR IMPORTADO_PORTAL"
+  "marcadores": "CNPJ_IRREGULAR IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "67659774000108",
@@ -2157,7 +2370,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "64080809000153",
@@ -2187,7 +2403,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "64020113000131",
@@ -2217,7 +2436,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "63979426000159",
@@ -2247,7 +2469,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "53678243000140",
@@ -2277,7 +2502,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "63125817000106",
@@ -2307,7 +2535,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "59655520000185",
@@ -2337,7 +2568,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "51881564000200",
@@ -2367,7 +2601,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": "2026-09-04",
+  "silencio_dias": 13,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "44502864000187",
@@ -2397,7 +2634,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-08",
+  "silencio_dias": 9,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "56137963000196",
@@ -2427,7 +2667,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "32628498000128",
@@ -2457,7 +2700,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "22369610000280",
@@ -2487,7 +2733,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "37699060000154",
@@ -2517,7 +2766,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "13222874000135",
@@ -2547,7 +2799,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "62555956000107",
@@ -2577,7 +2832,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "62555956000108",
@@ -2607,7 +2865,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "37422457000102",
@@ -2637,7 +2898,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "48280679000146",
@@ -2667,7 +2931,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "56942003000280",
@@ -2697,7 +2964,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "17678650000274",
@@ -2727,7 +2997,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "17678650000193",
@@ -2757,7 +3030,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "64025956000120",
@@ -2787,7 +3063,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "51254484000136",
@@ -2817,7 +3096,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "51998207000219",
@@ -2847,7 +3129,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "27620474001092",
@@ -2877,7 +3162,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "35230982000192",
@@ -2907,7 +3195,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "61592060000135",
@@ -2937,7 +3228,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "41825193000105",
@@ -2967,7 +3261,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "62433997000120",
@@ -2997,7 +3294,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "38491919000106",
@@ -3027,7 +3327,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "63599874000127",
@@ -3057,7 +3360,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "24474331000121",
@@ -3087,7 +3393,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "55678489000228",
@@ -3117,7 +3426,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "13304508000125",
@@ -3147,7 +3459,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "57259633000136",
@@ -3177,7 +3492,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "40424982000163",
@@ -3207,7 +3525,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "31475136000181",
@@ -3237,7 +3558,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "02995256000178",
@@ -3267,7 +3591,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "48278100000100",
@@ -3297,7 +3624,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "04811461000103",
@@ -3327,7 +3657,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "63384709000158",
@@ -3357,7 +3690,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "44520850000277",
@@ -3387,7 +3723,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "39269434000127",
@@ -3417,7 +3756,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "39269434000208",
@@ -3447,7 +3789,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "67303539000190",
@@ -3477,7 +3822,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "30058238000198",
@@ -3507,7 +3855,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "44793178000102",
@@ -3537,7 +3888,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "45425860000105",
@@ -3567,7 +3921,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "48725336000148",
@@ -3597,7 +3954,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "39956510000172",
@@ -3627,7 +3987,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "21316589000101",
@@ -3657,7 +4020,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "51998207000110",
@@ -3687,7 +4053,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "29800370000195",
@@ -3717,7 +4086,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "34062219000218",
@@ -3747,7 +4119,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "34062219000307",
@@ -3777,7 +4152,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "39748060000122",
@@ -3807,7 +4185,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "57267748000172",
@@ -3837,7 +4218,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "51743568000133",
@@ -3867,7 +4251,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "57252068000185",
@@ -3897,7 +4284,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "42714602000150",
@@ -3927,7 +4317,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "13337781000822",
@@ -3957,7 +4350,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "43324294000110",
@@ -3987,7 +4383,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-15",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "27261032000105",
@@ -4017,7 +4416,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "46993680000092",
@@ -4047,7 +4449,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "SENHA_ENVIADA"
+  "marcadores": "SENHA_ENVIADA",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "42236205000110",
@@ -4077,7 +4482,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "03006466000192",
@@ -4107,7 +4515,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "43849143000185",
@@ -4137,7 +4548,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "28415748000174",
@@ -4167,7 +4581,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "51998207000138",
@@ -4197,7 +4614,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "19544331000110",
@@ -4227,7 +4647,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "20987664000101",
@@ -4257,7 +4680,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "63384709000135",
@@ -4287,7 +4713,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "64171715000190",
@@ -4317,7 +4746,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "30243719000114",
@@ -4347,7 +4779,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "50357632000185",
@@ -4377,7 +4812,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "24652543000151",
@@ -4407,7 +4845,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR"
+  "marcadores": "CNPJ_IRREGULAR",
+  "ultima_msg_lojista": "2026-09-17",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "46206627000102",
@@ -4437,7 +4878,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "26556244000149",
@@ -4467,7 +4911,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "57498374000104",
@@ -4497,7 +4944,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "64171715000166",
@@ -4527,7 +4977,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "68240448000116",
@@ -4557,7 +5010,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "61614991000197",
@@ -4587,7 +5043,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 1,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "49225333000108",
@@ -4617,7 +5076,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "68263900000165",
@@ -4647,7 +5109,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "45949064000171",
@@ -4677,7 +5142,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — lead já descartado no nosso funil"
  },
  {
   "cnpj": "64076914000119",
@@ -4707,7 +5175,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "02995253000500",
@@ -4737,7 +5208,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "02995253000330",
@@ -4767,7 +5241,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "02995253000410",
@@ -4797,7 +5274,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "MANTER — filial de loja que já opera"
  },
  {
   "cnpj": "56422038000107",
@@ -4827,7 +5307,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "40627296000190",
@@ -4857,7 +5340,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "23546406000170",
@@ -4887,7 +5373,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "13737273000165",
@@ -4917,7 +5406,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "37570291000163",
@@ -4947,7 +5439,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "13715407000147",
@@ -4977,7 +5472,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "52636416000102",
@@ -5007,7 +5505,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "52975173000129",
@@ -5037,7 +5538,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "44539527000165",
@@ -5067,7 +5571,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "31367016000160",
@@ -5097,7 +5604,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "67932463000162",
@@ -5127,7 +5637,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "55360287000152",
@@ -5157,7 +5670,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "62948395000106",
@@ -5187,7 +5703,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "66816693000101",
@@ -5217,7 +5736,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "59353863000195",
@@ -5247,7 +5769,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "ESPERAR — régua de cobrança em curso (até D+14)"
  },
  {
   "cnpj": "40149506000181",
@@ -5277,7 +5802,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "65616253000130",
@@ -5307,7 +5835,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "60800876000144",
@@ -5337,7 +5868,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "67957812000109",
@@ -5367,7 +5901,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "37590972000167",
@@ -5397,7 +5934,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "64935783000188",
@@ -5427,7 +5967,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "59681637000133",
@@ -5457,7 +6000,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "59241933000113",
@@ -5487,7 +6033,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "59161314000119",
@@ -5517,7 +6066,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "58547221000164",
@@ -5547,7 +6099,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "57659071000118",
@@ -5577,7 +6132,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "57265931000139",
@@ -5607,7 +6165,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "54849278000139",
@@ -5637,7 +6198,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "54669226000109",
@@ -5667,7 +6231,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "54506401000147",
@@ -5697,7 +6264,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "54456689000192",
@@ -5727,7 +6297,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "50512181000103",
@@ -5757,7 +6330,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "50231457000185",
@@ -5787,7 +6363,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "50058752000181",
@@ -5817,7 +6396,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "49507134000192",
@@ -5847,7 +6429,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "49423063000140",
@@ -5877,7 +6462,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "49317938000129",
@@ -5907,7 +6495,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "49313567000107",
@@ -5937,7 +6528,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": "2026-09-16",
+  "silencio_dias": 2,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "49016255000131",
@@ -5967,7 +6561,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "48494111000128",
@@ -5997,7 +6594,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "47817571000187",
@@ -6027,7 +6627,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "47050171000199",
@@ -6057,7 +6660,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "42904727000143",
@@ -6087,7 +6693,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "42123720000194",
@@ -6117,7 +6726,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "39302387000176",
@@ -6147,7 +6759,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "36290194000154",
@@ -6177,7 +6792,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "36199564000142",
@@ -6207,7 +6825,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "35019247000134",
@@ -6237,7 +6858,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "34861548000102",
@@ -6267,7 +6891,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "33680231000142",
@@ -6297,7 +6924,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "33363773000191",
@@ -6327,7 +6957,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": "2026-09-14",
+  "silencio_dias": 3,
+  "recomendacao": "MANTER — conversa viva (falou nos últimos 14 dias)"
  },
  {
   "cnpj": "33219523000182",
@@ -6357,7 +6990,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "33155098000105",
@@ -6387,7 +7023,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "33155058000105",
@@ -6417,7 +7056,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "33077011000129",
@@ -6447,7 +7089,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "32963844000124",
@@ -6477,7 +7122,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "30498875000126",
@@ -6507,7 +7155,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "30303718000207",
@@ -6537,7 +7188,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "30303718000126",
@@ -6567,7 +7221,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "30303718000118",
@@ -6597,7 +7254,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "23521473000130",
@@ -6627,7 +7287,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": ""
+  "marcadores": "",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — sem lead nosso (nunca conseguimos falar)"
  },
  {
   "cnpj": "22447669000169",
@@ -6657,7 +7320,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "17147459000115",
@@ -6687,7 +7353,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "13367648000142",
@@ -6717,7 +7386,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "13002578000129",
@@ -6747,7 +7419,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "09434740000100",
@@ -6777,7 +7452,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "09131170000260",
@@ -6807,7 +7485,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "CNPJ_IRREGULAR IMPORTADO_PORTAL"
+  "marcadores": "CNPJ_IRREGULAR IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "09131170000180",
@@ -6837,7 +7518,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "09072347000114",
@@ -6867,7 +7551,10 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  },
  {
   "cnpj": "07924752000198",
@@ -6897,6 +7584,9 @@
   "formulario": "pending",
   "biometria": "pendente",
   "cobranca_esgotada": false,
-  "marcadores": "IMPORTADO_PORTAL"
+  "marcadores": "IMPORTADO_PORTAL",
+  "ultima_msg_lojista": null,
+  "silencio_dias": null,
+  "recomendacao": "RETIRAR — importado do portal sem telefone/contato"
  }
 ]
