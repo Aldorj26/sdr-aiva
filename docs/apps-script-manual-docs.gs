@@ -1,7 +1,13 @@
 /**
  * Apps Script — Fluxo de Cadastro Manual AIVA (documentos + aba Manual)
  *
- * ONDE INSTALAR: na planilha "AIVA APROVAÇÂO"
+ * ⚠️ ONDE ELE ESTÁ DE VERDADE (conferido 18/09/2026): projeto STANDALONE
+ * "AIVA Docs Cadastro Manual" em script.google.com — NÃO é script preso à
+ * planilha. O código lá já divergiu deste arquivo (foi editado direto no
+ * editor): trate este .gs como REFERÊNCIA, e edite o bloco que precisa no
+ * projeto, sem colar o arquivo inteiro por cima.
+ *
+ * ONDE INSTALAR (histórico): na planilha "AIVA APROVAÇÂO"
  * (https://docs.google.com/spreadsheets/d/1lTB9LvptQejFd_WLygGAKDE6UDVlzvfLEDGhcdSRmQU)
  * → Extensões → Apps Script → cole este código → Implantar → Nova implantação
  * → tipo "App da Web" → Executar como: você / Acesso: "Qualquer pessoa"
@@ -45,13 +51,15 @@ function doPost(e) {
     // ⚠️ Escreve como TEXTO: CNPJ, CPF, CEP e telefone nao podem virar numero
     // (o zero a esquerda do CPF some e o CNPJ vira notacao cientifica).
     if (body.acao === 'filial') {
-      var ssF = SpreadsheetApp.getActiveSpreadsheet();
-      var abaF = ssF.getSheetByName('Filiais');
+      // ⚠️ openById, NÃO getActiveSpreadsheet(): este projeto é STANDALONE
+      // ("AIVA Docs Cadastro Manual" em script.google.com), não fica preso à
+      // planilha — getActiveSpreadsheet() devolve null aqui.
+      var abaF = SpreadsheetApp.openById(PLANILHA_ID).getSheetByName('Filiais');
       if (!abaF) return saida({ ok: false, erro: 'aba Filiais nao encontrada' });
-      var vals = (body.valores || []).map(function (v) { return v == null ? '' : String(v); });
-      var linhaF = abaF.getLastRow() + 1;
-      abaF.getRange(linhaF, 1, 1, vals.length).setNumberFormat('@').setValues([vals]);
-      return saida({ ok: true, linha: linhaF });
+      var valsF = (body.valores || []).map(function (v) { return v == null ? '' : String(v); });
+      var linF = abaF.getLastRow() + 1;
+      abaF.getRange(linF, 1, 1, valsF.length).setNumberFormat('@').setValues([valsF]);
+      return saida({ ok: true, linha: linF });
     }
 
     if (body.acao === 'linha') {
