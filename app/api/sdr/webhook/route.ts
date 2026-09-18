@@ -37,7 +37,7 @@ import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } 
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
 import { reenviarSenhaApi } from '@/lib/portal-aiva'
-import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, pendenciasDaLinha, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
+import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
@@ -2877,7 +2877,7 @@ export async function POST(req: NextRequest) {
               idVarejo: regsMatriz?.[0]?.rid ?? null,
               receita: receitaF,
             })
-            const pend = pendenciasDaLinha(linhaF, !!receitaF)
+            const pend = linhaF['Pendencias'] ? linhaF['Pendencias'].split('; ') : []
             const ok = await registrarFilialAiva(COLUNAS_FILIAL_AIVA.map((col) => linhaF[col] ?? ''))
             await supabaseAdmin.from('sdr_leads')
               .update({ observacoes: `${obsF} ${marcadorFilial(c)}`.trim() }).eq('id', leadId)
@@ -2900,7 +2900,7 @@ export async function POST(req: NextRequest) {
             (filiaisLancadas.length
               ? `\n\n📄 Linha(s) já criada(s) na aba *Filiais* da planilha (modelo da AIVA, endereço puxado da Receita):\n` +
                 filiaisLancadas.map((l) => `• ${l}`).join('\n') +
-                `\nO CPF do operador é o único campo que o fluxo não coleta — completar na planilha antes de enviar.`
+                `\nO que falta vai escrito na coluna Pendencias da própria linha — o CPF do operador é o único campo que o fluxo não coleta.`
               : '') +
             (filiaisPendentes.length
               ? `\n\n⚠️ Não consegui escrever na aba Filiais (${filiaisPendentes.join(', ')}) — lançar na mão desta vez.`
