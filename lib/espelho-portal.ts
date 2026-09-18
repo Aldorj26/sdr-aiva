@@ -21,7 +21,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR,
+  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, ONB_ORDEM, situacaoOnb, type OnbSituacao,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 
@@ -38,8 +38,6 @@ export const MARCADOR_CNPJ_INVALIDO = 'CNPJ_PORTAL_INVALIDO'
  *  A VictorIA usa isso pra não falar de senha com quem nem terminou o cadastro
  *  (regra do Aldo 18/09/2026 — é a msg que o Nei manda na mão hoje). */
 export const MARCADOR_ONB_ETAPA = 'ONB_ETAPA'
-/** Etapas do portal em que o cadastro do lojista ainda está EM ABERTO. */
-const ONB_EM_ABERTO = ['dados_varejo', 'biometria'] as const
 /** Situação REAL ruim na Receita — a loja precisa regularizar. */
 const SITUACAO_REAL = new Set(['inapta', 'baixada', 'suspensa'])
 /** CNPJ que não fecha — quase sempre erro de digitação no portal. */
@@ -143,7 +141,7 @@ export type SaidaEspelho = {
   /** CNPJ reprovado na checagem da AIVA (colunas de 17/09): irregular = situação real; invalido = não fecha */
   cnpj: { irregular: number; invalido: number; novos: string[]; regularizados: number }
   /** cadastro do lojista ainda aberto no portal (form ou biometria) — contexto pra VictorIA */
-  onboarding_aberto: { dados_varejo: number; biometria: number; marcados: number; limpos: number }
+  onboarding_aberto: { dados_varejo: number; biometria: number; aguardando_aiva: number; marcados: number; limpos: number }
 }
 
 export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
@@ -155,6 +153,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     cnpj: String(o.cnpj ?? ''), stage: String(o.stage ?? ''), pre_cadastro_status: o.pre_cadastro_status ?? null,
     retailer_id: o.retailer_id ?? null, legal_name: o.legal_name ?? null,
     cnpj_check_status: o.cnpj_check_status ?? null, cnpj_situacao: o.cnpj_situacao ?? null, cnpj_check_reason: o.cnpj_check_reason ?? null,
+    biometry_status: o.biometry_status ?? null, updated_at: o.updated_at ?? null,
   }))
   const sinais = await sinaisPortal()
   if (sinais.aviso) avisos.push(sinais.aviso)
@@ -186,7 +185,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     ok: true, dry, avisos, onboardings: onboardings.length, leads: leads.length,
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
-    onboarding_aberto: { dados_varejo: 0, biometria: 0, marcados: 0, limpos: 0 },
+    onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
   }
 
   // Etapa do onboarding por lead. dados_varejo vence biometria quando o lojista tem
@@ -195,8 +194,8 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   {
     const stagePorCnpj = new Map<string, string>()
     for (const o of onboardings) {
-      const st = String(o.stage ?? '')
-      if ((ONB_EM_ABERTO as readonly string[]).includes(st)) stagePorCnpj.set(soDigitos(o.cnpj), st)
+      const sit = situacaoOnb(String(o.stage ?? ''), o.biometry_status)
+      if (sit) stagePorCnpj.set(soDigitos(o.cnpj), sit)
     }
     // Fora: quem JÁ OPERA. Duas portas de erro, as duas reais:
     //  - importado do portal (lote de 16/09): o portal os tem em dados_varejo, mas
@@ -212,10 +211,12 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       const st = stagePorCnpj.get(soDigitos(reg.cnpj))
       if (!st) continue
       const atual = etapaPorLead.get(reg.lead_id)
-      if (!atual || st === 'dados_varejo') etapaPorLead.set(reg.lead_id, st)
+      const pior = (a: string, b: string) => (ONB_ORDEM.indexOf(a as OnbSituacao) <= ONB_ORDEM.indexOf(b as OnbSituacao) ? a : b)
+      etapaPorLead.set(reg.lead_id, atual ? pior(atual, st) : st)
     }
     for (const st of etapaPorLead.values()) {
       if (st === 'dados_varejo') saida.onboarding_aberto.dados_varejo++
+      else if (st === 'aguardando_aiva') saida.onboarding_aberto.aguardando_aiva++
       else saida.onboarding_aberto.biometria++
     }
   }
@@ -365,6 +366,49 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     }
   }
 
+  // 10) cadastro pronto do lado do lojista e a AIVA ainda não criou a loja.
+  //     É o único ponto do fluxo em que não existe ação nossa nem dele: quem trava
+  //     é a AIVA. Sem aviso, a loja fica esperando em silêncio (LT CELL IMPORTS,
+  //     18/09: biometria aprovada em 17/09 e ninguém sabia). Aviso ÚNICO por CNPJ,
+  //     só depois de 24h — que é o prazo que a própria AIVA dá e que a VictorIA diz.
+  const paradosAiva: string[] = []
+  {
+    const HORAS = 24
+    const agora = Date.now()
+    const onbPorCnpj = new Map(onboardings.map((o) => [soDigitos(o.cnpj), o]))
+    const leadPorId = new Map(leads.map((l) => [l.id, l]))
+    const vivas = new Set<string>()
+    const pendentesAviso: Array<{ chave: string; linha: string }> = []
+    for (const reg of registros) {
+      if (!reg.lead_id || etapaPorLead.get(reg.lead_id) !== 'aguardando_aiva') continue
+      const cnpj = soDigitos(reg.cnpj)
+      const o = onbPorCnpj.get(cnpj)
+      if (!o || situacaoOnb(String(o.stage ?? ''), o.biometry_status) !== 'aguardando_aiva') continue
+      vivas.add(`aiva_sem_criar:${cnpj}`)
+      const desde = Date.parse(String(o.updated_at ?? ''))
+      const horas = Number.isFinite(desde) ? Math.floor((agora - desde) / 3_600_000) : 0
+      if (horas < HORAS) continue
+      const lead = leadPorId.get(reg.lead_id)
+      pendentesAviso.push({
+        chave: `aiva_sem_criar:${cnpj}`,
+        linha: `• ${lead?.nome ?? o.legal_name ?? cnpj} — CNPJ ${cnpj} · biometria aprovada há ${horas}h`,
+      })
+    }
+    if (!dry) {
+      const { data: jaAvisados } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').like('chave', 'aiva_sem_criar:%')
+      const avisadas = new Set((jaAvisados ?? []).map((r) => r.chave))
+      for (const x of pendentesAviso) {
+        if (avisadas.has(x.chave)) continue
+        await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: x.chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+        paradosAiva.push(x.linha)
+      }
+      // a AIVA criou a loja (ou o cadastro mudou de estado) → a chave some e o
+      // próximo travamento volta a avisar
+      const mortas = [...avisadas].filter((k) => !vivas.has(k))
+      if (mortas.length) await supabaseAdmin.from('sdr_avisos_chave').delete().in('chave', mortas)
+    }
+  }
+
   const blocos: string[] = []
   if (novos.length) {
     blocos.push(
@@ -385,6 +429,14 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       '\n\nINAPTA/BAIXADA/SUSPENSA = situação real: a cobrança do formulário parou sozinha, a loja precisa regularizar na Receita.' +
       '\nDÍGITO INVÁLIDO / NÃO ENCONTRADO = o CNPJ digitado no portal não fecha (tem loja vendendo assim) — conferir com a AIVA, não é problema da loja.' +
       '\nA lista completa fica em https://sdr-aiva.vercel.app/excecoes',
+    )
+  }
+  if (paradosAiva.length) {
+    blocos.push(
+      `⏳ *Cadastro pronto e a AIVA não criou a loja* (${paradosAiva.length})\n${paradosAiva.join('\n')}\n\n` +
+      'O lojista fez tudo: formulário concluído e biometria APROVADA. O portal fica parado em "biometria" até a AIVA ' +
+      'criar o ID da loja — sem isso não há treinamento nem acesso. Cobrar no Live Chat/com o Edu. ' +
+      'A VictorIA já sabe e não cobra mais nada dele.',
     )
   }
   for (const texto of blocos) {

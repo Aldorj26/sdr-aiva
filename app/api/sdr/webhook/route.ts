@@ -859,10 +859,12 @@ export async function POST(req: NextRequest) {
         if (aviso49Pendente) {
           msgsPraReenviar.push(buildAvisoColetandoComplementoMsg(nomeContato))
         }
-        // Portal já em BIOMETRIA ([BIOMETRIA_LINK] gravado pelo cron): o formulário
-        // fechou — reenviar "preencha o cadastro" contradiria a VictorIA no mesmo turno.
-        // A flag é limpa do mesmo jeito abaixo (revisor 16/09).
-        if (aviso50Pendente && !obs.includes('[BIOMETRIA_LINK:')) {
+        // Portal já passou do formulário: reenviar "preencha o cadastro" contradiria a
+        // VictorIA no mesmo turno. A guarda olha a ETAPA REAL ([ONB_ETAPA], espelho a
+        // cada 15 min) — o [BIOMETRIA_LINK] sozinho não serve: ele some quando a selfie
+        // é aprovada e a loja fica esperando a AIVA (achado 18/09). A flag é limpa do
+        // mesmo jeito abaixo (revisor 16/09).
+        if (aviso50Pendente && !obs.includes('[BIOMETRIA_LINK:') && !/\[ONB_ETAPA:(biometria|aguardando_aiva)/.test(obs)) {
           msgsPraReenviar.push(buildAvisoCadastroMsg(nomeContato))
         }
         if (aviso70Pendente) {

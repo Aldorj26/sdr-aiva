@@ -37,6 +37,10 @@ export type OnbApi = {
   cnpj_check_status?: string | null
   cnpj_situacao?: string | null
   cnpj_check_reason?: string | null
+  updated_at?: string | null
+  /** Selfie do lojista: pendente · aprovado · negado. `stage` não conta essa
+   *  história sozinho — aprovado com stage=biometria é a loja esperando a AIVA. */
+  biometry_status?: string | null
 }
 export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null }
 export type LeadEspelho = {
@@ -200,3 +204,21 @@ export function calcularEspelho(e: Entrada): Resultado {
 
   return out
 }
+
+/** Situação do cadastro quando ele ainda NÃO virou loja na AIVA. Vem de `stage`
+ *  + `biometry_status`, porque o stage sozinho mente: cadastro com a selfie já
+ *  aprovada fica parado em `biometria` enquanto a AIVA não cria o retailer_id.
+ *  Ordem = do mais longe do fim pro mais perto (o pior CNPJ do lojista manda). */
+export const ONB_ORDEM = ['dados_varejo', 'biometria_negada', 'biometria', 'aguardando_aiva'] as const
+export type OnbSituacao = (typeof ONB_ORDEM)[number]
+
+/** null = cadastro fechado (ou etapa que não interessa à conversa). */
+export function situacaoOnb(stage: string, bio: string | null | undefined): OnbSituacao | null {
+  if (stage === 'dados_varejo') return 'dados_varejo'
+  if (stage !== 'biometria') return null
+  const b = (bio ?? '').toLowerCase()
+  if (b === 'aprovado') return 'aguardando_aiva'   // ele fez tudo; falta a AIVA criar a loja
+  if (b === 'negado') return 'biometria_negada'    // precisa REFAZER a selfie
+  return 'biometria'
+}
+

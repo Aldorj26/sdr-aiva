@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { calcularEspelho, etapaDesejada, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
+import { calcularEspelho, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
 
 const onb = (p: Partial<OnbApi> & { cnpj: string }): OnbApi => ({ stage: 'dados_varejo', pre_cadastro_status: 'approved', retailer_id: null, legal_name: 'LOJA X', ...p })
 const base = (p: Partial<Entrada> = {}): Entrada => ({
@@ -139,4 +139,17 @@ test('reprovado com sinal de loja operando (card em 51, RID ou registro ativo) N
   assert.match(r.conferir[0].motivo, /Vendendo/)
   assert.match(r.conferir[1].motivo, /RID 5819/)
   assert.deepEqual(r.reprovados.map((x) => x.lead_id), ['normal'])
+})
+
+// A selfie aprovada com o cadastro parado em `biometria` é a loja esperando a
+// AIVA criar o ID — NÃO é biometria pendente. Confundir os dois faz o sistema
+// cobrar de novo quem já fez tudo (LT CELL IMPORTS, 18/09/2026).
+test('situacaoOnb separa o que falta ao lojista do que falta à AIVA', () => {
+  assert.equal(situacaoOnb('dados_varejo', 'pendente'), 'dados_varejo')
+  assert.equal(situacaoOnb('biometria', 'pendente'), 'biometria')
+  assert.equal(situacaoOnb('biometria', 'aprovado'), 'aguardando_aiva')
+  assert.equal(situacaoOnb('biometria', 'negado'), 'biometria_negada')
+  assert.equal(situacaoOnb('biometria', null), 'biometria')
+  assert.equal(situacaoOnb('cadastro_finalizado', 'aprovado'), null)
+  assert.equal(situacaoOnb('not_approved', 'pendente'), null)
 })

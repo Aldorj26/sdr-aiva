@@ -467,6 +467,12 @@ export async function listarBiometriaPendenteApi(): Promise<Array<{ id: string; 
     if (!res.ok) throw new Error(`API de onboardings (biometria) HTTP ${res.status}`)
     const d = (await res.json()) as { records?: OnboardingApi[]; next_cursor?: string | null }
     for (const o of d.records ?? []) {
+      // ⚠️ stage=biometria NÃO quer dizer "falta fazer" (achado 18/09, LT CELL
+      // IMPORTS): quando a selfie é aprovada e a AIVA ainda não criou a loja, o
+      // cadastro fica parado em `biometria` com biometry_status=aprovado. Sem esta
+      // linha o cron manda D+2 e D+5 pedindo uma biometria que já foi aprovada —
+      // e o lojista, que fez tudo, ouve que falta fazer.
+      if ((o.biometry_status ?? '').toLowerCase() === 'aprovado') continue
       tudo.push({
         id: String(o.id ?? ''),
         cnpj: String(o.cnpj ?? ''),
