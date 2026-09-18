@@ -1,0 +1,144 @@
+{
+ "saida": [
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "Rei do Celular",
+   "CEP": "35650000",
+   "LOGRADOURO": "DO PILAR",
+   "NÚMERO": "119",
+   "COMPLEMENTO": "LOJA 105 107",
+   "BAIRRO": "CENTRO",
+   "CIDADE": "PITANGUI",
+   "UF": "MG",
+   "CNPJ DA FILIAL": "50072411000322",
+   "CNPJ DA MATRIZ": "50072411000160",
+   "NOME COMPLETO": "Luiz Fernando Junio Lopes",
+   "CPF (SÓ NUMEROS)": "07883812610",
+   "EMAIL": "fvstylocell@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5567982228252"
+  },
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "LF CELULARES LTDA.",
+   "CEP": "32340000",
+   "LOGRADOURO": "JOAO CESAR DE OLIVEIRA",
+   "NÚMERO": "2792",
+   "COMPLEMENTO": "",
+   "BAIRRO": "ELDORADO",
+   "CIDADE": "CONTAGEM",
+   "UF": "MG",
+   "CNPJ DA FILIAL": "50072411000241",
+   "CNPJ DA MATRIZ": "50072411000160",
+   "NOME COMPLETO": "Luiz Fernando Junio Lopes",
+   "CPF (SÓ NUMEROS)": "07883812610",
+   "EMAIL": "luizcellcg@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5564981835034"
+  },
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "Stylo Cell Itapema",
+   "CEP": "",
+   "LOGRADOURO": "",
+   "NÚMERO": "",
+   "COMPLEMENTO": "",
+   "BAIRRO": "",
+   "CIDADE": "Itapema",
+   "UF": "SC",
+   "CNPJ DA FILIAL": "46618959000277",
+   "CNPJ DA MATRIZ": "46618959000196",
+   "NOME COMPLETO": "Felipe Aparecido da Silva Vianna",
+   "CPF (SÓ NUMEROS)": "05784977199",
+   "EMAIL": "felipeviannapro@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5567993518506"
+  },
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "Loja Contel - Santa Maria",
+   "CEP": "97110800",
+   "LOGRADOURO": "PREFEITO EVANDRO BEHR",
+   "NÚMERO": "3154",
+   "COMPLEMENTO": "SALA 09 COMERCIAL",
+   "BAIRRO": "CAMOBI",
+   "CIDADE": "SANTA MARIA",
+   "UF": "RS",
+   "CNPJ DA FILIAL": "13337781000903",
+   "CNPJ DA MATRIZ": "13337781000741",
+   "NOME COMPLETO": "Tiago Fagundes Brum",
+   "CPF (SÓ NUMEROS)": "00096974036",
+   "EMAIL": "curriculotiagofagundes@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5555981071699"
+  },
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "FONEEXPRESS PARACATU",
+   "CEP": "38600422",
+   "LOGRADOURO": "JOAQUIM MURTINHO",
+   "NÚMERO": "21",
+   "COMPLEMENTO": "",
+   "BAIRRO": "AMOREIRAS",
+   "CIDADE": "PARACATU",
+   "UF": "MG",
+   "CNPJ DA FILIAL": "68182669000185",
+   "CNPJ DA MATRIZ": "65870629000138",
+   "NOME COMPLETO": "Conrado Alves Pacheco",
+   "CPF (SÓ NUMEROS)": "11832778657",
+   "EMAIL": "drconradoalves@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5538999132729"
+  },
+  {
+   "ID VAREJO": "",
+   "NOME DA LOJA": "FONEEXPRESS PARACATU",
+   "CEP": "38600422",
+   "LOGRADOURO": "JOAQUIM MURTINHO",
+   "NÚMERO": "21",
+   "COMPLEMENTO": "",
+   "BAIRRO": "AMOREIRAS",
+   "CIDADE": "PARACATU",
+   "UF": "MG",
+   "CNPJ DA FILIAL": "68182669000185",
+   "CNPJ DA MATRIZ": "65870629000138",
+   "NOME COMPLETO": "Lucas Alves Pacheco",
+   "CPF (SÓ NUMEROS)": "10138513660",
+   "EMAIL": "lucaspaxeco@gmail.com",
+   "TELEFONE (FORMATADO 55DDDTELEFONE)": "5538991292251"
+  }
+ ],
+ "conferir": [
+  {
+   "Loja": "Rei do Celular",
+   "CNPJ DA FILIAL": "50072411000322",
+   "Operador": "Luiz Fernando Junio Lopes",
+   "Avisos": "situação na Receita: INAPTA · sem ID VAREJO na API da AIVA (loja ainda não existe lá) · controle interno: e-mail e DDD parecem ser da Stylo Cell; 9o digito incluido no telefone"
+  },
+  {
+   "Loja": "LF CELULARES LTDA.",
+   "CNPJ DA FILIAL": "50072411000241",
+   "Operador": "Luiz Fernando Junio Lopes",
+   "Avisos": "situação na Receita: INAPTA · sem ID VAREJO na API da AIVA (loja ainda não existe lá) · controle interno: falta o nome da loja; 9o digito incluido no telefone; mesmo CPF da loja de Pitangui"
+  },
+  {
+   "Loja": "Stylo Cell Itapema",
+   "CNPJ DA FILIAL": "46618959000277",
+   "Operador": "Felipe Aparecido da Silva Vianna",
+   "Avisos": "Receita não respondeu / CNPJ não encontrado — endereço em branco · sem ID VAREJO na API da AIVA (loja ainda não existe lá)"
+  },
+  {
+   "Loja": "Loja Contel - Santa Maria",
+   "CNPJ DA FILIAL": "13337781000903",
+   "Operador": "Tiago Fagundes Brum",
+   "Avisos": "sem ID VAREJO na API da AIVA (loja ainda não existe lá) · matriz no portal: CONTEL TELECOM LTDA · controle interno: falta endereco completo (CEP, logradouro, numero, bairro)"
+  },
+  {
+   "Loja": "FONEEXPRESS PARACATU",
+   "CNPJ DA FILIAL": "68182669000185",
+   "Operador": "Conrado Alves Pacheco",
+   "Avisos": "sem ID VAREJO na API da AIVA (loja ainda não existe lá) · controle interno: matriz = FONEEXPRESS CRISTALINA; CEP 38600-422 e do bairro Amoreiras I, nao Centro"
+  },
+  {
+   "Loja": "FONEEXPRESS PARACATU",
+   "CNPJ DA FILIAL": "68182669000185",
+   "Operador": "Lucas Alves Pacheco",
+   "Avisos": "sem ID VAREJO na API da AIVA (loja ainda não existe lá) · controle interno: 2o operador da mesma loja"
+  }
+ ]
+}
