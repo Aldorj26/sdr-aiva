@@ -36,7 +36,7 @@ import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido,
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
-import { reenviarSenhaApi } from '@/lib/portal-aiva'
+import { reenviarSenhaApi, telefonePorRetailer } from '@/lib/portal-aiva'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
 
@@ -2422,15 +2422,28 @@ export async function POST(req: NextRequest) {
             await supabaseAdmin.from('sdr_leads')
               .update({ observacoes: `${limpo} [SENHA_REENVIADA:${agoraR}]`.trim(), acionar_humano: false }).eq('id', lead.id)
             resposta.acionar_humano = false   // resolvido: não vira fila humana
-            const avisoLojista =
-              'Pedi o reenvio do seu acesso à AIVA 🙂 Quando sair, chega pelo WhatsApp do +55 21 4020-2024 ' +
-              '(Comunicados Aiva Pay), no número que está no cadastro da loja — é só clicar em "Sim, quero" ' +
-              'que o login e a senha vêm na sequência. Se não aparecer, me avisa aqui que eu chamo o time.'
+            // Pra ONDE a senha foi: a AIVA usa o telefone do CADASTRO dela, não este
+            // WhatsApp. Quando os dois são diferentes, o lojista fica esperando no número
+            // errado — foi o caso da YourCase (cadastro 5542999020383 × conversa
+            // 554288258679). Aqui ele já é avisado disso na mesma mensagem. (Aldo 19/09)
+            let cadastroAiva: { telefone: string; nome: string } | null = null
+            try {
+              const mapaTel = await telefonePorRetailer()
+              cadastroAiva = ok.map((r) => mapaTel.get(String(r.retailer_id ?? ''))).find(Boolean) ?? null
+            } catch (e) { console.error('[REENVIO_SENHA] telefone do cadastro não lido:', e) }
+            const soDig = (t: string) => String(t ?? '').replace(/\D/g, '')
+            const numeroDiferente = !!cadastroAiva && soDig(cadastroAiva.telefone) !== soDig(lead.telefone)
+            const fmtFinal = (t: string) => `final ${soDig(t).slice(-4)}`
+            const avisoLojista = numeroDiferente && cadastroAiva
+              ? `Pedi o reenvio do seu acesso à AIVA 🙂 Só que ele vai pro número que está no CADASTRO da loja (${fmtFinal(cadastroAiva.telefone)}${cadastroAiva.nome ? `, em nome de ${cadastroAiva.nome.split(' ')[0]}` : ''}), que é diferente deste WhatsApp aqui.\n\nA senha chega pelo +55 21 4020-2024 (Comunicados Aiva Pay) nesse número do cadastro — é só clicar em "Sim, quero". Se você não tiver acesso a ele, me avisa que eu peço pro time atualizar o cadastro.`
+              : 'Pedi o reenvio do seu acesso à AIVA 🙂 Quando sair, chega pelo WhatsApp do +55 21 4020-2024 ' +
+                '(Comunicados Aiva Pay), no número que está no cadastro da loja — é só clicar em "Sim, quero" ' +
+                'que o login e a senha vêm na sequência. Se não aparecer, me avisa aqui que eu chamo o time.'
             try {
               await sendText(lead.telefone, avisoLojista, lead.evotalks_chat_id)
               await saveMensagem(lead.id, 'out', avisoLojista)
             } catch (e) { console.error('[REENVIO_SENHA] aviso ao lojista falhou:', e) }
-            reenvioNota = `reenvio pedido à AIVA (RID ${ok.map((r) => r.retailer_id ?? r.id).join(', ')})`
+            reenvioNota = `reenvio pedido à AIVA (RID ${ok.map((r) => r.retailer_id ?? r.id).join(', ')})` + (numeroDiferente && cadastroAiva ? ` — ⚠️ foi pro telefone do cadastro (${cadastroAiva.telefone}${cadastroAiva.nome ? `, ${cadastroAiva.nome}` : ''}), diferente do WhatsApp da conversa (${lead.telefone}). O lojista já foi avisado disso.` : '')
           } else {
             reenvioNota = `a AIVA recusou: ${res[0]?.error ?? 'sem detalhe'}`
           }

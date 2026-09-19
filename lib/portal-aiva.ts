@@ -377,6 +377,30 @@ export async function reenviarSenhaApi(
   return (d.results ?? []).map((r) => ({ retailer_id: r.retailer_id, id: r.id, success: r.success === true, error: r.error }))
 }
 
+/**
+ * retailer_id → telefone e nome que a AIVA tem no cadastro da loja.
+ *
+ * POR QUE (Aldo 19/09/2026): o reenvio de senha vai SEMPRE pro telefone do cadastro
+ * da AIVA, não pro WhatsApp em que o lojista está falando com a gente. Na YourCase
+ * Avenida o cadastro é 5542999020383 (Diego) e a conversa é 554288258679 (Bruno) —
+ * a senha saiu e ele continuou esperando. Agora a VictorIA avisa isso na hora.
+ *
+ * Cache de 15 min em memória: isso roda DENTRO do turno da conversa e a listagem
+ * inteira são 2 requisições; sem cache, cada "não recebi" custaria isso de novo.
+ */
+let cacheTelefones: { em: number; mapa: Map<string, { telefone: string; nome: string }> } | null = null
+export async function telefonePorRetailer(): Promise<Map<string, { telefone: string; nome: string }>> {
+  if (cacheTelefones && Date.now() - cacheTelefones.em < 15 * 60_000) return cacheTelefones.mapa
+  const mapa = new Map<string, { telefone: string; nome: string }>()
+  for (const o of await listarOnboardingsApi()) {
+    const rid = o.retailer_id != null ? String(o.retailer_id) : ''
+    const tel = String((o as { phone_number?: string | null }).phone_number ?? '').replace(/\D/g, '')
+    if (rid && tel) mapa.set(rid, { telefone: tel, nome: String(o.partner_owner_name ?? o.legal_name ?? '') })
+  }
+  cacheTelefones = { em: Date.now(), mapa }
+  return mapa
+}
+
 /** retailer_id → dados do onboarding (nome, CNPJ) pra dar nome aos RIDs. */
 export async function onboardingsPorRetailer(s: Sessao): Promise<Map<string, { cnpj: string; legal_name: string | null }>> {
   const out = new Map<string, { cnpj: string; legal_name: string | null }>()
