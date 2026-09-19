@@ -2362,12 +2362,43 @@ export async function POST(req: NextRequest) {
   // a cada 24h, e o telefone/nome são os do cadastro DA AIVA — não somos nós que
   // escolhemos pra onde a senha vai.
   let reenvioNota: string | null = null
+  let bloqueadoPorAssunto = false
   const FASES_SENHA_SOCIO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
   // ⚠️ O motivo vem do modelo: exige prefixo exato E fase pós-cadastro. A separação
   //    sócio × vendedor vivia só no prompt — se ela usasse esse motivo num pedido de
   //    senha de VENDEDOR, o sistema reenviaria a do SÓCIO e diria que reenviou a dele.
   if ((resposta.motivo_humano ?? '').trim().startsWith('reenviar_senha_painel') && FASES_SENHA_SOCIO.includes(lead.status)) {
     try {
+      // ⚠️ TRAVA DE ASSUNTO (YourCase Avenida, 18/09 21h24): o lojista perguntou sobre
+      // CAMPANHA DE BÔNUS, ela ofereceu confirmar com o time, ele respondeu "isso, pode
+      // verificar" — e ela emitiu `reenviar_senha_painel`. O reenvio saiu de verdade,
+      // num papo que não era de senha. O motivo vem do MODELO: ele pode trocar de
+      // assunto, e aqui a consequência é uma ação real no sistema da AIVA.
+      //
+      // O gate olha a JANELA, não só a última mensagem dele — porque o turno em que o
+      // motivo nasce costuma ser "procurei e não achei", que não tem a palavra senha.
+      // O que separa o incidente do caso legítimo é a última fala DELA: no incidente
+      // era bônus; no fluxo real ela acabou de falar do 4020-2024. (revisor 19/09)
+      const ASSUNTO_SENHA = /senha|acesso|login|logar|credencia|4020|n[ãa]o receb|n[ãa]o cheg|n[ãa]o (achei|veio|apareceu|tem nada)|reenvi|de novo|sem acesso|n[ãa]o consigo (entrar|logar|acessar)/i
+      const { data: ultimasMsgs } = await supabaseAdmin
+        .from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', lead.id)
+        .order('enviado_em', { ascending: false }).limit(4)
+      const janela = [conteudo, conteudoEfetivo, ...(ultimasMsgs ?? []).map((m) => m.conteudo)].filter(Boolean).join(' ')
+      const falaDeSenha = ASSUNTO_SENHA.test(janela)
+      if (!falaDeSenha) {
+        bloqueadoPorAssunto = true
+        reenvioNota = 'NÃO reenviei: nem a conversa nem a mensagem dele falam de senha/acesso'
+        console.warn(`[REENVIO_SENHA] ${lead.telefone}: motivo fora de contexto — "${String(conteudoEfetivo ?? conteudo).slice(0, 80)}"`)
+        const alertaFalso =
+          `🔑 *REENVIO DE SENHA — PEDIDO FORA DE CONTEXTO* — ${lead.nome} (${lead.telefone})
+` +
+          `A VictorIA pediu reenvio, mas a conversa era outra. Última mensagem dele: "${String(conteudoEfetivo ?? conteudo).slice(0, 120)}"
+` +
+          `NÃO reenviei nada. Confere a conversa: se ele pediu a senha mesmo, reenvia pelo card no painel da AIVA.`
+        for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+          try { await alertHuman(tel, alertaFalso) } catch (e) { console.error('[REENVIO_SENHA] aviso falhou:', e) }
+        }
+      } else {
       const obsR = lead.observacoes ?? ''
       const ultimo = obsR.match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1]
       const horas = ultimo && Number.isFinite(Date.parse(ultimo)) ? (Date.now() - Date.parse(ultimo)) / 3_600_000 : Infinity
@@ -2406,7 +2437,8 @@ export async function POST(req: NextRequest) {
         }
       }
       console.log(`[REENVIO_SENHA] ${lead.telefone}: ${reenvioNota}`)
-      const notaTime =
+      }
+      const notaTime = bloqueadoPorAssunto ? null :
         `🔑 *REENVIO DE SENHA* — ${lead.nome} (${lead.telefone})
 ` +
         `${reenvioNota}
@@ -2414,9 +2446,11 @@ export async function POST(req: NextRequest) {
 ` +
         (resposta.acionar_humano
           ? 'A VictorIA não conseguiu resolver sozinha — esse ainda precisa de vocês.'
-          : 'Resolvido pelo sistema (mesmo caminho do botão "Reenviar senha" do painel). Nada a fazer.')
-      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
-        try { await alertHuman(tel, notaTime) } catch (e) { console.error('[REENVIO_SENHA] aviso ao time falhou:', e) }
+          : 'Resolvido pelo sistema (mesmo caminho do botão "Reenviar senha" do painel).\n⚠️ A AIVA envia pro telefone do CADASTRO DELA, que pode não ser este WhatsApp — se ele disser que não chegou, confira o número no card antes de repetir.')
+      if (notaTime) {
+        for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+          try { await alertHuman(tel, notaTime) } catch (e) { console.error('[REENVIO_SENHA] aviso ao time falhou:', e) }
+        }
       }
     } catch (err) {
       console.error(`[REENVIO_SENHA] falhou para ${lead.telefone}:`, err)
