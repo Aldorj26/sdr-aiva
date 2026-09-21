@@ -18,7 +18,7 @@ import {
   createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
-  getOpportunity, getChatMessages, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
+  getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
   statusFromOpp, emFase3,
   MARCADOR_FASE3,
 } from '@/lib/evotalks'
@@ -55,6 +55,26 @@ const STATUS_IGNORAR: LeadStatus[] = ['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO'
 // combinada nem "quando chegar a vez da sua loja": a loja segue na Odres como
 // está; qualquer novidade vem do time da Odres. (Texto anterior, 27/08, prometia
 // a plataforma única — não usar mais.)
+// Telefones que JÁ estão no funil 19 (Odres/UME barrado). O sync APAGA o lead
+// quando o card vai pro 19 (decisão 29/05), então quando o lojista escreve de novo o
+// telefone é 'desconhecido' e nascia lead + opp NOVOS no funil 15: a VictorIA
+// recomeçava do zero, pedia nome e CNPJ, barrava de novo, o sync apagava de novo.
+// Diniz Imports (21/09/2026) passou por isso 3 vezes (#7981, #11230, #21077) e na
+// quarta ouviu 'qual seu nome?' depois de pedir um humano. Cache de 10 min: são
+// ~500 cards e isso roda só pra telefone desconhecido.
+let cacheFunil19: { em: number; tels: Map<string, string> } | null = null
+async function noFunil19(tel: string): Promise<string | null> {
+  if (!cacheFunil19 || Date.now() - cacheFunil19.em > 10 * 60_000) {
+    const tels = new Map<string, string>()
+    for (const o of await getPipeOpportunities(PIPELINE_FUNIL19)) {
+      const d = String(o.mainphone ?? '').replace(/\D/g, '')
+      if (d.length >= 10) tels.set(d.slice(-10), `#${o.id} ${o.title ?? ''}`.trim())
+    }
+    cacheFunil19 = { em: Date.now(), tels }
+  }
+  return cacheFunil19.tels.get(tel.replace(/\D/g, '').slice(-10)) ?? null
+}
+
 const ODRES_MENSAGEM =
   'Vimos que sua loja já trabalha com o crediário da Odres — e a AIVA e a Odres são parceiras, então você já está bem atendido por lá. 😊\n\n' +
   'Por enquanto nada muda pra você: continua operando com a Odres normalmente, sem nenhum cadastro novo. Se surgir alguma novidade pras lojas parceiras da Odres, é o próprio time da Odres que entra em contato.\n\n' +
@@ -474,6 +494,38 @@ export async function POST(req: NextRequest) {
     if (!telNormalizado || telNormalizado.length < 12) {
       console.log(`Lead desconhecido com telefone inválido: ${telNormalizado}`)
       return NextResponse.json({ ok: true, ignorado: 'telefone_invalido' })
+    }
+
+    // ─── JÁ É BARRADO (funil 19)? Então NÃO nasce lead novo ─────────────────
+    let cardFunil19: string | null = null
+    try { cardFunil19 = await noFunil19(telNormalizado) } catch (e) { console.error('[FUNIL19] consulta falhou:', e) }
+    if (cardFunil19) {
+      const textoIn = (text || legacyText || '').trim()
+      console.log(`[FUNIL19] ${telNormalizado} já está no funil 19 (${cardFunil19}) — não cria lead; encaminha pro Nei`)
+      // 1× por 24h: responde ao lojista e avisa o Nei com a frase dele. Sem isso a
+      // mensagem morria em silêncio (foi o '?' das 18h17 do Diniz).
+      const chave = `funil19_retorno:${telNormalizado}`
+      const { data: jaAvisou } = await supabaseAdmin.from('sdr_avisos_chave').select('ultimo_aviso').eq('chave', chave).maybeSingle()
+      const recente = jaAvisou && Date.now() - Date.parse(jaAvisou.ultimo_aviso) < 24 * 60 * 60 * 1000
+      if (!recente) {
+        await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+        try {
+          await sendText(telNormalizado,
+            'Oi! Aqui é a VictorIA, da Track. Vi que a sua loja já é atendida direto pela Odres — por isso o cadastro pela Track não se aplica ' +
+            'e eu não consigo abrir um novo por aqui. Já passei a sua mensagem pro nosso comercial, o Nei, que é quem pode conversar sobre isso com você. 😊',
+            chatId || undefined)
+        } catch (e) { console.error('[FUNIL19] resposta ao lojista falhou:', e) }
+        const aviso =
+          `📇 *CLIENTE DA BASE ODRES VOLTOU A ESCREVER* — ${telNormalizado}\n` +
+          `Card no funil 19: ${cardFunil19}\n` +
+          `Ele disse: "${textoIn.slice(0, 200)}"\n\n` +
+          'A VictorIA NÃO abriu lead novo (era isso que criava cards duplicados no funil 15) e avisou que o comercial responde. ' +
+          'Se ele quer sair da Odres e vir pra Track, a conversa é sua — pela regra, cliente da base Odres é barrado.'
+        for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+          try { await alertHuman(tel, aviso) } catch (e) { console.error('[FUNIL19] aviso falhou:', e) }
+        }
+      }
+      return NextResponse.json({ ok: true, ignorado: 'ja_no_funil_19', card: cardFunil19 })
     }
 
     console.log(`Lead desconhecido ${telNormalizado} — criando como AIVA (inbound)`)
