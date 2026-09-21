@@ -1,0 +1,315 @@
+{
+ "linhas": [
+  {
+   "loja": "Barão Celulares",
+   "telefone": "5511998674199",
+   "rid": "6588",
+   "opp": 18038,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Joker Eletrônicos",
+   "telefone": "5541996597209",
+   "rid": "6724",
+   "opp": 18693,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Gamecell assistencia tecnica",
+   "telefone": "554391292577",
+   "rid": "6730",
+   "opp": 18037,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "FG Cell",
+   "telefone": "5565993385652",
+   "rid": "6732",
+   "opp": 18150,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Dantech Eletrônicos",
+   "telefone": "5527997540171",
+   "rid": "6799",
+   "opp": 19003,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "CH INFORMATICA",
+   "telefone": "5562985755773",
+   "rid": "6945",
+   "opp": 20035,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Cell7",
+   "telefone": "5541984677080",
+   "rid": "6941",
+   "opp": 18510,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Msat Digital e Lidicell",
+   "telefone": "5517981851115",
+   "rid": "6797",
+   "opp": 18996,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Jvcell",
+   "telefone": "5513996661686",
+   "rid": "6456",
+   "opp": 17498,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "TH Multimarcas",
+   "telefone": "5573982010313",
+   "rid": "6708",
+   "opp": 18447,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Pro Imports",
+   "telefone": "555193591695",
+   "rid": "6791",
+   "opp": 16655,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Rg Cell",
+   "telefone": "5565999245748",
+   "rid": "6687",
+   "opp": 18334,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Rkcell",
+   "telefone": "554399117125",
+   "rid": "6779",
+   "opp": 18633,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "MSPHONE",
+   "telefone": "559484411857",
+   "rid": "6686",
+   "opp": 18212,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Huck Assistência",
+   "telefone": "5541999534099",
+   "rid": "6851",
+   "opp": 18661,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Fonely",
+   "telefone": "5511933540546",
+   "rid": "6709",
+   "opp": 18234,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Alexandre Imports",
+   "telefone": "5585998349025",
+   "rid": "6831",
+   "opp": 19186,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Utilizu Smartphones",
+   "telefone": "558586174525",
+   "rid": "6705",
+   "opp": 18201,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "FG Cell",
+   "telefone": "5565981296992",
+   "rid": "6729",
+   "opp": 18151,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "L a informática ltda",
+   "telefone": "557599481265",
+   "rid": "6838",
+   "opp": 15281,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "POINTPHONE ASSITÊNCIA TÉCNICA",
+   "telefone": "5541984069959",
+   "rid": "6875",
+   "opp": 18909,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "L.L Assistência",
+   "telefone": "5541999666709",
+   "rid": "6781",
+   "opp": 18708,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "F5 TECH",
+   "telefone": "556392832039",
+   "rid": "6726",
+   "opp": 14321,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "HS Imports",
+   "telefone": "559885692714",
+   "rid": "6777",
+   "opp": 18435,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Mtech celulares",
+   "telefone": "556292477481",
+   "rid": "6500",
+   "opp": 11765,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Enostech Orlândia",
+   "telefone": "5516981066452",
+   "rid": "6702",
+   "opp": 8336,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Pontocel",
+   "telefone": "5514997012474",
+   "rid": "6852",
+   "opp": 19561,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Laura Acessórios",
+   "telefone": "5591980866588",
+   "rid": "6801",
+   "opp": 17917,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Cellshop",
+   "telefone": "5516992094279",
+   "rid": "6876",
+   "opp": 18255,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Hospital do Celular Itaim Paulista",
+   "telefone": "5511947382124",
+   "rid": "6778",
+   "opp": 18629,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  },
+  {
+   "loja": "Aju Celulares",
+   "telefone": "557996547926",
+   "rid": "6873",
+   "opp": 19565,
+   "etapa": 71,
+   "apto": true,
+   "motivo": "ok",
+   "movido": true
+  }
+ ],
+ "falhas": []
+}
