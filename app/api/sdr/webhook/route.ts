@@ -983,6 +983,13 @@ export async function POST(req: NextRequest) {
       // "travou" abria chamado pro Nei e a VictorIA prometia "cobrar o time".
       const travaAparelho = /(retirar|tirar|remover|liberar) a trava|destrav|desbloque(?:ar|io|ia)/i.test(txt)
 
+      // CATÁLOGO / PREÇO / LISTA DE APARELHOS da plataforma (HCELL 18/09/2026): "os valores
+      // estão diferentes", "não consigo editar o catálogo", "tirar aparelhos que não vendo"
+      // casava naoConsigo+contextoPortal → print "pro time ver" + chamado pro Nei — e
+      // ninguém da Track altera isso (Aldo 21/09). É configuração da AIVA, só o Live
+      // Chat. Fica FORA do print e do chamado, como travaAparelho.
+      const configCatalogo = /cat[áa]logo|ajuste de (?:aparelho|valor|pre[çc]o)|aparelhos? e valores|valores? e aparelhos?|tabela de (?:aparelho|pre[çc]o)|(?:pre[çc]o|valor)(?:es)? (?:d[oe]s?|no|do) (?:aparelho|sistema|modelo)|(?:tirar|remover|excluir) (?:os |uns )?(?:aparelho|modelo)|(?:aparelho|modelo)s? (?:que|q) (?:eu )?n[ãa]o vendo|editar (?:os )?(?:cadastro|aparelho|modelo)s? (?:d[oe]s? )?(?:aparelho|modelo)?/i.test(txt)
+
       // Senha de VENDEDOR que não chegou por SMS (regra do Edu/AIVA 14/09): NÃO é
       // erro de sistema — o prazo é de até 2 dias e a mensagem costuma cair no
       // SPAM do SMS. Pedir print de um SMS que não chegou não faz sentido, e abrir
@@ -1000,7 +1007,7 @@ export async function POST(req: NextRequest) {
       // travaAparelho fica FORA: desbloqueio é só Live Chat — não há time nosso
       // pra ver print, e pedir "assim o time vê" reabriria o caso Center Celulares.
       const naoAbre = /n[ãa]o (?:abre|abriu|carrega|carregou)/i.test(txt)
-      const relatouErro = !senhaUsuarioSms && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
+      const relatouErro = !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
       const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
       if (relatouErro && !temPrintRecente) {
         instrucaoPedirPrint =
@@ -1009,7 +1016,7 @@ export async function POST(req: NextRequest) {
 
       // "não abre/carrega" com contexto de portal também vira chamado (Aldo: qualquer
       // erro) — assim o print pedido tem onde ficar guardado no painel.
-      if (!travaAparelho && !senhaUsuarioSms && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
+      if (!travaAparelho && !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
         try {
           const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: jaAlertou } = await supabaseAdmin
