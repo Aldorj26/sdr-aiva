@@ -2352,6 +2352,20 @@ export async function POST(req: NextRequest) {
 
   // 14. Alertas para humanos — só disparam na TRANSIÇÃO de status, não em cada msg.
   //
+  // ─── SENHA DE VENDEDOR/GERENTE QUE NÃO VEIO — marcador pro /excecoes (21/09) ───
+  // O acionamento só alerta na transição false→true; lead já na fila humana re-aciona
+  // em silêncio. Foi assim que a L. A CELL ficou 3 semanas esperando o usuário da
+  // gerente. O marcador (1× por lead) põe o caso na tela de exceções com a data.
+  if ((resposta.motivo_humano ?? '').trim().startsWith('senha_usuario_nao_chegou') && !(lead.observacoes ?? '').includes('[SENHA_USUARIO_NAO_CHEGOU:')) {
+    try {
+      const { data: frescoU } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+      const detalhe = String(resposta.motivo_humano).replace(/^senha_usuario_nao_chegou:?\s*/, '').replace(/[\[\]]/g, '').slice(0, 80)
+      await supabaseAdmin.from('sdr_leads')
+        .update({ observacoes: `${frescoU?.observacoes ?? lead.observacoes ?? ''} [SENHA_USUARIO_NAO_CHEGOU:${new Date().toISOString()}${detalhe ? `|${detalhe}` : ''}]`.trim() })
+        .eq('id', lead.id)
+    } catch (e) { console.error('[SENHA_USUARIO] marcador não gravado:', e) }
+  }
+
   // ─── REENVIO DE SENHA — A VICTORIA RESOLVE, NÃO SÓ AVISA (Aldo/Mauricio 18/09) ───
   // De manhã o pedido do Aldo era: "a VictorIA podia checar se tem o botão Reenviar
   // senha no card e reenviar". Não dava — a API pública só escrevia remover/restaurar.
@@ -2385,7 +2399,22 @@ export async function POST(req: NextRequest) {
         .order('enviado_em', { ascending: false }).limit(4)
       const janela = [conteudo, conteudoEfetivo, ...(ultimasMsgs ?? []).map((m) => m.conteudo)].filter(Boolean).join(' ')
       const falaDeSenha = ASSUNTO_SENHA.test(janela)
-      if (!falaDeSenha) {
+      // Senha de VENDEDOR/GERENTE não se reenvia: o botão manda a do SÓCIO de novo e não
+      // cria usuário nenhum (L. A CELL, 21/09: a gerente esperava o próprio login e o
+      // time reenviou a senha do Clóvis). A separação vivia só no prompt — agora é código.
+      const ehUsuarioEquipe = /vendedor|vendedora|gerente|funcion[áa]ri|colaborador|operador|meu usu[áa]rio|meu pr[óo]prio|acesso s[óo] pra mim|login separado/i.test(janela)
+      if (falaDeSenha && ehUsuarioEquipe) {
+        bloqueadoPorAssunto = true
+        reenvioNota = 'NÃO reenviei: a conversa é sobre usuário de VENDEDOR/GERENTE — o reenvio manda a senha do sócio, não cria usuário'
+        console.warn(`[REENVIO_SENHA] ${lead.telefone}: pedido é de usuário da equipe, não do sócio — bloqueado`)
+        const alertaEquipe =
+          `🔑 *SENHA DE VENDEDOR/GERENTE — NÃO É REENVIO* — ${lead.nome} (${lead.telefone})\n` +
+          `A conversa é sobre o usuário de alguém da equipe, não a senha do sócio. Última mensagem: "${String(conteudoEfetivo ?? conteudo).slice(0, 120)}"\n` +
+          'Reenviar a senha do sócio NÃO resolve. Quem cria o usuário é a AIVA — cobrar no Live Chat/Edu com nome, função e data do pedido.'
+        for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+          try { await alertHuman(tel, alertaEquipe) } catch (e) { console.error('[REENVIO_SENHA] aviso falhou:', e) }
+        }
+      } else if (!falaDeSenha) {
         bloqueadoPorAssunto = true
         reenvioNota = 'NÃO reenviei: nem a conversa nem a mensagem dele falam de senha/acesso'
         console.warn(`[REENVIO_SENHA] ${lead.telefone}: motivo fora de contexto — "${String(conteudoEfetivo ?? conteudo).slice(0, 80)}"`)

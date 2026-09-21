@@ -50,8 +50,9 @@ async function busca(like: string, limite = 200): Promise<Lead[]> {
 }
 
 async function getDados() {
-  const [senha, biometria, formulario, treinamento, conferir, cnpjVoltou, cnpjIrregular, cnpjInvalido] = await Promise.all([
+  const [senha, senhaEquipe, biometria, formulario, treinamento, conferir, cnpjVoltou, cnpjIrregular, cnpjInvalido] = await Promise.all([
     busca('%[SENHA_PENDENTE_DESDE:%'),
+    busca('%[SENHA_USUARIO_NAO_CHEGOU:%'),
     busca('%[BIOMETRIA_ESGOTADO]%'),
     busca('%[COBRANCA_FORM_ESGOTADO]%'),
     busca('%[CHECK_TREINAMENTO_ESGOTADO]%'),
@@ -65,6 +66,13 @@ async function getDados() {
     senha: senha
       .map((l) => ({ ...l, desde: marcadorISO(l.observacoes, 'SENHA_PENDENTE_DESDE') }))
       .map((l) => ({ ...l, dias: l.desde ? diasUteisEntre(Date.parse(l.desde), agora) : 0 }))
+      .sort((a, b) => b.dias - a.dias),
+    senhaEquipe: senhaEquipe
+      .map((l) => {
+        const m = (l.observacoes ?? '').match(/\[SENHA_USUARIO_NAO_CHEGOU:([^\]|]+)(?:\|([^\]]*))?\]/)
+        return { ...l, desde: m?.[1] ?? null, quem: m?.[2] ?? '' }
+      })
+      .map((l) => ({ ...l, dias: diasCorridos(l.desde) ?? 0 }))
       .sort((a, b) => b.dias - a.dias),
     biometria: biometria
       .map((l) => ({ ...l, ultimo: marcadorISO(l.observacoes, 'BIOMETRIA') ?? marcadorISO(l.observacoes, 'BIOMETRIA_INICIO') }))
@@ -134,7 +142,7 @@ const cabecalho = (col: string) => (
 
 export default async function ExcecoesPage() {
   const d = await getDados()
-  const total = d.senha.length + d.biometria.length + d.formulario.length + d.treinamento.length + d.conferir.length + d.cnpjVoltou.length
+  const total = d.senha.length + d.senhaEquipe.length + d.biometria.length + d.formulario.length + d.treinamento.length + d.conferir.length + d.cnpjVoltou.length
 
   return (
     <main>
@@ -151,6 +159,7 @@ export default async function ExcecoesPage() {
 
       <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <Card label="🔑 Senha pendente" value={d.senha.length} href="#senha" cor="var(--red)" />
+        <Card label="👤 Usuário da equipe não veio" value={d.senhaEquipe.length} href="#senha-equipe" cor="var(--red)" />
         <Card label="🪪 Biometria parada" value={d.biometria.length} href="#biometria" cor="var(--yellow)" />
         <Card label="📋 Formulário sem resposta" value={d.formulario.length} href="#formulario" cor="var(--yellow)" />
         <Card label="🎓 Treinamento sem resposta" value={d.treinamento.length} href="#treinamento" cor="var(--yellow)" />
@@ -170,6 +179,21 @@ export default async function ExcecoesPage() {
             <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
             <td style={{ ...td, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
               {fmtData(l.desde)} · <b style={{ color: l.dias >= 10 ? 'var(--red)' : 'var(--yellow)' }}>{l.dias} dia(s) útil(eis)</b>
+            </td>
+          </ClickableRow>
+        ))}</tbody>
+      </Secao>
+
+      <Secao id="senha-equipe" titulo="👤 Usuário de vendedor/gerente pedido e a senha não veio" count={d.senhaEquipe.length}
+        oque="o sócio pediu o usuário pelo Live Chat da AIVA e o SMS com a senha não chegou (spam já conferido, prazo de 2 dias vencido)"
+        acao="Cobrar a AIVA (Live Chat/Edu) com nome, função e data do pedido. ⚠️ Reenviar a senha do SÓCIO não resolve — não cria usuário. A VictorIA não promete retorno.">
+        {cabecalho('Acionado')}
+        <tbody>{d.senhaEquipe.map((l) => (
+          <ClickableRow key={l.id} leadId={l.id}>
+            <Ident l={l} />
+            <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.quem || l.status}</td>
+            <td style={{ ...td, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              {fmtData(l.desde)} · <b style={{ color: l.dias >= 5 ? 'var(--red)' : 'var(--yellow)' }}>{l.dias} dia(s)</b>
             </td>
           </ClickableRow>
         ))}</tbody>
