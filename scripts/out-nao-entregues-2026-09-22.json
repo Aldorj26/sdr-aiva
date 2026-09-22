@@ -1,0 +1,6092 @@
+{
+ "entregues": 23,
+ "naoEntregues": [
+  {
+   "lead_id": "73dbbd3f-6175-42e2-be34-367f1ce8720f",
+   "nome": "Getulio Cell",
+   "telefone": "5591981150112",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17241",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Getulio, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU5MTgxMTUwMTEyFQIAERgSNzc0ODcxMDk3MEI3Mzc5QTUyAA=="
+  },
+  {
+   "lead_id": "0f68e8bd-3a5e-4a0c-bab1-f3e398a956eb",
+   "nome": "Mobile Telecom",
+   "telefone": "556484238501",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17620",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Geovane, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU2NDg0MjM4NTAxFQIAERgSMUY0RTQ0OTRCN0UyNUFEQUNFAA=="
+  },
+  {
+   "lead_id": "5e2ea844-9209-4899-990b-c18b988e16a1",
+   "nome": "Mais Case Cell",
+   "telefone": "5521988054638",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18528",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Ingrid, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma d",
+   "wamid": "wamid.HBgNNTUyMTk4ODA1NDYzOBUCABEYEkNERDdENkE5RDY3MkMwNjQ1MQA="
+  },
+  {
+   "lead_id": "14c1d193-5282-4ac1-b336-cbc4688fd45a",
+   "nome": "Evolucell",
+   "telefone": "554991202315",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18122",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Matheus, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU0OTkxMjAyMzE1FQIAERgSRUY1NjgwMDc4NjJGOENEM0NCAA=="
+  },
+  {
+   "lead_id": "c5a339f5-08d8-4527-92ee-7177f991f001",
+   "nome": "Gzimports",
+   "telefone": "5565992090481",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17512",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Ezequias, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma",
+   "wamid": "wamid.HBgMNTU2NTkyMDkwNDgxFQIAERgSRjRCMTJGRTZBMzA3QzcyOTAzAA=="
+  },
+  {
+   "lead_id": "da7721bf-b84d-4c14-bb16-2ce1a9e9a456",
+   "nome": "Smart Pampulha",
+   "telefone": "553175761672",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17586",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Thiago, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma d",
+   "wamid": "wamid.HBgMNTUzMTc1NzYxNjcyFQIAERgSMjk1NDI4NUJCMEMzMDk1M0Y5AA=="
+  },
+  {
+   "lead_id": "d9cea8ce-c1d3-4437-953f-cdf6ce1a3e8b",
+   "nome": "Clínica do Celular Pérola D'Oeste",
+   "telefone": "554699285085",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17956",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Eduardo, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU0Njk5Mjg1MDg1FQIAERgSQUI2RkQyNzY4QkU1QUJCRkE2AA=="
+  },
+  {
+   "lead_id": "94485b83-b010-45f3-9f79-0081540c2189",
+   "nome": "Flow Tech",
+   "telefone": "556384011063",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17779",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Augusto, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU2Mzg0MDExMDYzFQIAERgSQUVBMjRFMEE0RTgwMTFCMjJGAA=="
+  },
+  {
+   "lead_id": "f4badec0-c4dd-4e14-ac21-e6c7eae3e275",
+   "nome": "Geminy Celulares",
+   "telefone": "5516974006670",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17600",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Marcelo, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgNNTUxNjk3NDAwNjY3MBUCABEYEkI4Q0IzNTNFNEI3NjYxMTcyQgA="
+  },
+  {
+   "lead_id": "c096e1f7-e878-4e3b-ad8f-2e62930ab6c6",
+   "nome": "Acessórios Fácil Celular",
+   "telefone": "5591983858477",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17161",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Alexandre, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou algum",
+   "wamid": "wamid.HBgMNTU5MTgzODU4NDc3FQIAERgSODYwRjMwQkFEMTAzOEMzN0NGAA=="
+  },
+  {
+   "lead_id": "0a82ea7f-559a-433e-9293-93f1265466f8",
+   "nome": "Beta Cell",
+   "telefone": "5541995526926",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17814",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Keven, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgMNTU0MTk1NTI2OTI2FQIAERgSMDU4QjU4RTI5NTRERjk0MjNFAA=="
+  },
+  {
+   "lead_id": "426563b9-a92f-45c6-a34f-03ccb75c6019",
+   "nome": "Vip celular",
+   "telefone": "556291062955",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "16880",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Kathelly, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma",
+   "wamid": "wamid.HBgMNTU2MjkxMDYyOTU1FQIAERgSNDc3MTAwQTcxMTc3MzEyNThFAA=="
+  },
+  {
+   "lead_id": "180f4ee1-f3cd-4407-b449-c6105420cf58",
+   "nome": "Multicell",
+   "telefone": "555196476226",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18304",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Lucas, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgMNTU1MTk2NDc2MjI2FQIAERgSMjkxNkNCRDgxNUEyODQ1N0MyAA=="
+  },
+  {
+   "lead_id": "95426f87-10c8-486d-b7f9-9782c835d0b5",
+   "nome": "Andcell Assistencia",
+   "telefone": "5585989402367",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18457",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Anderson, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma",
+   "wamid": "wamid.HBgMNTU4NTg5NDAyMzY3FQIAERgSMDM4RkFCNjAyQ0IwQkM3RkYwAA=="
+  },
+  {
+   "lead_id": "942c694b-5899-4537-9bd9-7e716790db56",
+   "nome": "Litoranea Móveis",
+   "telefone": "557381148519",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18116",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Débora, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma d",
+   "wamid": "wamid.HBgMNTU3MzgxMTQ4NTE5FQIAERgSQ0M0NDhGQjYzMjQ5NUMwNUZEAA=="
+  },
+  {
+   "lead_id": "eda182fc-8379-42bf-b880-adc1c7861716",
+   "nome": "Clínica do Celular",
+   "telefone": "554998164542",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17939",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Joe, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dúvi",
+   "wamid": "wamid.HBgMNTU0OTk4MTY0NTQyFQIAERgSQzg4NzYyODVFNDQ0QTYyMTJFAA=="
+  },
+  {
+   "lead_id": "645c71f4-bb60-407b-bba4-d7fcfc370be3",
+   "nome": "Cm Cell",
+   "telefone": "5591981241477",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17189",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Carlos, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma d",
+   "wamid": "wamid.HBgMNTU5MTgxMjQxNDc3FQIAERgSMUQ0QkE3Mjg3MTA2QjNFRURGAA=="
+  },
+  {
+   "lead_id": "560b18b6-82f0-4d30-938a-edd542c87cc9",
+   "nome": "Digital Home",
+   "telefone": "555195180375",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18134",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Ismael, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma d",
+   "wamid": "wamid.HBgMNTU1MTk1MTgwMzc1FQIAERgSMjQxNDFDNTlEQ0JFQTRGMDFFAA=="
+  },
+  {
+   "lead_id": "fa199dde-2d9c-425c-9384-6bdcfa42e36b",
+   "nome": "ICM Informática e Acessórios",
+   "telefone": "555497100431",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17783",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Claudir, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU1NDk3MTAwNDMxFQIAERgSQTgwNzFDQ0Q2NkE3RTc1Qzc3AA=="
+  },
+  {
+   "lead_id": "a697a5bc-5fef-4b75-86f2-33b5970d4bc9",
+   "nome": "Android Cell",
+   "telefone": "5516997286924",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17569",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Edgar, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgNNTUxNjk5NzI4NjkyNBUCABEYEjY4OTQxQTEzODY0MjNBODc3NgA="
+  },
+  {
+   "lead_id": "72a59059-584c-4854-a69b-c20a7a6c16bc",
+   "nome": "Lm celulares",
+   "telefone": "554796467880",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18301",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Lucas, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgMNTU0Nzk2NDY3ODgwFQIAERgSNDNDNjJDNDAyQ0NGOUZGOEYzAA=="
+  },
+  {
+   "lead_id": "5e59a28b-200b-4091-9ba8-18dac1833a8f",
+   "nome": "NegoApple",
+   "telefone": "5511949426681",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17949",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Orlei, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgNNTUxMTk0OTQyNjY4MRUCABEYEjZENTc2QjlERjc2QTYzRUU3QgA="
+  },
+  {
+   "lead_id": "c49a0e20-9962-40ac-80ec-47c7fde919d4",
+   "nome": "PlayCell Assistência Técnica",
+   "telefone": "5541984521265",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18198",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Josiane, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU0MTg0NTIxMjY1FQIAERgSMkRERDYyMUIxMkE4MUYxREIxAA=="
+  },
+  {
+   "lead_id": "4830d2bb-ebd0-4e78-baf7-dcd0c215e660",
+   "nome": "Xomano Smart",
+   "telefone": "5565981143276",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17718",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi João, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dúv",
+   "wamid": "wamid.HBgMNTU2NTgxMTQzMjc2FQIAERgSQzZGQzFERUE5QjBFNERCOTA4AA=="
+  },
+  {
+   "lead_id": "3cbca437-7a7a-496d-b4c7-e09a1b7f5d4e",
+   "nome": "Lucas iPhone",
+   "telefone": "558788080023",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17589",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Sol, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dúvi",
+   "wamid": "wamid.HBgMNTU4Nzg4MDgwMDIzFQIAERgSOEZGRTNBMkYwN0NEMzVDQUNDAA=="
+  },
+  {
+   "lead_id": "f5001b67-6176-4692-b2d8-5d6ea5feedba",
+   "nome": "Connect 7",
+   "telefone": "559391286078",
+   "status": "DESCARTADO",
+   "chat": "13352",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi André, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgMNTU5MzkxMjg2MDc4FQIAERgSRDUwOTQyMzk1NjNENjQwNUQwAA=="
+  },
+  {
+   "lead_id": "3d2b6197-c93f-4913-95ae-89c45f0f50b2",
+   "nome": "Planeta Cell",
+   "telefone": "5591992441569",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17367",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Elias, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma dú",
+   "wamid": "wamid.HBgMNTU5MTkyNDQxNTY5FQIAERgSQjI0NTcyRjE0OTg2QjlBRUE0AA=="
+  },
+  {
+   "lead_id": "fd8dcfe2-7ce7-4419-ac4b-f4bb4da0dd5b",
+   "nome": "Cleyton Barbosa informática Ltda",
+   "telefone": "553496803726",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17787",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Cleyton, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTUzNDk2ODAzNzI2FQIAERgSQkQ5REQzNDE1RTVCNzY3NTlFAA=="
+  },
+  {
+   "lead_id": "73ade250-8ecc-4294-b4b2-5cfd3333be9b",
+   "nome": "CellStory Curitiba",
+   "telefone": "5541988535899",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17856",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Priscila, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma",
+   "wamid": "wamid.HBgMNTU0MTg4NTM1ODk5FQIAERgSRENCMTFGNzZGQjE1QjcyN0YzAA=="
+  },
+  {
+   "lead_id": "90baab03-6905-4370-8b0c-62ff0b1e0acd",
+   "nome": "King Informática",
+   "telefone": "558387209502",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18124",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Ricardo, tudo bem?\nPassando pra lembrar do formulário da AIVA: é rapidinho e é ele que libera o crediário na sua loja. Travou em algum campo ou ficou alguma ",
+   "wamid": "wamid.HBgMNTU4Mzg3MjA5NTAyFQIAERgSN0Y3MkIyNjZGQzU5NjFGQUMzAA=="
+  },
+  {
+   "lead_id": "351981df-2dd0-48a5-b7b6-bd0d3f3b2df5",
+   "nome": "Prime",
+   "telefone": "557991753640",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17951",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Alex, tudo bem?\nSeu cadastro na AIVA já foi aprovado e agora só falta preencher o formulário do varejo pra liberar a plataforma na sua loja. Conseguiu abrir ",
+   "wamid": "wamid.HBgMNTU3OTkxNzUzNjQwFQIAERgSRTM3QkQyMjA2MUY5ODMyNjQyAA=="
+  },
+  {
+   "lead_id": "8d9e616c-1679-4b21-90a4-7bf4eef8d165",
+   "nome": "Loja",
+   "telefone": "5547991091138",
+   "status": "INICIO",
+   "chat": "20327",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5547991091138]",
+   "wamid": "wamid.HBgMNTU0NzkxMDkxMTM4FQIAERgSMDU3QjZGM0VFM0Y0MEIyOTQyAA=="
+  },
+  {
+   "lead_id": "bfb70f6e-576a-47de-89f4-7dc6cc348ab3",
+   "nome": "IPHONE CLUB",
+   "telefone": "558881759527",
+   "status": "TREINAR",
+   "chat": "16863",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Cleberson, tudo bem?\nPassando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são quarta 23/09, ",
+   "wamid": "wamid.HBgMNTU4ODgxNzU5NTI3FQIAERgSQTU2NDkxOTZBMTI3MkNEMjg1AA=="
+  },
+  {
+   "lead_id": "2f20f013-7296-47e4-9092-84eaba046f6f",
+   "nome": "SK Cell Acessórios",
+   "telefone": "5585988334106",
+   "status": "TREINAR",
+   "chat": "19035",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Samuel, tudo bem?\nPassando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são quarta 23/09, 9h3",
+   "wamid": "wamid.HBgMNTU4NTg4MzM0MTA2FQIAERgSOTY5M0EzRUQzOTI5MkFEMkJGAA=="
+  },
+  {
+   "lead_id": "11c6dff2-280b-4cfd-880e-9f6afafa08b7",
+   "nome": "LT CELL IMPORTS",
+   "telefone": "5541997496021",
+   "status": "TREINAR",
+   "chat": "18043",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Leandro, tudo bem?\nPassando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são quarta 23/09, 9h",
+   "wamid": "wamid.HBgMNTU0MTk3NDk2MDIxFQIAERgSQjRFN0U5NDQ1NEUwNkJGNzc5AA=="
+  },
+  {
+   "lead_id": "ea6117e9-73ed-4f91-ab55-e36b2b2dcf14",
+   "nome": "Rotec Assistência técnica",
+   "telefone": "555196376426",
+   "status": "TREINAR",
+   "chat": "17585",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Rodrigo, tudo bem?\nPassando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são quarta 23/09, 9h",
+   "wamid": "wamid.HBgMNTU1MTk2Mzc2NDI2FQIAERgSRDc4OUUwQTY5OTU3QTFCOTc3AA=="
+  },
+  {
+   "lead_id": "a77656c2-dc65-4cee-9251-234944873f15",
+   "nome": "Conserta Center",
+   "telefone": "558199377199",
+   "status": "TREINAR",
+   "chat": "15490",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi José, tudo bem?\nPassando pra saber se você já conseguiu participar do treinamento da AIVA. Se ainda não deu tempo, as próximas turmas são quarta 23/09, 9h30 ",
+   "wamid": "wamid.HBgMNTU4MTk5Mzc3MTk5FQIAERgSNDU4MzBGOUIyNjNDNEQxNkYwAA=="
+  },
+  {
+   "lead_id": "be6c06d4-72a0-405b-aded-dae818d504e6",
+   "nome": "Dragon Cell",
+   "telefone": "5565993525359",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17487",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Michel, tudo bem?\nÚltima lembrança por aqui: seu cadastro na AIVA está quase pronto, falta só o reconhecimento facial. Sem ele a loja não é liberada pra vend",
+   "wamid": "wamid.HBgMNTU2NTkzNTI1MzU5FQIAERgSNkRGRDhBNjE5ODcxNDYwNThGAA=="
+  },
+  {
+   "lead_id": "542955ac-dfae-4465-847a-bba6ca4a4702",
+   "nome": "Importech",
+   "telefone": "5521999500985",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "17622",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Diego, tudo bem?\nÚltima lembrança por aqui: seu cadastro na AIVA está quase pronto, falta só o reconhecimento facial. Sem ele a loja não é liberada pra vende",
+   "wamid": "wamid.HBgNNTUyMTk5OTUwMDk4NRUCABEYEjYwRTZFMUM5OTZGMUM4MkFGNwA="
+  },
+  {
+   "lead_id": "b9456f78-3934-49d4-80fe-b3a8989bb2be",
+   "nome": "Pixelsmartphones",
+   "telefone": "5541999007738",
+   "status": "EM_ANALISE_AIVA",
+   "chat": "18173",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "Oi Cleyton, tudo bem?\nÚltima lembrança por aqui: seu cadastro na AIVA está quase pronto, falta só o reconhecimento facial. Sem ele a loja não é liberada pra ven",
+   "wamid": "wamid.HBgMNTU0MTk5MDA3NzM4FQIAERgSNkJENzkwNzIzNzEyRTMwQkJFAA=="
+  },
+  {
+   "lead_id": "fb04ba59-aba2-4981-845c-8074ff5eedff",
+   "nome": "4MCELL",
+   "telefone": "5562983425235",
+   "status": "OPT_OUT",
+   "chat": "19193",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "[Cobrança Cadastro Recebido — toque 1/3]",
+   "wamid": "wamid.HBgMNTU2MjgzNDI1MjM1FQIAERgSMzc5MEQ5NjQxNkI4OTM4RTg2AA=="
+  },
+  {
+   "lead_id": "dcc822fe-33e4-4731-b9ee-ed12108c9983",
+   "nome": "Davi Cell",
+   "telefone": "5562994942819",
+   "status": "OPT_OUT",
+   "chat": "19504",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "[Cobrança Cadastro Recebido — toque 1/3]",
+   "wamid": "wamid.HBgMNTU2Mjk0OTQyODE5FQIAERgSODQ5RUUxNjNFODQ3NkMxOUFGAA=="
+  },
+  {
+   "lead_id": "7d729e73-d589-49a9-914f-2bac17ca8b9d",
+   "nome": "Hunter Promo",
+   "telefone": "559192445141",
+   "status": "DESCARTADO",
+   "chat": "17567",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "[Info pendente (manual via painel, HSM) — Glauber]",
+   "wamid": "wamid.HBgMNTU5MTkyNDQ1MTQxFQIAERgSMkI3QTM1RkI2NjY4RUMxRjZBAA=="
+  },
+  {
+   "lead_id": "2470b4bb-4700-4f58-8575-ed9b0cf1f642",
+   "nome": "Loja",
+   "telefone": "5583998841432",
+   "status": "INICIO",
+   "chat": "20538",
+   "templates": [
+    "aiva_campanha",
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA reenviado para 5583998841432 — teste pós-pagamento Meta]",
+   "wamid": "wamid.HBgMNTU4Mzk4ODQxNDMyFQIAERgSMDcwMzU4OUE5NUMyRTdEQjlFAA=="
+  },
+  {
+   "lead_id": "9d2899e7-e8a0-4b5e-a969-5a59659751b3",
+   "nome": "Loja",
+   "telefone": "5583993831920",
+   "status": "INICIO",
+   "chat": "20540",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993831920]",
+   "wamid": "wamid.HBgMNTU4MzkzODMxOTIwFQIAERgSMTRBOUQzQkMyRTQ2OUZBN0EzAA=="
+  },
+  {
+   "lead_id": "5aab1bca-930a-4d61-94c5-6418cd1f33ff",
+   "nome": "Loja",
+   "telefone": "5583981559991",
+   "status": "INICIO",
+   "chat": "20541",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981559991]",
+   "wamid": "wamid.HBgMNTU4MzgxNTU5OTkxFQIAERgSRDk1RTQyQzcyOTA0M0EzNjQ2AA=="
+  },
+  {
+   "lead_id": "79392dce-934d-415f-828e-795dd98b6c1b",
+   "nome": "Loja",
+   "telefone": "5583988060595",
+   "status": "INICIO",
+   "chat": "20542",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988060595]",
+   "wamid": "wamid.HBgMNTU4Mzg4MDYwNTk1FQIAERgSMDg5NUU2NzBCQjFFREIzNTc1AA=="
+  },
+  {
+   "lead_id": "315122b1-9c77-4384-b714-1c6ef38c86f7",
+   "nome": "Loja",
+   "telefone": "5583999806400",
+   "status": "INICIO",
+   "chat": "20543",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583999806400]",
+   "wamid": "wamid.HBgMNTU4Mzk5ODA2NDAwFQIAERgSOTAyQjg0RkNBMEY4RDFEQTZBAA=="
+  },
+  {
+   "lead_id": "0be7fa79-f33e-482c-8a59-94106f51ac21",
+   "nome": "Loja",
+   "telefone": "5583996351234",
+   "status": "INICIO",
+   "chat": "20544",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996351234]",
+   "wamid": "wamid.HBgMNTU4Mzk2MzUxMjM0FQIAERgSOTMwRTA0RjUzQzE2Rjk4QkYwAA=="
+  },
+  {
+   "lead_id": "fcb318ab-67f0-4b37-826e-e6def3d5c1bf",
+   "nome": "Loja",
+   "telefone": "5583998340065",
+   "status": "INICIO",
+   "chat": "20545",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998340065]",
+   "wamid": "wamid.HBgMNTU4Mzk4MzQwMDY1FQIAERgSMjFBMzY2NzYxODlDM0I3QURDAA=="
+  },
+  {
+   "lead_id": "f26e6b99-0a3c-40cb-9da1-1c8b87a75a66",
+   "nome": "Loja",
+   "telefone": "5583987413979",
+   "status": "INICIO",
+   "chat": "20546",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987413979]",
+   "wamid": "wamid.HBgMNTU4Mzg3NDEzOTc5FQIAERgSRUY1QjcwQjc5NTczMTY4QjhFAA=="
+  },
+  {
+   "lead_id": "91c21313-8774-43a8-8b95-91b8aa605f89",
+   "nome": "Loja",
+   "telefone": "5583981367458",
+   "status": "INICIO",
+   "chat": "20547",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981367458]",
+   "wamid": "wamid.HBgMNTU4MzgxMzY3NDU4FQIAERgSOTM4RDYxNjczOTM2NUEwNkYyAA=="
+  },
+  {
+   "lead_id": "b8ed95ce-d4d8-4909-934c-3a395ca7ce6c",
+   "nome": "Loja",
+   "telefone": "5583988815968",
+   "status": "INICIO",
+   "chat": "20548",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988815968]",
+   "wamid": "wamid.HBgMNTU4Mzg4ODE1OTY4FQIAERgSNzUwQzlDQTRDMzhBODZGNTVGAA=="
+  },
+  {
+   "lead_id": "14d3981a-5c97-49c0-aa65-b64800239ac9",
+   "nome": "Loja",
+   "telefone": "5583981246070",
+   "status": "INICIO",
+   "chat": "20549",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981246070]",
+   "wamid": "wamid.HBgMNTU4MzgxMjQ2MDcwFQIAERgSNEMyRkIwRUZDNkI5MzY5QzJEAA=="
+  },
+  {
+   "lead_id": "56644760-d2f3-4cb6-a8a1-ca391ceac2c0",
+   "nome": "Loja",
+   "telefone": "5583988608778",
+   "status": "INICIO",
+   "chat": "20550",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988608778]",
+   "wamid": "wamid.HBgMNTU4Mzg4NjA4Nzc4FQIAERgSREM2NEQxQTgxNEMyNjg3RDVFAA=="
+  },
+  {
+   "lead_id": "9bad6871-c4f2-45ed-8bf0-82a53c74cfc7",
+   "nome": "Loja",
+   "telefone": "5583986526642",
+   "status": "INICIO",
+   "chat": "20551",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986526642]",
+   "wamid": "wamid.HBgMNTU4Mzg2NTI2NjQyFQIAERgSNEU0NjFGRjNDRURDODgxODYyAA=="
+  },
+  {
+   "lead_id": "ac4c246f-0d7b-449a-a1cb-e554bc10445d",
+   "nome": "Loja",
+   "telefone": "5583996081179",
+   "status": "INICIO",
+   "chat": "20552",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996081179]",
+   "wamid": "wamid.HBgMNTU4Mzk2MDgxMTc5FQIAERgSRDI3MDhEMUUyODczMzQ5QjU5AA=="
+  },
+  {
+   "lead_id": "08491a29-a700-46cf-bc44-dad427835bd7",
+   "nome": "Loja",
+   "telefone": "5583988861231",
+   "status": "INICIO",
+   "chat": "20553",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988861231]",
+   "wamid": "wamid.HBgMNTU4Mzg4ODYxMjMxFQIAERgSNTkxMUQ3QzNDNDhGNTRGQjc5AA=="
+  },
+  {
+   "lead_id": "6a52e696-4b4c-47ab-9ed0-34af4023bbc7",
+   "nome": "Loja",
+   "telefone": "5583991827413",
+   "status": "INICIO",
+   "chat": "20554",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583991827413]",
+   "wamid": "wamid.HBgMNTU4MzkxODI3NDEzFQIAERgSNDQ5QTRCNEVEODk3QjUwODFGAA=="
+  },
+  {
+   "lead_id": "8fa4900a-8f5c-4ad3-9cf0-6ae64a91802c",
+   "nome": "Loja",
+   "telefone": "5583988356047",
+   "status": "INICIO",
+   "chat": "20555",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988356047]",
+   "wamid": "wamid.HBgMNTU4Mzg4MzU2MDQ3FQIAERgSQkZDRTFFMThBNjgyNEFCNDg2AA=="
+  },
+  {
+   "lead_id": "ddf0a012-4903-4292-8869-f0a56ae627db",
+   "nome": "Loja",
+   "telefone": "5583986002861",
+   "status": "INICIO",
+   "chat": "20556",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986002861]",
+   "wamid": "wamid.HBgMNTU4Mzg2MDAyODYxFQIAERgSNUExRjQ0MzdDN0YwRDc5OUEzAA=="
+  },
+  {
+   "lead_id": "658d107c-0905-40b6-8546-718a56e20041",
+   "nome": "Loja",
+   "telefone": "5583998013694",
+   "status": "INICIO",
+   "chat": "20557",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998013694]",
+   "wamid": "wamid.HBgMNTU4Mzk4MDEzNjk0FQIAERgSODZCREEyRUYwNThGNDc0RTREAA=="
+  },
+  {
+   "lead_id": "0bdfb302-c993-4016-b196-886829acf63b",
+   "nome": "Loja",
+   "telefone": "5583993057757",
+   "status": "INICIO",
+   "chat": "20558",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993057757]",
+   "wamid": "wamid.HBgMNTU4MzkzMDU3NzU3FQIAERgSMzZCODg2RUYwMEFFNTQwREI4AA=="
+  },
+  {
+   "lead_id": "2c17a445-9a1b-404c-8ec9-8d01b1614039",
+   "nome": "Loja",
+   "telefone": "5583999285951",
+   "status": "INICIO",
+   "chat": "20559",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583999285951]",
+   "wamid": "wamid.HBgMNTU4Mzk5Mjg1OTUxFQIAERgSMzQzNEE4OURFMDlBOURFOEVDAA=="
+  },
+  {
+   "lead_id": "b2c60abd-8fd4-4233-b38b-beeedd214b10",
+   "nome": "Loja",
+   "telefone": "5583987244792",
+   "status": "INICIO",
+   "chat": "20560",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987244792]",
+   "wamid": "wamid.HBgMNTU4Mzg3MjQ0NzkyFQIAERgSRUYzQ0M0NjNDOTcyNDEwRjI1AA=="
+  },
+  {
+   "lead_id": "6f90cafd-93ea-4d60-8c99-b8318b9f193c",
+   "nome": "Loja",
+   "telefone": "5583996748858",
+   "status": "INICIO",
+   "chat": "20561",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996748858]",
+   "wamid": "wamid.HBgMNTU4Mzk2NzQ4ODU4FQIAERgSMkY5NzNCRDkyRUM0Q0FERUE2AA=="
+  },
+  {
+   "lead_id": "06f7b4a2-4779-4cf3-96b7-f277b58eaf0d",
+   "nome": "Loja",
+   "telefone": "5583998129188",
+   "status": "INICIO",
+   "chat": "20562",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998129188]",
+   "wamid": "wamid.HBgMNTU4Mzk4MTI5MTg4FQIAERgSQzdFREY1OEVBN0MxMEM4NzFDAA=="
+  },
+  {
+   "lead_id": "d898386a-e47d-481a-8deb-76ddbbe54bd6",
+   "nome": "Loja",
+   "telefone": "5583987180099",
+   "status": "INICIO",
+   "chat": "20563",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987180099]",
+   "wamid": "wamid.HBgMNTU4Mzg3MTgwMDk5FQIAERgSQTZDQkZEMkNCMjgxODNDQTY3AA=="
+  },
+  {
+   "lead_id": "7e049a0c-640f-4dd0-b878-ef2e5a9e6390",
+   "nome": "Loja",
+   "telefone": "5583988220157",
+   "status": "INICIO",
+   "chat": "20564",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988220157]",
+   "wamid": "wamid.HBgMNTU4Mzg4MjIwMTU3FQIAERgSNkI5QzBCQzQxM0I2NjkyQTAxAA=="
+  },
+  {
+   "lead_id": "d8062c72-276e-403b-9333-bde58d040bd8",
+   "nome": "Loja",
+   "telefone": "5583986637684",
+   "status": "INICIO",
+   "chat": "20565",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986637684]",
+   "wamid": "wamid.HBgMNTU4Mzg2NjM3Njg0FQIAERgSODQ4NjE2MUUzNzdGMTlCNDMyAA=="
+  },
+  {
+   "lead_id": "0d6039b4-e8da-4e84-940a-106d8d88225c",
+   "nome": "Loja",
+   "telefone": "5583999207110",
+   "status": "INICIO",
+   "chat": "20566",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583999207110]",
+   "wamid": "wamid.HBgMNTU4Mzk5MjA3MTEwFQIAERgSRDhEREJFRTBENkUzQTY1NzFDAA=="
+  },
+  {
+   "lead_id": "94e0b44d-28a2-4424-8599-4c3b4d6440ce",
+   "nome": "Loja",
+   "telefone": "5583996084972",
+   "status": "INICIO",
+   "chat": "20567",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996084972]",
+   "wamid": "wamid.HBgMNTU4Mzk2MDg0OTcyFQIAERgSMENBQUI0NzI4RUQ3NEQ5QUNDAA=="
+  },
+  {
+   "lead_id": "48098271-7fe8-44ab-acc0-70a866cc98cd",
+   "nome": "Loja",
+   "telefone": "5582982114535",
+   "status": "INICIO",
+   "chat": "20568",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982114535]",
+   "wamid": "wamid.HBgMNTU4MjgyMTE0NTM1FQIAERgSMkNDN0VGNzdEMzhFNkNFRTNFAA=="
+  },
+  {
+   "lead_id": "2f1815de-52ed-4ab3-9875-449929f50991",
+   "nome": "Loja",
+   "telefone": "5583986219595",
+   "status": "INICIO",
+   "chat": "20569",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986219595]",
+   "wamid": "wamid.HBgMNTU4Mzg2MjE5NTk1FQIAERgSOTNFNDVCQjIxQTMzMUQ4RjhCAA=="
+  },
+  {
+   "lead_id": "0d975065-a904-41e1-ad3d-1421fae1753e",
+   "nome": "Loja",
+   "telefone": "5583998005650",
+   "status": "INICIO",
+   "chat": "20570",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998005650]",
+   "wamid": "wamid.HBgMNTU4Mzk4MDA1NjUwFQIAERgSODJCQjFDMTA2QkY3NEUyODAxAA=="
+  },
+  {
+   "lead_id": "9c7fc227-0dfb-40ce-93a1-d318200c5442",
+   "nome": "Loja",
+   "telefone": "5583986413865",
+   "status": "INICIO",
+   "chat": "20571",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986413865]",
+   "wamid": "wamid.HBgMNTU4Mzg2NDEzODY1FQIAERgSN0Q2NTkyMDFBQURGOUFCMDI5AA=="
+  },
+  {
+   "lead_id": "dea33c88-6349-43d2-8d86-f00633506ec2",
+   "nome": "Loja",
+   "telefone": "5583991890237",
+   "status": "INICIO",
+   "chat": "20572",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583991890237]",
+   "wamid": "wamid.HBgMNTU4MzkxODkwMjM3FQIAERgSNEM3RDJGMjg5M0NGMTNDQTJFAA=="
+  },
+  {
+   "lead_id": "6957edc3-facd-4ade-8f80-50fdd9601a77",
+   "nome": "Loja",
+   "telefone": "5583998667850",
+   "status": "INICIO",
+   "chat": "20573",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998667850]",
+   "wamid": "wamid.HBgMNTU4Mzk4NjY3ODUwFQIAERgSMEU2RjQ3MUM0MDBFQjI4Q0Y3AA=="
+  },
+  {
+   "lead_id": "dd7ff84e-72fd-43e6-97d5-26e1d8df4d76",
+   "nome": "Loja",
+   "telefone": "5583996151956",
+   "status": "INICIO",
+   "chat": "20574",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996151956]",
+   "wamid": "wamid.HBgMNTU4Mzk2MTUxOTU2FQIAERgSMzFCMDVCNjhENzUzQTRBMjhBAA=="
+  },
+  {
+   "lead_id": "869def91-71be-4732-be2f-97d97c36fdde",
+   "nome": "Loja",
+   "telefone": "5583981821101",
+   "status": "INICIO",
+   "chat": "20575",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981821101]",
+   "wamid": "wamid.HBgMNTU4MzgxODIxMTAxFQIAERgSNTYzN0NFREQ2QTk4OUM5MUUwAA=="
+  },
+  {
+   "lead_id": "f171404e-f372-4976-895b-2bcda9e5f13c",
+   "nome": "Loja",
+   "telefone": "5583998100649",
+   "status": "INICIO",
+   "chat": "20576",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998100649]",
+   "wamid": "wamid.HBgMNTU4Mzk4MTAwNjQ5FQIAERgSMjREMUZDMTlFMkU5QzJEMUI3AA=="
+  },
+  {
+   "lead_id": "2f1fa8c7-1ca3-4503-af59-a5a49265e459",
+   "nome": "Loja",
+   "telefone": "5583998931401",
+   "status": "INICIO",
+   "chat": "20577",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998931401]",
+   "wamid": "wamid.HBgMNTU4Mzk4OTMxNDAxFQIAERgSQzY4NjA0ODk2MTI5MDgwMkFDAA=="
+  },
+  {
+   "lead_id": "35228b7c-6c37-4def-a6e5-8a102f8704dd",
+   "nome": "Loja",
+   "telefone": "5583996380302",
+   "status": "INICIO",
+   "chat": "20578",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996380302]",
+   "wamid": "wamid.HBgMNTU4Mzk2MzgwMzAyFQIAERgSNzgxOTdBOEQ1RkFEOUM2NTQyAA=="
+  },
+  {
+   "lead_id": "42f2983b-9f44-4b05-a80b-44dee174cf06",
+   "nome": "Loja",
+   "telefone": "5583986270176",
+   "status": "INICIO",
+   "chat": "20579",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986270176]",
+   "wamid": "wamid.HBgMNTU4Mzg2MjcwMTc2FQIAERgSOEEyNUJEMUM3NzJERjg3MDVEAA=="
+  },
+  {
+   "lead_id": "5b352f9f-9c62-4201-89b4-86cd6dee2108",
+   "nome": "Loja",
+   "telefone": "5583993050214",
+   "status": "INICIO",
+   "chat": "20580",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993050214]",
+   "wamid": "wamid.HBgMNTU4MzkzMDUwMjE0FQIAERgSQjQ4NUU5RkNGMTYwRUExNzA3AA=="
+  },
+  {
+   "lead_id": "ca853459-93f9-482f-b4ba-5177cb703fa8",
+   "nome": "Loja",
+   "telefone": "5583999177561",
+   "status": "INICIO",
+   "chat": "20581",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583999177561]",
+   "wamid": "wamid.HBgMNTU4Mzk5MTc3NTYxFQIAERgSQTg4QzI5OTFFMzdGMTA1ODU3AA=="
+  },
+  {
+   "lead_id": "587ac460-814e-47fb-a62e-1560c5993d87",
+   "nome": "Loja",
+   "telefone": "5583993110427",
+   "status": "INICIO",
+   "chat": "20582",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993110427]",
+   "wamid": "wamid.HBgMNTU4MzkzMTEwNDI3FQIAERgSQjM3RERFQ0EwMzJDOEYwQjI1AA=="
+  },
+  {
+   "lead_id": "ec4c3c60-ec98-4137-a69a-7186261712dc",
+   "nome": "Loja",
+   "telefone": "5583987761791",
+   "status": "INICIO",
+   "chat": "20583",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987761791]",
+   "wamid": "wamid.HBgMNTU4Mzg3NzYxNzkxFQIAERgSMkI4MzAwRUYxMkY5MEIxQTU4AA=="
+  },
+  {
+   "lead_id": "7d955e28-b722-4585-a896-360f4f2a870d",
+   "nome": "Loja",
+   "telefone": "5583996726178",
+   "status": "INICIO",
+   "chat": "20584",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996726178]",
+   "wamid": "wamid.HBgMNTU4Mzk2NzI2MTc4FQIAERgSMzVENkY5NDY1NzE1QjE2RkFCAA=="
+  },
+  {
+   "lead_id": "bb8bdce0-5910-4f86-9e1e-4647eef4ab1b",
+   "nome": "Loja",
+   "telefone": "5583986693649",
+   "status": "INICIO",
+   "chat": "20585",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986693649]",
+   "wamid": "wamid.HBgMNTU4Mzg2NjkzNjQ5FQIAERgSRkI2Mzc4RkI1QThBRkQyRjUyAA=="
+  },
+  {
+   "lead_id": "bdce9fb9-fec4-4696-ab38-b511dffcffd9",
+   "nome": "Loja",
+   "telefone": "5583982015871",
+   "status": "INICIO",
+   "chat": "20586",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583982015871]",
+   "wamid": "wamid.HBgMNTU4MzgyMDE1ODcxFQIAERgSQkU3MjFFREEzOEFGNzU0QUM2AA=="
+  },
+  {
+   "lead_id": "532a6a54-7a8c-412f-974c-fc2b51766636",
+   "nome": "Loja",
+   "telefone": "5583981723490",
+   "status": "INICIO",
+   "chat": "20587",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981723490]",
+   "wamid": "wamid.HBgMNTU4MzgxNzIzNDkwFQIAERgSRUQ4RjVGMTNFRkYyODE4NDUxAA=="
+  },
+  {
+   "lead_id": "cae5eea5-d606-4ae1-82c7-ed6a234cb273",
+   "nome": "Loja",
+   "telefone": "5583986329587",
+   "status": "INICIO",
+   "chat": "20588",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986329587]",
+   "wamid": "wamid.HBgMNTU4Mzg2MzI5NTg3FQIAERgSODM4NkE3Nzg2MTY2NDY5NTZDAA=="
+  },
+  {
+   "lead_id": "8642d9c4-59d4-46d7-884c-d2d5971377be",
+   "nome": "Loja",
+   "telefone": "5583988090749",
+   "status": "INICIO",
+   "chat": "20589",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988090749]",
+   "wamid": "wamid.HBgMNTU4Mzg4MDkwNzQ5FQIAERgSRERFOEMyQzRCREEyQjI0QTAwAA=="
+  },
+  {
+   "lead_id": "d4c79894-2922-4761-91c5-e35a4642cca7",
+   "nome": "Loja",
+   "telefone": "5583988337898",
+   "status": "INICIO",
+   "chat": "20590",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988337898]",
+   "wamid": "wamid.HBgMNTU4Mzg4MzM3ODk4FQIAERgSMDgxQzdDODAzMzZFOTUzMjhBAA=="
+  },
+  {
+   "lead_id": "fdfc6094-d032-4e7d-8c2c-4e16a0a6fb93",
+   "nome": "Loja",
+   "telefone": "5583994169060",
+   "status": "INICIO",
+   "chat": "20591",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583994169060]",
+   "wamid": "wamid.HBgMNTU4Mzk0MTY5MDYwFQIAERgSQUFBOTZDQjY0MjJFNjhDOEYxAA=="
+  },
+  {
+   "lead_id": "866f8ac9-7856-47c5-be26-2de07c338f79",
+   "nome": "Loja",
+   "telefone": "5583986145597",
+   "status": "INICIO",
+   "chat": "20592",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986145597]",
+   "wamid": "wamid.HBgMNTU4Mzg2MTQ1NTk3FQIAERgSRDdDM0IwRDJBQTBDMjJCRDcwAA=="
+  },
+  {
+   "lead_id": "b239c878-3517-45ae-aa69-f4a66f726192",
+   "nome": "Loja",
+   "telefone": "5583998047283",
+   "status": "INICIO",
+   "chat": "20593",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998047283]",
+   "wamid": "wamid.HBgMNTU4Mzk4MDQ3MjgzFQIAERgSMEREM0VDRkI5Mjg2NTQ0RDE3AA=="
+  },
+  {
+   "lead_id": "9a682d87-5cf8-48de-877f-1f563c4fe2ec",
+   "nome": "Loja",
+   "telefone": "5583991042204",
+   "status": "INICIO",
+   "chat": "20594",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583991042204]",
+   "wamid": "wamid.HBgMNTU4MzkxMDQyMjA0FQIAERgSMDUwODgwOTlGQUQyRURDNTg5AA=="
+  },
+  {
+   "lead_id": "808ca2df-9cac-4028-bb82-23bd2e5b87da",
+   "nome": "Loja",
+   "telefone": "5583988182964",
+   "status": "INICIO",
+   "chat": "20595",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988182964]",
+   "wamid": "wamid.HBgMNTU4Mzg4MTgyOTY0FQIAERgSNDQ0MDUyNkNCQzlGQjk0OUVDAA=="
+  },
+  {
+   "lead_id": "f5d29bbf-2877-4d4b-a495-2ac9a3b93378",
+   "nome": "Loja",
+   "telefone": "5583987444450",
+   "status": "INICIO",
+   "chat": "20596",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987444450]",
+   "wamid": "wamid.HBgMNTU4Mzg3NDQ0NDUwFQIAERgSREE2MTU4OTUzMzQyNDFCRDREAA=="
+  },
+  {
+   "lead_id": "8fe22bc0-54eb-43cc-8c68-22b53f3a9d6a",
+   "nome": "Loja",
+   "telefone": "5583988766182",
+   "status": "INICIO",
+   "chat": "20597",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988766182]",
+   "wamid": "wamid.HBgMNTU4Mzg4NzY2MTgyFQIAERgSNUY4ODc5NkZBNEQxNzYwQUQxAA=="
+  },
+  {
+   "lead_id": "4f6e7e63-ecfa-4ca8-9dec-76f79fb74f13",
+   "nome": "Loja",
+   "telefone": "5511941513783",
+   "status": "INICIO",
+   "chat": "20598",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5511941513783]",
+   "wamid": "wamid.HBgNNTUxMTk0MTUxMzc4MxUCABEYEjlFMkVBRDE5MDY1NzNEMTQxRQA="
+  },
+  {
+   "lead_id": "e98b0394-1217-4ea8-bfec-d4bc5bf66ef5",
+   "nome": "Loja",
+   "telefone": "5583987968729",
+   "status": "INICIO",
+   "chat": "20599",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987968729]",
+   "wamid": "wamid.HBgMNTU4Mzg3OTY4NzI5FQIAERgSQzA1RDVFOUQ3NkYzNjgxRjFGAA=="
+  },
+  {
+   "lead_id": "552a6e98-db87-4c67-84b5-54e2b528a5e6",
+   "nome": "Loja",
+   "telefone": "5583998327142",
+   "status": "INICIO",
+   "chat": "20600",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998327142]",
+   "wamid": "wamid.HBgMNTU4Mzk4MzI3MTQyFQIAERgSNUVFMTBGNEY4RDYzOTc1MjkwAA=="
+  },
+  {
+   "lead_id": "e657013d-49a8-4c5b-8fe9-a73419e7a527",
+   "nome": "Loja",
+   "telefone": "5583988929287",
+   "status": "INICIO",
+   "chat": "20601",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988929287]",
+   "wamid": "wamid.HBgMNTU4Mzg4OTI5Mjg3FQIAERgSNjU5MkM4OTQwNThENUE1NjY2AA=="
+  },
+  {
+   "lead_id": "bcee6c8d-6eab-4492-9bfe-b05020536a90",
+   "nome": "Loja",
+   "telefone": "5583987469969",
+   "status": "INICIO",
+   "chat": "20602",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987469969]",
+   "wamid": "wamid.HBgMNTU4Mzg3NDY5OTY5FQIAERgSOThBM0JBOTRCMDE3NjIxQUQ1AA=="
+  },
+  {
+   "lead_id": "560feee6-a015-4f4e-a398-1045a141470c",
+   "nome": "Loja",
+   "telefone": "5583996238000",
+   "status": "INICIO",
+   "chat": "20603",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996238000]",
+   "wamid": "wamid.HBgMNTU4Mzk2MjM4MDAwFQIAERgSODg0MTA1QzRGRDEyQjZBNkI5AA=="
+  },
+  {
+   "lead_id": "e2946b40-6e83-4829-b355-921bc43bdc46",
+   "nome": "Loja",
+   "telefone": "5583996612104",
+   "status": "INICIO",
+   "chat": "20604",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996612104]",
+   "wamid": "wamid.HBgMNTU4Mzk2NjEyMTA0FQIAERgSM0NGMkNDM0RFRUNDQTNGOUNBAA=="
+  },
+  {
+   "lead_id": "f3d84dc4-e3b9-478d-a8d2-6010c24e6a53",
+   "nome": "Loja",
+   "telefone": "5583986650468",
+   "status": "INICIO",
+   "chat": "20605",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986650468]",
+   "wamid": "wamid.HBgMNTU4Mzg2NjUwNDY4FQIAERgSRjA0MDA5REVDNEVBNDlGQUI4AA=="
+  },
+  {
+   "lead_id": "966f66df-844d-4b8c-aa5b-1619f84f546f",
+   "nome": "Loja",
+   "telefone": "5583986740981",
+   "status": "INICIO",
+   "chat": "20606",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986740981]",
+   "wamid": "wamid.HBgMNTU4Mzg2NzQwOTgxFQIAERgSODUxMEYzQjFFMzM2ODI3MDVGAA=="
+  },
+  {
+   "lead_id": "8a2735a4-c7d7-48a8-bb7b-07a1db968ff2",
+   "nome": "Loja",
+   "telefone": "5583988780757",
+   "status": "INICIO",
+   "chat": "20607",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988780757]",
+   "wamid": "wamid.HBgMNTU4Mzg4NzgwNzU3FQIAERgSMTQwMUIyRTA0MTJDRjAxQjVGAA=="
+  },
+  {
+   "lead_id": "b42e993c-ea96-4588-b7b0-4d6c137cee28",
+   "nome": "Loja",
+   "telefone": "5583988826306",
+   "status": "INICIO",
+   "chat": "20608",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988826306]",
+   "wamid": "wamid.HBgMNTU4Mzg4ODI2MzA2FQIAERgSREI3NEFDMDFGMDE0OEFDQTA4AA=="
+  },
+  {
+   "lead_id": "d54bc873-2848-4b85-9b37-acbb4fca5a6a",
+   "nome": "Loja",
+   "telefone": "5583986450908",
+   "status": "INICIO",
+   "chat": "20609",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986450908]",
+   "wamid": "wamid.HBgMNTU4Mzg2NDUwOTA4FQIAERgSOEZERDlGNkZBMERDOTNDMjdCAA=="
+  },
+  {
+   "lead_id": "d1a06bb1-aa27-4050-9058-81250af684a3",
+   "nome": "Loja",
+   "telefone": "5583998332955",
+   "status": "INICIO",
+   "chat": "20610",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998332955]",
+   "wamid": "wamid.HBgMNTU4Mzk4MzMyOTU1FQIAERgSN0UzQjY2ODE1NEQ2QzVDOEY5AA=="
+  },
+  {
+   "lead_id": "327bd359-737f-4849-b0ee-d0f47c254200",
+   "nome": "Loja",
+   "telefone": "5583986695381",
+   "status": "INICIO",
+   "chat": "20611",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583986695381]",
+   "wamid": "wamid.HBgMNTU4Mzg2Njk1MzgxFQIAERgSRkI0MTA4RTA5MjQ5MkVBM0YzAA=="
+  },
+  {
+   "lead_id": "ba64fbbb-7855-4c5d-aafb-e53ae58f1454",
+   "nome": "Loja",
+   "telefone": "5583981344972",
+   "status": "INICIO",
+   "chat": "20612",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583981344972]",
+   "wamid": "wamid.HBgMNTU4MzgxMzQ0OTcyFQIAERgSQUZBMTE5MEMxOEMyRTYxQjMwAA=="
+  },
+  {
+   "lead_id": "d5f95ada-2e8d-43fb-ab07-5290d3211576",
+   "nome": "Loja",
+   "telefone": "5583996345686",
+   "status": "INICIO",
+   "chat": "20613",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583996345686]",
+   "wamid": "wamid.HBgMNTU4Mzk2MzQ1Njg2FQIAERgSRENFMTU2MjcwN0MxMzg2NjdCAA=="
+  },
+  {
+   "lead_id": "02c9aa7d-04e8-4b33-8b53-b5aedd758c57",
+   "nome": "Loja",
+   "telefone": "5583988871107",
+   "status": "INICIO",
+   "chat": "20614",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988871107]",
+   "wamid": "wamid.HBgMNTU4Mzg4ODcxMTA3FQIAERgSOTIxQkM3MkYzOUIzREExRDk5AA=="
+  },
+  {
+   "lead_id": "91ca7227-2dfc-4367-9a86-21017c53e09e",
+   "nome": "Loja",
+   "telefone": "5583988429097",
+   "status": "INICIO",
+   "chat": "20615",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583988429097]",
+   "wamid": "wamid.HBgMNTU4Mzg4NDI5MDk3FQIAERgSQjRGNUUzNzlFNzY4NUFCMjkyAA=="
+  },
+  {
+   "lead_id": "d579515f-87e2-4c65-9a39-4c07e8e58960",
+   "nome": "Loja",
+   "telefone": "5583994442020",
+   "status": "INICIO",
+   "chat": "20616",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583994442020]",
+   "wamid": "wamid.HBgMNTU4Mzk0NDQyMDIwFQIAERgSRUJDQTdGNDJFNDIyNjFGNDNGAA=="
+  },
+  {
+   "lead_id": "a464fa98-55bb-4132-a6d4-e5c52fa7c72a",
+   "nome": "Loja",
+   "telefone": "5583987535438",
+   "status": "INICIO",
+   "chat": "20617",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987535438]",
+   "wamid": "wamid.HBgMNTU4Mzg3NTM1NDM4FQIAERgSMjg3MTIwMDU5OUJFMkM3MTUxAA=="
+  },
+  {
+   "lead_id": "89e88547-5711-4ba7-8321-bcad48ce6b97",
+   "nome": "Loja",
+   "telefone": "5583993953095",
+   "status": "INICIO",
+   "chat": "20618",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993953095]",
+   "wamid": "wamid.HBgMNTU4MzkzOTUzMDk1FQIAERgSQ0VDNjM5NENGMDE2NDY0QjYxAA=="
+  },
+  {
+   "lead_id": "0b98b7f8-e10c-4de3-a3ea-1e8985d8efa6",
+   "nome": "Loja",
+   "telefone": "5583993020508",
+   "status": "INICIO",
+   "chat": "20619",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583993020508]",
+   "wamid": "wamid.HBgMNTU4MzkzMDIwNTA4FQIAERgSQkE2NUFBNkUwNzQ2MUNENURCAA=="
+  },
+  {
+   "lead_id": "72586be4-0d59-4bda-b9f1-5cd4f4a5d8b4",
+   "nome": "Loja",
+   "telefone": "5583998100507",
+   "status": "INICIO",
+   "chat": "20620",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583998100507]",
+   "wamid": "wamid.HBgMNTU4Mzk4MTAwNTA3FQIAERgSQ0Y0QzA0MkVGNUEwMkM4Mzc5AA=="
+  },
+  {
+   "lead_id": "09ee7e64-ec47-40b6-85ef-9b84f392f80a",
+   "nome": "Loja",
+   "telefone": "5583987872231",
+   "status": "INICIO",
+   "chat": "20621",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5583987872231]",
+   "wamid": "wamid.HBgMNTU4Mzg3ODcyMjMxFQIAERgSNzMxMDUzM0I3QTQ2MkJDRUJEAA=="
+  },
+  {
+   "lead_id": "10a2c790-930a-4806-bd5c-0941edaa2a85",
+   "nome": "Loja",
+   "telefone": "5582993049618",
+   "status": "INICIO",
+   "chat": "20622",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993049618]",
+   "wamid": "wamid.HBgMNTU4MjkzMDQ5NjE4FQIAERgSMEY1NkNBRUU1NzZFRTIzQUZCAA=="
+  },
+  {
+   "lead_id": "3e5ffba4-2062-4a90-aa3f-87d0220b4074",
+   "nome": "Loja",
+   "telefone": "5582996286366",
+   "status": "INICIO",
+   "chat": "20623",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996286366]",
+   "wamid": "wamid.HBgMNTU4Mjk2Mjg2MzY2FQIAERgSNzNEMUI1QzhFREZEOUYwOUQ0AA=="
+  },
+  {
+   "lead_id": "b6a53887-830d-47ba-9a27-966108e771ee",
+   "nome": "Loja",
+   "telefone": "5582999051735",
+   "status": "INICIO",
+   "chat": "20624",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999051735]",
+   "wamid": "wamid.HBgMNTU4Mjk5MDUxNzM1FQIAERgSOUU4OEM5RkE3NUM0RjMxN0FEAA=="
+  },
+  {
+   "lead_id": "94c5b58c-5e73-4973-aa21-c93b052ae319",
+   "nome": "Loja",
+   "telefone": "5582991304664",
+   "status": "INICIO",
+   "chat": "20625",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991304664]",
+   "wamid": "wamid.HBgMNTU4MjkxMzA0NjY0FQIAERgSOEI5QzYzREEwNjc2QURCRDVEAA=="
+  },
+  {
+   "lead_id": "166ea3f6-a638-4e0c-8a09-e511ab0ca5da",
+   "nome": "Loja",
+   "telefone": "5582987525960",
+   "status": "INICIO",
+   "chat": "20626",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987525960]",
+   "wamid": "wamid.HBgMNTU4Mjg3NTI1OTYwFQIAERgSRjQzMjVFMDYwQjEyRDJEOTBCAA=="
+  },
+  {
+   "lead_id": "7eb54716-77c0-49e2-9817-fb24aa5bbffe",
+   "nome": "Loja",
+   "telefone": "5582999458124",
+   "status": "INICIO",
+   "chat": "20627",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999458124]",
+   "wamid": "wamid.HBgMNTU4Mjk5NDU4MTI0FQIAERgSQTEwQkVEM0FDOTIyNjg3QjY3AA=="
+  },
+  {
+   "lead_id": "a0fffb33-8383-4d07-b451-8c124b2aed66",
+   "nome": "Loja",
+   "telefone": "5582996129204",
+   "status": "INICIO",
+   "chat": "20628",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996129204]",
+   "wamid": "wamid.HBgMNTU4Mjk2MTI5MjA0FQIAERgSNDgwNDUwNzFCNDQyNTQ4NTNBAA=="
+  },
+  {
+   "lead_id": "19fc7b45-d894-459f-9849-86e40bfedfe6",
+   "nome": "Loja",
+   "telefone": "5582988939192",
+   "status": "INICIO",
+   "chat": "20629",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988939192]",
+   "wamid": "wamid.HBgMNTU4Mjg4OTM5MTkyFQIAERgSMThBN0M5RTFFNzMzQTk3N0IzAA=="
+  },
+  {
+   "lead_id": "6a759b93-c9e2-4a9f-a42b-95545f9b178a",
+   "nome": "Loja",
+   "telefone": "5582981740383",
+   "status": "INICIO",
+   "chat": "20630",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981740383]",
+   "wamid": "wamid.HBgMNTU4MjgxNzQwMzgzFQIAERgSRDkwQUIwMDg2MjhFMThGQkYwAA=="
+  },
+  {
+   "lead_id": "25fcd376-d601-4b6a-911a-229c716f29e3",
+   "nome": "Loja",
+   "telefone": "5582993395712",
+   "status": "INICIO",
+   "chat": "20631",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993395712]",
+   "wamid": "wamid.HBgMNTU4MjkzMzk1NzEyFQIAERgSN0VFREU2M0NDNTAzQzkxRUIxAA=="
+  },
+  {
+   "lead_id": "a628c6e4-2fdc-4d40-b860-9ad3e09684f9",
+   "nome": "Loja",
+   "telefone": "5582993510794",
+   "status": "INICIO",
+   "chat": "20632",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993510794]",
+   "wamid": "wamid.HBgMNTU4MjkzNTEwNzk0FQIAERgSQzIxMzM2OTBGRkMwRTc0NUE5AA=="
+  },
+  {
+   "lead_id": "0a6c7516-5f33-4b9a-b943-e8b78f453cc2",
+   "nome": "Loja",
+   "telefone": "5582987167257",
+   "status": "INICIO",
+   "chat": "20633",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987167257]",
+   "wamid": "wamid.HBgMNTU4Mjg3MTY3MjU3FQIAERgSQTI5RUNEOEY3M0U3NjVGRTIzAA=="
+  },
+  {
+   "lead_id": "787e1bed-10bb-4f98-9671-9a534e4ad67b",
+   "nome": "Loja",
+   "telefone": "5582987083286",
+   "status": "INICIO",
+   "chat": "20634",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987083286]",
+   "wamid": "wamid.HBgMNTU4Mjg3MDgzMjg2FQIAERgSM0Q2Q0VFNkE0MURBMTU1QjJDAA=="
+  },
+  {
+   "lead_id": "31d37592-c8cc-4468-9674-4c623f1a282d",
+   "nome": "Loja",
+   "telefone": "5582996421504",
+   "status": "INICIO",
+   "chat": "20635",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996421504]",
+   "wamid": "wamid.HBgMNTU4Mjk2NDIxNTA0FQIAERgSQjk4NTcwNzNENEU0MEZGMDA2AA=="
+  },
+  {
+   "lead_id": "6f75dfcb-184c-4a1e-addb-12ebe26e2260",
+   "nome": "Loja",
+   "telefone": "5582996213507",
+   "status": "INICIO",
+   "chat": "20636",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996213507]",
+   "wamid": "wamid.HBgMNTU4Mjk2MjEzNTA3FQIAERgSQzFGRjI0MzE1Rjc2NDYyOEMzAA=="
+  },
+  {
+   "lead_id": "5467b566-5e82-487f-9f5c-f403aad0ec53",
+   "nome": "Loja",
+   "telefone": "5582988740033",
+   "status": "INICIO",
+   "chat": "20637",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988740033]",
+   "wamid": "wamid.HBgMNTU4Mjg4NzQwMDMzFQIAERgSMjRGMzFFRTlBNDQ2N0YxNzFDAA=="
+  },
+  {
+   "lead_id": "a61f3b9c-4ca0-42d5-90cf-09872fd7f52d",
+   "nome": "Loja",
+   "telefone": "5582988512958",
+   "status": "INICIO",
+   "chat": "20638",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988512958]",
+   "wamid": "wamid.HBgMNTU4Mjg4NTEyOTU4FQIAERgSNzc4QjM4RkM2MDVEM0JBODVGAA=="
+  },
+  {
+   "lead_id": "df928417-e3d8-4d29-a9ee-b6b4b2f367e4",
+   "nome": "Loja",
+   "telefone": "5582996207147",
+   "status": "INICIO",
+   "chat": "20639",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996207147]",
+   "wamid": "wamid.HBgMNTU4Mjk2MjA3MTQ3FQIAERgSQzE0N0Y4RDQwMzJGNzE2QjFBAA=="
+  },
+  {
+   "lead_id": "bcd04251-e132-4843-bebc-a3df4828b04c",
+   "nome": "Loja",
+   "telefone": "5582988888555",
+   "status": "INICIO",
+   "chat": "20640",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988888555]",
+   "wamid": "wamid.HBgMNTU4Mjg4ODg4NTU1FQIAERgSRjA1MENCRjVGOUE1MTA0OTQ0AA=="
+  },
+  {
+   "lead_id": "374e7825-26a1-4a06-bc90-901afe69779e",
+   "nome": "Loja",
+   "telefone": "5582981492066",
+   "status": "INICIO",
+   "chat": "20641",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981492066]",
+   "wamid": "wamid.HBgMNTU4MjgxNDkyMDY2FQIAERgSQTRCNzk5Q0EyODVBRDVFNjg0AA=="
+  },
+  {
+   "lead_id": "13462e68-a09c-4fbc-89a5-717d07365441",
+   "nome": "Loja",
+   "telefone": "5582981726031",
+   "status": "INICIO",
+   "chat": "20642",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981726031]",
+   "wamid": "wamid.HBgMNTU4MjgxNzI2MDMxFQIAERgSM0E2OEQ0RjUzRUQzQTQ5MjExAA=="
+  },
+  {
+   "lead_id": "1014cdbf-4eb8-424a-a2c3-ba7df04a017d",
+   "nome": "Loja",
+   "telefone": "5582987550919",
+   "status": "INICIO",
+   "chat": "20643",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987550919]",
+   "wamid": "wamid.HBgMNTU4Mjg3NTUwOTE5FQIAERgSMTFCNjM1OUQ4NjUyMTQ0MjM3AA=="
+  },
+  {
+   "lead_id": "9079719e-6de3-4107-af98-ba990de8b82c",
+   "nome": "Loja",
+   "telefone": "5582987237714",
+   "status": "INICIO",
+   "chat": "20644",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987237714]",
+   "wamid": "wamid.HBgMNTU4Mjg3MjM3NzE0FQIAERgSOUU0NTk0QjlCOURGMkY2MDJEAA=="
+  },
+  {
+   "lead_id": "ac1b71fc-a4e5-428e-b8cf-9acd19b92a2c",
+   "nome": "Loja",
+   "telefone": "5582993941060",
+   "status": "INICIO",
+   "chat": "20645",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993941060]",
+   "wamid": "wamid.HBgMNTU4MjkzOTQxMDYwFQIAERgSQzQ2Q0NFNEM2QjkxNTc1QTVDAA=="
+  },
+  {
+   "lead_id": "7c377597-4cb6-4769-bbeb-fc72fc25fe28",
+   "nome": "Loja",
+   "telefone": "5582999853212",
+   "status": "INICIO",
+   "chat": "20646",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999853212]",
+   "wamid": "wamid.HBgMNTU4Mjk5ODUzMjEyFQIAERgSMUE3OTAyRUM2QzJBODgwOTk0AA=="
+  },
+  {
+   "lead_id": "1ca4b5f9-f469-41e6-88ad-2c49a0198b5e",
+   "nome": "Loja",
+   "telefone": "5582988542103",
+   "status": "INICIO",
+   "chat": "20647",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988542103]",
+   "wamid": "wamid.HBgMNTU4Mjg4NTQyMTAzFQIAERgSNTYyRUY2QUJDQjEwOEZBQjgyAA=="
+  },
+  {
+   "lead_id": "ed2a1012-1dc9-4958-a351-f067eb409f22",
+   "nome": "Loja",
+   "telefone": "5582987584829",
+   "status": "INICIO",
+   "chat": "20648",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987584829]",
+   "wamid": "wamid.HBgMNTU4Mjg3NTg0ODI5FQIAERgSNkZFMzAyQzM1QUFDNTExNkJCAA=="
+  },
+  {
+   "lead_id": "5e7df463-01e6-437f-9a90-cb0f2959b38b",
+   "nome": "Loja",
+   "telefone": "5582996941328",
+   "status": "INICIO",
+   "chat": "20649",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996941328]",
+   "wamid": "wamid.HBgMNTU4Mjk2OTQxMzI4FQIAERgSM0JCMDFGREE1M0ZFM0Q3NzVCAA=="
+  },
+  {
+   "lead_id": "18e55b2d-7ced-4f0e-94ff-3cae653459f2",
+   "nome": "Loja",
+   "telefone": "5582988395305",
+   "status": "INICIO",
+   "chat": "20650",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988395305]",
+   "wamid": "wamid.HBgMNTU4Mjg4Mzk1MzA1FQIAERgSN0M1MjkxQjQwMTFBMUJDMjE3AA=="
+  },
+  {
+   "lead_id": "28e45050-2a9b-4cc2-ac27-59847fe7ce04",
+   "nome": "Loja",
+   "telefone": "5582988039513",
+   "status": "INICIO",
+   "chat": "20651",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988039513]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDM5NTEzFQIAERgSQUE1MDkzMzQ0ODFFMUUyOUYzAA=="
+  },
+  {
+   "lead_id": "207fc86c-7ad9-48f8-9f90-c6b5a5211dc6",
+   "nome": "Loja",
+   "telefone": "5582987140967",
+   "status": "INICIO",
+   "chat": "20652",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987140967]",
+   "wamid": "wamid.HBgMNTU4Mjg3MTQwOTY3FQIAERgSN0Q1Mzc3MDAyMjg2QTIyNjI1AA=="
+  },
+  {
+   "lead_id": "3aaeeb18-90d3-4919-bbc2-7622cf9cab1b",
+   "nome": "Loja",
+   "telefone": "5582999978260",
+   "status": "INICIO",
+   "chat": "20653",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999978260]",
+   "wamid": "wamid.HBgMNTU4Mjk5OTc4MjYwFQIAERgSMTE0MjY0MzhCRTYzOTEyQ0NGAA=="
+  },
+  {
+   "lead_id": "4fd8627a-dc27-449f-8b05-7c2b8a119e71",
+   "nome": "Loja",
+   "telefone": "5582999033219",
+   "status": "INICIO",
+   "chat": "20654",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999033219]",
+   "wamid": "wamid.HBgMNTU4Mjk5MDMzMjE5FQIAERgSRDU1QjNFNjc4OTJCQTk5NzkwAA=="
+  },
+  {
+   "lead_id": "60746f65-ecf2-4f72-823d-1af3d4a0e06f",
+   "nome": "Loja",
+   "telefone": "5582981402760",
+   "status": "INICIO",
+   "chat": "20655",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981402760]",
+   "wamid": "wamid.HBgMNTU4MjgxNDAyNzYwFQIAERgSNzY0RERDOUY3QjMyNzY5MTE2AA=="
+  },
+  {
+   "lead_id": "bc729b12-7fd4-4888-96c3-cce6e770b743",
+   "nome": "Loja",
+   "telefone": "5582994229478",
+   "status": "INICIO",
+   "chat": "20656",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582994229478]",
+   "wamid": "wamid.HBgMNTU4Mjk0MjI5NDc4FQIAERgSRTY4NjdCQjlFNTFEN0M4M0JCAA=="
+  },
+  {
+   "lead_id": "f1e5c631-a4cf-4401-a83f-a228d2bb1c67",
+   "nome": "Loja",
+   "telefone": "5582991538131",
+   "status": "INICIO",
+   "chat": "20657",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991538131]",
+   "wamid": "wamid.HBgMNTU4MjkxNTM4MTMxFQIAERgSNUQzRTE5OTk3RjA5NUYwQzJGAA=="
+  },
+  {
+   "lead_id": "157bd292-4af2-4a89-8ec6-e424704973a0",
+   "nome": "Loja",
+   "telefone": "5582993704343",
+   "status": "INICIO",
+   "chat": "20658",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993704343]",
+   "wamid": "wamid.HBgMNTU4MjkzNzA0MzQzFQIAERgSRUVBNEVGQTZCMUY4Qzc0Q0EzAA=="
+  },
+  {
+   "lead_id": "c08f94b4-63dd-4afd-92e7-2e11d3ee1014",
+   "nome": "Loja",
+   "telefone": "5582976040081",
+   "status": "INICIO",
+   "chat": "20659",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582976040081]",
+   "wamid": "wamid.HBgMNTU4Mjc2MDQwMDgxFQIAERgSREIyNTNCRDRBMkEwNEFEN0RGAA=="
+  },
+  {
+   "lead_id": "15fb4a62-e6fd-44c2-8695-8e8b50bac630",
+   "nome": "Loja",
+   "telefone": "5582996390448",
+   "status": "INICIO",
+   "chat": "20660",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996390448]",
+   "wamid": "wamid.HBgMNTU4Mjk2MzkwNDQ4FQIAERgSNTUwNEExN0NCMzM1NjhDRUY5AA=="
+  },
+  {
+   "lead_id": "d7a00dd2-ad27-4e67-9c6f-fff8cf455b89",
+   "nome": "Loja",
+   "telefone": "5582981188239",
+   "status": "INICIO",
+   "chat": "20661",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981188239]",
+   "wamid": "wamid.HBgMNTU4MjgxMTg4MjM5FQIAERgSRjQ3QjMyQTM4RUUxMzg1NzE1AA=="
+  },
+  {
+   "lead_id": "e61a69ec-d109-4843-9a98-f2bbf2e0f1c7",
+   "nome": "Loja",
+   "telefone": "5582982315562",
+   "status": "INICIO",
+   "chat": "20662",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982315562]",
+   "wamid": "wamid.HBgMNTU4MjgyMzE1NTYyFQIAERgSNkQwN0Q3RUUxQTEzQTUzQUVBAA=="
+  },
+  {
+   "lead_id": "a3400a53-d6fd-4504-84ad-d6e86db9a977",
+   "nome": "Loja",
+   "telefone": "5582999594688",
+   "status": "INICIO",
+   "chat": "20663",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999594688]",
+   "wamid": "wamid.HBgMNTU4Mjk5NTk0Njg4FQIAERgSQzNEN0JGOUI5M0NFRjhERDQ0AA=="
+  },
+  {
+   "lead_id": "915810e2-74f3-4c25-a1bc-6dfd939e863c",
+   "nome": "Loja",
+   "telefone": "5582999528677",
+   "status": "INICIO",
+   "chat": "20664",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999528677]",
+   "wamid": "wamid.HBgMNTU4Mjk5NTI4Njc3FQIAERgSNDJGQkExQzdGMDU4QjJFODA3AA=="
+  },
+  {
+   "lead_id": "d3d9362d-2ffc-46b4-a668-8386b917d66a",
+   "nome": "Loja",
+   "telefone": "5582991583652",
+   "status": "INICIO",
+   "chat": "20665",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991583652]",
+   "wamid": "wamid.HBgMNTU4MjkxNTgzNjUyFQIAERgSMTI5MzJFQzM4MkNEMERFNEMzAA=="
+  },
+  {
+   "lead_id": "43d359f3-9424-4960-b776-f09f9a79192f",
+   "nome": "Loja",
+   "telefone": "5582988786669",
+   "status": "INICIO",
+   "chat": "20666",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988786669]",
+   "wamid": "wamid.HBgMNTU4Mjg4Nzg2NjY5FQIAERgSRDQ1RDI5MjcwNTI0OEFBQTRFAA=="
+  },
+  {
+   "lead_id": "ff0d1471-10e7-4260-9b02-48caf01e3fcb",
+   "nome": "Loja",
+   "telefone": "5582993442247",
+   "status": "INICIO",
+   "chat": "20667",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993442247]",
+   "wamid": "wamid.HBgMNTU4MjkzNDQyMjQ3FQIAERgSOTg2MENFNDMxRURGQzdCNDI1AA=="
+  },
+  {
+   "lead_id": "deab4d08-8f60-468e-9cc2-202448a73e0b",
+   "nome": "Loja",
+   "telefone": "5582982031781",
+   "status": "INICIO",
+   "chat": "20668",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982031781]",
+   "wamid": "wamid.HBgMNTU4MjgyMDMxNzgxFQIAERgSQkM2RDY0QUQxNkE5OEY3NjkwAA=="
+  },
+  {
+   "lead_id": "31eb009c-6b04-4573-bee3-0483330db053",
+   "nome": "Loja",
+   "telefone": "5582987391010",
+   "status": "INICIO",
+   "chat": "20669",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987391010]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzkxMDEwFQIAERgSMkNBRkFBQTYyODVBOThGQzg3AA=="
+  },
+  {
+   "lead_id": "4a1f9c32-309f-4d41-88ce-a6580dea485a",
+   "nome": "Loja",
+   "telefone": "5582996770788",
+   "status": "INICIO",
+   "chat": "20670",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996770788]",
+   "wamid": "wamid.HBgMNTU4Mjk2NzcwNzg4FQIAERgSMDI0QTQ3MTI0N0VFM0ZBN0QzAA=="
+  },
+  {
+   "lead_id": "525b5644-25c8-4892-905e-221e01689866",
+   "nome": "Loja",
+   "telefone": "5582981415827",
+   "status": "INICIO",
+   "chat": "20671",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981415827]",
+   "wamid": "wamid.HBgMNTU4MjgxNDE1ODI3FQIAERgSNjk5QUNDNDExRTkzNEQzMTAxAA=="
+  },
+  {
+   "lead_id": "314a8da8-0138-42d4-b83d-36d5e3b66894",
+   "nome": "Loja",
+   "telefone": "5582987445989",
+   "status": "INICIO",
+   "chat": "20672",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987445989]",
+   "wamid": "wamid.HBgMNTU4Mjg3NDQ1OTg5FQIAERgSOTJCODgxOEM2OUMzOUY2NUNCAA=="
+  },
+  {
+   "lead_id": "15e50b92-788b-4cde-b05d-429079e2ea04",
+   "nome": "Loja",
+   "telefone": "5582996549615",
+   "status": "INICIO",
+   "chat": "20673",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996549615]",
+   "wamid": "wamid.HBgMNTU4Mjk2NTQ5NjE1FQIAERgSQzFEMUU3RTgxNTUyQjY0QkE0AA=="
+  },
+  {
+   "lead_id": "315f2027-3ea7-4cdc-8a9f-6a6fa7d27788",
+   "nome": "Loja",
+   "telefone": "5582993131262",
+   "status": "INICIO",
+   "chat": "20674",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993131262]",
+   "wamid": "wamid.HBgMNTU4MjkzMTMxMjYyFQIAERgSNDMzMTM3QjJENzMwMTRDM0QyAA=="
+  },
+  {
+   "lead_id": "fe66ef75-201e-43d6-b597-5da112e2081f",
+   "nome": "Loja",
+   "telefone": "5582987421855",
+   "status": "INICIO",
+   "chat": "20675",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987421855]",
+   "wamid": "wamid.HBgMNTU4Mjg3NDIxODU1FQIAERgSQkUzRTFEQ0M5NUQxRjdGRjcxAA=="
+  },
+  {
+   "lead_id": "c7a82535-8fd6-4f36-9c42-070e1af02bd0",
+   "nome": "Loja",
+   "telefone": "5582996134503",
+   "status": "INICIO",
+   "chat": "20676",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996134503]",
+   "wamid": "wamid.HBgMNTU4Mjk2MTM0NTAzFQIAERgSNEVBNUIxREI2RjNBMkVEMEY3AA=="
+  },
+  {
+   "lead_id": "de83b2e2-eb0f-4111-b513-323e7833041d",
+   "nome": "Loja",
+   "telefone": "5582999740403",
+   "status": "INICIO",
+   "chat": "20677",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999740403]",
+   "wamid": "wamid.HBgMNTU4Mjk5NzQwNDAzFQIAERgSQjhFQjFEQzEwMzEwODRBRkI2AA=="
+  },
+  {
+   "lead_id": "4349fbff-f1cf-4871-8555-be34632d2ba4",
+   "nome": "Loja",
+   "telefone": "5582993990756",
+   "status": "INICIO",
+   "chat": "20678",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993990756]",
+   "wamid": "wamid.HBgMNTU4MjkzOTkwNzU2FQIAERgSMjhDRTk4ODc2NjE4MjQ3NjIxAA=="
+  },
+  {
+   "lead_id": "b0423037-3533-40d0-bb8f-d3c5a0468064",
+   "nome": "Loja",
+   "telefone": "5582993419550",
+   "status": "INICIO",
+   "chat": "20679",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993419550]",
+   "wamid": "wamid.HBgMNTU4MjkzNDE5NTUwFQIAERgSMzVCNjdDNUZENjY0QzUwRjQ1AA=="
+  },
+  {
+   "lead_id": "8a556283-6a2b-43f6-9261-e18e72dba178",
+   "nome": "Loja",
+   "telefone": "5582982196114",
+   "status": "INICIO",
+   "chat": "20680",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982196114]",
+   "wamid": "wamid.HBgMNTU4MjgyMTk2MTE0FQIAERgSNzMxNDk3MDMxQjhDQzgwNzJGAA=="
+  },
+  {
+   "lead_id": "a4c01eef-7736-4931-86b7-db94a62ca675",
+   "nome": "Loja",
+   "telefone": "5582988948382",
+   "status": "INICIO",
+   "chat": "20681",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988948382]",
+   "wamid": "wamid.HBgMNTU4Mjg4OTQ4MzgyFQIAERgSQTlGNThFREZERUNCRjQzQjg3AA=="
+  },
+  {
+   "lead_id": "408ddda3-9078-4c01-8816-d9fecd6ddfa1",
+   "nome": "Loja",
+   "telefone": "5582999136106",
+   "status": "INICIO",
+   "chat": "20682",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999136106]",
+   "wamid": "wamid.HBgMNTU4Mjk5MTM2MTA2FQIAERgSMTBCM0NDRjg0QjUzRDZBMEMyAA=="
+  },
+  {
+   "lead_id": "596dd8b7-8878-4620-a3f5-06be7a99b995",
+   "nome": "Loja",
+   "telefone": "5582999742315",
+   "status": "INICIO",
+   "chat": "20684",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999742315]",
+   "wamid": "wamid.HBgMNTU4Mjk5NzQyMzE1FQIAERgSMjg2ODZFQTM2MzREM0Q1NkE5AA=="
+  },
+  {
+   "lead_id": "4173da5c-0247-4aa6-8b1f-3703b686a2da",
+   "nome": "Loja",
+   "telefone": "5582988657460",
+   "status": "INICIO",
+   "chat": "20685",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988657460]",
+   "wamid": "wamid.HBgMNTU4Mjg4NjU3NDYwFQIAERgSOTczMzZGMDI3RkU0MzMzMDRBAA=="
+  },
+  {
+   "lead_id": "2edcd8d1-57bf-48e8-b369-d2950758e54b",
+   "nome": "Loja",
+   "telefone": "5582998342444",
+   "status": "INICIO",
+   "chat": "20686",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998342444]",
+   "wamid": "wamid.HBgMNTU4Mjk4MzQyNDQ0FQIAERgSODFBOENGODJGMEE5NjcwQzRFAA=="
+  },
+  {
+   "lead_id": "31dd43ce-ae3b-49cf-8afc-ee7891875bbe",
+   "nome": "Loja",
+   "telefone": "5582988659603",
+   "status": "INICIO",
+   "chat": "20687",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988659603]",
+   "wamid": "wamid.HBgMNTU4Mjg4NjU5NjAzFQIAERgSMUNGMTI1OUFCOThCM0MzNTU0AA=="
+  },
+  {
+   "lead_id": "c395dd1d-8050-402e-a3e9-ee2b662d979a",
+   "nome": "Loja",
+   "telefone": "5582999344910",
+   "status": "INICIO",
+   "chat": "20688",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999344910]",
+   "wamid": "wamid.HBgMNTU4Mjk5MzQ0OTEwFQIAERgSMkFDQjc5RkI3QzFGRDVFMEU3AA=="
+  },
+  {
+   "lead_id": "36d1bc04-bb7c-4594-b25c-4460364da24a",
+   "nome": "Loja",
+   "telefone": "5582987168645",
+   "status": "INICIO",
+   "chat": "20689",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987168645]",
+   "wamid": "wamid.HBgMNTU4Mjg3MTY4NjQ1FQIAERgSNTVFODk3QThEMERBRDk1OEMwAA=="
+  },
+  {
+   "lead_id": "9089f616-a246-4f95-a6e7-ae80e9f2e69d",
+   "nome": "Loja",
+   "telefone": "5582988048787",
+   "status": "INICIO",
+   "chat": "20690",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988048787]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDQ4Nzg3FQIAERgSQzg1OTIxNjREQTA1MkQ1RkJEAA=="
+  },
+  {
+   "lead_id": "45399d50-9765-41ea-87b8-9a91fa2f173d",
+   "nome": "Loja",
+   "telefone": "5582987372264",
+   "status": "INICIO",
+   "chat": "20691",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987372264]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzcyMjY0FQIAERgSMTQwMkU0NUEyOUMyQkRGODBDAA=="
+  },
+  {
+   "lead_id": "25ede36a-0cad-401b-9b0d-6e6c3b4016a9",
+   "nome": "Loja",
+   "telefone": "5582999829800",
+   "status": "INICIO",
+   "chat": "20692",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999829800]",
+   "wamid": "wamid.HBgMNTU4Mjk5ODI5ODAwFQIAERgSQUM4NjY1QzIzNTMyMjJBNTkxAA=="
+  },
+  {
+   "lead_id": "0fe863f8-7345-41d3-a222-c77dbe4f02be",
+   "nome": "Loja",
+   "telefone": "5582988236688",
+   "status": "INICIO",
+   "chat": "17785",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988236688]",
+   "wamid": "wamid.HBgMNTU4Mjg4MjM2Njg4FQIAERgSM0QyMzIyNzU4QjNFODM4Mjk2AA=="
+  },
+  {
+   "lead_id": "9891fb4b-3149-4070-babe-b745af2e36fb",
+   "nome": "Loja",
+   "telefone": "5582991726066",
+   "status": "INICIO",
+   "chat": "20693",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991726066]",
+   "wamid": "wamid.HBgMNTU4MjkxNzI2MDY2FQIAERgSNjY1QzhFRjUxNEZCODI4M0RCAA=="
+  },
+  {
+   "lead_id": "42269743-a8aa-4057-b233-1d815255dd4d",
+   "nome": "Loja",
+   "telefone": "5582981121774",
+   "status": "INICIO",
+   "chat": "20694",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981121774]",
+   "wamid": "wamid.HBgMNTU4MjgxMTIxNzc0FQIAERgSM0M0NjFEQkVBNjM1M0Y5RkQwAA=="
+  },
+  {
+   "lead_id": "7f36bc03-b3c3-4642-88c3-0eb3e60fde18",
+   "nome": "Loja",
+   "telefone": "5582993743502",
+   "status": "INICIO",
+   "chat": "20695",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993743502]",
+   "wamid": "wamid.HBgMNTU4MjkzNzQzNTAyFQIAERgSQUU1N0E0Njc2RDFDQTQwNjY1AA=="
+  },
+  {
+   "lead_id": "d355ce80-cbd1-4594-aa62-2f0222988657",
+   "nome": "Loja",
+   "telefone": "5582996131515",
+   "status": "INICIO",
+   "chat": "20696",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996131515]",
+   "wamid": "wamid.HBgMNTU4Mjk2MTMxNTE1FQIAERgSNENGN0U1QUZCMjQ0QUUzMDZCAA=="
+  },
+  {
+   "lead_id": "94dad495-c5f7-48d8-a240-4bc68debea82",
+   "nome": "Loja",
+   "telefone": "5582999775961",
+   "status": "INICIO",
+   "chat": "20697",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999775961]",
+   "wamid": "wamid.HBgMNTU4Mjk5Nzc1OTYxFQIAERgSNjhDNjI1Q0Q3MTc2NDRCNUU2AA=="
+  },
+  {
+   "lead_id": "4a021003-9af8-4284-b952-340b4f5da03d",
+   "nome": "Loja",
+   "telefone": "5582998316648",
+   "status": "INICIO",
+   "chat": "20698",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998316648]",
+   "wamid": "wamid.HBgMNTU4Mjk4MzE2NjQ4FQIAERgSREVGRUZFMDkzQUZGNTRCQTlEAA=="
+  },
+  {
+   "lead_id": "98d980ba-f147-4299-9fc9-96c0c1227386",
+   "nome": "Loja",
+   "telefone": "5582996899891",
+   "status": "INICIO",
+   "chat": "20699",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996899891]",
+   "wamid": "wamid.HBgMNTU4Mjk2ODk5ODkxFQIAERgSMTg4REJDMUVFRUFCQTBBRUVCAA=="
+  },
+  {
+   "lead_id": "89561c5e-0574-4194-ae7e-277f48453ab1",
+   "nome": "Loja",
+   "telefone": "5582988716690",
+   "status": "INICIO",
+   "chat": "20700",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988716690]",
+   "wamid": "wamid.HBgMNTU4Mjg4NzE2NjkwFQIAERgSMkExQjk0QzMxNDRGQjlFNUJFAA=="
+  },
+  {
+   "lead_id": "6a3e72b4-1939-45c5-85af-9861c5a7edac",
+   "nome": "Loja",
+   "telefone": "5582988210186",
+   "status": "INICIO",
+   "chat": "20701",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988210186]",
+   "wamid": "wamid.HBgMNTU4Mjg4MjEwMTg2FQIAERgSRkIzMjE2MzY3OEJGNENEOUY1AA=="
+  },
+  {
+   "lead_id": "2e556f38-2ea0-42d3-85db-a85c13a3377e",
+   "nome": "Loja",
+   "telefone": "5582988048444",
+   "status": "INICIO",
+   "chat": "20702",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988048444]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDQ4NDQ0FQIAERgSMkE2MjcyNjgwQkYyNUY0MjlCAA=="
+  },
+  {
+   "lead_id": "361f6c10-b413-4216-85e6-38c6ec18f361",
+   "nome": "Loja",
+   "telefone": "5582988140388",
+   "status": "INICIO",
+   "chat": "20703",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988140388]",
+   "wamid": "wamid.HBgMNTU4Mjg4MTQwMzg4FQIAERgSREM4MEY2OTg5OTcxMjVCOTFDAA=="
+  },
+  {
+   "lead_id": "6a2b6a78-6a6a-4cd0-9611-2f47c8733a25",
+   "nome": "Loja",
+   "telefone": "5582996990114",
+   "status": "INICIO",
+   "chat": "20704",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996990114]",
+   "wamid": "wamid.HBgMNTU4Mjk2OTkwMTE0FQIAERgSODkyMjA3Q0Q1RDlBNjRGMTMxAA=="
+  },
+  {
+   "lead_id": "dec23d1f-456b-437f-ace0-e307243f41c3",
+   "nome": "Loja",
+   "telefone": "5582991921721",
+   "status": "INICIO",
+   "chat": "20705",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991921721]",
+   "wamid": "wamid.HBgMNTU4MjkxOTIxNzIxFQIAERgSNDM1OUY0Q0E2NjZGNzgxNTg1AA=="
+  },
+  {
+   "lead_id": "f76bec0e-5cf9-42df-82d1-aaf65102855a",
+   "nome": "Loja",
+   "telefone": "5582988802713",
+   "status": "INICIO",
+   "chat": "20706",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988802713]",
+   "wamid": "wamid.HBgMNTU4Mjg4ODAyNzEzFQIAERgSNEVDMUYxMDdENEQ4OEZFQTU2AA=="
+  },
+  {
+   "lead_id": "f7d93fb4-3833-4fa5-908a-06343c283e6d",
+   "nome": "Loja",
+   "telefone": "5582988071420",
+   "status": "INICIO",
+   "chat": "20707",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988071420]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDcxNDIwFQIAERgSMEJGNTJDODA0MUQ4NDI0ODQ0AA=="
+  },
+  {
+   "lead_id": "65f9b092-8c02-410f-9d68-fa5461c985af",
+   "nome": "Loja",
+   "telefone": "5582993295669",
+   "status": "INICIO",
+   "chat": "20708",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993295669]",
+   "wamid": "wamid.HBgMNTU4MjkzMjk1NjY5FQIAERgSREQ2MDUxRDdDQTY5MUQyMUJEAA=="
+  },
+  {
+   "lead_id": "56342f4b-72bd-4e43-8256-09678f0a3bc0",
+   "nome": "Loja",
+   "telefone": "5582996260286",
+   "status": "INICIO",
+   "chat": "20709",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996260286]",
+   "wamid": "wamid.HBgMNTU4Mjk2MjYwMjg2FQIAERgSQzZCMjkwNUE5MzI3RTAxREMwAA=="
+  },
+  {
+   "lead_id": "74ced060-b883-4809-b89f-ce32a0fb0593",
+   "nome": "Loja",
+   "telefone": "5582988684085",
+   "status": "INICIO",
+   "chat": "20710",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988684085]",
+   "wamid": "wamid.HBgMNTU4Mjg4Njg0MDg1FQIAERgSNjlGRTAzNTMzREJGQjE0QzY1AA=="
+  },
+  {
+   "lead_id": "e686f345-a563-4cef-879f-de1e941d3851",
+   "nome": "Loja",
+   "telefone": "5582981646257",
+   "status": "INICIO",
+   "chat": "20711",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981646257]",
+   "wamid": "wamid.HBgMNTU4MjgxNjQ2MjU3FQIAERgSNEYwM0FGQkZBNDhCMUI0RjMyAA=="
+  },
+  {
+   "lead_id": "54a324bd-94ec-4e61-acd6-a1b1e1d58249",
+   "nome": "Loja",
+   "telefone": "5582982005589",
+   "status": "INICIO",
+   "chat": "20712",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982005589]",
+   "wamid": "wamid.HBgMNTU4MjgyMDA1NTg5FQIAERgSOUEyOEEwOUQwRThEQzg3NzcxAA=="
+  },
+  {
+   "lead_id": "36420cbd-25a5-484b-9b61-b05c0cf627e7",
+   "nome": "Loja",
+   "telefone": "5582999227593",
+   "status": "INICIO",
+   "chat": "20713",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999227593]",
+   "wamid": "wamid.HBgMNTU4Mjk5MjI3NTkzFQIAERgSNEIyNzVDNEVEMDE1REY4NEQxAA=="
+  },
+  {
+   "lead_id": "784faadf-becb-489a-913b-b62837b52f52",
+   "nome": "Loja",
+   "telefone": "5582994074257",
+   "status": "INICIO",
+   "chat": "20714",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582994074257]",
+   "wamid": "wamid.HBgMNTU4Mjk0MDc0MjU3FQIAERgSMDdDMDI0NDE4NTg0MUMyMkEzAA=="
+  },
+  {
+   "lead_id": "125e99a9-df36-4e8c-9a33-ea71a2ab6339",
+   "nome": "Loja",
+   "telefone": "5582993702709",
+   "status": "INICIO",
+   "chat": "20715",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993702709]",
+   "wamid": "wamid.HBgMNTU4MjkzNzAyNzA5FQIAERgSQzcwNTlGOUQ3RkQzODUwRDY3AA=="
+  },
+  {
+   "lead_id": "a929bd1b-8741-4661-9c3c-be3a54d4fd54",
+   "nome": "Loja",
+   "telefone": "5582999756451",
+   "status": "INICIO",
+   "chat": "20716",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999756451]",
+   "wamid": "wamid.HBgMNTU4Mjk5NzU2NDUxFQIAERgSRjUyNTQ1QzhEM0YxMkRCNjRBAA=="
+  },
+  {
+   "lead_id": "0ddf79aa-ff09-4a7b-9673-c2390c3baacf",
+   "nome": "Loja",
+   "telefone": "5582991125573",
+   "status": "INICIO",
+   "chat": "20717",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991125573]",
+   "wamid": "wamid.HBgMNTU4MjkxMTI1NTczFQIAERgSNDQzRjFEQjU1QzYxMkYzOEQxAA=="
+  },
+  {
+   "lead_id": "1ced4a1e-74ee-4ea9-bf6c-12101428df5a",
+   "nome": "Loja",
+   "telefone": "5582987091791",
+   "status": "INICIO",
+   "chat": "20718",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987091791]",
+   "wamid": "wamid.HBgMNTU4Mjg3MDkxNzkxFQIAERgSNUZBQkFBODExMzNCMjlEN0E3AA=="
+  },
+  {
+   "lead_id": "ee34dfc8-712f-4e81-a530-2b113053797a",
+   "nome": "Loja",
+   "telefone": "5582988857869",
+   "status": "INICIO",
+   "chat": "20719",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988857869]",
+   "wamid": "wamid.HBgMNTU4Mjg4ODU3ODY5FQIAERgSQkY5OTM4MjNCMzNFREIxQzlGAA=="
+  },
+  {
+   "lead_id": "fd94fef9-d8a6-46cd-98bb-156885999353",
+   "nome": "Loja",
+   "telefone": "5582993996756",
+   "status": "INICIO",
+   "chat": "20720",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993996756]",
+   "wamid": "wamid.HBgMNTU4MjkzOTk2NzU2FQIAERgSRkU5M0IwMjBGQUI2NUZBMTgwAA=="
+  },
+  {
+   "lead_id": "cc0e64f6-1493-41e3-a096-8aa2fcbae0da",
+   "nome": "Loja",
+   "telefone": "5582988265957",
+   "status": "INICIO",
+   "chat": "20721",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988265957]",
+   "wamid": "wamid.HBgMNTU4Mjg4MjY1OTU3FQIAERgSQzM4RUVGNEJCNzA5MzkyNTMzAA=="
+  },
+  {
+   "lead_id": "df6ef5cf-4a64-4af6-bb75-41b51bf363e2",
+   "nome": "Loja",
+   "telefone": "5582987314234",
+   "status": "INICIO",
+   "chat": "20722",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987314234]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzE0MjM0FQIAERgSN0VGRDJERDhFODQwOTY0OEE4AA=="
+  },
+  {
+   "lead_id": "593c647b-1f61-45e1-8ccf-bb5283595ce3",
+   "nome": "Loja",
+   "telefone": "5582988966024",
+   "status": "INICIO",
+   "chat": "20723",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988966024]",
+   "wamid": "wamid.HBgMNTU4Mjg4OTY2MDI0FQIAERgSOTVDNDM3OEI5RTVCNDkyRDUyAA=="
+  },
+  {
+   "lead_id": "630428a1-0be0-42ac-91f6-739a6d397317",
+   "nome": "Loja",
+   "telefone": "5582981588424",
+   "status": "INICIO",
+   "chat": "20724",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981588424]",
+   "wamid": "wamid.HBgMNTU4MjgxNTg4NDI0FQIAERgSOEJFQjkxQkE3N0RDMjAzMjQ2AA=="
+  },
+  {
+   "lead_id": "7499cc5f-f9a0-4b12-830d-d3ece40f4fc4",
+   "nome": "Loja",
+   "telefone": "5582987344188",
+   "status": "INICIO",
+   "chat": "20725",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987344188]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzQ0MTg4FQIAERgSNDEyMUE2Q0FEQzYwREZBRTNCAA=="
+  },
+  {
+   "lead_id": "3de116b6-0af6-4fb5-ad74-3d88066bdc76",
+   "nome": "Loja",
+   "telefone": "5582991725186",
+   "status": "INICIO",
+   "chat": "20726",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991725186]",
+   "wamid": "wamid.HBgMNTU4MjkxNzI1MTg2FQIAERgSNUUzNDNCNEFCNUQ4MDgwMzlGAA=="
+  },
+  {
+   "lead_id": "dee7728a-fc40-4f54-aaae-e6b8247cb207",
+   "nome": "Loja",
+   "telefone": "5582999557049",
+   "status": "INICIO",
+   "chat": "20727",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999557049]",
+   "wamid": "wamid.HBgMNTU4Mjk5NTU3MDQ5FQIAERgSQkNFOEU3MDRCMTgxRUREMDFBAA=="
+  },
+  {
+   "lead_id": "ca333aa1-f761-43c5-811e-4603447959ec",
+   "nome": "Loja",
+   "telefone": "5582987455956",
+   "status": "INICIO",
+   "chat": "20728",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987455956]",
+   "wamid": "wamid.HBgMNTU4Mjg3NDU1OTU2FQIAERgSOTgxNEJGNjZEOTVBRjQwOTMxAA=="
+  },
+  {
+   "lead_id": "d3653cd9-6f55-4120-91b3-a37a58103744",
+   "nome": "Loja",
+   "telefone": "5582994079475",
+   "status": "INICIO",
+   "chat": "20729",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582994079475]",
+   "wamid": "wamid.HBgMNTU4Mjk0MDc5NDc1FQIAERgSMTBENjA3QTY2OEYzMkRBNTM3AA=="
+  },
+  {
+   "lead_id": "62d0841d-fb44-404b-9d8a-07f4847f03d5",
+   "nome": "Loja",
+   "telefone": "5582988717015",
+   "status": "INICIO",
+   "chat": "20730",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988717015]",
+   "wamid": "wamid.HBgMNTU4Mjg4NzE3MDE1FQIAERgSQjcyQjFGQTFGNDAwNjk4OTczAA=="
+  },
+  {
+   "lead_id": "3e96dbdc-3cc8-4f08-95e2-d371fce6f411",
+   "nome": "Loja",
+   "telefone": "5582998091415",
+   "status": "INICIO",
+   "chat": "20731",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998091415]",
+   "wamid": "wamid.HBgMNTU4Mjk4MDkxNDE1FQIAERgSQ0E2QUQyOEE0NkM1OUFCMDg0AA=="
+  },
+  {
+   "lead_id": "76681b21-019d-4789-b360-1cd0de560f6c",
+   "nome": "Loja",
+   "telefone": "5582993448371",
+   "status": "INICIO",
+   "chat": "20732",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993448371]",
+   "wamid": "wamid.HBgMNTU4MjkzNDQ4MzcxFQIAERgSMkZBNTQyQUVGQzU2MDgwQUFGAA=="
+  },
+  {
+   "lead_id": "e319f0db-3d53-4f60-9b5d-0e5385f1f704",
+   "nome": "Loja",
+   "telefone": "5582987016773",
+   "status": "INICIO",
+   "chat": "20733",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987016773]",
+   "wamid": "wamid.HBgMNTU4Mjg3MDE2NzczFQIAERgSMTQ5NzY3OUREQ0Y4OEZDMTUyAA=="
+  },
+  {
+   "lead_id": "8f4d8ce3-249f-4867-be11-8e2226fd5ae7",
+   "nome": "Loja",
+   "telefone": "5582988712405",
+   "status": "INICIO",
+   "chat": "20734",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988712405]",
+   "wamid": "wamid.HBgMNTU4Mjg4NzEyNDA1FQIAERgSQUI0QTA2OTEyRTAzMDRGNTRCAA=="
+  },
+  {
+   "lead_id": "a3305f93-ce9d-404d-b651-2568514acff9",
+   "nome": "Loja",
+   "telefone": "5582996523034",
+   "status": "INICIO",
+   "chat": "20735",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996523034]",
+   "wamid": "wamid.HBgMNTU4Mjk2NTIzMDM0FQIAERgSQjREQTlGNjAyQjJFQUREOTYxAA=="
+  },
+  {
+   "lead_id": "0ff857a4-98d1-46c6-8c63-d42caaa5ebab",
+   "nome": "Loja",
+   "telefone": "5582993656712",
+   "status": "INICIO",
+   "chat": "20736",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993656712]",
+   "wamid": "wamid.HBgMNTU4MjkzNjU2NzEyFQIAERgSREJBODREMjNDQ0Q0RDJFQzI4AA=="
+  },
+  {
+   "lead_id": "bc596f44-5444-404a-b4b2-a81a138159e1",
+   "nome": "Loja",
+   "telefone": "5582999064274",
+   "status": "INICIO",
+   "chat": "20737",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999064274]",
+   "wamid": "wamid.HBgMNTU4Mjk5MDY0Mjc0FQIAERgSQzgzOUZCMjFERkREN0M4MEJFAA=="
+  },
+  {
+   "lead_id": "58f2164e-0f53-469e-9963-fafe5e2b970e",
+   "nome": "Loja",
+   "telefone": "5582998216483",
+   "status": "INICIO",
+   "chat": "20738",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998216483]",
+   "wamid": "wamid.HBgMNTU4Mjk4MjE2NDgzFQIAERgSQ0UwMzhGODFCODU5MEU4QkM1AA=="
+  },
+  {
+   "lead_id": "ea76f806-bdba-428f-bcf5-c54d52ee6c6e",
+   "nome": "Loja",
+   "telefone": "5582988716656",
+   "status": "INICIO",
+   "chat": "20739",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988716656]",
+   "wamid": "wamid.HBgMNTU4Mjg4NzE2NjU2FQIAERgSNURGRUUxMjUxODQ4NDc1QTdGAA=="
+  },
+  {
+   "lead_id": "cf324d9d-13eb-408e-9cf9-5354d836cf9b",
+   "nome": "Loja",
+   "telefone": "5582988093852",
+   "status": "INICIO",
+   "chat": "20740",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988093852]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDkzODUyFQIAERgSQjRBOEIzRTEyOEZGQkRGNkE2AA=="
+  },
+  {
+   "lead_id": "cb4cdb19-a39f-4129-b053-65cc76ff5fa0",
+   "nome": "Loja",
+   "telefone": "5582987330666",
+   "status": "INICIO",
+   "chat": "20741",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987330666]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzMwNjY2FQIAERgSRDFCN0MzMTg5NThCMjdFQzVGAA=="
+  },
+  {
+   "lead_id": "e1eefede-9021-4d25-b9e5-a0c3863a24ed",
+   "nome": "Loja",
+   "telefone": "5582988337422",
+   "status": "INICIO",
+   "chat": "20742",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988337422]",
+   "wamid": "wamid.HBgMNTU4Mjg4MzM3NDIyFQIAERgSMTMwQjEzNkNDMzc3RkUwRjBBAA=="
+  },
+  {
+   "lead_id": "879c6348-cc61-4c13-8438-2f9f1b7e54e0",
+   "nome": "Loja",
+   "telefone": "5582993337555",
+   "status": "INICIO",
+   "chat": "20743",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993337555]",
+   "wamid": "wamid.HBgMNTU4MjkzMzM3NTU1FQIAERgSNUFCQzkzRjg1NDQ5QkUxNkYzAA=="
+  },
+  {
+   "lead_id": "90b672c1-147c-4379-8d54-d0058e6e8792",
+   "nome": "Loja",
+   "telefone": "5582999936008",
+   "status": "INICIO",
+   "chat": "20744",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999936008]",
+   "wamid": "wamid.HBgMNTU4Mjk5OTM2MDA4FQIAERgSQ0Y5ODNFQzRDNUUzQjIxNzYxAA=="
+  },
+  {
+   "lead_id": "5eb74517-28e8-46e7-ae3c-98c2928576d5",
+   "nome": "Loja",
+   "telefone": "5582996653948",
+   "status": "INICIO",
+   "chat": "20745",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996653948]",
+   "wamid": "wamid.HBgMNTU4Mjk2NjUzOTQ4FQIAERgSRDA3MjE1QzA1MzBCQTM5NzM0AA=="
+  },
+  {
+   "lead_id": "3046d5e4-7914-472c-9ff5-f9a321eca6a9",
+   "nome": "Loja",
+   "telefone": "5582996446550",
+   "status": "INICIO",
+   "chat": "20746",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996446550]",
+   "wamid": "wamid.HBgMNTU4Mjk2NDQ2NTUwFQIAERgSNDJFNTIyQzYyOTRDMDY2MTU2AA=="
+  },
+  {
+   "lead_id": "7d849de0-5009-4d7a-acac-91df2a1e68a1",
+   "nome": "Loja",
+   "telefone": "5582998124680",
+   "status": "INICIO",
+   "chat": "20747",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998124680]",
+   "wamid": "wamid.HBgMNTU4Mjk4MTI0NjgwFQIAERgSREFDNTExMjA5ODJFNkRGRDRFAA=="
+  },
+  {
+   "lead_id": "5f66f1b4-1d15-4f21-a204-071217903c49",
+   "nome": "Loja",
+   "telefone": "5582988357006",
+   "status": "INICIO",
+   "chat": "20748",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988357006]",
+   "wamid": "wamid.HBgMNTU4Mjg4MzU3MDA2FQIAERgSODQ3MEVENTNDODIxMDA5RTc2AA=="
+  },
+  {
+   "lead_id": "8514998b-1863-4bd7-9c47-eb784c2ea1cb",
+   "nome": "Loja",
+   "telefone": "5582988236868",
+   "status": "INICIO",
+   "chat": "20749",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988236868]",
+   "wamid": "wamid.HBgMNTU4Mjg4MjM2ODY4FQIAERgSRjZFMjUzNThFRDE3OTE2NEMxAA=="
+  },
+  {
+   "lead_id": "5fd6192f-d117-471a-b9b8-809419c005ef",
+   "nome": "Loja",
+   "telefone": "5582999471417",
+   "status": "INICIO",
+   "chat": "20750",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999471417]",
+   "wamid": "wamid.HBgMNTU4Mjk5NDcxNDE3FQIAERgSNDFBMjdCOTExNzA5RDc0NTcxAA=="
+  },
+  {
+   "lead_id": "dba83c80-b53c-4f5c-9216-d545ddca969a",
+   "nome": "Loja",
+   "telefone": "5582996570295",
+   "status": "INICIO",
+   "chat": "20751",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996570295]",
+   "wamid": "wamid.HBgMNTU4Mjk2NTcwMjk1FQIAERgSRkUzNkI2OTQ2OUNFNEFCQ0M1AA=="
+  },
+  {
+   "lead_id": "031ab5a9-a735-4f2d-ac1d-2e785243951e",
+   "nome": "Loja",
+   "telefone": "5582991059763",
+   "status": "INICIO",
+   "chat": "20752",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991059763]",
+   "wamid": "wamid.HBgMNTU4MjkxMDU5NzYzFQIAERgSNzREOTJFNzVDMkZERTRGNDFFAA=="
+  },
+  {
+   "lead_id": "cf113ed8-fbfa-4467-b2b7-6621a4f591d9",
+   "nome": "Loja",
+   "telefone": "5582993642861",
+   "status": "INICIO",
+   "chat": "20753",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993642861]",
+   "wamid": "wamid.HBgMNTU4MjkzNjQyODYxFQIAERgSNzc5NkMwMjkzNUVBMkYxRTJBAA=="
+  },
+  {
+   "lead_id": "b446ad80-504e-4f5d-9aac-c54869d5056b",
+   "nome": "Loja",
+   "telefone": "5582988633445",
+   "status": "INICIO",
+   "chat": "20754",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988633445]",
+   "wamid": "wamid.HBgMNTU4Mjg4NjMzNDQ1FQIAERgSNzY1MUY0QUU1QUI3NEIxNzdFAA=="
+  },
+  {
+   "lead_id": "67c96d9f-4f94-4bc0-828f-7ad6b258c54f",
+   "nome": "Loja",
+   "telefone": "5582999583746",
+   "status": "INICIO",
+   "chat": "20755",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999583746]",
+   "wamid": "wamid.HBgMNTU4Mjk5NTgzNzQ2FQIAERgSMzNEOTgyMUY5ODA2ODMzQ0EyAA=="
+  },
+  {
+   "lead_id": "7e35fe61-60f3-4902-b4a2-f4f7c7ffb3ea",
+   "nome": "Loja",
+   "telefone": "5582999199939",
+   "status": "INICIO",
+   "chat": "20756",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999199939]",
+   "wamid": "wamid.HBgMNTU4Mjk5MTk5OTM5FQIAERgSREU3NTdCRUFFNEI1QTQ5NTQ1AA=="
+  },
+  {
+   "lead_id": "f70c80e5-e244-4646-888f-f242b5aa8a07",
+   "nome": "Loja",
+   "telefone": "5582994083015",
+   "status": "INICIO",
+   "chat": "20757",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582994083015]",
+   "wamid": "wamid.HBgMNTU4Mjk0MDgzMDE1FQIAERgSNTZGRTY5NkIzNjE3QUI5OUE5AA=="
+  },
+  {
+   "lead_id": "1aa4c301-439a-49fc-bdfc-0160482bca59",
+   "nome": "Loja",
+   "telefone": "5582996567196",
+   "status": "INICIO",
+   "chat": "20758",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996567196]",
+   "wamid": "wamid.HBgMNTU4Mjk2NTY3MTk2FQIAERgSNUNFREM5NEFDNDBEQTgzQTQzAA=="
+  },
+  {
+   "lead_id": "935d0b48-12e0-4199-b177-38d57c7237f6",
+   "nome": "Loja",
+   "telefone": "5582991065546",
+   "status": "INICIO",
+   "chat": "20759",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991065546]",
+   "wamid": "wamid.HBgMNTU4MjkxMDY1NTQ2FQIAERgSNUYzM0VCRDQ5RkQxOUQ1MkY0AA=="
+  },
+  {
+   "lead_id": "f56601cc-13a2-4442-863f-b560df7f4be6",
+   "nome": "Loja",
+   "telefone": "5582993628448",
+   "status": "INICIO",
+   "chat": "20760",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993628448]",
+   "wamid": "wamid.HBgMNTU4MjkzNjI4NDQ4FQIAERgSQTY2RTg1MTJDQjA0MDY2ODdGAA=="
+  },
+  {
+   "lead_id": "f8aac155-2a43-48be-81af-f7e7c96d3b92",
+   "nome": "Loja",
+   "telefone": "5582988391047",
+   "status": "INICIO",
+   "chat": "20761",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988391047]",
+   "wamid": "wamid.HBgMNTU4Mjg4MzkxMDQ3FQIAERgSMEU0MkU1RDM5RDY1MEMwNTlFAA=="
+  },
+  {
+   "lead_id": "c295a615-910e-4d36-8572-dad4f4ac18b2",
+   "nome": "Loja",
+   "telefone": "5582994084823",
+   "status": "INICIO",
+   "chat": "20762",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582994084823]",
+   "wamid": "wamid.HBgMNTU4Mjk0MDg0ODIzFQIAERgSRDAyREMwQTg4MjE1QkJGRDQxAA=="
+  },
+  {
+   "lead_id": "b10a2814-6e81-4236-ab69-a99da8e618d6",
+   "nome": "Loja",
+   "telefone": "5582981655871",
+   "status": "INICIO",
+   "chat": "20763",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582981655871]",
+   "wamid": "wamid.HBgMNTU4MjgxNjU1ODcxFQIAERgSMTA0MjUxQjQ0RjdBRTJENEQ2AA=="
+  },
+  {
+   "lead_id": "281ab6b9-483e-419f-bd7b-531a845c81f3",
+   "nome": "Loja",
+   "telefone": "5582988822763",
+   "status": "INICIO",
+   "chat": "20764",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988822763]",
+   "wamid": "wamid.HBgMNTU4Mjg4ODIyNzYzFQIAERgSOTUwNEU1NEM2Q0FFRjJGMkI1AA=="
+  },
+  {
+   "lead_id": "75270984-6609-40ce-abac-84c701ef78f0",
+   "nome": "Loja",
+   "telefone": "5592984615547",
+   "status": "INICIO",
+   "chat": "20765",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984615547]",
+   "wamid": "wamid.HBgMNTU5Mjg0NjE1NTQ3FQIAERgSMDUxNEU2MTQxREYxNjBFQUZGAA=="
+  },
+  {
+   "lead_id": "dc96e96b-26a7-4981-8448-9fddcf0fbfdf",
+   "nome": "Loja",
+   "telefone": "5592984041937",
+   "status": "INICIO",
+   "chat": "20766",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984041937]",
+   "wamid": "wamid.HBgMNTU5Mjg0MDQxOTM3FQIAERgSODRCMjlERkYzQzYzNjc3OEUyAA=="
+  },
+  {
+   "lead_id": "b7597f48-1045-4e71-80b2-8870f5ed2028",
+   "nome": "Loja",
+   "telefone": "5582988657400",
+   "status": "INICIO",
+   "chat": "20767",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988657400]",
+   "wamid": "wamid.HBgMNTU4Mjg4NjU3NDAwFQIAERgSQzI1OTg0OUNBRjg4QjlDMDcxAA=="
+  },
+  {
+   "lead_id": "2541d5de-0a65-4fd6-9f2c-f7f308230bd9",
+   "nome": "Loja",
+   "telefone": "5582999696626",
+   "status": "INICIO",
+   "chat": "20768",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582999696626]",
+   "wamid": "wamid.HBgMNTU4Mjk5Njk2NjI2FQIAERgSNkZDQzU5MEMwMDQzMDMzNjEwAA=="
+  },
+  {
+   "lead_id": "aca52816-7fa5-4161-8840-bedee1a6517e",
+   "nome": "Loja",
+   "telefone": "5582998269909",
+   "status": "INICIO",
+   "chat": "20769",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998269909]",
+   "wamid": "wamid.HBgMNTU4Mjk4MjY5OTA5FQIAERgSMzk4Q0E1OTkyQjVCMTc2MEJDAA=="
+  },
+  {
+   "lead_id": "b2e018fd-744c-4261-8417-f97c6fa11b44",
+   "nome": "Loja",
+   "telefone": "5582988485052",
+   "status": "INICIO",
+   "chat": "20770",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988485052]",
+   "wamid": "wamid.HBgMNTU4Mjg4NDg1MDUyFQIAERgSNEQ1M0E1QUM3N0UyN0NDQzA0AA=="
+  },
+  {
+   "lead_id": "9859d37e-4514-47e6-bc1d-f5644e4f9b25",
+   "nome": "Loja",
+   "telefone": "5582993243745",
+   "status": "INICIO",
+   "chat": "20771",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993243745]",
+   "wamid": "wamid.HBgMNTU4MjkzMjQzNzQ1FQIAERgSMTZGOTZDMjBEQ0ZBMkJBRTBDAA=="
+  },
+  {
+   "lead_id": "66c940e6-2a9e-40bf-a395-c6e19d38697d",
+   "nome": "Loja",
+   "telefone": "5582988042041",
+   "status": "INICIO",
+   "chat": "20772",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988042041]",
+   "wamid": "wamid.HBgMNTU4Mjg4MDQyMDQxFQIAERgSMjQwQTk0NUJFOTI4NzgwNDk5AA=="
+  },
+  {
+   "lead_id": "5407bf64-568b-4813-8615-7ce0be559ad5",
+   "nome": "Loja",
+   "telefone": "5582996479626",
+   "status": "INICIO",
+   "chat": "20773",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996479626]",
+   "wamid": "wamid.HBgMNTU4Mjk2NDc5NjI2FQIAERgSMjNDMDM3RUI3QkFBMkE5MEI5AA=="
+  },
+  {
+   "lead_id": "217ff4d5-373e-460f-92c7-2eecfb44494f",
+   "nome": "Loja",
+   "telefone": "5582993701309",
+   "status": "INICIO",
+   "chat": "20774",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582993701309]",
+   "wamid": "wamid.HBgMNTU4MjkzNzAxMzA5FQIAERgSRTZCNzMwQzg5NDk1MDEwMkJFAA=="
+  },
+  {
+   "lead_id": "d8bbdd2d-c7ee-4c70-8e4e-2a0148daadf7",
+   "nome": "Loja",
+   "telefone": "5582991274639",
+   "status": "INICIO",
+   "chat": "20775",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582991274639]",
+   "wamid": "wamid.HBgMNTU4MjkxMjc0NjM5FQIAERgSMkQzQTE4ODM2OTVDRjQ5RUFBAA=="
+  },
+  {
+   "lead_id": "46774f3c-77fa-4840-a2d9-e5563fc4ba9f",
+   "nome": "Loja",
+   "telefone": "5582998390529",
+   "status": "INICIO",
+   "chat": "20776",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582998390529]",
+   "wamid": "wamid.HBgMNTU4Mjk4MzkwNTI5FQIAERgSMEQ0QzQ1Qjc0Qjk4N0Q0MzkyAA=="
+  },
+  {
+   "lead_id": "efb0d699-5c93-4ecc-8d10-f38d6b122a82",
+   "nome": "Loja",
+   "telefone": "5582996236229",
+   "status": "INICIO",
+   "chat": "20777",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996236229]",
+   "wamid": "wamid.HBgMNTU4Mjk2MjM2MjI5FQIAERgSOEI5RkIyMzk2MzYzREZENUY5AA=="
+  },
+  {
+   "lead_id": "54d53b95-c78d-46da-af87-906e0fed2da9",
+   "nome": "Loja",
+   "telefone": "5582996397088",
+   "status": "INICIO",
+   "chat": "20778",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582996397088]",
+   "wamid": "wamid.HBgMNTU4Mjk2Mzk3MDg4FQIAERgSMUM5MTZBNEYzMDY4OUFFNEE3AA=="
+  },
+  {
+   "lead_id": "0155ef25-6b60-46b8-8eb3-df4a03910dd2",
+   "nome": "Loja",
+   "telefone": "5582988310131",
+   "status": "INICIO",
+   "chat": "20779",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582988310131]",
+   "wamid": "wamid.HBgMNTU4Mjg4MzEwMTMxFQIAERgSMUQwOTU4OUREQjQ0NjVENTA0AA=="
+  },
+  {
+   "lead_id": "bec1c201-e573-4643-b315-0676f1965a28",
+   "nome": "Loja",
+   "telefone": "5582982197066",
+   "status": "INICIO",
+   "chat": "20780",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582982197066]",
+   "wamid": "wamid.HBgMNTU4MjgyMTk3MDY2FQIAERgSMUY3OUZBRjVDODMxMjZGN0M2AA=="
+  },
+  {
+   "lead_id": "35cf8ca9-c113-436b-8ce1-cdda643ff2c6",
+   "nome": "Loja",
+   "telefone": "5582987366220",
+   "status": "INICIO",
+   "chat": "20781",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5582987366220]",
+   "wamid": "wamid.HBgMNTU4Mjg3MzY2MjIwFQIAERgSQzM3MkQ1REI2RkJDRDIyREQxAA=="
+  },
+  {
+   "lead_id": "7fc216c7-39d6-4ede-a8ac-8ea203356821",
+   "nome": "Loja",
+   "telefone": "5592991818196",
+   "status": "INICIO",
+   "chat": "20782",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991818196]",
+   "wamid": "wamid.HBgMNTU5MjkxODE4MTk2FQIAERgSMTcyM0VCREJENDE3NDgzMkE0AA=="
+  },
+  {
+   "lead_id": "e1ce456b-48f9-408a-8917-982dfb06b644",
+   "nome": "Loja",
+   "telefone": "5592991147407",
+   "status": "INICIO",
+   "chat": "20783",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991147407]",
+   "wamid": "wamid.HBgMNTU5MjkxMTQ3NDA3FQIAERgSNEZBNjNGMjkyRkU4RjgxMzQzAA=="
+  },
+  {
+   "lead_id": "7de13a56-e50a-4084-8b4d-0973f8602462",
+   "nome": "Loja",
+   "telefone": "5592981879095",
+   "status": "INICIO",
+   "chat": "20784",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981879095]",
+   "wamid": "wamid.HBgMNTU5MjgxODc5MDk1FQIAERgSNjIyNkNCRkIzRTlBN0EzNUE1AA=="
+  },
+  {
+   "lead_id": "fdd3eeec-a3e4-4e51-94b2-d97e9fa755a8",
+   "nome": "Loja",
+   "telefone": "5592981417696",
+   "status": "INICIO",
+   "chat": "20785",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981417696]",
+   "wamid": "wamid.HBgMNTU5MjgxNDE3Njk2FQIAERgSOTlEN0JFNjRCMDgwMzI3NDNFAA=="
+  },
+  {
+   "lead_id": "d9a4d262-f816-42da-a2bf-2c24d486541b",
+   "nome": "Loja",
+   "telefone": "5592991320478",
+   "status": "INICIO",
+   "chat": "20786",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991320478]",
+   "wamid": "wamid.HBgMNTU5MjkxMzIwNDc4FQIAERgSNTQ3QUFGNTQxRDFEOTM0QjQ1AA=="
+  },
+  {
+   "lead_id": "173b6269-e265-4a71-bbf1-0585662a68cb",
+   "nome": "Loja",
+   "telefone": "5592991405307",
+   "status": "INICIO",
+   "chat": "20787",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991405307]",
+   "wamid": "wamid.HBgMNTU5MjkxNDA1MzA3FQIAERgSQUVDMjY4MTFGNTQ4NEY0RTQxAA=="
+  },
+  {
+   "lead_id": "1fdb482c-394a-4228-8021-1930d04d60bd",
+   "nome": "Loja",
+   "telefone": "5592984893839",
+   "status": "INICIO",
+   "chat": "20788",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984893839]",
+   "wamid": "wamid.HBgMNTU5Mjg0ODkzODM5FQIAERgSNDA5QzIyMkZBQjA4REU5NkUwAA=="
+  },
+  {
+   "lead_id": "b41f6c9c-f6a9-42a6-a110-0f82c6c7c135",
+   "nome": "Loja",
+   "telefone": "5592985592008",
+   "status": "INICIO",
+   "chat": "20789",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985592008]",
+   "wamid": "wamid.HBgMNTU5Mjg1NTkyMDA4FQIAERgSMkFCRUJBMkEwQkRGRUQzRjQ4AA=="
+  },
+  {
+   "lead_id": "c2834ad3-b664-4001-8e78-a7aa35ff8092",
+   "nome": "Loja",
+   "telefone": "5592996066838",
+   "status": "INICIO",
+   "chat": "20790",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592996066838]",
+   "wamid": "wamid.HBgMNTU5Mjk2MDY2ODM4FQIAERgSRDNGMkUxNTE2RTcyRDc3MDcyAA=="
+  },
+  {
+   "lead_id": "8e1f59e4-35e2-4ee5-b10c-00624e1db9c2",
+   "nome": "Loja",
+   "telefone": "5592995336046",
+   "status": "INICIO",
+   "chat": "20791",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995336046]",
+   "wamid": "wamid.HBgMNTU5Mjk1MzM2MDQ2FQIAERgSOTgwQzQ0QzYwRUI5ODVDQUQ0AA=="
+  },
+  {
+   "lead_id": "f9d472d2-d7ba-4068-9bad-d85c4d13e856",
+   "nome": "Loja",
+   "telefone": "5592984606160",
+   "status": "INICIO",
+   "chat": "20792",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984606160]",
+   "wamid": "wamid.HBgMNTU5Mjg0NjA2MTYwFQIAERgSRUEwNTVFNURERjUzNzlCQTAwAA=="
+  },
+  {
+   "lead_id": "79544619-435a-4640-834c-eb44b16de048",
+   "nome": "Loja",
+   "telefone": "5592994759930",
+   "status": "INICIO",
+   "chat": "20793",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994759930]",
+   "wamid": "wamid.HBgMNTU5Mjk0NzU5OTMwFQIAERgSRUEwRkRDMkFDODU0MkQyM0U5AA=="
+  },
+  {
+   "lead_id": "ff9f7644-3a21-4b0a-ad10-8985a3b408be",
+   "nome": "Loja",
+   "telefone": "5592985944259",
+   "status": "INICIO",
+   "chat": "20794",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985944259]",
+   "wamid": "wamid.HBgMNTU5Mjg1OTQ0MjU5FQIAERgSNDlEMDA5QkE5MjA2MUREQzFFAA=="
+  },
+  {
+   "lead_id": "82368245-ed25-48a9-91e0-21415c3b8f1a",
+   "nome": "Loja",
+   "telefone": "5592992994796",
+   "status": "INICIO",
+   "chat": "20795",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992994796]",
+   "wamid": "wamid.HBgMNTU5MjkyOTk0Nzk2FQIAERgSNkZDNTZBQzQ5N0FGNTIxRDVDAA=="
+  },
+  {
+   "lead_id": "3c591559-53f9-4604-b728-a6ff5280531c",
+   "nome": "Loja",
+   "telefone": "5592991990407",
+   "status": "INICIO",
+   "chat": "20796",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991990407]",
+   "wamid": "wamid.HBgMNTU5MjkxOTkwNDA3FQIAERgSNTk3RTBGMDg0RkE1NjIxN0VCAA=="
+  },
+  {
+   "lead_id": "ac8512b2-f691-43d9-bb2b-bfffc444460c",
+   "nome": "Loja",
+   "telefone": "5592993920878",
+   "status": "INICIO",
+   "chat": "20797",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993920878]",
+   "wamid": "wamid.HBgMNTU5MjkzOTIwODc4FQIAERgSN0I3NkY5MjU3NEI3QzM5QkZDAA=="
+  },
+  {
+   "lead_id": "d70d2bd2-c3ed-4e73-989e-5653ecb63cce",
+   "nome": "Loja",
+   "telefone": "5592994307999",
+   "status": "INICIO",
+   "chat": "20798",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994307999]",
+   "wamid": "wamid.HBgMNTU5Mjk0MzA3OTk5FQIAERgSQTNEMTRCQjU0QTNGQUNBODIxAA=="
+  },
+  {
+   "lead_id": "f35b5ab7-1de7-4dc3-9eae-dc0f2e192fd3",
+   "nome": "Loja",
+   "telefone": "5592993036350",
+   "status": "INICIO",
+   "chat": "20799",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993036350]",
+   "wamid": "wamid.HBgMNTU5MjkzMDM2MzUwFQIAERgSOTQyMjNCQkMzOTI3OEVGODdFAA=="
+  },
+  {
+   "lead_id": "c91289ac-1326-4cd5-976f-e64ec0d11348",
+   "nome": "Loja",
+   "telefone": "5592994809699",
+   "status": "INICIO",
+   "chat": "20800",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994809699]",
+   "wamid": "wamid.HBgMNTU5Mjk0ODA5Njk5FQIAERgSRkM5RUVFNUI5MkIyNDExMTVGAA=="
+  },
+  {
+   "lead_id": "b9f8bfb8-2022-443e-b113-e6c0e106172a",
+   "nome": "Loja",
+   "telefone": "5592993125599",
+   "status": "INICIO",
+   "chat": "20801",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993125599]",
+   "wamid": "wamid.HBgMNTU5MjkzMTI1NTk5FQIAERgSMTlCNzcwRkEzMjBBQTZEMEZDAA=="
+  },
+  {
+   "lead_id": "85d3a057-a81d-48ca-80a1-04f897be490c",
+   "nome": "Loja",
+   "telefone": "5592991420018",
+   "status": "INICIO",
+   "chat": "20802",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991420018]",
+   "wamid": "wamid.HBgMNTU5MjkxNDIwMDE4FQIAERgSQUUzNTNDMUYwRTJCNURDMzUyAA=="
+  },
+  {
+   "lead_id": "f0071a41-4556-4d7c-923e-4eaf63b41452",
+   "nome": "Loja",
+   "telefone": "5592995109910",
+   "status": "INICIO",
+   "chat": "20803",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995109910]",
+   "wamid": "wamid.HBgMNTU5Mjk1MTA5OTEwFQIAERgSMjhENzRBMjZGN0U5RkNCMURFAA=="
+  },
+  {
+   "lead_id": "9d298016-0575-4331-be9c-bafa3e8f4af7",
+   "nome": "Loja",
+   "telefone": "5592991627847",
+   "status": "INICIO",
+   "chat": "20804",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991627847]",
+   "wamid": "wamid.HBgMNTU5MjkxNjI3ODQ3FQIAERgSRkRFQkU5OTgzMkE1NkY1MkY3AA=="
+  },
+  {
+   "lead_id": "08d48baa-4d1b-4a26-b722-43badde9f72f",
+   "nome": "Loja",
+   "telefone": "5592993481990",
+   "status": "INICIO",
+   "chat": "20805",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993481990]",
+   "wamid": "wamid.HBgMNTU5MjkzNDgxOTkwFQIAERgSQzU0RTA5MDI0OEYxM0Q5QjJEAA=="
+  },
+  {
+   "lead_id": "aba0681a-a328-442f-b6a2-798a88e7ac1a",
+   "nome": "Loja",
+   "telefone": "5592993217371",
+   "status": "INICIO",
+   "chat": "20806",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993217371]",
+   "wamid": "wamid.HBgMNTU5MjkzMjE3MzcxFQIAERgSNjBGMkE0NDIwNTdERTBFOTdFAA=="
+  },
+  {
+   "lead_id": "1ba17b89-9a0e-48ee-8c58-aabd5b617943",
+   "nome": "Loja",
+   "telefone": "5592993526133",
+   "status": "INICIO",
+   "chat": "20807",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993526133]",
+   "wamid": "wamid.HBgMNTU5MjkzNTI2MTMzFQIAERgSN0I5NTk2N0JBQjE0RTY0REFEAA=="
+  },
+  {
+   "lead_id": "8510ff84-faa7-4aeb-afdc-17fc3840eac6",
+   "nome": "Loja",
+   "telefone": "5592999696913",
+   "status": "INICIO",
+   "chat": "20808",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999696913]",
+   "wamid": "wamid.HBgMNTU5Mjk5Njk2OTEzFQIAERgSQjFBQjc3N0VEQTQ0REFCNEJFAA=="
+  },
+  {
+   "lead_id": "058a588e-b6bc-4064-b21d-dee762e0f547",
+   "nome": "Loja",
+   "telefone": "5592986096394",
+   "status": "INICIO",
+   "chat": "20809",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986096394]",
+   "wamid": "wamid.HBgMNTU5Mjg2MDk2Mzk0FQIAERgSQkE4MTNFODQwRTI3MUZBQkM5AA=="
+  },
+  {
+   "lead_id": "7e3b694a-aea3-4d14-a51f-4e6ecf81e762",
+   "nome": "Loja",
+   "telefone": "5592992732647",
+   "status": "INICIO",
+   "chat": "20810",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992732647]",
+   "wamid": "wamid.HBgMNTU5MjkyNzMyNjQ3FQIAERgSODU2MTFEMzJGNjIzODdGQjkwAA=="
+  },
+  {
+   "lead_id": "d130cc00-ddfb-4e96-b473-a5e6eeea0542",
+   "nome": "Loja",
+   "telefone": "5592994010435",
+   "status": "INICIO",
+   "chat": "20811",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994010435]",
+   "wamid": "wamid.HBgMNTU5Mjk0MDEwNDM1FQIAERgSQTZCOEQ2QjlDQjIxMEIzNjg4AA=="
+  },
+  {
+   "lead_id": "b6ffb832-0a22-40fc-91e0-dd5e6ca8965a",
+   "nome": "Loja",
+   "telefone": "5592991121400",
+   "status": "INICIO",
+   "chat": "20812",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991121400]",
+   "wamid": "wamid.HBgMNTU5MjkxMTIxNDAwFQIAERgSOTY5QTBERTA0RDk3REI1NzAwAA=="
+  },
+  {
+   "lead_id": "a122c626-475d-4967-91c2-5c28b279191d",
+   "nome": "Loja",
+   "telefone": "5592994412001",
+   "status": "INICIO",
+   "chat": "20814",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994412001]",
+   "wamid": "wamid.HBgMNTU5Mjk0NDEyMDAxFQIAERgSOUIxRkFEQzdGMkU1NEM2OTFGAA=="
+  },
+  {
+   "lead_id": "69c3cafb-c952-4ba2-ade2-0f1910f3ae73",
+   "nome": "Loja",
+   "telefone": "5592993585161",
+   "status": "INICIO",
+   "chat": "20815",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993585161]",
+   "wamid": "wamid.HBgMNTU5MjkzNTg1MTYxFQIAERgSQjU3NjI5MTY0MzZDMTIzMDA1AA=="
+  },
+  {
+   "lead_id": "21384fcf-53d6-4698-9fb6-bcc4eb690f56",
+   "nome": "Loja",
+   "telefone": "5592991606791",
+   "status": "INICIO",
+   "chat": "20816",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991606791]",
+   "wamid": "wamid.HBgMNTU5MjkxNjA2NzkxFQIAERgSQkE3NkMwOUQyNjVDQUY2RDFEAA=="
+  },
+  {
+   "lead_id": "1341468a-a88d-44b1-87f0-7936257d8002",
+   "nome": "Loja",
+   "telefone": "5592991013555",
+   "status": "INICIO",
+   "chat": "20817",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991013555]",
+   "wamid": "wamid.HBgMNTU5MjkxMDEzNTU1FQIAERgSN0I5MzRDRENGNjVBMTc1NzQ3AA=="
+  },
+  {
+   "lead_id": "4cfefb9c-4c82-451d-84f5-ef7f1de97032",
+   "nome": "Loja",
+   "telefone": "5592982639665",
+   "status": "INICIO",
+   "chat": "20818",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982639665]",
+   "wamid": "wamid.HBgMNTU5MjgyNjM5NjY1FQIAERgSMDgxNzlGNUJEM0QxQzkzNjNGAA=="
+  },
+  {
+   "lead_id": "c6a96def-904c-4dec-bc83-29060823b5f9",
+   "nome": "Loja",
+   "telefone": "5592982855562",
+   "status": "INICIO",
+   "chat": "20819",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982855562]",
+   "wamid": "wamid.HBgMNTU5MjgyODU1NTYyFQIAERgSRDQwNzhEMUY4MTI3QUQyNDY1AA=="
+  },
+  {
+   "lead_id": "e638beb4-cac7-4ce9-9bb9-cd73a7955cdd",
+   "nome": "Loja",
+   "telefone": "5592984496860",
+   "status": "INICIO",
+   "chat": "20820",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984496860]",
+   "wamid": "wamid.HBgMNTU5Mjg0NDk2ODYwFQIAERgSQkU3NEJBQzNDNkI3MzgwNUVFAA=="
+  },
+  {
+   "lead_id": "31a44f5c-941e-46e5-9acd-d6dd2a62797a",
+   "nome": "Loja",
+   "telefone": "5592993390050",
+   "status": "INICIO",
+   "chat": "20821",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993390050]",
+   "wamid": "wamid.HBgMNTU5MjkzMzkwMDUwFQIAERgSRUM4Mzg5RUE5MUU4NkQ1ODYyAA=="
+  },
+  {
+   "lead_id": "bbc12b71-e8e0-4b90-8c0a-2e805ca9faf7",
+   "nome": "Loja",
+   "telefone": "5592995232624",
+   "status": "INICIO",
+   "chat": "20822",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995232624]",
+   "wamid": "wamid.HBgMNTU5Mjk1MjMyNjI0FQIAERgSMzQ4ODFDNUE4RjQ4OERCMzU2AA=="
+  },
+  {
+   "lead_id": "6cb165a4-8704-4168-b2f6-5e5c4bb6a6ca",
+   "nome": "Loja",
+   "telefone": "5592991302696",
+   "status": "INICIO",
+   "chat": "20823",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991302696]",
+   "wamid": "wamid.HBgMNTU5MjkxMzAyNjk2FQIAERgSNTdDQ0RFQURBRDA0QkZGMzY1AA=="
+  },
+  {
+   "lead_id": "ab17f6f9-7d7b-4008-b702-9c18c74d8688",
+   "nome": "Loja",
+   "telefone": "5592992357116",
+   "status": "INICIO",
+   "chat": "20825",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992357116]",
+   "wamid": "wamid.HBgMNTU5MjkyMzU3MTE2FQIAERgSMEI2QkRFQjIxNDE5OUVCOUZEAA=="
+  },
+  {
+   "lead_id": "99fcef99-83a3-481b-9f0a-5e68969fdf96",
+   "nome": "Loja",
+   "telefone": "5592999816853",
+   "status": "INICIO",
+   "chat": "20827",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999816853]",
+   "wamid": "wamid.HBgMNTU5Mjk5ODE2ODUzFQIAERgSRjNFOUVDQzJENDc3QjczQjkzAA=="
+  },
+  {
+   "lead_id": "168ea2a7-9d76-4cd8-9959-5d55917c9bf1",
+   "nome": "Hospital do Smart",
+   "telefone": "5521982946710",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "chat": "16859",
+   "templates": [
+    "aiva_reativacao_48h"
+   ],
+   "ultimoTexto": "[Check primeira venda enviado]",
+   "wamid": "wamid.HBgNNTUyMTk4Mjk0NjcxMBUCABEYEjg3Q0ZCOTkyRDVGQzQ0RjA1QwA="
+  },
+  {
+   "lead_id": "bbee0706-b493-4c27-a014-9bd076464dbd",
+   "nome": "Loja",
+   "telefone": "5592992183728",
+   "status": "INICIO",
+   "chat": "20829",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992183728]",
+   "wamid": "wamid.HBgMNTU5MjkyMTgzNzI4FQIAERgSNDk4Rjk3RTRDNDQ1NTE0RjI3AA=="
+  },
+  {
+   "lead_id": "bdfcd7db-c0c5-4be9-9122-c4f4658d7c91",
+   "nome": "Loja",
+   "telefone": "5592999971326",
+   "status": "INICIO",
+   "chat": "20831",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999971326]",
+   "wamid": "wamid.HBgMNTU5Mjk5OTcxMzI2FQIAERgSRDNDNzI1MzY4QjM3RjBFRjJCAA=="
+  },
+  {
+   "lead_id": "a374213b-4c8d-4b6d-8dc4-3ffcc1a2612e",
+   "nome": "Loja",
+   "telefone": "5592991604422",
+   "status": "INICIO",
+   "chat": "20833",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991604422]",
+   "wamid": "wamid.HBgMNTU5MjkxNjA0NDIyFQIAERgSM0RENzREQjlDNUI3N0JCOTJFAA=="
+  },
+  {
+   "lead_id": "54221001-8d99-4f8a-b3f6-14ecacf75aa0",
+   "nome": "Loja",
+   "telefone": "5592994992380",
+   "status": "INICIO",
+   "chat": "20835",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994992380]",
+   "wamid": "wamid.HBgMNTU5Mjk0OTkyMzgwFQIAERgSODExQUJDODBEMEJBQkYzRDA0AA=="
+  },
+  {
+   "lead_id": "59a0299d-5df2-45d5-8137-cffc6aa6d4cd",
+   "nome": "Loja",
+   "telefone": "5592992369108",
+   "status": "INICIO",
+   "chat": "20836",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992369108]",
+   "wamid": "wamid.HBgMNTU5MjkyMzY5MTA4FQIAERgSRkFFMzlFNDc3NjZEMDcyRjZDAA=="
+  },
+  {
+   "lead_id": "83fd8bf1-e4b3-4e50-922d-d81e3e59719e",
+   "nome": "Loja",
+   "telefone": "5592991887400",
+   "status": "INICIO",
+   "chat": "20837",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991887400]",
+   "wamid": "wamid.HBgMNTU5MjkxODg3NDAwFQIAERgSRUIxMTA0NDczMzU0QTJEMDU0AA=="
+  },
+  {
+   "lead_id": "8236c4f2-df9b-4bf6-86ed-24b33b8ad52a",
+   "nome": "Loja",
+   "telefone": "5592981474192",
+   "status": "INICIO",
+   "chat": "20838",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981474192]",
+   "wamid": "wamid.HBgMNTU5MjgxNDc0MTkyFQIAERgSNjE5RDdBMUQ3NDMxMUQzREIwAA=="
+  },
+  {
+   "lead_id": "01539b57-25dc-4049-bfd4-080f42baec61",
+   "nome": "Loja",
+   "telefone": "5592993746135",
+   "status": "INICIO",
+   "chat": "20839",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993746135]",
+   "wamid": "wamid.HBgMNTU5MjkzNzQ2MTM1FQIAERgSQTI0QjkwRDY0QTQ2M0VENTQzAA=="
+  },
+  {
+   "lead_id": "3a993925-1d1d-42b5-9089-c5187eb9f20e",
+   "nome": "Loja",
+   "telefone": "5592999966178",
+   "status": "INICIO",
+   "chat": "20840",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999966178]",
+   "wamid": "wamid.HBgMNTU5Mjk5OTY2MTc4FQIAERgSQkJCQjgzNDdERUIwREZGMDdEAA=="
+  },
+  {
+   "lead_id": "02318f09-e2fa-454c-a43c-2b1d31a06d82",
+   "nome": "Loja",
+   "telefone": "5592992838694",
+   "status": "INICIO",
+   "chat": "20841",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992838694]",
+   "wamid": "wamid.HBgMNTU5MjkyODM4Njk0FQIAERgSNkRENkREMkMxODYzNzY3QTBCAA=="
+  },
+  {
+   "lead_id": "c8bb6bcf-728c-44ba-8e4c-33c0fdcf7c7b",
+   "nome": "Loja",
+   "telefone": "5592992922220",
+   "status": "INICIO",
+   "chat": "20842",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992922220]",
+   "wamid": "wamid.HBgMNTU5MjkyOTIyMjIwFQIAERgSNDFFRjk4RjM2QTEyNTgyQ0UxAA=="
+  },
+  {
+   "lead_id": "a32fc96d-2691-42b4-b2f2-46d707732298",
+   "nome": "Loja",
+   "telefone": "5592984130975",
+   "status": "INICIO",
+   "chat": "20843",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984130975]",
+   "wamid": "wamid.HBgMNTU5Mjg0MTMwOTc1FQIAERgSRDk1MDE2QTExNEQ0MjVBNDcwAA=="
+  },
+  {
+   "lead_id": "72d4de98-1fa5-43d7-b729-77ff0d362cab",
+   "nome": "Loja",
+   "telefone": "5592982315787",
+   "status": "INICIO",
+   "chat": "20844",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982315787]",
+   "wamid": "wamid.HBgMNTU5MjgyMzE1Nzg3FQIAERgSMDAxM0NBNzlBNzlFRDcxQTk5AA=="
+  },
+  {
+   "lead_id": "2299b8f3-70c2-4397-93ea-5b522b644ff2",
+   "nome": "Loja",
+   "telefone": "5592992196488",
+   "status": "INICIO",
+   "chat": "20845",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992196488]",
+   "wamid": "wamid.HBgMNTU5MjkyMTk2NDg4FQIAERgSQTRGNkIxMTUyRkY2RDE5OEI3AA=="
+  },
+  {
+   "lead_id": "40a495af-d71e-485d-8b2d-eb133053fa49",
+   "nome": "Loja",
+   "telefone": "5592993649062",
+   "status": "INICIO",
+   "chat": "20846",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993649062]",
+   "wamid": "wamid.HBgMNTU5MjkzNjQ5MDYyFQIAERgSMzg2NDcxMTIwQ0REODBCOTREAA=="
+  },
+  {
+   "lead_id": "0fa30a1f-2216-4ef3-a60e-49a7e8f969e9",
+   "nome": "Loja",
+   "telefone": "5592986114154",
+   "status": "INICIO",
+   "chat": "20847",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986114154]",
+   "wamid": "wamid.HBgMNTU5Mjg2MTE0MTU0FQIAERgSN0M1M0JGMzVFMDMzRUNCNTlCAA=="
+  },
+  {
+   "lead_id": "7a3c1e27-cb06-4a67-be01-0f132c6cd94a",
+   "nome": "Loja",
+   "telefone": "5592991148592",
+   "status": "INICIO",
+   "chat": "20848",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991148592]",
+   "wamid": "wamid.HBgMNTU5MjkxMTQ4NTkyFQIAERgSOTMyRDM2Qzg3NzE4QTdEMDQ4AA=="
+  },
+  {
+   "lead_id": "b294955a-a5df-4080-93cc-641044fe3cfc",
+   "nome": "Loja",
+   "telefone": "5592993356606",
+   "status": "INICIO",
+   "chat": "20849",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993356606]",
+   "wamid": "wamid.HBgMNTU5MjkzMzU2NjA2FQIAERgSRTJCMjFERjgzNDNCM0E3OTIwAA=="
+  },
+  {
+   "lead_id": "7fe46614-063c-41dc-a062-bdc4678c42cb",
+   "nome": "Loja",
+   "telefone": "5592992867459",
+   "status": "INICIO",
+   "chat": "20850",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992867459]",
+   "wamid": "wamid.HBgMNTU5MjkyODY3NDU5FQIAERgSQUQwRTMxNDQyOTMxMTc2MTY2AA=="
+  },
+  {
+   "lead_id": "2120e21a-ac9d-4a21-bb7f-6f6e363f6d55",
+   "nome": "Loja",
+   "telefone": "5592994909676",
+   "status": "INICIO",
+   "chat": "20851",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994909676]",
+   "wamid": "wamid.HBgMNTU5Mjk0OTA5Njc2FQIAERgSMjRDRjlDNzg0Mjc1OTQ0NDJGAA=="
+  },
+  {
+   "lead_id": "37f83480-e926-49cd-a557-1c109fae1182",
+   "nome": "Loja",
+   "telefone": "5592995103408",
+   "status": "INICIO",
+   "chat": "20852",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995103408]",
+   "wamid": "wamid.HBgMNTU5Mjk1MTAzNDA4FQIAERgSMzNFODVCRjAxRDRENjgzQTg3AA=="
+  },
+  {
+   "lead_id": "14ef40b6-eb3c-4d46-8e75-b78de37fa44a",
+   "nome": "Loja",
+   "telefone": "5592984386965",
+   "status": "INICIO",
+   "chat": "20853",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984386965]",
+   "wamid": "wamid.HBgMNTU5Mjg0Mzg2OTY1FQIAERgSNkE0NEI3N0JFMUNENkZCNzU5AA=="
+  },
+  {
+   "lead_id": "a8f41305-a486-4624-af32-4a699e326c63",
+   "nome": "Loja",
+   "telefone": "5592988389309",
+   "status": "INICIO",
+   "chat": "20854",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592988389309]",
+   "wamid": "wamid.HBgMNTU5Mjg4Mzg5MzA5FQIAERgSNjNGRTkzQjk3OUE5QkY1NDc0AA=="
+  },
+  {
+   "lead_id": "8038bd9b-0dc5-4c77-be5e-0ac57b794c45",
+   "nome": "Loja",
+   "telefone": "5592991828903",
+   "status": "INICIO",
+   "chat": "20855",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991828903]",
+   "wamid": "wamid.HBgMNTU5MjkxODI4OTAzFQIAERgSOThEMkQ0OEQwNDA4N0YwQUMxAA=="
+  },
+  {
+   "lead_id": "43ba571b-65d4-42c9-bc05-81c10c159e62",
+   "nome": "Loja",
+   "telefone": "5592993978596",
+   "status": "INICIO",
+   "chat": "20856",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993978596]",
+   "wamid": "wamid.HBgMNTU5MjkzOTc4NTk2FQIAERgSQ0M3OUM1RUZEMzZENDY1MzY4AA=="
+  },
+  {
+   "lead_id": "2fcffb8a-4210-4fc3-bb44-f900faf13f5f",
+   "nome": "Loja",
+   "telefone": "5592994712414",
+   "status": "INICIO",
+   "chat": "20857",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994712414]",
+   "wamid": "wamid.HBgMNTU5Mjk0NzEyNDE0FQIAERgSQjFEQ0MxMjdERTU0REU5MDQ2AA=="
+  },
+  {
+   "lead_id": "6026ebc3-2998-447e-8e42-94dbc2527b77",
+   "nome": "Loja",
+   "telefone": "5592993500643",
+   "status": "INICIO",
+   "chat": "20858",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993500643]",
+   "wamid": "wamid.HBgMNTU5MjkzNTAwNjQzFQIAERgSOTZBMThEODJCOURFQzQzOTUyAA=="
+  },
+  {
+   "lead_id": "ae05fe93-058c-4c92-aabd-ec745d107284",
+   "nome": "Loja",
+   "telefone": "5592985904435",
+   "status": "INICIO",
+   "chat": "20859",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985904435]",
+   "wamid": "wamid.HBgMNTU5Mjg1OTA0NDM1FQIAERgSQzQ3NDFBRTRCQjIxQTNBN0FDAA=="
+  },
+  {
+   "lead_id": "843792ca-072a-47d8-8afb-47fa3041796c",
+   "nome": "Loja",
+   "telefone": "5592991207306",
+   "status": "INICIO",
+   "chat": "20860",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991207306]",
+   "wamid": "wamid.HBgMNTU5MjkxMjA3MzA2FQIAERgSNzFFMzUyREQxNzQ2NkFGOUI3AA=="
+  },
+  {
+   "lead_id": "92d82d81-1efb-4c3d-99b2-46a845576b82",
+   "nome": "Loja",
+   "telefone": "5592985532338",
+   "status": "INICIO",
+   "chat": "20861",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985532338]",
+   "wamid": "wamid.HBgMNTU5Mjg1NTMyMzM4FQIAERgSNjE2MUFFQTM0RjM5ODY2QjRGAA=="
+  },
+  {
+   "lead_id": "a2870e6e-c111-4d30-80b0-e861a1f2f73d",
+   "nome": "Loja",
+   "telefone": "5592992524855",
+   "status": "INICIO",
+   "chat": "20862",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992524855]",
+   "wamid": "wamid.HBgMNTU5MjkyNTI0ODU1FQIAERgSN0I1RTFCMzQ1NURGQzFFNEU0AA=="
+  },
+  {
+   "lead_id": "edef62f4-3cc3-43db-851a-e1a6bdb642b5",
+   "nome": "Loja",
+   "telefone": "5592994668107",
+   "status": "INICIO",
+   "chat": "20863",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994668107]",
+   "wamid": "wamid.HBgMNTU5Mjk0NjY4MTA3FQIAERgSRjAwMEQ3RTFFNzU4MkVDOTg2AA=="
+  },
+  {
+   "lead_id": "47a0bb22-409e-41c0-9385-f647ebc65a13",
+   "nome": "Loja",
+   "telefone": "5592982779518",
+   "status": "INICIO",
+   "chat": "20864",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982779518]",
+   "wamid": "wamid.HBgMNTU5MjgyNzc5NTE4FQIAERgSRUJBOTI4OTgwQUE4NjNGMUU2AA=="
+  },
+  {
+   "lead_id": "d956d3bc-1b8c-458b-a052-99afb79944ca",
+   "nome": "Loja",
+   "telefone": "5592994390972",
+   "status": "INICIO",
+   "chat": "20865",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994390972]",
+   "wamid": "wamid.HBgMNTU5Mjk0MzkwOTcyFQIAERgSQTJFMkM1NzRGMDBERTAwNzIzAA=="
+  },
+  {
+   "lead_id": "37de40f8-70b2-4950-9c14-caa8625e49f2",
+   "nome": "Loja",
+   "telefone": "5592993706939",
+   "status": "INICIO",
+   "chat": "20866",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993706939]",
+   "wamid": "wamid.HBgMNTU5MjkzNzA2OTM5FQIAERgSQzEyRDZDRkI2MDExQjAzQjBBAA=="
+  },
+  {
+   "lead_id": "219ae667-b2df-4ebb-8ae9-adb515f48e02",
+   "nome": "Loja",
+   "telefone": "5592995082634",
+   "status": "INICIO",
+   "chat": "20867",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995082634]",
+   "wamid": "wamid.HBgMNTU5Mjk1MDgyNjM0FQIAERgSRjgyRjAzMDdEQjJDQkI3MUJCAA=="
+  },
+  {
+   "lead_id": "58dffcc8-5edd-413d-a6c1-cefc729feeb3",
+   "nome": "Loja",
+   "telefone": "5592996085375",
+   "status": "INICIO",
+   "chat": "20868",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592996085375]",
+   "wamid": "wamid.HBgMNTU5Mjk2MDg1Mzc1FQIAERgSNUU3RjNFQ0M5NzAwN0IyMTE0AA=="
+  },
+  {
+   "lead_id": "de622f5d-9280-4a36-a70b-09cbcff2aea2",
+   "nome": "Loja",
+   "telefone": "5592991219355",
+   "status": "INICIO",
+   "chat": "20869",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991219355]",
+   "wamid": "wamid.HBgMNTU5MjkxMjE5MzU1FQIAERgSMDZBMkQ5RDY4RTk2MzIwQTQ4AA=="
+  },
+  {
+   "lead_id": "2d5ad227-4cb3-4ecb-b0b6-6e1cb4a29b6c",
+   "nome": "Loja",
+   "telefone": "5592982113498",
+   "status": "INICIO",
+   "chat": "20870",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982113498]",
+   "wamid": "wamid.HBgMNTU5MjgyMTEzNDk4FQIAERgSQUNFMTg5MDIyNkU3QTNGNUNFAA=="
+  },
+  {
+   "lead_id": "080decf2-25e9-447b-a224-520df420f6d3",
+   "nome": "Loja",
+   "telefone": "5592984947680",
+   "status": "INICIO",
+   "chat": "20871",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984947680]",
+   "wamid": "wamid.HBgMNTU5Mjg0OTQ3NjgwFQIAERgSNjQ2QTQzMkE3RDI1RUQzMEYxAA=="
+  },
+  {
+   "lead_id": "94393bd7-48a6-4276-b438-1e98859b12e4",
+   "nome": "Loja",
+   "telefone": "5592992834407",
+   "status": "INICIO",
+   "chat": "20872",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992834407]",
+   "wamid": "wamid.HBgMNTU5MjkyODM0NDA3FQIAERgSMDY2MzdEMTM1RkZDN0M5RkM2AA=="
+  },
+  {
+   "lead_id": "7acb0c95-ab5d-4f97-8778-44f9f25fd814",
+   "nome": "Loja",
+   "telefone": "5592992614370",
+   "status": "INICIO",
+   "chat": "20873",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992614370]",
+   "wamid": "wamid.HBgMNTU5MjkyNjE0MzcwFQIAERgSQTI4MDFDQzI4REVEQTVGQTUwAA=="
+  },
+  {
+   "lead_id": "459acca8-7617-4999-b9b6-8b08f3252d19",
+   "nome": "Loja",
+   "telefone": "5592992979889",
+   "status": "INICIO",
+   "chat": "20874",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992979889]",
+   "wamid": "wamid.HBgMNTU5MjkyOTc5ODg5FQIAERgSRTFDMDJBNkRCQ0NDOEQwNEI4AA=="
+  },
+  {
+   "lead_id": "3d642eb6-6396-4339-8679-459bff16c3dd",
+   "nome": "Loja",
+   "telefone": "5592984778250",
+   "status": "INICIO",
+   "chat": "20875",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984778250]",
+   "wamid": "wamid.HBgMNTU5Mjg0Nzc4MjUwFQIAERgSOUE3MUJBMzg3OTFBMEIzRUY4AA=="
+  },
+  {
+   "lead_id": "28f68662-9476-4bb9-a7de-ff5dc8baf4ae",
+   "nome": "Loja",
+   "telefone": "5592996130752",
+   "status": "INICIO",
+   "chat": "20876",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592996130752]",
+   "wamid": "wamid.HBgMNTU5Mjk2MTMwNzUyFQIAERgSODNEMzY4MjcwNTJDMDdGOERDAA=="
+  },
+  {
+   "lead_id": "ae5dfe48-c9d1-415e-8caa-61fbd00f0800",
+   "nome": "Loja",
+   "telefone": "5592991393575",
+   "status": "INICIO",
+   "chat": "20877",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991393575]",
+   "wamid": "wamid.HBgMNTU5MjkxMzkzNTc1FQIAERgSRkI2MEREOTY5NDhDNTkzMEQ2AA=="
+  },
+  {
+   "lead_id": "e667e5cc-f30c-4b35-86bd-4b67d3beff1b",
+   "nome": "Loja",
+   "telefone": "5592984254382",
+   "status": "INICIO",
+   "chat": "20878",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984254382]",
+   "wamid": "wamid.HBgMNTU5Mjg0MjU0MzgyFQIAERgSQkFFRjIyMDVEM0VERUREQjNDAA=="
+  },
+  {
+   "lead_id": "06c11832-713a-4864-bf33-d356485df7af",
+   "nome": "Loja",
+   "telefone": "5592985244992",
+   "status": "INICIO",
+   "chat": "20879",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985244992]",
+   "wamid": "wamid.HBgMNTU5Mjg1MjQ0OTkyFQIAERgSQjFBRTQ3QTJBMjE0RTNGQUUzAA=="
+  },
+  {
+   "lead_id": "f021387e-fc02-48a8-8fa7-1a8a45eb4106",
+   "nome": "Loja",
+   "telefone": "5592982440949",
+   "status": "INICIO",
+   "chat": "20880",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982440949]",
+   "wamid": "wamid.HBgMNTU5MjgyNDQwOTQ5FQIAERgSRTRDRDlFNUM3RDE5QkJEQ0MyAA=="
+  },
+  {
+   "lead_id": "1e22b996-cd4d-46ab-8d79-01e81c4153cc",
+   "nome": "Loja",
+   "telefone": "5592986039334",
+   "status": "INICIO",
+   "chat": "20881",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986039334]",
+   "wamid": "wamid.HBgMNTU5Mjg2MDM5MzM0FQIAERgSRDNEOTlENzMzMjgzNEE1RTA1AA=="
+  },
+  {
+   "lead_id": "4f659931-4bdd-4085-bbfd-cad4ff8bea77",
+   "nome": "Loja",
+   "telefone": "5592981652755",
+   "status": "INICIO",
+   "chat": "20882",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981652755]",
+   "wamid": "wamid.HBgMNTU5MjgxNjUyNzU1FQIAERgSMUY1REU5OTNFQTQ0MzZGNjhBAA=="
+  },
+  {
+   "lead_id": "994a738a-836e-4dd2-9f9a-1b89e9dbfad7",
+   "nome": "Loja",
+   "telefone": "5592993420272",
+   "status": "INICIO",
+   "chat": "20883",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993420272]",
+   "wamid": "wamid.HBgMNTU5MjkzNDIwMjcyFQIAERgSQzY5MDQwNzczMkNEMUUwMjNBAA=="
+  },
+  {
+   "lead_id": "59d47a71-7157-482a-a4e2-b75cd33e0145",
+   "nome": "Loja",
+   "telefone": "5592992015480",
+   "status": "INICIO",
+   "chat": "20884",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992015480]",
+   "wamid": "wamid.HBgMNTU5MjkyMDE1NDgwFQIAERgSRUQ0QjExQTU5MUQ5RDkzNDY4AA=="
+  },
+  {
+   "lead_id": "34f83f97-2975-4659-8d08-6c7b5f3b26ba",
+   "nome": "Loja",
+   "telefone": "5592985277850",
+   "status": "INICIO",
+   "chat": "20885",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985277850]",
+   "wamid": "wamid.HBgMNTU5Mjg1Mjc3ODUwFQIAERgSREIzNkFDNThCNzY3NjY3NDFEAA=="
+  },
+  {
+   "lead_id": "58250389-40fe-43e5-a091-353b3b0d2746",
+   "nome": "Loja",
+   "telefone": "5592994473250",
+   "status": "INICIO",
+   "chat": "20886",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994473250]",
+   "wamid": "wamid.HBgMNTU5Mjk0NDczMjUwFQIAERgSRDdENTE1MEZDQkUzNjNEOEQyAA=="
+  },
+  {
+   "lead_id": "449c08a8-4223-4cd8-beaa-84804d0dfd8d",
+   "nome": "Loja",
+   "telefone": "5592986147395",
+   "status": "INICIO",
+   "chat": "20887",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986147395]",
+   "wamid": "wamid.HBgMNTU5Mjg2MTQ3Mzk1FQIAERgSNTQyNkIyMjFFNTkyOUVBQTIyAA=="
+  },
+  {
+   "lead_id": "815e0287-f587-4462-aefc-2ec71eb9b733",
+   "nome": "Loja",
+   "telefone": "5592994338266",
+   "status": "INICIO",
+   "chat": "20888",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994338266]",
+   "wamid": "wamid.HBgMNTU5Mjk0MzM4MjY2FQIAERgSNTU0OEQzMEYxQzlCMzVBQTM2AA=="
+  },
+  {
+   "lead_id": "ae133f99-5c33-4f35-80dc-932212ce448c",
+   "nome": "Loja",
+   "telefone": "5592986117814",
+   "status": "INICIO",
+   "chat": "20889",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986117814]",
+   "wamid": "wamid.HBgMNTU5Mjg2MTE3ODE0FQIAERgSNUFERTExQ0M4OEQ5RkRDQUI0AA=="
+  },
+  {
+   "lead_id": "fb2600cf-e259-4cc9-bf89-f79ad4dddb61",
+   "nome": "Loja",
+   "telefone": "5592986018930",
+   "status": "INICIO",
+   "chat": "20890",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592986018930]",
+   "wamid": "wamid.HBgMNTU5Mjg2MDE4OTMwFQIAERgSNTM3QUYyQjJBRERGMzE4MTYzAA=="
+  },
+  {
+   "lead_id": "7586b912-8902-4136-9c12-d56ca4f738c4",
+   "nome": "Loja",
+   "telefone": "5592991112106",
+   "status": "INICIO",
+   "chat": "20891",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991112106]",
+   "wamid": "wamid.HBgMNTU5MjkxMTEyMTA2FQIAERgSODJBRDk4OTdEMjAxNTlBMkJEAA=="
+  },
+  {
+   "lead_id": "045d1094-4959-4ad6-af4b-1f5bab8d4f37",
+   "nome": "Loja",
+   "telefone": "5592996242750",
+   "status": "INICIO",
+   "chat": "20892",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592996242750]",
+   "wamid": "wamid.HBgMNTU5Mjk2MjQyNzUwFQIAERgSNTM1QUMwRDU4MkNFOTBCQzU5AA=="
+  },
+  {
+   "lead_id": "65d15fe0-aa06-44f8-9e12-ddbe1cc2eb5a",
+   "nome": "Loja",
+   "telefone": "5592992897796",
+   "status": "INICIO",
+   "chat": "20893",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992897796]",
+   "wamid": "wamid.HBgMNTU5MjkyODk3Nzk2FQIAERgSOEM5QUIyMUUwOEE4NkM3RkIyAA=="
+  },
+  {
+   "lead_id": "47b37d8c-6ae5-4958-9a4c-1e2bfe7277b4",
+   "nome": "Loja",
+   "telefone": "5592982638764",
+   "status": "INICIO",
+   "chat": "20894",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982638764]",
+   "wamid": "wamid.HBgMNTU5MjgyNjM4NzY0FQIAERgSMzVBQjM4N0JBQjc3OTYyRUM3AA=="
+  },
+  {
+   "lead_id": "b251e5bb-6b35-49cc-a5e0-8af9371d15e9",
+   "nome": "Loja",
+   "telefone": "5592999982882",
+   "status": "INICIO",
+   "chat": "20895",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999982882]",
+   "wamid": "wamid.HBgMNTU5Mjk5OTgyODgyFQIAERgSRDU3NEMwNTNFMTJEQkI5RDhBAA=="
+  },
+  {
+   "lead_id": "590aba32-dffb-4786-a197-4ff38d1cfd45",
+   "nome": "Loja",
+   "telefone": "5592985894083",
+   "status": "INICIO",
+   "chat": "20896",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985894083]",
+   "wamid": "wamid.HBgMNTU5Mjg1ODk0MDgzFQIAERgSRTBCQ0QzRjczMTAzQUNENzdEAA=="
+  },
+  {
+   "lead_id": "51746cbc-42c0-4d7d-b71e-7d7e56b8ed1d",
+   "nome": "Loja",
+   "telefone": "5592985862221",
+   "status": "INICIO",
+   "chat": "20897",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985862221]",
+   "wamid": "wamid.HBgMNTU5Mjg1ODYyMjIxFQIAERgSMTIwNjA0NkY5OUZCRjMwRTMxAA=="
+  },
+  {
+   "lead_id": "08846302-bf9b-4343-9b77-5b94c733cef8",
+   "nome": "Loja",
+   "telefone": "5592981451136",
+   "status": "INICIO",
+   "chat": "20898",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981451136]",
+   "wamid": "wamid.HBgMNTU5MjgxNDUxMTM2FQIAERgSNkFGRDREMDUzODRDNTc4QzQ3AA=="
+  },
+  {
+   "lead_id": "9b5301c4-7455-441c-8410-2d613009cc7d",
+   "nome": "Loja",
+   "telefone": "5592982500107",
+   "status": "INICIO",
+   "chat": "20899",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982500107]",
+   "wamid": "wamid.HBgMNTU5MjgyNTAwMTA3FQIAERgSQzkwN0UxOTdCNDA5NDYyNTlFAA=="
+  },
+  {
+   "lead_id": "7d2c1408-6bcc-4e34-bac7-24c54c067343",
+   "nome": "Loja",
+   "telefone": "5592992611133",
+   "status": "INICIO",
+   "chat": "20900",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992611133]",
+   "wamid": "wamid.HBgMNTU5MjkyNjExMTMzFQIAERgSMzc3NjAzNTM5NDVFRTM1NzRGAA=="
+  },
+  {
+   "lead_id": "b7cfed2d-370f-438e-ad4d-8081965c7823",
+   "nome": "Loja",
+   "telefone": "5592994322422",
+   "status": "INICIO",
+   "chat": "20901",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994322422]",
+   "wamid": "wamid.HBgMNTU5Mjk0MzIyNDIyFQIAERgSMzA0OEQ3MkVBNDNGNkEyRjg2AA=="
+  },
+  {
+   "lead_id": "39ebf467-ac2d-4f63-b10a-89d3abb73e30",
+   "nome": "Loja",
+   "telefone": "5592981780029",
+   "status": "INICIO",
+   "chat": "20902",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981780029]",
+   "wamid": "wamid.HBgMNTU5MjgxNzgwMDI5FQIAERgSQkEwNjFGM0ZDQzFENkQ4MEQ4AA=="
+  },
+  {
+   "lead_id": "ac5b7021-05e2-448f-8fa6-b4efc4dad8b4",
+   "nome": "Loja",
+   "telefone": "5592992426697",
+   "status": "INICIO",
+   "chat": "20903",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992426697]",
+   "wamid": "wamid.HBgMNTU5MjkyNDI2Njk3FQIAERgSMkY2MEJFNUI4MDA2MTIzNUMzAA=="
+  },
+  {
+   "lead_id": "0414f0bd-9737-4e9c-85dd-d7db69f75e75",
+   "nome": "Loja",
+   "telefone": "5592991130891",
+   "status": "INICIO",
+   "chat": "20904",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991130891]",
+   "wamid": "wamid.HBgMNTU5MjkxMTMwODkxFQIAERgSNzBFQTlGMTJDNjY5MkEyMjU2AA=="
+  },
+  {
+   "lead_id": "ac997e0f-fd97-4486-8a59-2774a72b16e8",
+   "nome": "Loja",
+   "telefone": "5592984366766",
+   "status": "INICIO",
+   "chat": "20905",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984366766]",
+   "wamid": "wamid.HBgMNTU5Mjg0MzY2NzY2FQIAERgSNDA3RjFEMzc5MUVBNzc2OUVDAA=="
+  },
+  {
+   "lead_id": "c637c10e-4166-4ec2-8c78-45083c4d44e8",
+   "nome": "Loja",
+   "telefone": "5592991920830",
+   "status": "INICIO",
+   "chat": "20906",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991920830]",
+   "wamid": "wamid.HBgMNTU5MjkxOTIwODMwFQIAERgSNjExMkZFRTM0RkNBMzcxRUI5AA=="
+  },
+  {
+   "lead_id": "ead83bfd-2db7-4b63-90a2-1e9b111c5fc7",
+   "nome": "Loja",
+   "telefone": "5592999714730",
+   "status": "INICIO",
+   "chat": "20907",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999714730]",
+   "wamid": "wamid.HBgMNTU5Mjk5NzE0NzMwFQIAERgSMzlCM0FEM0Q5RTIwODc1N0E1AA=="
+  },
+  {
+   "lead_id": "ba7d0094-40bd-45df-890b-ae2a9db45898",
+   "nome": "Loja",
+   "telefone": "5592993238344",
+   "status": "INICIO",
+   "chat": "20908",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993238344]",
+   "wamid": "wamid.HBgMNTU5MjkzMjM4MzQ0FQIAERgSQjBBOUEzNkVENjk4NTgxN0NBAA=="
+  },
+  {
+   "lead_id": "e35f00a4-74f5-4593-9363-b85615cf3120",
+   "nome": "Loja",
+   "telefone": "5592991709366",
+   "status": "INICIO",
+   "chat": "20909",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991709366]",
+   "wamid": "wamid.HBgMNTU5MjkxNzA5MzY2FQIAERgSOTZENTM3MDg0RkY3RDkyODBFAA=="
+  },
+  {
+   "lead_id": "b6a45463-33f8-4ed5-b25f-11971f342a4f",
+   "nome": "Loja",
+   "telefone": "5592984465426",
+   "status": "INICIO",
+   "chat": "20910",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984465426]",
+   "wamid": "wamid.HBgMNTU5Mjg0NDY1NDI2FQIAERgSMjFBOUQ1Q0RDMjU5RDBDQThDAA=="
+  },
+  {
+   "lead_id": "8e2d2319-ad0f-4ae5-810b-e531bbe1938d",
+   "nome": "Loja",
+   "telefone": "5592994011004",
+   "status": "INICIO",
+   "chat": "20911",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994011004]",
+   "wamid": "wamid.HBgMNTU5Mjk0MDExMDA0FQIAERgSNzhBOUZBM0I2Njg0OUZCRUU1AA=="
+  },
+  {
+   "lead_id": "7b53836b-b6c5-4927-a297-947aaeda56a9",
+   "nome": "Loja",
+   "telefone": "5592982023874",
+   "status": "INICIO",
+   "chat": "20912",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982023874]",
+   "wamid": "wamid.HBgMNTU5MjgyMDIzODc0FQIAERgSQzVDRDFFMkZFMTZGMzM0NUQ5AA=="
+  },
+  {
+   "lead_id": "895f5025-23e3-4849-8f34-1d7af453b0b4",
+   "nome": "Loja",
+   "telefone": "5592994684952",
+   "status": "INICIO",
+   "chat": "20913",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994684952]",
+   "wamid": "wamid.HBgMNTU5Mjk0Njg0OTUyFQIAERgSMEE5QTZENkNDNkIyMzlERjY1AA=="
+  },
+  {
+   "lead_id": "c9ba9c31-a7e7-418a-9a14-b683ef6e41f8",
+   "nome": "Loja",
+   "telefone": "5592985889445",
+   "status": "INICIO",
+   "chat": "20914",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985889445]",
+   "wamid": "wamid.HBgMNTU5Mjg1ODg5NDQ1FQIAERgSNUFDRTJERTE3MDREMzI2RjUzAA=="
+  },
+  {
+   "lead_id": "ff525a33-f874-4b97-ac06-6d69c671c66a",
+   "nome": "Loja",
+   "telefone": "5592993387936",
+   "status": "INICIO",
+   "chat": "20915",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993387936]",
+   "wamid": "wamid.HBgMNTU5MjkzMzg3OTM2FQIAERgSNzNBMjU4NTc3RDE3RDkxNUM1AA=="
+  },
+  {
+   "lead_id": "f3feea1f-7dbf-4664-a1ab-738186d95bc8",
+   "nome": "Loja",
+   "telefone": "5592991134637",
+   "status": "INICIO",
+   "chat": "20916",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991134637]",
+   "wamid": "wamid.HBgMNTU5MjkxMTM0NjM3FQIAERgSNUQzQjgwMzk0NTJFRjhGRTZGAA=="
+  },
+  {
+   "lead_id": "38fd5a3d-cb59-405b-b7b4-8d0d1b8cfe55",
+   "nome": "Loja",
+   "telefone": "5592994417213",
+   "status": "INICIO",
+   "chat": "20917",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994417213]",
+   "wamid": "wamid.HBgMNTU5Mjk0NDE3MjEzFQIAERgSMEQ3NTA4Njk5Q0FCMzNBMDQ4AA=="
+  },
+  {
+   "lead_id": "05dd80b1-0850-46eb-965d-a94198978067",
+   "nome": "Loja",
+   "telefone": "5592984295400",
+   "status": "INICIO",
+   "chat": "20918",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984295400]",
+   "wamid": "wamid.HBgMNTU5Mjg0Mjk1NDAwFQIAERgSOTA5RkUxNkJCNjU5NTBEMjFGAA=="
+  },
+  {
+   "lead_id": "50d054f5-bc56-42f4-a25a-ac7c441c0236",
+   "nome": "Loja",
+   "telefone": "5592994241076",
+   "status": "INICIO",
+   "chat": "20919",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994241076]",
+   "wamid": "wamid.HBgMNTU5Mjk0MjQxMDc2FQIAERgSQzA5REZGMTUyM0M3NzgzMDIxAA=="
+  },
+  {
+   "lead_id": "a8f9b82d-4812-4658-85dd-5d79c3dd5273",
+   "nome": "Loja",
+   "telefone": "5592999819463",
+   "status": "INICIO",
+   "chat": "20920",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999819463]",
+   "wamid": "wamid.HBgMNTU5Mjk5ODE5NDYzFQIAERgSMzEzQzcyOEUyQjUzNjExNUVEAA=="
+  },
+  {
+   "lead_id": "46edcfb4-f033-4fcc-9671-b85854d3f0c5",
+   "nome": "Loja",
+   "telefone": "5592988441593",
+   "status": "INICIO",
+   "chat": "20921",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592988441593]",
+   "wamid": "wamid.HBgMNTU5Mjg4NDQxNTkzFQIAERgSMTk4REFCMzJCMjFBODc1RTQ4AA=="
+  },
+  {
+   "lead_id": "b65984ef-af0f-48b3-b7b7-dafe83b80699",
+   "nome": "Loja",
+   "telefone": "5592985851987",
+   "status": "INICIO",
+   "chat": "20922",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985851987]",
+   "wamid": "wamid.HBgMNTU5Mjg1ODUxOTg3FQIAERgSQTE0QkFCQTg2NjhEMzJDMkIwAA=="
+  },
+  {
+   "lead_id": "35ee7dba-66a2-42e2-ba54-ef5d00b7aadc",
+   "nome": "Loja",
+   "telefone": "5592999945929",
+   "status": "INICIO",
+   "chat": "20923",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999945929]",
+   "wamid": "wamid.HBgMNTU5Mjk5OTQ1OTI5FQIAERgSODY4MThEN0RDNDkyOTM2NzQ1AA=="
+  },
+  {
+   "lead_id": "2b20859e-cbab-4bcf-95ef-7750ca15def1",
+   "nome": "Loja",
+   "telefone": "5592982361196",
+   "status": "INICIO",
+   "chat": "20924",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982361196]",
+   "wamid": "wamid.HBgMNTU5MjgyMzYxMTk2FQIAERgSNDhGRERCNEQ5NEJBN0E2MEFEAA=="
+  },
+  {
+   "lead_id": "482b920d-afa0-4959-acf7-0b671c8d04f4",
+   "nome": "Loja",
+   "telefone": "5592992969898",
+   "status": "INICIO",
+   "chat": "20926",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992969898]",
+   "wamid": "wamid.HBgMNTU5MjkyOTY5ODk4FQIAERgSMkZFMjIwODczNENCMDM4RjBGAA=="
+  },
+  {
+   "lead_id": "c4b3b07e-2b04-48ed-82c4-f749a8c82547",
+   "nome": "Loja",
+   "telefone": "5592994448200",
+   "status": "INICIO",
+   "chat": "20927",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994448200]",
+   "wamid": "wamid.HBgMNTU5Mjk0NDQ4MjAwFQIAERgSNzVGMEJDMUQxQzhDMjYwNTdDAA=="
+  },
+  {
+   "lead_id": "3131158d-cd3d-4ba9-adb0-3300b71bdd17",
+   "nome": "Loja",
+   "telefone": "5592982656813",
+   "status": "INICIO",
+   "chat": "20928",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982656813]",
+   "wamid": "wamid.HBgMNTU5MjgyNjU2ODEzFQIAERgSNzk2RDM1NzlEOEJCMEJDN0Q1AA=="
+  },
+  {
+   "lead_id": "df829348-9321-4e52-94af-5814d232ac48",
+   "nome": "Loja",
+   "telefone": "5592993328648",
+   "status": "INICIO",
+   "chat": "20929",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993328648]",
+   "wamid": "wamid.HBgMNTU5MjkzMzI4NjQ4FQIAERgSRjEwRDc3NDM5Q0FFMEM3M0ZCAA=="
+  },
+  {
+   "lead_id": "6df3e158-cdcc-4d7f-9975-b76a011ee693",
+   "nome": "Loja",
+   "telefone": "5592985297386",
+   "status": "INICIO",
+   "chat": "20930",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985297386]",
+   "wamid": "wamid.HBgMNTU5Mjg1Mjk3Mzg2FQIAERgSNEE4MzRCQjYxNDQwNkZFNzIwAA=="
+  },
+  {
+   "lead_id": "d4efa62c-59d4-4cac-9820-9c8a26ba95ce",
+   "nome": "Loja",
+   "telefone": "5592984393055",
+   "status": "INICIO",
+   "chat": "20931",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984393055]",
+   "wamid": "wamid.HBgMNTU5Mjg0MzkzMDU1FQIAERgSQzVDOUFENjkxMTFDQkU5MzY2AA=="
+  },
+  {
+   "lead_id": "be625167-7e25-42bd-a6fa-fb910e3c3074",
+   "nome": "Loja",
+   "telefone": "5592991749299",
+   "status": "INICIO",
+   "chat": "20932",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991749299]",
+   "wamid": "wamid.HBgMNTU5MjkxNzQ5Mjk5FQIAERgSM0Y4NDNERjNGMzJGOEYyQUZDAA=="
+  },
+  {
+   "lead_id": "d8bfd6c2-3574-4ae6-a72d-410af8ee6049",
+   "nome": "Loja",
+   "telefone": "5592988351405",
+   "status": "INICIO",
+   "chat": "20933",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592988351405]",
+   "wamid": "wamid.HBgMNTU5Mjg4MzUxNDA1FQIAERgSRUU1OTE2MzdGQTNFRUY2RkQ1AA=="
+  },
+  {
+   "lead_id": "0c9abed8-78ce-45a0-ac5a-ee2c057e7378",
+   "nome": "Loja",
+   "telefone": "5592995195785",
+   "status": "INICIO",
+   "chat": "20934",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995195785]",
+   "wamid": "wamid.HBgMNTU5Mjk1MTk1Nzg1FQIAERgSNEY0Nzc3MDE1ODU1MDlGMUVGAA=="
+  },
+  {
+   "lead_id": "822e37c0-cf9e-4fcc-98b2-2e4b16733f78",
+   "nome": "Loja",
+   "telefone": "5592985273735",
+   "status": "INICIO",
+   "chat": "20935",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985273735]",
+   "wamid": "wamid.HBgMNTU5Mjg1MjczNzM1FQIAERgSMzg1RDE1RTZFNTVBMDM5MjBBAA=="
+  },
+  {
+   "lead_id": "f2f01132-2916-4f09-b01d-23a692c4ff6a",
+   "nome": "Loja",
+   "telefone": "5592991613841",
+   "status": "INICIO",
+   "chat": "20936",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991613841]",
+   "wamid": "wamid.HBgMNTU5MjkxNjEzODQxFQIAERgSN0U4M0NEQTNCNzRBQjgyN0M1AA=="
+  },
+  {
+   "lead_id": "b0aff839-1bd2-4838-9e85-572c2a5d4716",
+   "nome": "Loja",
+   "telefone": "5592992459997",
+   "status": "INICIO",
+   "chat": "20937",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992459997]",
+   "wamid": "wamid.HBgMNTU5MjkyNDU5OTk3FQIAERgSOEMxMzA5MEE5Rjg3RkRDNjg1AA=="
+  },
+  {
+   "lead_id": "be8fe045-2557-4684-8f77-23ce28a255f1",
+   "nome": "Loja",
+   "telefone": "5592993284044",
+   "status": "INICIO",
+   "chat": "20938",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993284044]",
+   "wamid": "wamid.HBgMNTU5MjkzMjg0MDQ0FQIAERgSNTc5Q0Q2RENBRjUzOTFEREE5AA=="
+  },
+  {
+   "lead_id": "8897a1ce-0b38-4778-bc05-a8d14adb5089",
+   "nome": "Loja",
+   "telefone": "5592994238094",
+   "status": "INICIO",
+   "chat": "20939",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994238094]",
+   "wamid": "wamid.HBgMNTU5Mjk0MjM4MDk0FQIAERgSNUIwQjQ1OUM4MDQwQkY3MzA5AA=="
+  },
+  {
+   "lead_id": "bc50a093-88c5-4692-a191-c58ac8e80bb8",
+   "nome": "Loja",
+   "telefone": "5592985099618",
+   "status": "INICIO",
+   "chat": "20940",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985099618]",
+   "wamid": "wamid.HBgMNTU5Mjg1MDk5NjE4FQIAERgSNDIxNTAzMEM0OTU2MUQwRkYxAA=="
+  },
+  {
+   "lead_id": "359d26bc-442c-4049-9608-642cc9c6ce00",
+   "nome": "Loja",
+   "telefone": "5592984847498",
+   "status": "INICIO",
+   "chat": "20941",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984847498]",
+   "wamid": "wamid.HBgMNTU5Mjg0ODQ3NDk4FQIAERgSRjUwODk3RTQ3QkI5MEZCRjg2AA=="
+  },
+  {
+   "lead_id": "d51ccbf0-b5fe-4c62-98d5-553ab21d99ae",
+   "nome": "Loja",
+   "telefone": "5592981270784",
+   "status": "INICIO",
+   "chat": "20942",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981270784]",
+   "wamid": "wamid.HBgMNTU5MjgxMjcwNzg0FQIAERgSRUVFMDhEOTVGM0NDNjMzQkQ1AA=="
+  },
+  {
+   "lead_id": "89e1f3cc-e57c-47e8-b2de-f46aeb0681d7",
+   "nome": "Loja",
+   "telefone": "5592992499235",
+   "status": "INICIO",
+   "chat": "21343",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992499235]",
+   "wamid": "wamid.HBgMNTU5MjkyNDk5MjM1FQIAERgSMDM5Q0QzQzMyMDdFQUFGOEVCAA=="
+  },
+  {
+   "lead_id": "1c3bde80-fd99-42ca-8720-abc71b7b3ff6",
+   "nome": "Loja",
+   "telefone": "5592985557595",
+   "status": "INICIO",
+   "chat": "21344",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985557595]",
+   "wamid": "wamid.HBgMNTU5Mjg1NTU3NTk1FQIAERgSNkZDNUIyRkI4NUNBNUY1NkVGAA=="
+  },
+  {
+   "lead_id": "1b6a6f78-598f-4977-812a-d7b1023854de",
+   "nome": "Loja",
+   "telefone": "5592988135184",
+   "status": "INICIO",
+   "chat": "21345",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592988135184]",
+   "wamid": "wamid.HBgMNTU5Mjg4MTM1MTg0FQIAERgSMzNFRTBDQkI4QTRCOTlBQkQ4AA=="
+  },
+  {
+   "lead_id": "31c950eb-2369-4a59-b655-eb2924b1bfc1",
+   "nome": "Loja",
+   "telefone": "5592995238705",
+   "status": "INICIO",
+   "chat": "21346",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592995238705]",
+   "wamid": "wamid.HBgMNTU5Mjk1MjM4NzA1FQIAERgSMDQzMjVCNTYyNDQ5RUY2QkVFAA=="
+  },
+  {
+   "lead_id": "1063f2cf-baf0-4abe-9f23-c109bb21eea5",
+   "nome": "Loja",
+   "telefone": "5592991464929",
+   "status": "INICIO",
+   "chat": "21347",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991464929]",
+   "wamid": "wamid.HBgMNTU5MjkxNDY0OTI5FQIAERgSQTFGNENGQkUyOUZDMEJBMUQxAA=="
+  },
+  {
+   "lead_id": "c923e215-b450-437a-bb6e-670a88ba94b1",
+   "nome": "Loja",
+   "telefone": "5592992982930",
+   "status": "INICIO",
+   "chat": "21348",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992982930]",
+   "wamid": "wamid.HBgMNTU5MjkyOTgyOTMwFQIAERgSQTQzRDEzRjY5MTk5ODYxMThFAA=="
+  },
+  {
+   "lead_id": "2e2ec5c7-eece-41e5-8e99-3e2783726eac",
+   "nome": "Loja",
+   "telefone": "5592992229056",
+   "status": "INICIO",
+   "chat": "21349",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992229056]",
+   "wamid": "wamid.HBgMNTU5MjkyMjI5MDU2FQIAERgSNDhENEI5NEJBMzhFNTlDQzFDAA=="
+  },
+  {
+   "lead_id": "d611d04e-9b57-465c-b1fd-db46d5358557",
+   "nome": "Loja",
+   "telefone": "5592981490898",
+   "status": "INICIO",
+   "chat": "21350",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981490898]",
+   "wamid": "wamid.HBgMNTU5MjgxNDkwODk4FQIAERgSQzRFNjYyN0EwMDBBMkZDQzg1AA=="
+  },
+  {
+   "lead_id": "5384eee2-eecf-4238-933e-d0180b1caf08",
+   "nome": "Loja",
+   "telefone": "5592994439712",
+   "status": "INICIO",
+   "chat": "21351",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994439712]",
+   "wamid": "wamid.HBgMNTU5Mjk0NDM5NzEyFQIAERgSREZFRTU2NTg2NjU0MjIxMEMwAA=="
+  },
+  {
+   "lead_id": "9b47c9ae-84a8-4107-b628-05a436a503eb",
+   "nome": "Loja",
+   "telefone": "5592991002445",
+   "status": "INICIO",
+   "chat": "21352",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991002445]",
+   "wamid": "wamid.HBgMNTU5MjkxMDAyNDQ1FQIAERgSMDI3NzEwQUJDNjg2QTNDMUNFAA=="
+  },
+  {
+   "lead_id": "205950ec-41b8-4a27-b865-c3653ed54206",
+   "nome": "Loja",
+   "telefone": "5592992092167",
+   "status": "INICIO",
+   "chat": "21353",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592992092167]",
+   "wamid": "wamid.HBgMNTU5MjkyMDkyMTY3FQIAERgSMjQ0MEEyQTM5QThBRDhCNjAzAA=="
+  },
+  {
+   "lead_id": "5c368c1f-2b8a-49f4-8138-d49a803bd60f",
+   "nome": "Loja",
+   "telefone": "5592993269196",
+   "status": "INICIO",
+   "chat": "21354",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592993269196]",
+   "wamid": "wamid.HBgMNTU5MjkzMjY5MTk2FQIAERgSMkVFMkNFNkMzRjEwOTM4OUEwAA=="
+  },
+  {
+   "lead_id": "a6ed66c5-cacf-4cb7-a8ac-8dedbd742dc6",
+   "nome": "Loja",
+   "telefone": "5592984446877",
+   "status": "INICIO",
+   "chat": "21355",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984446877]",
+   "wamid": "wamid.HBgMNTU5Mjg0NDQ2ODc3FQIAERgSOEFEMDMzMjM0QjlDRkE5MTcyAA=="
+  },
+  {
+   "lead_id": "b37da908-f319-4c5d-a90b-656ae9ffb354",
+   "nome": "Loja",
+   "telefone": "5592999014544",
+   "status": "INICIO",
+   "chat": "21356",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592999014544]",
+   "wamid": "wamid.HBgMNTU5Mjk5MDE0NTQ0FQIAERgSNTBFRjE5MDFDNjQ2MkZCRTU5AA=="
+  },
+  {
+   "lead_id": "0acf5df7-7bc1-4f66-807c-29bf41136d05",
+   "nome": "Loja",
+   "telefone": "5592984379119",
+   "status": "INICIO",
+   "chat": "21357",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592984379119]",
+   "wamid": "wamid.HBgMNTU5Mjg0Mzc5MTE5FQIAERgSN0M4MTQ2NjU4OEQzNDk5Rjk3AA=="
+  },
+  {
+   "lead_id": "a8319e49-5637-47af-937e-34546a136ae9",
+   "nome": "Loja",
+   "telefone": "5592985522667",
+   "status": "INICIO",
+   "chat": "21358",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985522667]",
+   "wamid": "wamid.HBgMNTU5Mjg1NTIyNjY3FQIAERgSN0Y2RDQ1OTk0NTcwRDZCMTA1AA=="
+  },
+  {
+   "lead_id": "06f08551-4a62-4c41-ac0a-fe3bcec7db07",
+   "nome": "Loja",
+   "telefone": "5592982650610",
+   "status": "INICIO",
+   "chat": "21359",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592982650610]",
+   "wamid": "wamid.HBgMNTU5MjgyNjUwNjEwFQIAERgSRDZFMkQ1QURFNTI3MUNCNTgwAA=="
+  },
+  {
+   "lead_id": "1c9e51fe-8838-4a22-8fed-d1862ad5c15c",
+   "nome": "Loja",
+   "telefone": "5592994788909",
+   "status": "INICIO",
+   "chat": "21360",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994788909]",
+   "wamid": "wamid.HBgMNTU5Mjk0Nzg4OTA5FQIAERgSOTFGODUyMDRFMUJGMkQ3MDI2AA=="
+  },
+  {
+   "lead_id": "e7a7b7a4-18f2-41a6-b7e0-ceaee37a334b",
+   "nome": "Loja",
+   "telefone": "5592985907335",
+   "status": "INICIO",
+   "chat": "21361",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985907335]",
+   "wamid": "wamid.HBgMNTU5Mjg1OTA3MzM1FQIAERgSQzk1QTFFMkQ0QUQ3OTI5NTVEAA=="
+  },
+  {
+   "lead_id": "de4cf7ba-a228-4917-8166-cd8e452c0575",
+   "nome": "Loja",
+   "telefone": "5592991418318",
+   "status": "INICIO",
+   "chat": "21362",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991418318]",
+   "wamid": "wamid.HBgMNTU5MjkxNDE4MzE4FQIAERgSMjU2ODg3NTYxQTI0MzY4OTUwAA=="
+  },
+  {
+   "lead_id": "91b96432-7675-44bd-98ff-47deabb84476",
+   "nome": "Loja",
+   "telefone": "5592994699707",
+   "status": "INICIO",
+   "chat": "21363",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592994699707]",
+   "wamid": "wamid.HBgMNTU5Mjk0Njk5NzA3FQIAERgSNkEzODExREREM0M3MzUyMTQwAA=="
+  },
+  {
+   "lead_id": "4594ddb0-26c0-47c8-a8da-d33cec428340",
+   "nome": "Loja",
+   "telefone": "5592996230917",
+   "status": "INICIO",
+   "chat": "21364",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592996230917]",
+   "wamid": "wamid.HBgMNTU5Mjk2MjMwOTE3FQIAERgSODZCN0Y1MDRDOUMyQjE0QjEwAA=="
+  },
+  {
+   "lead_id": "c5a705df-23fc-4674-b4f7-8bbeaa1436ff",
+   "nome": "Loja",
+   "telefone": "5592991071523",
+   "status": "INICIO",
+   "chat": "21365",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592991071523]",
+   "wamid": "wamid.HBgMNTU5MjkxMDcxNTIzFQIAERgSM0I1RUY4MjA1QjUyREYwODk1AA=="
+  },
+  {
+   "lead_id": "2a22c14b-914a-49d5-a869-c927c3e38534",
+   "nome": "Loja",
+   "telefone": "5592985273667",
+   "status": "INICIO",
+   "chat": "21366",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592985273667]",
+   "wamid": "wamid.HBgMNTU5Mjg1MjczNjY3FQIAERgSNTE3MEI2OTEzMTIxMjY3MTYyAA=="
+  },
+  {
+   "lead_id": "ec881e3c-cdbc-498a-b257-8418fb93baa0",
+   "nome": "Loja",
+   "telefone": "5592981023357",
+   "status": "INICIO",
+   "chat": "21367",
+   "templates": [
+    "aiva_campanha"
+   ],
+   "ultimoTexto": "[Template AIVA enviado para 5592981023357]",
+   "wamid": "wamid.HBgMNTU5MjgxMDIzMzU3FQIAERgSNUEzMDE5QkM0NENGNTZGODQ2AA=="
+  }
+ ],
+ "semChat": [
+  {
+   "id": "28e64ed6-5569-41fa-b080-5e83d21a1d68",
+   "nome": "Dayane Fernanda Dos Santos Silva Eletronicos",
+   "telefone": "5511997584569",
+   "status": "TREINAR",
+   "evotalks_chat_id": null,
+   "templates": [
+    "aiva_reativacao_48h"
+   ]
+  },
+  {
+   "id": "da3d3ec9-a189-4be5-99ac-bec0a7e2837e",
+   "nome": "Rosa Outlet Cell",
+   "telefone": "5511999253392",
+   "status": "TREINAR",
+   "evotalks_chat_id": null,
+   "templates": [
+    "aiva_reativacao_48h"
+   ]
+  }
+ ],
+ "semTemplateNoEvo": [
+  {
+   "nome": "JM Cell",
+   "telefone": "5519999624505",
+   "status": "DESCARTADO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:00",
+    "aiva_reativacao_48h@09-21T21:26"
+   ]
+  },
+  {
+   "nome": "NB Celulares",
+   "telefone": "5519988500914",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:01"
+   ]
+  },
+  {
+   "nome": "Inovaimports",
+   "telefone": "553497771091",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:02"
+   ]
+  },
+  {
+   "nome": "Lokatell Manutenções",
+   "telefone": "5518996003093",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:02",
+    "aiva_reativacao_48h@09-22T16:00"
+   ]
+  },
+  {
+   "nome": "RAS Informática e Celulares",
+   "telefone": "5516992397921",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:02",
+    "aiva_reativacao_48h@09-22T16:00"
+   ]
+  },
+  {
+   "nome": "Lh Tech Assistência Técnica Multimarcas",
+   "telefone": "5514998088678",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:03",
+    "aiva_reativacao_48h@09-22T16:00"
+   ]
+  },
+  {
+   "nome": "Ibiza Cell",
+   "telefone": "5591981394354",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:03",
+    "aiva_reativacao_48h@09-22T16:01"
+   ]
+  },
+  {
+   "nome": "Iconex_store",
+   "telefone": "555493246415",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:03",
+    "aiva_reativacao_48h@09-22T16:01"
+   ]
+  },
+  {
+   "nome": "KB Tech",
+   "telefone": "555584021045",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T16:03",
+    "aiva_reativacao_48h@09-22T16:01"
+   ]
+  },
+  {
+   "nome": "Fix Info",
+   "telefone": "5542999496353",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Gfourr",
+   "telefone": "5511984441488",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "TEM TEM celulares",
+   "telefone": "5551989619797",
+   "status": "TREINAR",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "TECHSMART",
+   "telefone": "5511958131443",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Trokei Cell",
+   "telefone": "558594367038",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "DantasManutencel",
+   "telefone": "5511974993984",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "West Informática",
+   "telefone": "557187235302",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Lm celulares",
+   "telefone": "5519998294141",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "SpeedCell",
+   "telefone": "556793187598",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Contel Telecom Ltda",
+   "telefone": "5551920052653",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Loja",
+   "telefone": "5541998574000",
+   "status": "TREINAR",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Zé do celular",
+   "telefone": "5514981492008",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Macinplace",
+   "telefone": "555198140672",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "WL Elétron",
+   "telefone": "559284133320",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "SoluCell",
+   "telefone": "5542999430678",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:00"
+   ]
+  },
+  {
+   "nome": "Martini Celular",
+   "telefone": "555184046717",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Ponto do Celular",
+   "telefone": "5545998022122",
+   "status": "TREINAR",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "HM Imports",
+   "telefone": "556792991525",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Rcell Celulares",
+   "telefone": "5594991570543",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Star Cell",
+   "telefone": "559691478557",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "WC CELULARES",
+   "telefone": "556791200557",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Joelcelularessm",
+   "telefone": "555584060455",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Loja Creative",
+   "telefone": "558799463092",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Andrey Cell Assistência Técnica",
+   "telefone": "554888519249",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Loosetech",
+   "telefone": "553599210267",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T17:01"
+   ]
+  },
+  {
+   "nome": "Oficina do Celular AG telecomunicações",
+   "telefone": "5527998308839",
+   "status": "DESCARTADO",
+   "templates": [
+    "aiva_reativacao_48h@09-21T18:26"
+   ]
+  },
+  {
+   "nome": "Thriade Business",
+   "telefone": "556198151670",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-21T21:25"
+   ]
+  },
+  {
+   "nome": "Loja",
+   "telefone": "5511975759781",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "Smarting",
+   "telefone": "5554999971709",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "Calado Celulares e MM Celulares",
+   "telefone": "5517996326605",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "TOP Celulares",
+   "telefone": "5535999760808",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "Mikimba Tech e Brasil Net Soluções",
+   "telefone": "5522997689306",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00",
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Sheik Cell",
+   "telefone": "5533991408604",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "AppleCel Celulares",
+   "telefone": "5551999584395",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:00"
+   ]
+  },
+  {
+   "nome": "Lojista",
+   "telefone": "5511984112544",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:01"
+   ]
+  },
+  {
+   "nome": "Alo Celulares",
+   "telefone": "554999127530",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:01",
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Tecnocel",
+   "telefone": "559691479220",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T13:01",
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Lojas Movelato",
+   "telefone": "556599278949",
+   "status": "EM_ANALISE_AIVA",
+   "templates": [
+    "aiva_reativacao_48h@09-22T16:01"
+   ]
+  },
+  {
+   "nome": "Hcell celulares e acessórios",
+   "telefone": "555192742456",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T16:13"
+   ]
+  },
+  {
+   "nome": "Amigão dos Móveis",
+   "telefone": "557381355565",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:00"
+   ]
+  },
+  {
+   "nome": "L.A cell",
+   "telefone": "5519982101926",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:00"
+   ]
+  },
+  {
+   "nome": "HiTech Imports",
+   "telefone": "559391028452",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:00"
+   ]
+  },
+  {
+   "nome": "Licell",
+   "telefone": "5511970372343",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:00"
+   ]
+  },
+  {
+   "nome": "LazaroCell",
+   "telefone": "557998654032",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:00"
+   ]
+  },
+  {
+   "nome": "Carlos Celulares",
+   "telefone": "5528999795939",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "JP Informática",
+   "telefone": "5564992121327",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Emc",
+   "telefone": "5518996577799",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Celulares e Cia",
+   "telefone": "5514996556727",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "Poter Assistência Técnica ltda",
+   "telefone": "5511950015086",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  },
+  {
+   "nome": "TITÉCH",
+   "telefone": "551145954298",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "templates": [
+    "aiva_reativacao_48h@09-22T17:01"
+   ]
+  }
+ ]
+}
