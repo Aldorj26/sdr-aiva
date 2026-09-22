@@ -107,12 +107,19 @@ export async function getOpenChatId(
 /**
  * Busca as últimas mensagens de um chat pelo chatId.
  * direction: 1 = IN (lead), 2 = template/HSM, 3 = OUT (agente)
+ *
+ * ⚠️ `clientrcvtime` e `clientreadtime` são o RECIBO DA META e a única prova de
+ * entrega que temos: a resposta do sendWaTemplate é só {"message":"success"} e
+ * não distingue "aceito" de "entregue". clientrcvtime vazio num template antigo
+ * = a Meta NÃO entregou. Foi assim que o apagão de 21-22/09/2026 (cartão
+ * recusado, erro 131042) foi diagnosticado — 24h de disparo pro vazio com todos
+ * os painéis verdes. Vigiado todo dia em lib/entrega-meta.ts.
  */
 export async function getChatMessages(
   chatId: number,
   limit = 10
-): Promise<Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number }>> {
-  const data = await post<{ messages: Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number }> }>(
+): Promise<Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number; clientrcvtime?: string | null; clientreadtime?: string | null }>> {
+  const data = await post<{ messages: Array<{ id: number; direction: number; message: string; srvrcvtime: string; messagetimestamp: number; clientrcvtime?: string | null; clientreadtime?: string | null }> }>(
     '/int/getChatMessages',
     { chatId, limit }
   )

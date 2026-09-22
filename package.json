@@ -16,7 +16,9 @@
     "test:reconhecimento": "node --test lib/reconhecimento.test.ts",
     "test:odres": "node --test lib/odres-liberacao-calc.test.ts",
     "test:retomada": "node --test lib/retomada-interessado-calc.test.ts",
-    "test:filiais": "node --test lib/filiais-aiva.test.ts"
+    "test:filiais": "node --test lib/filiais-aiva.test.ts",
+    "test:entrega": "node --test lib/entrega-meta-calc.test.ts",
+    "test:json": "node --test lib/claude-json.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

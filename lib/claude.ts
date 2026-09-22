@@ -8,6 +8,7 @@ import type { Mensagem } from '@/lib/supabase'
 import { removeFonesNaoOficiais, contextoDeData } from '@/lib/text'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { parseRespostaJson } from './claude-json'
 
 function loadEnvKey(key: string): string | undefined {
   // Tenta process.env primeiro
@@ -932,7 +933,14 @@ Onde as instruções acima citarem {{nome}} ou {{status_atual}}, use esses valor
   if (!jsonMatch) {
     throw new Error(`Claude não retornou JSON válido: ${text.substring(0, 200)}`)
   }
-  const parsed = JSON.parse(jsonMatch[0]) as ClaudeResponse
+  // Parse TOLERANTE: o modelo às vezes escreve a quebra de parágrafo como
+  // newline CRU dentro da string, o que é JSON inválido e derrubava o turno
+  // inteiro (43 dos 166 erros da VictorIA até 22/09/2026 — a causa nº 1; o
+  // lojista recebia "estou com volume alto de atendimentos", que é mentira).
+  // Só conserta caractere de controle dentro de string, que nunca é válido;
+  // defeito de verdade (JSON truncado, aspas abertas) continua estourando.
+  const { valor: parsed, consertado } = parseRespostaJson<ClaudeResponse>(jsonMatch[0])
+  if (consertado) console.warn('[claude-json] resposta tinha caractere de controle cru na string — escapado e recuperado')
 
   // Defesa contra telefone ALUCINADO (bug 2026-07-14: VictorIA inventou
   // "(31) 3360-0197" numa resposta). Remove qualquer fone que não seja oficial
