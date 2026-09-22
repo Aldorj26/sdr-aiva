@@ -1,0 +1,49 @@
+{
+ "alvo": [
+  {
+   "loja": "Dantech Eletrônicos",
+   "rid": "6799",
+   "senha_em": "2026-09-17",
+   "dias": 4,
+   "ok": true,
+   "erro": ""
+  },
+  {
+   "loja": "Jvcell",
+   "rid": "6456",
+   "senha_em": "2026-08-31",
+   "dias": 21,
+   "ok": true,
+   "erro": ""
+  },
+  {
+   "loja": "Huck Assistência",
+   "rid": "6851",
+   "senha_em": "2026-09-17",
+   "dias": 4,
+   "ok": true,
+   "erro": ""
+  },
+  {
+   "loja": "Fonely",
+   "rid": "6709",
+   "senha_em": "2026-09-14",
+   "dias": 7,
+   "ok": true,
+   "erro": ""
+  },
+  {
+   "loja": "Alexandre Imports",
+   "rid": "6831",
+   "senha_em": "2026-09-16",
+   "dias": 5,
+   "ok": true,
+   "erro": ""
+  }
+ ],
+ "segurados_hoje": [
+  "CH INFORMATICA",
+  "Cell7",
+  "POINTPHONE ASSITÊNCIA TÉCNICA"
+ ]
+}
