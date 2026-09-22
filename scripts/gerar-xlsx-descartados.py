@@ -52,9 +52,9 @@ COLS = ['Recomendação', 'CNPJ', 'Por quê', 'Loja', 'Telefone(s) encontrado(s)
         'Status do lead', 'Etapa no funil 15', 'Cards no Evo', 'No funil 19 (Odres)',
         'RID (ID da loja AIVA)', 'Vendas', 'Consultas', 'Etapa no portal', 'Biometria',
         'Base Odres', 'Outros CNPJs do lojista', 'Outra loja ativa do lojista',
-        'Msgs nossas', 'Última msg do lojista', 'Silêncio (dias)', 'DV do CNPJ',
+        'Encerramento enviado', 'Mover o card?', 'Msgs nossas', 'Última msg do lojista', 'Silêncio (dias)', 'DV do CNPJ',
         'Temos registro', 'Achado só pelo telefone', 'Marcadores']
-LARG = [17, 20, 66, 30, 34, 18, 26, 18, 30, 16, 18, 9, 11, 17, 13, 12, 26, 24, 12, 20, 15, 11, 14, 20, 24]
+LARG = [17, 20, 66, 30, 34, 18, 26, 18, 30, 16, 18, 9, 11, 17, 13, 12, 26, 24, 20, 14, 12, 20, 15, 11, 14, 20, 24]
 TEXTUAIS = ('B', 'E', 'K', 'Q', 'R')
 
 def sn(v):
@@ -65,6 +65,7 @@ def linha(x):
             x['status_lead'] or '(sem lead)', x['etapa_15'] or '', x['cards_evo'] or '', sn(x['no_funil_19']),
             x['rid'] or '', x['vendas'], x['consultas'], x['stage_portal'] or '(fora do portal)', x['biometria'] or '',
             sn(x['base_odres']), x['outros_cnpjs_do_lojista'] or '', x['outra_loja_ativa'] or '',
+            x['despedida_em'] or '', 'MOVER' if x['card_precisa_mover'] else '',
             x['nossas_mensagens'], x['ultima_msg_lojista'] or 'nunca respondeu', x['silencio_dias'],
             'ok' if x['dv_valido'] else 'INVÁLIDO', sn(x['temos_registro']), sn(x['lead_por_telefone']), x['marcadores'] or '']
 
@@ -95,6 +96,7 @@ linhas = [
     ('  Cadastro avançou no portal (passou de dados_varejo)', n(lambda x: x['stage_portal'] and x['stage_portal'] != 'dados_varejo')),
     ('  Tem ID de loja na AIVA (RID)', n(lambda x: bool(x['rid']))),
     ('  Loja com venda registrada no portal', n(lambda x: (x['vendas'] or 0) > 0)),
+    ('  Encerramento já enviado ao lojista, mas o card ficou em etapa de andamento', n(lambda x: x['card_precisa_mover'])),
     ('', ''),
     ('POR QUE CONFERIR', ''),
     ('  Telefone está no funil 19 (cliente Odres/UME barrado)', n(lambda x: x['no_funil_19'])),
@@ -145,6 +147,7 @@ aba('Pode descartar', [x for x in d if x['recomendacao'] == 'PODE DESCARTAR'])
 aba('Funil 19 (Odres)', [x for x in d if x['no_funil_19']])
 aba('Filiais de loja ativa', [x for x in d if x['outra_loja_ativa']])
 aba('CNPJ invalido', [x for x in d if not x['dv_valido']])
+aba('Card precisa mover', [x for x in d if x['card_precisa_mover']])
 
 wb.save(SAIDA)
 print(SAIDA)

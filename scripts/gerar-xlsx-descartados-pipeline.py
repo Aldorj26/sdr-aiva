@@ -16,7 +16,7 @@ d = json.load(io.open(FONTE, encoding='utf-8'))
 
 ARIAL = 'Arial'
 HDR = PatternFill('solid', fgColor='1F3864')
-COR = {'DESCARTE OK': PatternFill('solid', fgColor='E8F5E9'),
+COR = {'PODE DESCARTAR': PatternFill('solid', fgColor='E8F5E9'),
        'CONFERIR': PatternFill('solid', fgColor='FFF8E1'),
        'NÃO DESCARTAR': PatternFill('solid', fgColor='FCE4EC')}
 
@@ -63,7 +63,7 @@ def linha(x):
             x['nossas_mensagens'], x['ultima_msg_lojista'] or 'nunca respondeu', x['silencio_dias'],
             x['disparo'], x['opp_lead'] or '']
 
-ordem = {'NÃO DESCARTAR': 0, 'CONFERIR': 1, 'DESCARTE OK': 2}
+ordem = {'NÃO DESCARTAR': 0, 'CONFERIR': 1, 'PODE DESCARTAR': 2}
 conta = collections.Counter(x['recomendacao'] for x in d)
 n = lambda f: sum(1 for x in d if f(x))
 
@@ -82,7 +82,7 @@ linhas = [
     ('RECOMENDAÇÃO', ''),
     ('  NÃO DESCARTAR — o CRM discorda do descarte e ninguém encerrou a conversa', conta['NÃO DESCARTAR']),
     ('  CONFERIR — decisão humana antes de encerrar', conta['CONFERIR']),
-    ('  DESCARTE OK — sem sinal de vida em nenhuma fonte', conta['DESCARTE OK']),
+    ('  PODE DESCARTAR — sem sinal de vida em nenhuma fonte', conta['PODE DESCARTAR']),
     ('', ''),
     ('A DESCOBERTA PRINCIPAL', ''),
     ('  Receberam mensagem de encerramento pelo painel ("vou encerrar nossa conversa")', n(lambda x: bool(x['despedida_em']))),
@@ -125,7 +125,7 @@ def aba(nome, itens):
 aba('Todos (64)', sorted(d, key=lambda y: (ordem[y['recomendacao']], y['loja'] or 'zzz')))
 aba('NAO descartar', [x for x in d if x['recomendacao'] == 'NÃO DESCARTAR'])
 aba('Conferir', [x for x in d if x['recomendacao'] == 'CONFERIR'])
-aba('Descarte OK', [x for x in d if x['recomendacao'] == 'DESCARTE OK'])
+aba('Pode descartar', [x for x in d if x['recomendacao'] == 'PODE DESCARTAR'])
 aba('Card precisa mover', [x for x in d if x['card_precisa_mover']])
 
 wb.save(SAIDA)

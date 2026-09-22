@@ -19,6 +19,7 @@
 import { listarOnboardingsApi, loginPortal, rest, partnerIdTrack, buscarPerformance } from '../lib/portal-aiva'
 import { supabaseAdmin } from '../lib/supabase'
 import { getPipeOpportunities } from '../lib/evotalks'
+import { decidirDescarte } from '../lib/descarte-calc'
 import fs from 'node:fs'
 
 const so = (c: unknown) => String(c ?? '').replace(/\D/g, '')
@@ -197,6 +198,16 @@ const preLinhas = cnpjs.map((c) => {
 })
 const idsParaMsg = [...new Set(preLinhas.flatMap((p) => [p.lead?.id, ...p.leadsTel.map((l) => l.id)].filter(Boolean) as string[]))]
 const ultimaMsg = await ultimaEntrada(idsParaMsg)
+// Mensagem de encerramento enviada pelo painel — o sinal mais importante da
+// análise e que só existia no outro script (foi a origem da divergência).
+const despedidas = new Map<string, string>()
+for (const id of idsParaMsg) {
+  const { data } = await supabaseAdmin.from('sdr_mensagens').select('enviado_em')
+    .eq('lead_id', id).eq('direcao', 'out').ilike('conteudo', '%encerrar nossa conversa%')
+    .order('enviado_em', { ascending: false }).limit(1)
+  if (data?.[0]) despedidas.set(id, (data[0] as { enviado_em: string }).enviado_em)
+}
+console.log(`Com mensagem de encerramento: ${despedidas.size}`)
 const nossosEnvios = await saidasPorLead(idsParaMsg)
 
 async function montar(p: typeof preLinhas[0]) {
@@ -227,45 +238,34 @@ async function montar(p: typeof preLinhas[0]) {
   const idsDele = [lead?.id, ...leadsTel.map((l) => l.id)].filter(Boolean) as string[]
   const envios = idsDele.reduce((a, id) => a + (nossosEnvios.get(id) ?? 0), 0)
   const silencio = dias(msgIso)
-
-  // ── decisão ──────────────────────────────────────────────────────────────
-  const motivos: string[] = []
-  let rec = 'PODE DESCARTAR'
-  const trava = (m: string) => { motivos.push(m); rec = 'NÃO DESCARTAR' }
-  const olhar = (m: string) => { motivos.push(m); if (rec === 'PODE DESCARTAR') rec = 'CONFERIR' }
-
-  if (desempenho && desempenho.vendas > 0) trava(`loja VENDENDO no portal (${desempenho.vendas} vendas)`)
-  else if (desempenho && desempenho.consultas > 0) trava(`loja operando: ${desempenho.consultas} consultas de crédito`)
-  if (rid) trava(`tem ID de loja na AIVA (RID ${rid})`)
-  if (rs.some((r) => r.status === 'ativa')) trava('registro marcado como ativa')
   const stage = String(onb?.stage ?? '')
   const bio = String(onb?.biometry_status ?? '')
-  if (stage && stage !== 'dados_varejo') trava(`cadastro avançou no portal (${stage}${bio ? `, biometria ${bio}` : ''})`)
-  if (bio === 'aprovado') trava('biometria APROVADA — esperando só a AIVA criar a loja')
-  if (no15 && [51, 71, 70, 49].includes(no15.stage)) trava(`card em ${ETAPA[no15.stage]} no funil 15`)
-  if (lead && ['LOJA_FINALIZADA_E_VENDENDO', 'TREINAR', 'LOGIN', 'CADASTRO_RECEBIDO'].includes(lead.status)) trava(`lead em ${lead.status}`)
-  // 3 dias, não 7: "conversa viva" tem que significar viva mesmo. Quem falou na
-  // semana passada e sumiu está na régua de cobrança — isso é CONFERIR, não trava.
-  if (silencio !== null && silencio <= 3) trava(`conversa VIVA — lojista falou há ${silencio} dia(s)`)
-  if (outraAtiva.length) trava(`é 2º CNPJ de lojista com loja ativa (${outraAtiva.join(', ')})`)
 
-  if (noFunil19.length) olhar(`telefone está no funil 19 Odres/UME (${noFunil19.map((x) => `#${x.id}`).join(', ')})`)
-  if (odres.has(c)) olhar('CNPJ consta na base Odres')
-  if (!dvOk(c)) olhar('CNPJ com dígito verificador inválido — erro de digitação na origem')
-  if (!rs.length && leadsTel.length) olhar(`sem registro deste CNPJ, mas o telefone é lead nosso (${leadsTel[0].status})`)
-  if (!rs.length && !leadsTel.length && todosCards.length) olhar(`sem lead nosso, mas tem card no Evo (${todosCards.map((x) => FUNIL[x.funil]).join(', ')})`)
-  if (silencio !== null && silencio > 3 && silencio <= 30) olhar(`lojista respondeu há ${silencio} dias e a cobrança automática do formulário ainda está atuando nele`)
-  if (lead?.status === 'DESCARTADO' && silencio !== null && silencio <= 30) olhar('lead está DESCARTADO na nossa base mas o lojista respondeu recentemente — contradição, vale olhar a conversa')
-  if (obs.includes('[SENHA_ENVIADA:')) olhar('senha do sócio já foi enviada pela AIVA')
-
-  if (rec === 'PODE DESCARTAR') {
-    if (!rs.length && !leadsTel.length && !todosCards.length) motivos.push('não é oportunidade nossa: sem registro, sem lead e sem card em nenhum funil')
-    else if (envios === 0) motivos.push(`nunca trabalhado: a gente nunca mandou mensagem pra esse lojista${stage ? ` (portal: ${stage})` : ''}`)
-    else motivos.push(`sem avanço: ${stage || 'não está no portal'}, ${envios} mensagens nossas e ${silencio === null ? 'nenhuma resposta dele' : `${silencio} dias em silêncio`}`)
-  }
+  // ── decisão: regra ÚNICA, compartilhada com a conferência dos "descartados
+  // no pipeline" (lib/descarte-calc.ts). Antes cada script tinha a sua cópia e
+  // elas divergiram: 24 lojas saíam com veredito diferente em cada planilha.
+  const despedidaEm = idsDele.map((id) => despedidas.get(id)).filter(Boolean).sort().reverse()[0] ?? null
+  const { recomendacao: rec, motivos: listaMotivos, cardPrecisaMover } = decidirDescarte({
+    vendas: desempenho?.vendas, consultas: desempenho?.consultas, rid,
+    registroAtiva: rs.some((r) => r.status === 'ativa'),
+    stagePortal: stage || null, biometria: bio || null,
+    etapaCard: no15?.stage ?? null, nomeEtapa: no15 ? ETAPA[no15.stage] ?? String(no15.stage) : null,
+    statusLead: lead?.status ?? null,
+    silencioDias: silencio, despedidaEm,
+    outraLojaAtiva: outraAtiva,
+    noFunil19: noFunil19.map((x) => `#${x.id}`),
+    baseOdres: odres.has(c), dvInvalido: !dvOk(c),
+    temRegistro: rs.length > 0, temCard: todosCards.length > 0,
+    achadoSoPorTelefone: !rPrinc?.lead_id && leadsTel.length > 0,
+    senhaEnviada: obs.includes('[SENHA_ENVIADA:'),
+    enviosNossos: envios,
+    deuOsDados: /\[DADOS_COLETADOS:[^\]]*cnpj_matriz=/.test(obs),
+  })
+  const motivos = listaMotivos
 
   return {
-    cnpj: c, recomendacao: rec, motivos: motivos.join(' · '),
+    cnpj: c, recomendacao: rec, motivos: motivos.join(' · '), card_precisa_mover: cardPrecisaMover,
+    despedida_em: despedidaEm ? despedidaEm.slice(0, 10) : null,
     dv_valido: dvOk(c),
     loja: lead?.nome ?? rPrinc?.loja ?? (onb?.legal_name as string | undefined) ?? null,
     razao_portal: (onb?.legal_name as string | undefined) ?? null,

@@ -20,6 +20,7 @@
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, buscarPerformance } from '../lib/portal-aiva'
 import { supabaseAdmin } from '../lib/supabase'
 import { getPipeOpportunities } from '../lib/evotalks'
+import { decidirDescarte } from '../lib/descarte-calc'
 import fs from 'node:fs'
 
 const so = (c: unknown) => String(c ?? '').replace(/\D/g, '')
@@ -156,36 +157,23 @@ const linhas = noPipe.map((l) => {
   const stage = String(onb?.stage ?? '')
   const bio = String(onb?.biometry_status ?? '')
 
-  const motivos: string[] = []
-  let rec = 'DESCARTE OK'
-  const trava = (m: string) => { motivos.push(m); rec = 'NÃO DESCARTAR' }
-  const olhar = (m: string) => { motivos.push(m); if (rec === 'DESCARTE OK') rec = 'CONFERIR' }
-
-  if (desemp && desemp.vendas > 0) trava(`loja VENDENDO (${desemp.vendas} vendas no portal)`)
-  else if (desemp && desemp.consultas > 0) trava(`loja operando (${desemp.consultas} consultas de crédito)`)
-  if (rid) trava(`tem ID de loja na AIVA (RID ${rid})`)
-  if (meusRegs.some((r) => r.status === 'ativa')) trava('registro marcado como ativa')
-  if (bio === 'aprovado') trava('biometria APROVADA no portal')
-  if (stage && stage !== 'dados_varejo') trava(`cadastro avançou no portal (${stage})`)
-  // Card em etapa viva SÓ é trava se ninguém tiver encerrado a conversa. Com a
-  // despedida enviada, o descarte foi decisão de gente — o que está errado é o
-  // card parado numa etapa que diz "em andamento" e infla o funil.
-  const seDespediu = despedida.has(l.id)
-  if (c15 && ETAPAS_VIVAS.includes(c15.stage) && !seDespediu) trava(`card VIVO na etapa ${ETAPA[c15.stage]} e ninguém encerrou a conversa — o descarte não bate com o CRM`)
-  if (silencio !== null && silencio <= 7) trava(`lojista falou há ${silencio} dia(s) — conversa viva`)
-
-  if (seDespediu && c15 && ETAPAS_VIVAS.includes(c15.stage)) olhar(`encerramento enviado em ${despedida.get(l.id)!.slice(0, 10)}, mas o card segue em ${ETAPA[c15.stage]} — mover o card`)
-  if (no19.length) olhar(`telefone também está no funil 19 Odres/UME (${no19.map((x) => `#${x.id}`).join(', ')})`)
-  if (cnpjs.some((c) => odres.has(c))) olhar('CNPJ na base Odres')
-  if (silencio !== null && silencio > 7 && silencio <= 60) olhar(`lojista respondeu há ${silencio} dias`)
-  if (obs.includes('[SENHA_ENVIADA:')) olhar('senha do sócio já foi enviada pela AIVA')
-  if (onb && !stage) olhar('tem cadastro no portal da AIVA')
-  if (c15 && !ETAPAS_VIVAS.includes(c15.stage) && !ETAPAS_MORTAS.includes(c15.stage)) olhar(`card na etapa ${ETAPA[c15.stage] ?? c15.stage} (não é etapa final conhecida)`)
-
-  if (rec === 'DESCARTE OK') {
-    motivos.push(c15 ? `card em ${ETAPA[c15.stage] ?? c15.stage}, que é fim de jornada` : 'sem card vivo')
-    motivos.push(silencio === null ? `nunca respondeu (${envios} mensagens nossas)` : `${silencio} dias em silêncio`)
-  }
+  // Regra ÚNICA, compartilhada com a conferência dos 230 CNPJs da AIVA
+  // (lib/descarte-calc.ts). Ver o comentário de lá sobre a divergência de 22/09.
+  const { recomendacao, motivos: listaMotivos, cardPrecisaMover } = decidirDescarte({
+    vendas: desemp?.vendas, consultas: desemp?.consultas, rid,
+    registroAtiva: meusRegs.some((r) => r.status === 'ativa'),
+    stagePortal: stage || null, biometria: bio || null,
+    etapaCard: c15?.stage ?? null, nomeEtapa: c15 ? ETAPA[c15.stage] ?? String(c15.stage) : null,
+    statusLead: l.status,
+    silencioDias: silencio, despedidaEm: despedida.get(l.id) ?? null,
+    noFunil19: no19.map((x) => `#${x.id}`),
+    baseOdres: cnpjs.some((x) => odres.has(x)),
+    temRegistro: meusRegs.length > 0, temCard: meusCards.length > 0,
+    senhaEnviada: obs.includes('[SENHA_ENVIADA:'),
+    enviosNossos: envios,
+    deuOsDados: /\[DADOS_COLETADOS:[^\]]*cnpj_matriz=/.test(obs),
+  })
+  const rec = recomendacao
 
   const porQueDescartou = [
     obs.includes('[PORTAL_REPROVADO') ? 'reprovado pela AIVA' : '',
@@ -197,7 +185,7 @@ const linhas = noPipe.map((l) => {
   ].filter(Boolean).join(' · ') || 'sem marcador — provavelmente auto-descarte por silêncio'
 
   return {
-    recomendacao: rec, motivos: motivos.join(' · '), por_que_descartou: porQueDescartou,
+    recomendacao: rec, motivos: listaMotivos.join(' · '), por_que_descartou: porQueDescartou,
     loja: l.nome, telefone: l.telefone, cidade: l.cidade,
     cnpjs: cnpjs.join(', ') || null,
     card_15: c15 ? `#${c15.id} ${ETAPA[c15.stage] ?? c15.stage}` : null,
@@ -213,7 +201,7 @@ const linhas = noPipe.map((l) => {
     silencio_dias: silencio,
     despedida_em: despedida.get(l.id)?.slice(0, 10) ?? null,
     deu_dados: /\[DADOS_COLETADOS:[^\]]*cnpj_matriz=/.test(obs),
-    card_precisa_mover: !!(seDespediu && c15 && ETAPAS_VIVAS.includes(c15.stage)),
+    card_precisa_mover: cardPrecisaMover,
     disparo: l.data_disparo_inicial?.slice(0, 10) ?? l.criado_em.slice(0, 10),
     lead_id: l.id, opp_lead: l.evotalks_opportunity_id ? String(l.evotalks_opportunity_id) : null,
   }
@@ -222,7 +210,7 @@ const linhas = noPipe.map((l) => {
 fs.writeFileSync('scripts/out-descartados-pipeline.json', JSON.stringify(linhas, null, 1), 'utf8')
 const n = (f: (l: typeof linhas[0]) => boolean) => linhas.filter(f).length
 console.log(`\n── RESULTADO (${linhas.length}) ──`)
-for (const r of ['DESCARTE OK', 'CONFERIR', 'NÃO DESCARTAR']) console.log(`${r}: ${n((l) => l.recomendacao === r)}`)
+for (const r of ['PODE DESCARTAR', 'CONFERIR', 'NÃO DESCARTAR']) console.log(`${r}: ${n((l) => l.recomendacao === r)}`)
 console.log(`\nCard em etapa VIVA (contradiz o descarte): ${n((l) => l.etapa_viva)}`)
 console.log(`Com loja ativa (RID) ou vendendo: ${n((l) => !!l.rid || (l.vendas ?? 0) > 0)}`)
 console.log(`Telefone também no funil 19: ${n((l) => l.no_funil_19)}`)

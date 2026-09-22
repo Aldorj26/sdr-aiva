@@ -1,7 +1,7 @@
 [
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 29 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 29 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Infinity Importados",
   "telefone": "554699248190",
@@ -31,7 +31,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-21, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias",
+  "motivos": "encerramento enviado em 2026-09-21, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ irregular na Receita",
   "loja": "Hunter Promo",
   "telefone": "559192445141",
@@ -61,7 +61,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 49 dias",
+  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Teccell Celulares",
   "telefone": "5527995274148",
@@ -81,7 +81,7 @@
   "base_odres": false,
   "nossas_mensagens": 41,
   "ultima_msg_lojista": "2026-08-03",
-  "silencio_dias": 49,
+  "silencio_dias": 50,
   "despedida_em": "2026-09-08",
   "deu_dados": true,
   "card_precisa_mover": true,
@@ -91,7 +91,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 26 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 26 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Smart Digital",
   "telefone": "5516994392084",
@@ -121,7 +121,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 34 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Ipulse Celulares",
   "telefone": "556298859222",
@@ -151,7 +151,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 21 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 21 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "JSCELULARES",
   "telefone": "5516997570571",
@@ -180,8 +180,8 @@
   "opp_lead": "17547"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 12 dias",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 12 dias e a cobrança automática ainda atua nele · card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ irregular na Receita",
   "loja": "DL celulares",
   "telefone": "5519992560317",
@@ -211,7 +211,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 28 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 28 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ irregular na Receita",
   "loja": "PLCell",
   "telefone": "558586213056",
@@ -241,7 +241,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 19 dias",
+  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 19 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Gcell.Inf",
   "telefone": "5565992035229",
@@ -271,7 +271,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 19 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 19 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "CBA Cell",
   "telefone": "5565992005410",
@@ -301,7 +301,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 31 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Manucelasistencia",
   "telefone": "554298364410",
@@ -331,7 +331,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 20 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 20 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Freecell",
   "telefone": "5579999232566",
@@ -360,8 +360,8 @@
   "opp_lead": "17650"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 7 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 7 dias e a cobrança automática ainda atua nele · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "CB iPhones",
   "telefone": "5585988853795",
@@ -390,8 +390,8 @@
   "opp_lead": "19238"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 26 dias",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 26 dias e a cobrança automática ainda atua nele · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5585996409998",
@@ -420,8 +420,8 @@
   "opp_lead": "11633"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5511441411620",
@@ -450,8 +450,8 @@
   "opp_lead": "11667"
  },
  {
-  "recomendacao": "CONFERIR",
-  "motivos": "lojista respondeu há 50 dias",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Início, 3 mensagens nossas e 50 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5562991004828",
@@ -480,8 +480,8 @@
   "opp_lead": "11863"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 31 dias",
+  "recomendacao": "CONFERIR",
+  "motivos": "card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Smart New Pay",
   "telefone": "5516993910538",
@@ -510,8 +510,8 @@
   "opp_lead": "16154"
  },
  {
-  "recomendacao": "CONFERIR",
-  "motivos": "lojista respondeu há 53 dias",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Sem resposta, 2 mensagens nossas e 53 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5511949935681",
@@ -540,8 +540,8 @@
   "opp_lead": "11624"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5500000000000",
@@ -570,8 +570,8 @@
   "opp_lead": "11458"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5551855500000",
@@ -600,8 +600,8 @@
   "opp_lead": "13814"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5592032158900",
@@ -630,8 +630,8 @@
   "opp_lead": "14092"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5591032253734",
@@ -660,8 +660,8 @@
   "opp_lead": "11177"
  },
  {
-  "recomendacao": "CONFERIR",
-  "motivos": "lojista respondeu há 55 dias",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Sem resposta, 4 mensagens nossas e 55 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5571999255923",
@@ -690,8 +690,8 @@
   "opp_lead": "11408"
  },
  {
-  "recomendacao": "CONFERIR",
-  "motivos": "lojista respondeu há 53 dias",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Sem resposta, 5 mensagens nossas e 53 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "555196645030",
@@ -721,7 +721,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "telefone também está no funil 19 Odres/UME (#11704)",
+  "motivos": "telefone está no funil 19 Odres/UME (#11704)",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5552125831407",
@@ -750,8 +750,8 @@
   "opp_lead": "11706"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "lojista falou há 4 dia(s) — conversa viva · card na etapa Bot (não é etapa final conhecida)",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 4 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição · card em Bot, que não é etapa final conhecida",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Heisentech",
   "telefone": "5562981078834",
@@ -780,8 +780,8 @@
   "opp_lead": "20201"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · nunca respondeu (0 mensagens nossas)",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "nunca trabalhado: nenhuma mensagem nossa",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5592000000000",
@@ -811,7 +811,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 44 dias",
+  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "CELUPUPO ELETRÔNICOS",
   "telefone": "5511994117115",
@@ -841,7 +841,7 @@
  },
  {
   "recomendacao": "NÃO DESCARTAR",
-  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 20 dias",
+  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 20 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Espaço do Celular",
   "telefone": "5515996198845",
@@ -871,7 +871,7 @@
  },
  {
   "recomendacao": "NÃO DESCARTAR",
-  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 42 dias",
+  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Sofintech LTDA",
   "telefone": "5596999140350",
@@ -901,7 +901,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 48 dias",
+  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja Caranda imports",
   "telefone": "556781226074",
@@ -931,7 +931,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 28 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 28 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Two Sides",
   "telefone": "5522999119952",
@@ -960,8 +960,8 @@
   "opp_lead": "12895"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 28 dias",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 28 dias e a cobrança automática ainda atua nele · card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "LuanLay Magazine",
   "telefone": "5521974012497",
@@ -991,7 +991,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 25 dias",
+  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 25 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ com menos de 1 ano",
   "loja": "Maiara",
   "telefone": "554792438225",
@@ -1020,8 +1020,8 @@
   "opp_lead": "16497"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 13 dias",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 13 dias e a cobrança automática ainda atua nele · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Clínica do Celular",
   "telefone": "5541991253232",
@@ -1051,7 +1051,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 28 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 29 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Solicite Cred",
   "telefone": "558597418481",
@@ -1071,7 +1071,7 @@
   "base_odres": false,
   "nossas_mensagens": 47,
   "ultima_msg_lojista": "2026-08-24",
-  "silencio_dias": 28,
+  "silencio_dias": 29,
   "despedida_em": "2026-09-15",
   "deu_dados": true,
   "card_precisa_mover": true,
@@ -1080,8 +1080,8 @@
   "opp_lead": "16340"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 6 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 6 dias e a cobrança automática ainda atua nele · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Cellebridades Assistência técnica",
   "telefone": "5585996173883",
@@ -1110,8 +1110,8 @@
   "opp_lead": "19288"
  },
  {
-  "recomendacao": "CONFERIR",
-  "motivos": "lojista respondeu há 55 dias",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Sem resposta, 2 mensagens nossas e 55 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "5537999990266",
@@ -1141,7 +1141,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 35 dias",
+  "motivos": "encerramento enviado em 2026-09-08, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Barba Variedades",
   "telefone": "554384029229",
@@ -1201,7 +1201,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 13 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 13 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Zitão Celular",
   "telefone": "5598985048528",
@@ -1231,7 +1231,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-11, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 22 dias",
+  "motivos": "encerramento enviado em 2026-09-11, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 22 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Cel Mania",
   "telefone": "5521992289425",
@@ -1260,8 +1260,8 @@
   "opp_lead": "17539"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 5 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 5 dias e a cobrança automática ainda atua nele · card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Connect 7",
   "telefone": "559391286078",
@@ -1291,7 +1291,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 26 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 26 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "MV celulares",
   "telefone": "555198635730",
@@ -1321,7 +1321,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 14 dias",
+  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 14 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Iconnect Cell",
   "telefone": "556781226897",
@@ -1351,7 +1351,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 23 dias",
+  "motivos": "encerramento enviado em 2026-09-18, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 23 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "RDKCELL",
   "telefone": "5513996931848",
@@ -1381,7 +1381,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias",
+  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja Americana",
   "telefone": "553598134953",
@@ -1411,7 +1411,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 25 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 25 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "WORKSHOPCELL",
   "telefone": "556192246072",
@@ -1441,7 +1441,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias",
+  "motivos": "encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 18 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Lambari Imports",
   "telefone": "553598770504",
@@ -1470,8 +1470,8 @@
   "opp_lead": "18209"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 7 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 7 dias e a cobrança automática ainda atua nele · card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Matheus iphones",
   "telefone": "5579999798420",
@@ -1500,8 +1500,8 @@
   "opp_lead": "17761"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "lojista falou há 5 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 5 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "PPCell",
   "telefone": "5585988008872",
@@ -1530,8 +1530,8 @@
   "opp_lead": "19619"
  },
  {
-  "recomendacao": "DESCARTE OK",
-  "motivos": "card em Sem resposta, que é fim de jornada · 164 dias em silêncio",
+  "recomendacao": "PODE DESCARTAR",
+  "motivos": "sem avanço: card em Sem resposta, 29 mensagens nossas e 164 dias em silêncio",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "teste idempotencia ignorar",
   "telefone": "5543988208134",
@@ -1561,7 +1561,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-01, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 57 dias",
+  "motivos": "encerramento enviado em 2026-09-01, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Rener Celulares",
   "telefone": "5577999390052",
@@ -1591,7 +1591,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 34 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Center Cell",
   "telefone": "558981456995",
@@ -1621,7 +1621,7 @@
  },
  {
   "recomendacao": "NÃO DESCARTAR",
-  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 14 dias",
+  "motivos": "cadastro avançou no portal (biometria) · encerramento enviado em 2026-09-22, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 14 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Signuscell.shop",
   "telefone": "559493003228",
@@ -1651,7 +1651,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 33 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "NR Móveis",
   "telefone": "556796888252",
@@ -1681,7 +1681,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 31 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Limacell Assistência Técnica",
   "telefone": "554588051106",
@@ -1710,8 +1710,8 @@
   "opp_lead": "16326"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Em Análise AIVA e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 6 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 6 dias e a cobrança automática ainda atua nele · card parado em Em Análise AIVA e o lojista já tinha entregado os dados — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ irregular na Receita",
   "loja": "Dom Store",
   "telefone": "555384439052",
@@ -1740,8 +1740,8 @@
   "opp_lead": "18213"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 4 dia(s) — conversa viva",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 5 dias e a cobrança automática ainda atua nele · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Casa do Celular",
   "telefone": "5585996476336",
@@ -1761,7 +1761,7 @@
   "base_odres": false,
   "nossas_mensagens": 4,
   "ultima_msg_lojista": "2026-09-17",
-  "silencio_dias": 4,
+  "silencio_dias": 5,
   "despedida_em": null,
   "deu_dados": false,
   "card_precisa_mover": false,
@@ -1770,8 +1770,8 @@
   "opp_lead": "14502"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "lojista falou há 7 dia(s) — conversa viva · encerramento enviado em 2026-09-21, mas o card segue em Em Análise AIVA — mover o card",
+  "recomendacao": "CONFERIR",
+  "motivos": "encerramento enviado em 2026-09-21, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 7 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "JM Cell",
   "telefone": "5519999624505",
@@ -1801,7 +1801,7 @@
  },
  {
   "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Interessado e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista falou há 0 dia(s) — conversa viva",
+  "motivos": "conversa VIVA — lojista falou há 0 dia(s) · card parado em Interessado — conferir antes de matar · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Loja",
   "telefone": "558981258448",
@@ -1830,8 +1830,8 @@
   "opp_lead": "21279"
  },
  {
-  "recomendacao": "NÃO DESCARTAR",
-  "motivos": "lojista falou há 4 dia(s) — conversa viva · card na etapa Bot (não é etapa final conhecida)",
+  "recomendacao": "CONFERIR",
+  "motivos": "lojista respondeu há 4 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição · card em Bot, que não é etapa final conhecida",
   "por_que_descartou": "sem marcador — provavelmente auto-descarte por silêncio",
   "loja": "Casa do Celular Garavelo",
   "telefone": "5562991650880",
@@ -1861,7 +1861,7 @@
  },
  {
   "recomendacao": "NÃO DESCARTAR",
-  "motivos": "card VIVO na etapa Treinar e ninguém encerrou a conversa — o descarte não bate com o CRM · lojista respondeu há 31 dias",
+  "motivos": "card em Treinar — a loja avançou na jornada · o lojista chegou a entregar CNPJ e dados de qualificação",
   "por_que_descartou": "CNPJ com menos de 1 ano",
   "loja": "Dany iPhone Store",
   "telefone": "553187940017",
@@ -1891,7 +1891,7 @@
  },
  {
   "recomendacao": "CONFERIR",
-  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 27 dias",
+  "motivos": "encerramento enviado em 2026-09-15, mas o card segue em Em Análise AIVA — mover o card · lojista respondeu há 27 dias e a cobrança automática ainda atua nele · lead DESCARTADO na base mas o lojista respondeu recentemente — contradição",
   "por_que_descartou": "CNPJ irregular na Receita",
   "loja": "Império dos celular e acessórios",
   "telefone": "554988466896",
