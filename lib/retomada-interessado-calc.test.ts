@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidir, lerMarcadores, remontarObs, miolo,
+  decidir, lerMarcadores, remontarObs, miolo, montarFila, SILENCIO_MAX_DIAS,
   MIOLOS_COM_DADOS, MIOLOS_SEM_DADOS, SILENCIO_DIAS, DIAS_ENTRE_TOQUES, MAX_TOQUES,
 } from './retomada-interessado-calc.ts'
 
@@ -62,4 +62,53 @@ test('remontarObs nao duplica marcador', () => {
   assert.equal((b.match(/\[RETOM_INT:/g) ?? []).length, 1)
   assert.match(b, /\[RETOM_INT:2:/)
   assert.match(b, /^\[X\] nota/)
+})
+
+test('teto de silêncio: acima de 90 dias não manda (protege a nota do número)', () => {
+  const m = lerMarcadores('')
+  assert.equal(decidir(m, 90).acao, 'enviar')
+  assert.deepEqual(decidir(m, 91), { acao: 'nada', motivo: 'frio_demais' })
+  assert.deepEqual(decidir(m, 160), { acao: 'nada', motivo: 'frio_demais' })
+  assert.equal(SILENCIO_MAX_DIAS, 90)
+})
+
+test('AGUARDANDO tem orçamento próprio — interessado novo não o deixa sem vaga', () => {
+  // o caso real: o disparo gera interessados todo dia; com fila única o
+  // AGUARDANDO nunca seria atendido
+  const itens = [
+    ...Array.from({ length: 100 }, (_, i) => ({ status: 'INTERESSADO', dias: 8 + (i % 13), temDados: false })),
+    ...Array.from({ length: 50 }, (_, i) => ({ status: 'AGUARDANDO', dias: 22 + i, temDados: false })),
+  ]
+  const fila = montarFila(itens, 60, 30)
+  assert.equal(fila.filter((f) => f.status === 'INTERESSADO').length, 60)
+  assert.equal(fila.filter((f) => f.status === 'AGUARDANDO').length, 30)
+  // o interessado vem antes: se a rota bater o teto de tempo, é ele que sai
+  assert.equal(fila[0].status, 'INTERESSADO')
+  assert.equal(fila[fila.length - 1].status, 'AGUARDANDO')
+})
+
+test('orçamento zero desliga a etapa', () => {
+  const itens = [{ status: 'INTERESSADO', dias: 9, temDados: false }, { status: 'AGUARDANDO', dias: 30, temDados: true }]
+  assert.deepEqual(montarFila(itens, 60, 0).map((f) => f.status), ['INTERESSADO'])
+  assert.deepEqual(montarFila(itens, 0, 30).map((f) => f.status), ['AGUARDANDO'])
+})
+
+test('INTERESSADO mantém a ordem aprovada: mais frio primeiro', () => {
+  const fila = montarFila([
+    { status: 'INTERESSADO', dias: 8, temDados: false },
+    { status: 'INTERESSADO', dias: 20, temDados: false },
+    { status: 'INTERESSADO', dias: 12, temDados: false },
+  ], 60, 30)
+  assert.deepEqual(fila.map((f) => f.dias), [20, 12, 8])
+})
+
+test('AGUARDANDO: quem deu dados primeiro, depois o MENOS frio', () => {
+  const fila = montarFila([
+    { status: 'AGUARDANDO', dias: 80, temDados: false },
+    { status: 'AGUARDANDO', dias: 25, temDados: false },
+    { status: 'AGUARDANDO', dias: 70, temDados: true },
+    { status: 'AGUARDANDO', dias: 30, temDados: true },
+  ], 60, 30)
+  // com dados (30, 70) antes dos sem dados (25, 80); dentro de cada, menos frio primeiro
+  assert.deepEqual(fila.map((f) => `${f.temDados ? 'D' : '-'}${f.dias}`), ['D30', 'D70', '-25', '-80'])
 })

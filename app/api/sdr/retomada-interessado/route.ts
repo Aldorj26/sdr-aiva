@@ -15,22 +15,32 @@
  * não por data_ultimo_contato — esse campo também sobe quando NÓS enviamos, então
  * a própria régua zeraria o contador e nunca avançaria.
  *
- * Não toca: conversa viva (<7d), acionar_humano, [PAUSA_ATE], opt-out, importados
- * do portal, telefone 000…, e quem já tem CNPJ irregular na Receita.
+ * AGUARDANDO (23/09/2026, Aldo): entra na mesma régua, com orçamento PRÓPRIO
+ * (padrão 30/dia, `?max_aguardando=`) e teto de 90 dias de silêncio. É pra lá que
+ * o auto-descarte manda o INTERESSADO após 21 dias, e nenhuma automação olhava
+ * pra etapa — eram 992 leads. Ver as justificativas em retomada-interessado-calc.
+ * O nome da rota ficou "retomada-interessado" de propósito: trocar o path mata o
+ * agendamento do vercel.json e o vigia, que chamam por esse caminho.
+ *
+ * Não toca: conversa viva (<7d), silêncio > 90d, acionar_humano, [PAUSA_ATE],
+ * opt-out, importados do portal, telefone 000…, e quem já tem CNPJ irregular.
  *
  * Entrega: HSM 48 coringa (AIVA_REATIVACAO_TEMPLATE_ID). Quem responde cai na
  * VictorIA, que retoma a coleta de onde parou (lib/claude.ts).
  *
  * Regras/textos: lib/retomada-interessado-calc.ts (`npm run test:retomada`).
- * Params: ?dry · ?max=N (teto de envios, padrão 60)
- * Schedule (vercel.json): `0 16 * * 1-5` UTC = 13h BRT, seg–sex. GET obrigatório.
+ * Params: ?dry · ?max=N (INTERESSADO, padrão 60) · ?max_aguardando=N (padrão 30; 0 desliga)
+ * Schedule (vercel.json): `0 19 * * 1-5` UTC = 16h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
-import { decidir, lerMarcadores, remontarObs, miolo, MAX_TOQUES, SILENCIO_DIAS } from '@/lib/retomada-interessado-calc'
+import {
+  decidir, lerMarcadores, remontarObs, miolo, montarFila,
+  MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA, MAX_AGUARDANDO_PADRAO,
+} from '@/lib/retomada-interessado-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,7 +50,7 @@ const TEMPLATE_ID = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
 const TETO_TEMPO_MS = 240_000
 const DIA_MS = 24 * 60 * 60 * 1000
 
-type Lead = { id: string; nome: string | null; telefone: string; observacoes: string | null }
+type Lead = { id: string; nome: string | null; telefone: string; observacoes: string | null; status: string }
 
 async function executar(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
@@ -52,16 +62,20 @@ async function executar(req: NextRequest) {
   const url = new URL(req.url)
   const dry = flag(url.searchParams, 'dry')
   const max = Math.min(Number(url.searchParams.get('max')) || 60, 150)
+  // `?max_aguardando=0` DESLIGA a etapa sem deploy — por isso não usa `||`,
+  // que transformaria o 0 no padrão
+  const pAg = url.searchParams.get('max_aguardando')
+  const maxAguardando = pAg === null ? MAX_AGUARDANDO_PADRAO : Math.min(Math.max(0, Number(pAg) || 0), 150)
   const agora = Date.now()
 
-  // 1) todos os INTERESSADO (paginado — o PostgREST corta em 1.000 e são ~1.500)
+  // 1) INTERESSADO + AGUARDANDO (paginado — o PostgREST corta em 1.000 e são ~2.000)
   const todos: Lead[] = []
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabaseAdmin
       .from('sdr_leads')
-      .select('id, nome, telefone, observacoes')
+      .select('id, nome, telefone, observacoes, status')
       .eq('produto', 'AIVA')
-      .eq('status', 'INTERESSADO')
+      .in('status', [...STATUS_RETOMADA])
       .eq('acionar_humano', false)
       .not('nome', 'ilike', '%teste%')
       .order('criado_em', { ascending: true })
@@ -90,7 +104,7 @@ async function executar(req: NextRequest) {
   }
 
   // 3) decisão
-  const enviar: Array<{ lead: Lead; toque: number; temDados: boolean; dias: number }> = []
+  const enviar: Array<{ lead: Lead; toque: number; temDados: boolean; dias: number; status: string }> = []
   const encerrar: Lead[] = []
   const nada: Record<string, number> = {}
   for (const l of elegiveis) {
@@ -102,19 +116,26 @@ async function executar(req: NextRequest) {
     if (!ult) { nada.nunca_falou = (nada.nunca_falou ?? 0) + 1; continue }
     const dias = Math.floor((agora - ult) / DIA_MS)
     const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora)
-    if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados: (l.observacoes ?? '').includes('[DADOS_COLETADOS:'), dias })
+    if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados: (l.observacoes ?? '').includes('[DADOS_COLETADOS:'), dias, status: l.status })
     else if (d.acao === 'encerrar') encerrar.push(l)
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
-  // mais frio primeiro: quem está em silêncio há mais tempo esfria mais rápido
-  enviar.sort((a, b) => b.dias - a.dias)
-  const fila = enviar.slice(0, max)
+  // DOIS orçamentos: com fila única o AGUARDANDO nunca seria atendido, porque o
+  // disparo gera INTERESSADO novo todo dia. Regras em montarFila (calc).
+  const fila = montarFila(enviar, max, maxAguardando)
+  const conta = (st: string) => enviar.filter((f) => f.status === st).length
 
   const resumo = {
     interessados: todos.length,
     elegiveis: elegiveis.length,
     silencio_minimo_dias: SILENCIO_DIAS,
+    silencio_maximo_dias: SILENCIO_MAX_DIAS,
     enviar: enviar.length,
+    por_status: {
+      INTERESSADO: { elegiveis_hoje: conta('INTERESSADO'), orcamento: max },
+      AGUARDANDO: { elegiveis_hoje: conta('AGUARDANDO'), orcamento: maxAguardando },
+    },
+    na_fila_hoje: fila.length,
     encerrar: encerrar.length,
     com_dados: enviar.filter((f) => f.temDados).length,
     nada,
@@ -124,14 +145,16 @@ async function executar(req: NextRequest) {
       ok: true, dry: true, ...resumo,
       exemplo_com_dados: (() => { const f = fila.find((x) => x.temDados); return f ? `Oi ${nomeSaudacao(f.lead.nome, f.lead.observacoes)}, tudo bem?\n${miolo(f.toque, true)} É só responder essa mensagem. 😊` : null })(),
       exemplo_sem_dados: (() => { const f = fila.find((x) => !x.temDados); return f ? `Oi ${nomeSaudacao(f.lead.nome, f.lead.observacoes)}, tudo bem?\n${miolo(f.toque, false)} É só responder essa mensagem. 😊` : null })(),
-      destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
+      destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, status: f.status, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
+      primeiros_aguardando: fila.filter((f) => f.status === 'AGUARDANDO').slice(0, 10).map((f) => ({ loja: f.lead.nome, silencio_dias: f.dias, tem_dados: f.temDados })),
     })
   }
 
   const inicio = Date.now()
   let enviados = 0
   const falhas: string[] = []
-  for (const { lead, toque, temDados } of fila) {
+  const enviadosPorStatus: Record<string, number> = {}
+  for (const { lead, toque, temDados, status } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) break
     const nome = nomeSaudacao(lead.nome, lead.observacoes)
     const texto = miolo(toque, temDados)
@@ -147,7 +170,8 @@ async function executar(req: NextRequest) {
         .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { toque }), data_ultimo_contato: new Date().toISOString() })
         .eq('id', lead.id)
       enviados++
-      console.log(`[retomada-interessado] ✅ ${lead.nome} (${lead.telefone}) — toque ${toque}/${MAX_TOQUES}${temDados ? ' (tem dados)' : ''}`)
+      enviadosPorStatus[status] = (enviadosPorStatus[status] ?? 0) + 1
+      console.log(`[retomada-interessado] ✅ [${status}] ${lead.nome} (${lead.telefone}) — toque ${toque}/${MAX_TOQUES}${temDados ? ' (tem dados)' : ''}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       falhas.push(`${lead.telefone}: ${msg}`)
@@ -165,7 +189,7 @@ async function executar(req: NextRequest) {
   }
 
   console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} falhas=${falhas.length}`)
-  return NextResponse.json({ ok: true, ...resumo, enviados, sobraram: enviar.length - enviados, falhas })
+  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, sobraram: enviar.length - enviados, falhas })
 }
 
 export const GET = executar

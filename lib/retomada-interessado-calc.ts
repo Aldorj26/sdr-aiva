@@ -22,6 +22,35 @@
 
 /** Dias de silêncio do LOJISTA pra entrar na régua. */
 export const SILENCIO_DIAS = 7
+
+/**
+ * AGUARDANDO entrou na régua em 23/09/2026 (Aldo). O auto-descarte manda o
+ * INTERESSADO pra lá depois de 21 dias sem contato e, até esta data, nenhuma
+ * automação olhava pra etapa — eram 992 leads, o dobro do próprio INTERESSADO.
+ */
+export const STATUS_RETOMADA = ['INTERESSADO', 'AGUARDANDO'] as const
+
+/**
+ * Teto de silêncio: acima disso NÃO manda. Protege a nota do número, que é o
+ * mesmo do disparo.
+ * ⚠️ Não é zelo abstrato: em 23/09, 917 dos 992 em AGUARDANDO já tinham levado
+ * o reengajamento, 874 a reativação e 840 a novidade Flexfone das rotinas antigas.
+ * Mais uma mensagem pra quem ignora a gente há 4 meses rende quase nada e é o
+ * perfil que denuncia como spam — e denúncia derruba a entrega de TODO mundo,
+ * inclusive do disparo novo. Na data eram 183 acima de 90 dias.
+ */
+export const SILENCIO_MAX_DIAS = 90
+
+/**
+ * Orçamento diário do AGUARDANDO, SEPARADO do INTERESSADO.
+ * ⚠️ Com fila única ele nunca seria atendido: o disparo gera interessados novos
+ * todo dia (70 só em 23/09), então os ~60 slots seriam consumidos pelo
+ * INTERESSADO pra sempre. Orçamento próprio garante que a etapa ande.
+ * Número baixo de propósito — é um público já muito abordado; o rendimento deve
+ * ser medido em uma semana contra o do disparo, como foi feito com a régua D+3.
+ * `?max_aguardando=0` desliga sem deploy.
+ */
+export const MAX_AGUARDANDO_PADRAO = 30
 /** Espera entre o 1º e o 2º toque, contada em viradas de dia civil (BRT). */
 export const DIAS_ENTRE_TOQUES = 8
 export const MAX_TOQUES = 2
@@ -84,6 +113,7 @@ export function decidir(m: Marcadores, diasSilencio: number, agora = Date.now())
   if (m.pausaVigente) return { acao: 'nada', motivo: 'pausa' }
   if (m.encerrado) return { acao: 'nada', motivo: 'encerrado' }
   if (diasSilencio < SILENCIO_DIAS) return { acao: 'nada', motivo: 'conversa_viva' }
+  if (diasSilencio > SILENCIO_MAX_DIAS) return { acao: 'nada', motivo: 'frio_demais' }
   if (m.toques >= MAX_TOQUES) return { acao: 'encerrar' }
   if (m.toques > 0 && m.ultimoToqueMs != null) {
     if (diasCorridos(m.ultimoToqueMs, agora) < DIAS_ENTRE_TOQUES) return { acao: 'nada', motivo: `aguardando D+${DIAS_ENTRE_TOQUES}` }
@@ -104,4 +134,22 @@ export function remontarObs(obs: string | null | undefined, patch: { toque?: num
   }
   if (patch.encerrar && !base.includes('[RETOM_INT_FIM]')) base = `${base} [RETOM_INT_FIM]`.trim()
   return base.trim()
+}
+
+/** O mínimo que a fila precisa saber de cada candidato. */
+export type ItemFila = { status: string; dias: number; temDados: boolean }
+
+/**
+ * Monta a fila do dia com DOIS orçamentos.
+ *  - INTERESSADO: ordem aprovada em 23/09 (mais frio primeiro), até `maxInteressado`.
+ *  - AGUARDANDO: quem já deu dados primeiro, e dentro disso o MENOS frio primeiro
+ *    — 22 dias de silêncio se recupera, 85 quase nunca. Até `maxAguardando`.
+ * O INTERESSADO vem antes na lista porque, se a rota bater o teto de tempo, é
+ * ele que precisa ter saído (é o público mais quente).
+ */
+export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: number, maxAguardando: number): T[] {
+  const interessados = itens.filter((i) => i.status === 'INTERESSADO').sort((a, b) => b.dias - a.dias)
+  const aguardando = itens.filter((i) => i.status === 'AGUARDANDO')
+    .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (a.dias - b.dias))
+  return [...interessados.slice(0, Math.max(0, maxInteressado)), ...aguardando.slice(0, Math.max(0, maxAguardando))]
 }
