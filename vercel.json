@@ -57,6 +57,10 @@
       "schedule": "0 12-21 * * 1-5"
     },
     {
+      "path": "/api/sdr/retomada-interessado",
+      "schedule": "0 19 * * 1-5"
+    },
+    {
       "path": "/api/sdr/fase3-destravada",
       "schedule": "0 19 * * 1-5"
     },
