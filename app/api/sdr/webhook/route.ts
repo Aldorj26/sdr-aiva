@@ -26,6 +26,7 @@ import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { proximasTurmas } from '@/lib/turmas-treinamento'
+import { classificarFalha, exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
 import { RE_PEDIDO_EXCLUSAO, MARCADOR_DADOS_APAGADOS, apagarDadosLead, resumoExclusao } from '@/lib/lgpd'
 import { consultarCNPJ, consultarCNPJDetalhado, cnpjInfoMarker, cnpjDvValido } from '@/lib/cnpj'
 import { registrarAtendimento, registrarSenhaColab, registrarChamado, registrarRepasse } from '@/lib/manual-docs'
@@ -1297,9 +1298,39 @@ export async function POST(req: NextRequest) {
         } catch (sendErr) {
           console.error('Falha ao enviar fallback message ao lead:', sendErr instanceof Error ? sendErr.message : String(sendErr))
         }
-        const msg = `🚨 Erro ao processar mensagem de *${lead.nome}* (${lead.telefone}).\nMensagem: "${conteudoEfetivo}"\nLead recebeu fallback; tentando recuperar automaticamente (até ${MAX_RETRY}x).`
-        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
-        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+        // ─── A CONTA PAROU? Então o alerta é OUTRO ────────────────────────────
+        // Em 23/09 o crédito da Anthropic zerou às 10h44 e o time recebeu 18
+        // alertas dizendo "erro ao processar mensagem de Fulano" — nenhum dizia a
+        // causa, e por isso ninguém entendeu que era UMA coisa só. Erro de
+        // cobrança/credencial não passa com retry e a ação é sempre a mesma:
+        // manda UM alerta nomeando o problema, e cala o genérico por lead.
+        const tipoFalha = classificarFalha(errMsg)
+        if (exigeAcaoHumana(tipoFalha)) {
+          const chaveConta = chaveAviso(tipoFalha)
+          const { data: jaAvisouConta } = await supabaseAdmin.from('sdr_avisos_chave').select('ultimo_aviso').eq('chave', chaveConta).maybeSingle()
+          const avisoRecente = jaAvisouConta && Date.now() - Date.parse(jaAvisouConta.ultimo_aviso) < JANELA_AVISO_MS
+          if (!avisoRecente) {
+            await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: chaveConta, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+            // dimensão do estrago: quantas mensagens e quantos lojistas já caíram hoje
+            const inicioDiaBrt = new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10) + 'T03:00:00Z'
+            const { data: errosHoje } = await supabaseAdmin.from('sdr_mensagens')
+              .select('lead_id,enviado_em').like('conteudo', '[CLAUDE_ERR:%').gte('enviado_em', inicioDiaBrt)
+            const primeiro = (errosHoje ?? []).map((m) => m.enviado_em).sort()[0]
+            const texto = textoAlertaConta(tipoFalha, {
+              erros: errosHoje?.length,
+              lojistas: new Set((errosHoje ?? []).map((m) => m.lead_id)).size || undefined,
+              desde: primeiro ? new Date(Date.parse(primeiro) - 3 * 3_600_000).toISOString().slice(11, 16).replace(':', 'h') : null,
+            })
+            for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+              try { await alertHuman(tel, texto) } catch (e) { console.error('[conta-parada] aviso falhou:', e) }
+            }
+          }
+          console.error(`[conta-parada] ${tipoFalha} — ${lead.nome} (${lead.telefone})${avisoRecente ? ' (alerta ja enviado nas ultimas 6h)' : ''}`)
+        } else {
+          const msg = `🚨 Erro ao processar mensagem de *${lead.nome}* (${lead.telefone}).\nMensagem: "${conteudoEfetivo}"\nLead recebeu fallback; tentando recuperar automaticamente (até ${MAX_RETRY}x).`
+          if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
+          if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
+        }
       }
       return NextResponse.json({ ok: false, erro: 'claude_error', tentativas, retry: true }, { status: 500 })
     }

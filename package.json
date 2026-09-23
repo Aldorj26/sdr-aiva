@@ -19,7 +19,8 @@
     "test:filiais": "node --test lib/filiais-aiva.test.ts",
     "test:entrega": "node --test lib/entrega-meta-calc.test.ts",
     "test:json": "node --test lib/claude-json.test.ts",
-    "test:descarte": "node --test lib/descarte-calc.test.ts"
+    "test:descarte": "node --test lib/descarte-calc.test.ts",
+    "test:contas": "node --test lib/saude-contas-calc.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

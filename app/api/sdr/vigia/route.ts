@@ -26,6 +26,13 @@
  * da Meta (clientrcvtime) numa amostra do que saiu hoje. Ela avisa NO MESMO DIA,
  * sem contador de dias seguidos: um dia de entrega zerada já é um dia perdido.
  *
+ * VIGIA 3 — AS CONTAS AINDA PAGAM? (23/09/2026): em dois dias seguidos a operação
+ * parou por cobrança e nas duas quem descobriu foi o Aldo olhando a tela — 21/09 o
+ * cartão da Meta, 23/09 o crédito da Anthropic (a VictorIA emudeceu às 10h44 e o
+ * time recebeu 18 alertas genéricos de "erro ao processar" que não diziam a causa).
+ * ⚠️ Detecta "ACABOU", não "está acabando": a Anthropic não expõe saldo restante
+ * por API. Prevenção de verdade é recarga automática na organização dona da chave.
+ *
  * Params: ?dry (só mostra o diagnóstico, não avisa ninguém)
  * Schedule (vercel.json): `0 20 * * 1-5` UTC = 17h BRT, seg–sex — depois de todos
  * os outros crons do dia terem rodado. GET obrigatório.
@@ -36,6 +43,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { flag } from '@/lib/req-flags'
 import { conferirEntregaHoje } from '@/lib/entrega-meta'
 import { textoAlerta } from '@/lib/entrega-meta-calc'
+import { sondarAnthropic } from '@/lib/saude-contas'
+import { exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -92,6 +101,27 @@ async function executar(req: NextRequest) {
   for (const m of memoria ?? []) {
     const partes = String(m.chave).split(':')
     if (partes.length === 3) contador.set(partes[1], Number(partes[2]) || 0)
+  }
+
+  // ─── VIGIA 3: AS CONTAS AINDA PAGAM? ───────────────────────────────────────
+  // Em dois dias seguidos a operação parou por cobrança — 21/09 o cartão da META
+  // (nada era entregue) e 23/09 o crédito da ANTHROPIC (a VictorIA emudeceu) — e
+  // nas duas quem descobriu foi o Aldo olhando a tela.
+  // ⚠️ Isto detecta "ACABOU", não "está acabando": a Anthropic não tem endpoint
+  // de saldo restante. Prevenção de verdade é a recarga automática ligada na
+  // organização DONA DA CHAVE (a sdr-agent-2, que não é a organização "Track").
+  // O lado da Meta é a checagem de entrega logo abaixo: lá a falta de pagamento
+  // não vem como erro, vem como mensagem que sai e não chega.
+  const conta = await sondarAnthropic()
+  if (!dry && !conta.ok && exigeAcaoHumana(conta.tipo!)) {
+    const chave = chaveAviso(conta.tipo!)
+    const { data: ja } = await supabaseAdmin.from('sdr_avisos_chave').select('ultimo_aviso').eq('chave', chave).maybeSingle()
+    if (!ja || Date.now() - Date.parse(ja.ultimo_aviso) >= JANELA_AVISO_MS) {
+      await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+      for (const tel of [process.env.ALDO_WHATSAPP, process.env.NEI_WHATSAPP].filter(Boolean) as string[]) {
+        try { await alertHuman(tel, textoAlertaConta(conta.tipo!)) } catch (e) { console.error('[vigia] aviso de conta falhou:', e) }
+      }
+    }
   }
 
   // ⚠️ ESTA CHECAGEM VEM PRIMEIRO de propósito: o laço de rotas abaixo faz 6
@@ -195,8 +225,8 @@ async function executar(req: NextRequest) {
     }
   }
 
-  console.log(`[vigia] ${diag.map((d) => `${d.rota}:${d.estado === 'ok' ? `${d.fila}/${d.acao}` : d.estado}`).join(' · ')} | entrega:${entrega.estado}`)
-  return NextResponse.json({ ok: true, dry, dias_para_gritar: DIAS_PARA_GRITAR, diagnostico: diag, entrega, problemas })
+  console.log(`[vigia] ${diag.map((d) => `${d.rota}:${d.estado === 'ok' ? `${d.fila}/${d.acao}` : d.estado}`).join(' · ')} | entrega:${entrega.estado} | conta:${conta.ok ? 'ok' : conta.tipo}`)
+  return NextResponse.json({ ok: true, dry, dias_para_gritar: DIAS_PARA_GRITAR, diagnostico: diag, conta, entrega, problemas })
 }
 
 export const GET = executar
