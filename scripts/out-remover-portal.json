@@ -1,0 +1,83 @@
+{
+ "plano": [
+  {
+   "cnpj": "49317938000129",
+   "id": "3c316039-8dcf-4c5e-a09a-e3b1c863a7d0",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "49016255000131",
+   "id": "32f90a2d-47bf-4ab5-a450-d8cfa7814bf4",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "33077011000129",
+   "id": "788c543b-1bf8-4f9b-a0e8-9c82ef502e27",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "23546406000170",
+   "id": "8691025b-2721-4e86-87f7-889c29f5b172",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "30498875000126",
+   "id": "fb795cba-1336-495f-b451-b9e03aa5ec17",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "50231457000185",
+   "id": "8ac5b256-748a-4f49-bcd5-d691b00b7cca",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "58547221000164",
+   "id": "4688daac-47cd-4c86-8ae6-f144fcb2d499",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "61592060000135",
+   "id": "5de944a5-d896-4d67-b465-4c8a34bcc453",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "33219523000182",
+   "id": "aba80719-ae63-45e4-acba-37595c363d53",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "50058752000181",
+   "id": "f7692e0a-3df0-40af-a69d-365bcef48fd6",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "59241933000113",
+   "id": "0e20e92c-8cc8-4fbc-bcd1-f64c8ea37343",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "36199564000142",
+   "id": "51a08577-cdac-41b7-b6b9-2aa3a00a51e6",
+   "nome": "—",
+   "stage": "dados_varejo"
+  },
+  {
+   "cnpj": "42904727000143",
+   "id": "dd2ae4e8-7d2c-40bf-97ca-aaf5765a80ac",
+   "nome": "—",
+   "stage": "dados_varejo"
+  }
+ ],
+ "bloqueios": []
+}
