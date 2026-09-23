@@ -58,8 +58,9 @@ export const SILENCIO_MAX_DIAS = 90
  * INTERESSADO: 60 → 150 (Aldo, "60 é muito pouco"). Com 499 elegíveis no dia,
  *   o acumulado sai em ~4 dias úteis; depois disso o orçamento sobra, porque
  *   entram ~40 novos por dia.
- * AGUARDANDO: 30, de propósito, até medir. É o público parecido com o da régua D+3
- *   (já abordado 3-4 vezes pelas rotinas antigas), que rendeu 0,2%.
+ * AGUARDANDO: 30 → 60 (Aldo, 23/09, mesmo dia). Continua sendo o público parecido
+ *   com o da régua D+3 (já abordado 3-4 vezes pelas rotinas antigas), que rendeu
+ *   0,2% — a medição de uma semana pelo rótulo segue valendo pra decidir se fica.
  *
  * ⚠️ Pra DESLIGAR uma etapa: ponha o orçamento dela em 0 aqui e faça deploy. O
  * `?max_aguardando=0` da URL só vale pra rodada MANUAL — o cron chama o caminho
@@ -67,7 +68,7 @@ export const SILENCIO_MAX_DIAS = 90
  */
 export const ORCAMENTO_DIA: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', number>> = {
   INTERESSADO: 150,
-  AGUARDANDO: 30,
+  AGUARDANDO: 60,
 }
 
 /** Rótulo gravado em sdr_mensagens.template_hsm. PRÓPRIO da retomada: até 23/09
