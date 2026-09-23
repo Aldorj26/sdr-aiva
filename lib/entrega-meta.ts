@@ -22,6 +22,8 @@ function inicioDoDiaBrt(agora = new Date()): string {
 }
 
 export type Resultado = Veredito & {
+  /** os envios mais recentes, medidos à parte da taxa do dia */
+  recentes: { amostra: number; entregues: number }
   enviados_hoje: number
   alvos: number
   sem_template_no_chat: number
@@ -51,24 +53,27 @@ export async function conferirEntregaHoje(agora = new Date()): Promise<Resultado
   const leadsUnicos = [...new Set((outs ?? []).map((m) => m.lead_id))]
   const enviados = leadsUnicos.length
   if (!enviados) {
-    return { ...avaliarEntrega(0, 0), enviados_hoje: 0, alvos: 0, sem_template_no_chat: 0, sem_chat: 0, evo_falhou: 0, chat_renovado: 0, exemplos: [] }
+    return { ...avaliarEntrega(0, 0), recentes: { amostra: 0, entregues: 0 }, enviados_hoje: 0, alvos: 0, sem_template_no_chat: 0, sem_chat: 0, evo_falhou: 0, chat_renovado: 0, exemplos: [] }
   }
 
-  // Amostra espalhada pelo dia E ancorada no FIM. Com `floor` + `slice`, um dia
-  // de 30-59 envios virava "os 30 primeiros" — só a manhã, o oposto do que a
-  // gente quer: se a entrega cai às 14h, a amostra da manhã diz "está tudo bem".
-  // `ceil` corrige a varredura, e os ÚLTIMOS 10 entram sempre, porque são os
-  // envios mais recentes e os que revelam a falha que acabou de começar.
+  // DUAS amostras, medidas SEPARADAMENTE — e isso não é detalhe.
+  // Em 23/09 elas estavam juntas (`[...varredura, ...recentes].slice(-30)`) e o
+  // `slice(-30)` jogou fora o começo do dia: o vigia leu 53% num dia que era 83%,
+  // a dois pontos de disparar alarme falso. Alarme falso ensina o time a ignorar
+  // alerta, que é o oposto do que esta checagem existe pra fazer.
+  //   · DIA      - varredura de ponta a ponta, responde "está entregando?"
+  //   · RECENTES - só os últimos envios, responde "parou agora?"
   const passo = Math.max(1, Math.ceil(enviados / TAMANHO_AMOSTRA))
-  const varredura = leadsUnicos.filter((_, i) => i % passo === 0)
-  const recentes = leadsUnicos.slice(-10)
-  const alvos = [...new Set([...varredura, ...recentes])].slice(-TAMANHO_AMOSTRA)
+  const alvos = leadsUnicos.filter((_, i) => i % passo === 0).slice(0, TAMANHO_AMOSTRA)
+  const alvosRecentes = leadsUnicos.slice(-10).filter((id) => !alvos.includes(id))
 
   // contadores separados: "sem chat", "Evo falhou" e "template não achado" são
   // problemas diferentes, e misturá-los esconderia justamente o defeito do chat velho
   let amostra = 0, entregues = 0, semTemplate = 0, semChat = 0, falhouEvo = 0, chatRenovado = 0
+  let amostraRec = 0, entreguesRec = 0
   const exemplos: string[] = []
-  for (const leadId of alvos) {
+  for (const leadId of [...alvos, ...alvosRecentes]) {
+    const ehRecente = alvosRecentes.includes(leadId)
     const { data: lead } = await supabaseAdmin.from('sdr_leads').select('nome,telefone,evotalks_chat_id').eq('id', leadId).maybeSingle()
     if (!lead) continue
     let chatId = lead.evotalks_chat_id ? Number(lead.evotalks_chat_id) : null
@@ -94,14 +99,21 @@ export async function conferirEntregaHoje(agora = new Date()): Promise<Resultado
       } catch { /* segue com o veredito do chat antigo */ }
     }
     if (v === 'sem_template') { semTemplate++; continue }
+    if (ehRecente) {
+      // não entra na taxa do DIA: são dois números com perguntas diferentes
+      amostraRec++
+      if (v === 'entregue') entreguesRec++
+      continue
+    }
     amostra++
     if (v === 'entregue') entregues++
     else if (exemplos.length < 5) exemplos.push(`${lead.nome} (${lead.telefone})`)
   }
 
   return {
-    ...avaliarEntrega(amostra, entregues),
-    enviados_hoje: enviados, alvos: alvos.length,
+    ...avaliarEntrega(amostra, entregues, { amostra: amostraRec, entregues: entreguesRec }),
+    recentes: { amostra: amostraRec, entregues: entreguesRec },
+    enviados_hoje: enviados, alvos: alvos.length + alvosRecentes.length,
     sem_template_no_chat: semTemplate, sem_chat: semChat, evo_falhou: falhouEvo, chat_renovado: chatRenovado,
     exemplos,
   }

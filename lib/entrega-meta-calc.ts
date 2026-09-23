@@ -21,9 +21,19 @@
 /** Abaixo disso a amostra não diz nada: um dia de 5 envios pode dar 2/5 por acaso. */
 export const MIN_AMOSTRA = 12
 
-/** Piso da taxa de entrega. Saudável é 87–90%; 50% é longe demais pra ser azar.
- *  Número baixo de propósito: alarme falso ensina o time a ignorar alerta. */
-export const PISO_TAXA = 0.5
+/** Piso da taxa de entrega do DIA.
+ *
+ * ⚠️ 30%, não 50%. A taxa varia MUITO por segmento de lista, e isso é normal:
+ * Manaus deu 86%, Natal 64%, Recife/Natal 73-83%. Não é bloqueio, é lista com
+ * número que não existe no WhatsApp. Um piso de 50% encostaria nesses dias e
+ * geraria alarme falso — e alarme falso ensina o time a ignorar alerta, que é
+ * pior do que não ter alerta. O apagão de verdade deu **0 de 30**; 30% separa
+ * os dois casos com folga dos dois lados. */
+export const PISO_TAXA = 0.3
+
+/** Amostra separada dos envios mais RECENTES, pra pegar apagão que começa no meio
+ *  do dia sem poluir a taxa do dia. Abaixo deste tamanho ela não opina. */
+export const MIN_AMOSTRA_RECENTE = 8
 
 /** Recibo só chega segundos depois, mas template mandado agora ainda pode estar
  *  em trânsito. Ignora os últimos 15 min pra não contar pendente como falha. */
@@ -34,20 +44,31 @@ export type Veredito =
   | { estado: 'ok'; amostra: number; entregues: number; taxa: number; motivo: string }
   | { estado: 'alerta'; amostra: number; entregues: number; taxa: number; motivo: string }
 
+/** Os envios recentes, medidos à parte da taxa do dia. */
+export type Recente = { amostra: number; entregues: number }
+
 /**
  * Decide o que a amostra significa.
  * `amostra` = templates cuja entrega dava pra conferir (tinha chat e a mensagem
  * apareceu lá). `entregues` = quantos tinham clientrcvtime.
  */
-export function avaliarEntrega(amostra: number, entregues: number): Veredito {
+export function avaliarEntrega(amostra: number, entregues: number, recente?: Recente): Veredito {
   if (amostra < MIN_AMOSTRA) {
     return { estado: 'sem_dados', amostra, entregues, taxa: null, motivo: `só ${amostra} envios confiráveis hoje (mínimo ${MIN_AMOSTRA})` }
   }
   const taxa = entregues / amostra
-  if (taxa < PISO_TAXA) {
-    return { estado: 'alerta', amostra, entregues, taxa, motivo: `${entregues} de ${amostra} entregues (${pct(taxa)})` }
+  const base = `${entregues} de ${amostra} entregues (${pct(taxa)})`
+  if (taxa < PISO_TAXA) return { estado: 'alerta', amostra, entregues, taxa, motivo: base }
+  // Apagão que COMEÇOU agora: o dia inteiro ainda parece bom porque a manhã
+  // entregou, mas os envios recentes pararam. Medido à parte de propósito — foi
+  // misturar os dois que enviesou a amostra em 23/09 (53% medido x 83% real).
+  if (recente && recente.amostra >= MIN_AMOSTRA_RECENTE && recente.entregues === 0) {
+    return {
+      estado: 'alerta', amostra, entregues, taxa,
+      motivo: `${base} no dia, MAS os ${recente.amostra} envios mais recentes: NENHUM entregue`,
+    }
   }
-  return { estado: 'ok', amostra, entregues, taxa, motivo: `${entregues} de ${amostra} entregues (${pct(taxa)})` }
+  return { estado: 'ok', amostra, entregues, taxa, motivo: base }
 }
 
 export const pct = (t: number) => `${Math.round(t * 100)}%`

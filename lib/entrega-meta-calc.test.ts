@@ -15,8 +15,11 @@ test('amostra pequena não vira alerta (nem ok)', () => {
 test('lote saudável passa; apagão de 21/09 grita', () => {
   assert.equal(avaliarEntrega(30, 27).estado, 'ok')       // 90% — dia normal
   assert.equal(avaliarEntrega(30, 26).estado, 'ok')       // 87% — dia normal
-  assert.equal(avaliarEntrega(30, 15).estado, 'ok')       // 50% cravado ainda passa
-  assert.equal(avaliarEntrega(30, 14).estado, 'alerta')   // abaixo do piso
+  // ⚠️ o piso caiu de 50% pra 30% em 23/09: 47% é dia de lista fraca (Natal deu
+  // 64%, Recife 73-83%), não bloqueio. Ver o comentário em PISO_TAXA.
+  assert.equal(avaliarEntrega(30, 14).estado, 'ok')       // 47% — lista ruim, não apagão
+  assert.equal(avaliarEntrega(30, 9).estado, 'ok')        // 30% cravado ainda passa
+  assert.equal(avaliarEntrega(30, 8).estado, 'alerta')    // 27% — abaixo do piso
   assert.equal(avaliarEntrega(30, 0).estado, 'alerta')    // 22/09: zero entregue
 })
 
@@ -76,4 +79,31 @@ test('ordem embaralhada não muda o veredito (ordena por srvrcvtime)', () => {
     { direction: 2, srvrcvtime: '2026-09-22T12:00:00.000Z', clientrcvtime: null },
   ]
   assert.equal(entregaDoChat(msgs, DE, ATE), 'entregue')
+})
+
+test('lista fraca NÃO vira alarme — 64% a 83% é dia normal em segmento ruim', () => {
+  // medido de verdade: Manaus 86%, Natal 64%, Recife/Natal 73-83%. Nada disso é
+  // bloqueio, é lista com número que não existe no WhatsApp.
+  for (const [e, a] of [[19, 30], [22, 30], [25, 30], [26, 30]] as const) {
+    assert.equal(avaliarEntrega(e, a).estado === 'alerta', false, `${e}/${a} não pode alertar`)
+  }
+  // o apagão de verdade continua gritando
+  assert.equal(avaliarEntrega(30, 0).estado, 'alerta')
+  assert.equal(avaliarEntrega(30, 8).estado, 'alerta')   // 27%, abaixo do piso
+  assert.equal(avaliarEntrega(30, 9).estado, 'ok')       // 30% cravado passa
+})
+
+test('apagão que começa agora: dia bom, recentes zerados → alerta', () => {
+  const v = avaliarEntrega(30, 25, { amostra: 10, entregues: 0 })
+  assert.equal(v.estado, 'alerta')
+  assert.match(v.motivo, /mais recentes: NENHUM entregue/)
+  // amostra recente pequena demais não opina (senão vira alarme por acaso)
+  assert.equal(avaliarEntrega(30, 25, { amostra: 7, entregues: 0 }).estado, 'ok')
+  // recentes com pelo menos 1 entregue = está saindo, não é apagão
+  assert.equal(avaliarEntrega(30, 25, { amostra: 10, entregues: 1 }).estado, 'ok')
+})
+
+test('sem bloco de recentes, o comportamento é o de antes', () => {
+  assert.equal(avaliarEntrega(30, 25).estado, 'ok')
+  assert.equal(avaliarEntrega(30, 0).estado, 'alerta')
 })
