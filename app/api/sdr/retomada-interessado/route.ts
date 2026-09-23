@@ -16,7 +16,13 @@
  * a própria régua zeraria o contador e nunca avançaria.
  *
  * AGUARDANDO (23/09/2026, Aldo): entra na mesma régua, com orçamento PRÓPRIO
- * (padrão 30/dia, `?max_aguardando=`) e teto de 90 dias de silêncio. É pra lá que
+ * e teto de 90 dias de silêncio.
+ *
+ * VOLUME (23/09/2026): orçamento DIÁRIO (INTERESSADO 150, AGUARDANDO 30) gasto em
+ * rodadas de hora em hora, 10h–16h BRT. Cada rodada conta o que já saiu hoje pelo
+ * rótulo próprio e manda só o que sobrou, parando no teto de tempo. Motivo: o envio
+ * real mede ~6 s (de 3 a 12 s), então cabem ~40 por rodada — uma rodada única de 90
+ * já era cortada no meio. Detalhes em ORCAMENTO_DIA (calc). É pra lá que
  * o auto-descarte manda o INTERESSADO após 21 dias, e nenhuma automação olhava
  * pra etapa — eram 992 leads. Ver as justificativas em retomada-interessado-calc.
  * O nome da rota ficou "retomada-interessado" de propósito: trocar o path mata o
@@ -29,8 +35,9 @@
  * VictorIA, que retoma a coleta de onde parou (lib/claude.ts).
  *
  * Regras/textos: lib/retomada-interessado-calc.ts (`npm run test:retomada`).
- * Params: ?dry · ?max=N (INTERESSADO, padrão 60) · ?max_aguardando=N (padrão 30; 0 desliga)
- * Schedule (vercel.json): `0 19 * * 1-5` UTC = 16h BRT, seg–sex. GET obrigatório.
+ * Params (só rodada MANUAL — o cron chama sem parâmetro): ?dry · ?max=N · ?max_aguardando=N
+ *   Nunca passam do que sobrou no orçamento do dia. Pra desligar uma etapa: orçamento 0 no calc + deploy.
+ * Schedule (vercel.json): `0 13-19 * * 1-5` UTC = de hora em hora, 10h–16h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
@@ -39,7 +46,8 @@ import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import {
   decidir, lerMarcadores, remontarObs, miolo, montarFila,
-  MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA, MAX_AGUARDANDO_PADRAO,
+  MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA,
+  ORCAMENTO_DIA, ROTULO, restanteHoje, diaBrt,
 } from '@/lib/retomada-interessado-calc'
 
 export const runtime = 'nodejs'
@@ -61,12 +69,26 @@ async function executar(req: NextRequest) {
 
   const url = new URL(req.url)
   const dry = flag(url.searchParams, 'dry')
-  const max = Math.min(Number(url.searchParams.get('max')) || 60, 150)
-  // `?max_aguardando=0` DESLIGA a etapa sem deploy — por isso não usa `||`,
-  // que transformaria o 0 no padrão
-  const pAg = url.searchParams.get('max_aguardando')
-  const maxAguardando = pAg === null ? MAX_AGUARDANDO_PADRAO : Math.min(Math.max(0, Number(pAg) || 0), 150)
   const agora = Date.now()
+
+  // Quanto a retomada JÁ mandou hoje, por etapa — pelo rótulo próprio. É isso que
+  // permite rodar de hora em hora sem estourar o orçamento do dia: cada rodada
+  // gasta só o que sobrou. Meia-noite de Brasília, não UTC.
+  const inicioDia = `${diaBrt(agora)}T03:00:00.000Z`
+  const jaHoje = async (rotulo: string) => {
+    const { count } = await supabaseAdmin.from('sdr_mensagens')
+      .select('id', { count: 'exact', head: true })
+      .eq('direcao', 'out').eq('template_hsm', rotulo).gte('enviado_em', inicioDia)
+    return count ?? 0
+  }
+  const [hojeInt, hojeAg] = await Promise.all([jaHoje(ROTULO.INTERESSADO), jaHoje(ROTULO.AGUARDANDO)])
+  // `?max=` / `?max_aguardando=` só valem pra rodada MANUAL (o cron chama sem
+  // parâmetro) e nunca passam do que sobrou no dia
+  const param = (k: string) => { const v = url.searchParams.get(k); return v === null ? null : Math.max(0, Number(v) || 0) }
+  const restInt = restanteHoje(ORCAMENTO_DIA.INTERESSADO, hojeInt)
+  const restAg = restanteHoje(ORCAMENTO_DIA.AGUARDANDO, hojeAg)
+  const max = Math.min(param('max') ?? restInt, restInt)
+  const maxAguardando = Math.min(param('max_aguardando') ?? restAg, restAg)
 
   // 1) INTERESSADO + AGUARDANDO (paginado — o PostgREST corta em 1.000 e são ~2.000)
   const todos: Lead[] = []
@@ -132,8 +154,8 @@ async function executar(req: NextRequest) {
     silencio_maximo_dias: SILENCIO_MAX_DIAS,
     enviar: enviar.length,
     por_status: {
-      INTERESSADO: { elegiveis_hoje: conta('INTERESSADO'), orcamento: max },
-      AGUARDANDO: { elegiveis_hoje: conta('AGUARDANDO'), orcamento: maxAguardando },
+      INTERESSADO: { elegiveis_hoje: conta('INTERESSADO'), orcamento_dia: ORCAMENTO_DIA.INTERESSADO, ja_enviados_hoje: hojeInt, nesta_rodada: max },
+      AGUARDANDO: { elegiveis_hoje: conta('AGUARDANDO'), orcamento_dia: ORCAMENTO_DIA.AGUARDANDO, ja_enviados_hoje: hojeAg, nesta_rodada: maxAguardando },
     },
     na_fila_hoje: fila.length,
     encerrar: encerrar.length,
@@ -163,7 +185,7 @@ async function executar(req: NextRequest) {
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id, direcao: 'out',
         conteudo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`,
-        template_hsm: 'aiva_reativacao_48h',
+        template_hsm: ROTULO[status as 'INTERESSADO' | 'AGUARDANDO'] ?? ROTULO.INTERESSADO,
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
       await supabaseAdmin.from('sdr_leads')
@@ -189,7 +211,12 @@ async function executar(req: NextRequest) {
   }
 
   console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} falhas=${falhas.length}`)
-  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, sobraram: enviar.length - enviados, falhas })
+  // Parou pelo TEMPO com fila de hoje ainda pendente? Não é falha: a próxima
+  // rodada (de hora em hora) continua de onde parou. Fica registrado pra quem
+  // olhar o log não achar que foi erro.
+  const cortadoPorTempo = enviados + falhas.length < fila.length
+  if (cortadoPorTempo) console.log(`[retomada-interessado] teto de tempo: ${fila.length - enviados - falhas.length} ficam pra próxima rodada`)
+  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, cortado_por_tempo: cortadoPorTempo, sobraram: enviar.length - enviados, falhas })
 }
 
 export const GET = executar

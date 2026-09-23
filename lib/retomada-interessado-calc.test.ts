@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidir, lerMarcadores, remontarObs, miolo, montarFila, SILENCIO_MAX_DIAS,
+  decidir, lerMarcadores, remontarObs, miolo, montarFila, SILENCIO_MAX_DIAS, ORCAMENTO_DIA, ROTULO, restanteHoje,
   MIOLOS_COM_DADOS, MIOLOS_SEM_DADOS, SILENCIO_DIAS, DIAS_ENTRE_TOQUES, MAX_TOQUES,
 } from './retomada-interessado-calc.ts'
 
@@ -111,4 +111,22 @@ test('AGUARDANDO: quem deu dados primeiro, depois o MENOS frio', () => {
   ], 60, 30)
   // com dados (30, 70) antes dos sem dados (25, 80); dentro de cada, menos frio primeiro
   assert.deepEqual(fila.map((f) => `${f.temDados ? 'D' : '-'}${f.dias}`), ['D30', 'D70', '-25', '-80'])
+})
+
+test('orçamento diário: cada rodada gasta só o que sobrou', () => {
+  assert.equal(ORCAMENTO_DIA.INTERESSADO, 150)
+  assert.equal(ORCAMENTO_DIA.AGUARDANDO, 30)
+  assert.equal(restanteHoje(150, 0), 150)
+  assert.equal(restanteHoje(150, 40), 110)   // 1ª rodada mandou 40 (teto de tempo)
+  assert.equal(restanteHoje(150, 150), 0)    // estourou: as rodadas seguintes não mandam nada
+  assert.equal(restanteHoje(150, 170), 0)    // nunca negativo
+  assert.equal(restanteHoje(30, -5), 30)     // contagem suja não aumenta o orçamento
+})
+
+test('rótulo próprio por etapa — não se confunde com a cobrança nem com a biometria', () => {
+  assert.notEqual(ROTULO.INTERESSADO, ROTULO.AGUARDANDO)
+  for (const r of Object.values(ROTULO)) {
+    assert.notEqual(r, 'aiva_reativacao_48h', 'era o rótulo compartilhado com 9 rotinas')
+    assert.match(r, /^aiva_retomada_/)
+  }
 })

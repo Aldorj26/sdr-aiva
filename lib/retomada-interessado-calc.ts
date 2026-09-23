@@ -42,15 +42,47 @@ export const STATUS_RETOMADA = ['INTERESSADO', 'AGUARDANDO'] as const
 export const SILENCIO_MAX_DIAS = 90
 
 /**
- * Orçamento diário do AGUARDANDO, SEPARADO do INTERESSADO.
- * ⚠️ Com fila única ele nunca seria atendido: o disparo gera interessados novos
- * todo dia (70 só em 23/09), então os ~60 slots seriam consumidos pelo
- * INTERESSADO pra sempre. Orçamento próprio garante que a etapa ande.
- * Número baixo de propósito — é um público já muito abordado; o rendimento deve
- * ser medido em uma semana contra o do disparo, como foi feito com a régua D+3.
- * `?max_aguardando=0` desliga sem deploy.
+ * ORÇAMENTO DIÁRIO, por etapa, gasto ao longo de VÁRIAS rodadas (Aldo 23/09/2026).
+ *
+ * Por que várias rodadas e não uma rodada maior: a função morre em 300s e o envio
+ * real é LENTO — a rodada de teste de 23/09 mediu **6 s por envio em média, subindo
+ * de 3 s até 12 s** ao longo de 10 envios. Com o corte de segurança em 240s cabem
+ * ~40 envios por rodada. Os 90 que a rota tentava mandar numa rodada só já seriam
+ * cortados no meio, em silêncio. Então a rota roda de hora em hora e cada rodada
+ * gasta só o que SOBROU do orçamento do dia — contando o que já saiu hoje pelo
+ * rótulo próprio da mensagem (RÓTULO abaixo).
+ *
+ * Espalhar também é melhor pro resto da operação: as respostas chegam aos poucos
+ * pra VictorIA em vez de 90 de uma vez, e o número não dispara um lote concentrado.
+ *
+ * INTERESSADO: 60 → 150 (Aldo, "60 é muito pouco"). Com 499 elegíveis no dia,
+ *   o acumulado sai em ~4 dias úteis; depois disso o orçamento sobra, porque
+ *   entram ~40 novos por dia.
+ * AGUARDANDO: 30, de propósito, até medir. É o público parecido com o da régua D+3
+ *   (já abordado 3-4 vezes pelas rotinas antigas), que rendeu 0,2%.
+ *
+ * ⚠️ Pra DESLIGAR uma etapa: ponha o orçamento dela em 0 aqui e faça deploy. O
+ * `?max_aguardando=0` da URL só vale pra rodada MANUAL — o cron chama o caminho
+ * sem parâmetro. (Estava documentado errado em 23/09 como "desliga sem deploy".)
  */
-export const MAX_AGUARDANDO_PADRAO = 30
+export const ORCAMENTO_DIA: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', number>> = {
+  INTERESSADO: 150,
+  AGUARDANDO: 30,
+}
+
+/** Rótulo gravado em sdr_mensagens.template_hsm. PRÓPRIO da retomada: até 23/09
+ *  ela saía como 'aiva_reativacao_48h', igual à cobrança, à biometria e a mais
+ *  seis rotinas — era impossível contar quanto a retomada mandou no dia (pro
+ *  orçamento) ou medir quanto ela rende (pra decidir se fica). */
+export const ROTULO: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', string>> = {
+  INTERESSADO: 'aiva_retomada_interessado',
+  AGUARDANDO: 'aiva_retomada_aguardando',
+}
+
+/** Quanto ainda cabe hoje, dado o que já saiu. Nunca negativo. */
+export function restanteHoje(orcamento: number, jaEnviadosHoje: number): number {
+  return Math.max(0, orcamento - Math.max(0, jaEnviadosHoje))
+}
 /** Espera entre o 1º e o 2º toque, contada em viradas de dia civil (BRT). */
 export const DIAS_ENTRE_TOQUES = 8
 export const MAX_TOQUES = 2
