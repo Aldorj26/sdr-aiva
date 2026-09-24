@@ -46,6 +46,8 @@ export const config = {
     '/funil',
     '/alertas',
     '/registros',
+    '/excecoes',
+    '/jornada',
     '/metricas/:path*',
     '/api/leads/:path*',
     '/api/curadoria/:path*',
