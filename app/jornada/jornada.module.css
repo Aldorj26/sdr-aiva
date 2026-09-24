@@ -1,0 +1,138 @@
+/* /jornada — usa os tokens do painel (globals.css). Três cores "de quem age"
+   são o código visual da tela inteira: lojista, AIVA e Track. */
+.page {
+  --quem-lojista: #d97706;
+  --quem-aiva: #7c3aed;
+  --quem-track: #f97316;
+  --quem-nada: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+.titulo { font-size: 1.35rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.sub { color: var(--text-dim); font-size: 0.85rem; margin: 0.25rem 0 0; max-width: 62ch; }
+.carimbo { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.6rem; align-items: center; }
+.carimbo a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.carimbo a:hover { text-decoration: underline; }
+
+.aviso { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.82rem; }
+
+.legenda { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.75rem; color: var(--text-dim); }
+.legenda span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.ponto { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+
+/* ── o trilho: 7 estações da jornada ─────────────────────────────── */
+.trilhoWrap { overflow-x: auto; padding-bottom: 0.25rem; }
+.trilho { display: grid; grid-template-columns: repeat(7, minmax(128px, 1fr)); gap: 0; position: relative; min-width: 900px; }
+.trilho::before {
+  content: ''; position: absolute; left: 1rem; right: 1rem; top: 17px; height: 2px;
+  background: repeating-linear-gradient(90deg, var(--border-strong) 0 8px, transparent 8px 13px);
+}
+.estacao { position: relative; display: flex; flex-direction: column; align-items: flex-start; padding: 0 0.6rem; gap: 0.4rem; }
+.marco {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bg-elev); border: 2px solid var(--cor); color: var(--cor);
+  font-size: 0.72rem; font-weight: 700; position: relative; z-index: 1;
+}
+.estacao .qtd { font-size: 1.9rem; font-weight: 700; line-height: 1; color: var(--text); }
+.estacao .nome { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+.estacao .meta { font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; }
+.estacao .quem { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--cor); }
+.estacaoVazia .qtd { color: var(--text-muted); }
+.conv { font-size: 0.68rem; color: var(--text-muted); }
+
+.saidas { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.saida {
+  display: inline-flex; align-items: baseline; gap: 0.4rem; padding: 0.3rem 0.65rem; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--bg-elev); font-size: 0.78rem; color: var(--text-dim);
+}
+.saida b { color: var(--text); font-size: 0.9rem; }
+
+/* ── seções ───────────────────────────────────────────────────── */
+.secao { display: flex; flex-direction: column; gap: 0.75rem; }
+.secaoTopo { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.secaoTitulo { font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: none; letter-spacing: 0; color: var(--text); }
+.secaoSub { font-size: 0.8rem; color: var(--text-dim); margin: 0; }
+
+/* ── fila do Nei ──────────────────────────────────────────────── */
+.fila { display: flex; flex-direction: column; gap: 0.5rem; }
+.acao { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.acao[open] { box-shadow: var(--shadow); }
+.acao > summary {
+  list-style: none; cursor: pointer; display: grid; grid-template-columns: 4px 3.2rem 1fr auto; align-items: center;
+  gap: 0.8rem; padding: 0.7rem 0.9rem 0.7rem 0;
+}
+.acao > summary::-webkit-details-marker { display: none; }
+.acao > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.faixa { align-self: stretch; background: var(--cor); }
+.acaoQtd { font-size: 1.5rem; font-weight: 700; text-align: right; color: var(--text); }
+.acaoZero .acaoQtd { color: var(--text-muted); }
+.acaoTexto { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.acaoTitulo { font-weight: 600; font-size: 0.9rem; }
+.acaoFazer { font-size: 0.78rem; color: var(--text-dim); }
+.chip {
+  font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+  color: var(--cor); border: 1px solid var(--cor); border-radius: 999px; padding: 0.15rem 0.5rem;
+}
+.acaoCorpo { border-top: 1px solid var(--border); padding: 0.25rem 0.9rem 0.8rem; }
+
+/* ── tabelas ──────────────────────────────────────────────────── */
+.tabelaWrap { overflow-x: auto; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.tabela th {
+  text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
+  padding: 0.5rem 0.55rem; border-bottom: 1px solid var(--border-strong); white-space: nowrap; font-weight: 600;
+}
+.tabela td { padding: 0.45rem 0.55rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tabela tr:last-child td { border-bottom: 0; }
+.num { text-align: right; white-space: nowrap; }
+.dias { font-weight: 700; white-space: nowrap; }
+.diasQuente { color: var(--red); }
+.fraco { color: var(--text-muted); font-size: 0.75rem; }
+.semLead { color: var(--text-muted); font-size: 0.72rem; font-style: italic; }
+.vazioTexto { color: var(--text-muted); font-size: 0.82rem; padding: 0.5rem 0; }
+
+/* ── desempenho ───────────────────────────────────────────────── */
+.duasCol { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; }
+.painelBloco { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; min-width: 0; }
+.blocoTitulo { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.9rem 1.2rem; }
+.kpi { display: flex; flex-direction: column; gap: 0.15rem; }
+.kpiValor { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
+.kpiRotulo { font-size: 0.74rem; color: var(--text-dim); }
+.delta { font-size: 0.72rem; font-weight: 600; }
+.deltaSobe { color: var(--green); }
+.deltaDesce { color: var(--red); }
+.grafico { width: 100%; height: auto; display: block; }
+.grafico text { fill: var(--text-muted); font-size: 10px; font-family: inherit; }
+
+/* ── Evo ──────────────────────────────────────────────────────── */
+.evoLinhas { display: flex; flex-direction: column; gap: 0.35rem; }
+.evoLinha { display: grid; grid-template-columns: minmax(150px, 13rem) 1fr 3.2rem; align-items: center; gap: 0.6rem; font-size: 0.8rem; }
+.evoNome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-dim); }
+.evoBarra { height: 10px; background: var(--bg-elev-2); border-radius: 3px; overflow: hidden; }
+.evoBarra span { display: block; height: 100%; border-radius: 3px; }
+.evoQtd { text-align: right; font-weight: 600; }
+.evoSep { font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.4rem; }
+
+.etapaPill { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 4px; background: var(--bg-elev-2); white-space: nowrap; }
+
+/* ── todas as lojas ───────────────────────────────────────────── */
+.porFase { display: flex; flex-direction: column; gap: 0.4rem; }
+.porFase details { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; }
+.porFase summary { cursor: pointer; padding: 0.55rem 0.8rem; font-size: 0.85rem; display: flex; gap: 0.6rem; align-items: center; }
+.porFase summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.porFase summary b { margin-left: auto; }
+.porFase .corpo { padding: 0 0.8rem 0.6rem; }
+
+@media (max-width: 860px) {
+  .duasCol { grid-template-columns: minmax(0, 1fr); }
+  .acao > summary { grid-template-columns: 4px 2.4rem 1fr; }
+  .acao > summary .chip { grid-column: 3; justify-self: start; }
+  .evoLinha { grid-template-columns: minmax(110px, 9rem) 1fr 2.6rem; }
+}
