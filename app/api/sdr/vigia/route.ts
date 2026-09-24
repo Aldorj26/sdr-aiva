@@ -69,11 +69,26 @@ type Alvo = {
   tolerancia: number
 }
 const n = (v: unknown) => (typeof v === 'number' ? v : 0)
+/** Leads que a régua CORRETAMENTE não toca mais: já cumpriram os toques (esgotado,
+ *  que vai pra /excecoes), pediram pra parar, estão pausados ou têm CNPJ irregular.
+ *  ⚠️ Eles não podem contar como "fila" (achado 24/09/2026): a biometria tinha 5 em
+ *  análise, 3 deles esgotados, e o vigia gritou "5 na fila e nenhuma ação há 6 dias".
+ *  Esgotado nunca volta a gerar ação, então o alarme nunca pararia sozinho. */
+const TERMINAIS = ['esgotado', 'optout', 'pausa', 'cnpj_irregular']
+const semTerminais = (j: Record<string, unknown>, total: number) => {
+  const nada = (j.nada ?? {}) as Record<string, unknown>
+  return Math.max(0, total - TERMINAIS.reduce((acc, k) => acc + n(nada[k]), 0))
+}
+/** Quem JÁ levou toque hoje. ⚠️ O vigia roda às 17h, DEPOIS das rodadas do dia
+ *  (biometria de hora em hora desde 9h, cobrança às 13h): o `?dry` só vê o que
+ *  SOBROU pra fazer, e dia em que a rota trabalhou direito aparecia como "ação zero".
+ *  As duas rotas reportam `tocados_hoje` pelo carimbo do último toque (desde 24/09). */
+const tocadosHoje = (j: Record<string, unknown>) => n(j.tocados_hoje)
 const ALVOS: Alvo[] = [
   // cobra todo dia útil enquanto houver fila: 3 dias quieta já é estranho
-  { rota: 'cobranca-formulario', tolerancia: 3, fila: (j) => n(j.formulario_pendente), acao: (j) => n(j.enviar) + n(j.iniciar) + n(j.esgotar) },
+  { rota: 'cobranca-formulario', tolerancia: 3, fila: (j) => semTerminais(j, n(j.formulario_pendente)), acao: (j) => n(j.enviar) + n(j.iniciar) + n(j.esgotar) + tocadosHoje(j) },
   // toques em D0/D+2/D+5 → pode ficar até 5 dias sem nada a fazer
-  { rota: 'biometria', tolerancia: 6, fila: (j) => n(j.leads_em_analise), acao: (j) => n(j.enviar) + n(j.esgotar) },
+  { rota: 'biometria', tolerancia: 6, fila: (j) => semTerminais(j, n(j.leads_em_analise)), acao: (j) => n(j.enviar) + n(j.esgotar) + tocadosHoje(j) },
   // reaviso a cada 7 dias → uma semana quieta é o normal dela
   { rota: 'senha-pendente', tolerancia: 8, fila: (j) => n(j.pendentes_portal), acao: (j) => n(j.avisar) + n(j.resolvidos) },
   // 2 toques com 8 dias entre eles

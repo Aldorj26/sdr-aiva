@@ -94,18 +94,24 @@ async function executar(req: NextRequest) {
   const esgotar: typeof elegiveis = []
   const semLink: string[] = []
   const nada: Record<string, number> = {}
+  // Quem já levou toque HOJE (meia-noite de Brasília). O vigia roda às 17h, depois
+  // das rodadas do dia, e sem este número lia dia trabalhado como "ação zero".
+  const meiaNoiteBrt = Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(agora))}T03:00:00Z`)
+  let tocadosHoje = 0
   for (const l of elegiveis) {
     const onb = onbDe(l.id)
     if (!onb) continue
     if (!onb.liveness_url) { semLink.push(l.nome); continue }
-    const d = decidir(lerMarcadores(l.observacoes, agora), recentes.has(l.id), agora)
+    const marc = lerMarcadores(l.observacoes, agora)
+    if (marc.ultimoMs != null && marc.ultimoMs >= meiaNoiteBrt) tocadosHoje++
+    const d = decidir(marc, recentes.has(l.id), agora)
     if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, onb })
     else if (d.acao === 'esgotou') esgotar.push(l)
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
   enviar.sort((a, b) => a.toque - b.toque)   // primeiro envio tem prioridade (loja acabou de fechar o formulário)
   const fila = enviar.slice(0, max)
-  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length, enviar: enviar.length, esgotar: esgotar.length, sem_link: semLink.length, nada }
+  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length, enviar: enviar.length, esgotar: esgotar.length, sem_link: semLink.length, tocados_hoje: tocadosHoje, nada }
 
   if (dry) {
     return NextResponse.json({

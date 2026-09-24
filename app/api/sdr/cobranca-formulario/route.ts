@@ -112,6 +112,10 @@ async function executar(req: NextRequest) {
   const enviar: Array<{ lead: (typeof pendentes)[number]; toque: number }> = []
   const esgotar: typeof pendentes = []
   const nada: Record<string, number> = {}
+  // Quem já levou toque HOJE (meia-noite de Brasília). O vigia roda às 17h, depois
+  // das rodadas do dia, e sem este número lia dia trabalhado como "ação zero".
+  const meiaNoiteBrt = Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(agora))}T03:00:00Z`)
+  let tocadosHoje = 0
   for (const l of pendentes) {
     // CNPJ inapto/baixado/suspenso na Receita segundo a checagem da AIVA
     // (colunas liberadas em 17/09; o espelho marca o lead). Preencher o
@@ -122,7 +126,9 @@ async function executar(req: NextRequest) {
       nada.cnpj_irregular = (nada.cnpj_irregular ?? 0) + 1
       continue
     }
-    const d = decidir(lerMarcadores(l.observacoes, agora), recentes.has(l.id), agora)
+    const marc = lerMarcadores(l.observacoes, agora)
+    if (marc.ultimoToqueMs != null && marc.ultimoToqueMs >= meiaNoiteBrt) tocadosHoje++
+    const d = decidir(marc, recentes.has(l.id), agora)
     if (d.acao === 'iniciar') iniciar.push(l)
     else if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque })
     else if (d.acao === 'esgotou') esgotar.push(l)
@@ -134,7 +140,7 @@ async function executar(req: NextRequest) {
 
   const resumo = {
     em_analise: todos.length, formulario_pendente: pendentes.length, sem_onboarding: semOnboarding.length,
-    iniciar: iniciar.length, enviar: enviar.length, esgotar: esgotar.length, nada,
+    iniciar: iniciar.length, enviar: enviar.length, esgotar: esgotar.length, tocados_hoje: tocadosHoje, nada,
   }
   if (dry) {
     return NextResponse.json({
