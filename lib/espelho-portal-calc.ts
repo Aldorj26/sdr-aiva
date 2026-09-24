@@ -158,6 +158,26 @@ export function calcularEspelho(e: Entrada): Resultado {
     const oppId = lead.evotalks_opportunity_id != null ? Number(lead.evotalks_opportunity_id) : NaN
     const opp = Number.isFinite(oppId) && oppId > 0 ? oppId : null
 
+    // 2a) LOJA QUE OPERA E TEM OUTRO CNPJ REPROVADO (achado 24/09/2026).
+    //     Quando o lead tem mais de um CNPJ e UM deles avança, `melhor` fica
+    //     preenchido e o bloco de reprovação abaixo nunca era alcançado — a
+    //     reprovação do outro CNPJ sumia, nem como "conferir".
+    //     Caso real: DHtech e Pulse — matriz 47640647000141 vendendo (RID 5643) e
+    //     filial 49357065000188 reprovada no portal. A loja opera, então NÃO se
+    //     move card nenhum; mas o time precisa saber que a AIVA recusou a filial.
+    //     Entra na fila de CONFERIR, que é exatamente o balcão desse caso.
+    if (melhor && reprovadoEm && opp != null) {
+      const atualOper = e.stageAtual.get(opp)
+      if (atualOper != null && !NAO_MEXER.has(atualOper)) {
+        out.conferir.push({
+          lead_id: leadId, nome, opp, de: atualOper,
+          cnpj: soDigitos(reprovadoEm.cnpj), loja: reprovadoEm.legal_name ?? null,
+          motivo: 'outro CNPJ do lojista avançou, mas este foi reprovado pela AIVA',
+          jaAvisado: (lead.observacoes ?? '').includes(`[${MARCADOR_CONFERIR}:`),
+        })
+      }
+    }
+
     // 2) reprovado pela AIVA (e nenhum outro CNPJ do lead seguiu adiante) → etapa 95.
     //    Vale de qualquer etapa e de qualquer status que não seja OPT_OUT: reprovado é
     //    reprovado. Quem já está em 95 (ou bot/93/94) não é tocado.

@@ -103,7 +103,7 @@ test('lead com matriz e filial: vale o CNPJ mais avançado', () => {
   assert.deepEqual(r.registrosEnviados, [2])
 })
 
-test('reprovado: vai pra 95 de qualquer etapa; avisa só uma vez; não toca 95/bot/93/94 nem OPT_OUT; outro CNPJ aprovado prevalece', () => {
+test('reprovado: vai pra 95 de qualquer etapa; avisa só uma vez; não toca 95/bot/93/94 nem OPT_OUT; outro CNPJ que avança não APAGA a reprovação', () => {
   const o = [onb({ cnpj: '11111111000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' })]
   const reg = (l: string) => ({ id: l, cnpj: '11111111000191', lead_id: l, status: 'pre_cadastro_enviado' })
   const r = calcularEspelho(base({
@@ -119,7 +119,13 @@ test('reprovado: vai pra 95 de qualquer etapa; avisa só uma vez; não toca 95/b
   assert.equal(r.reprovados[0].cnpj, '11111111000191')
   assert.deepEqual(r.pulados.map((p) => p.lead_id).sort(), ['optout', 'semopp'])
   assert.deepEqual(r.movimentos.map((m) => m.lead_id), ['temoutro'])
-  assert.equal(r.conferir.length, 0)
+  // ⚠️ Este assert dizia `conferir.length === 0` e estava fixando um DEFEITO
+  // (achado 24/09/2026): o lead `temoutro` tem um CNPJ que avança e outro
+  // REPROVADO pela AIVA, e a reprovação sumia — nem como aviso. Caso real: DHtech
+  // e Pulse, matriz vendendo (RID 5643) e filial recusada no portal.
+  // O card continua avançando (a loja opera), mas o time PRECISA saber da recusa.
+  assert.deepEqual(r.conferir.map((c) => [c.lead_id, c.cnpj]), [['temoutro', '11111111000191']])
+  assert.match(r.conferir[0].motivo, /reprovado pela AIVA/)
 })
 
 test('reprovado com sinal de loja operando (card em 51, RID ou registro ativo) NÃO é movido: vai pra "conferir"', () => {
@@ -152,4 +158,39 @@ test('situacaoOnb separa o que falta ao lojista do que falta à AIVA', () => {
   assert.equal(situacaoOnb('biometria', null), 'biometria')
   assert.equal(situacaoOnb('cadastro_finalizado', 'aprovado'), null)
   assert.equal(situacaoOnb('not_approved', 'pendente'), null)
+})
+
+test('lojista com DOIS CNPJs reprovados e nenhum avançando: vai pra 95 uma vez só', () => {
+  const r = calcularEspelho(base({
+    onboardings: [
+      onb({ cnpj: '11111111000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' }),
+      onb({ cnpj: '22222222000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' }),
+    ],
+    registros: [
+      { id: 'a', cnpj: '11111111000191', lead_id: 'dois', status: 'pre_cadastro_enviado' },
+      { id: 'b', cnpj: '22222222000191', lead_id: 'dois', status: 'pre_cadastro_enviado' },
+    ],
+    leads: [lead('dois', 1)],
+    stageAtual: new Map([[1, 50]]),
+  }))
+  assert.equal(r.reprovados.length, 1, 'um lead, um movimento pra 95')
+  assert.equal(r.conferir.length, 0, 'sem CNPJ avançando, não é caso de conferir')
+})
+
+test('loja que OPERA com outro CNPJ reprovado: card não é movido pra 95, mas entra em conferir', () => {
+  // o caso DHtech e Pulse (24/09/2026): matriz vendendo, filial recusada
+  const r = calcularEspelho(base({
+    onboardings: [
+      onb({ cnpj: '11111111000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' }),
+      onb({ cnpj: '22222222000191', stage: 'cadastro_finalizado', biometry_status: 'aprovado', retailer_id: 5643 }),
+    ],
+    registros: [
+      { id: 'a', cnpj: '11111111000191', lead_id: 'opera', status: 'pre_cadastro_enviado' },
+      { id: 'b', cnpj: '22222222000191', lead_id: 'opera', status: 'ativa', rid: '5643' },
+    ],
+    leads: [lead('opera', 1)],
+    stageAtual: new Map([[1, 70]]),
+  }))
+  assert.equal(r.reprovados.length, 0, 'loja que opera NUNCA é jogada pra 95 sozinha')
+  assert.deepEqual(r.conferir.map((c) => c.cnpj), ['11111111000191'])
 })

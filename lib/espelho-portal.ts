@@ -225,15 +225,18 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     // preview da checagem de CNPJ: o dry antes devolvia zero porque retornava
     // aqui, ANTES do passo 8 — e "?dry=1" existe justamente pra ver o que faria.
     const leadPorIdDry = new Map(leads.map((l) => [l.id, l]))
+    // mesma chave lead+marcador do bloco real — se divergir, o ?dry mente
     const vistosDry = new Set<string>()
     for (const reg of registros) {
       const info = irregulares.get(soDigitos(reg.cnpj))
       const lead = reg.lead_id ? leadPorIdDry.get(reg.lead_id) : null
-      if (!info || !lead || vistosDry.has(lead.id)) continue
-      vistosDry.add(lead.id)
+      if (!info || !lead) continue
+      const marcador = SITUACAO_REAL.has(info.status) ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO
+      const chaveDry = `${lead.id}:${marcador}`
+      if (vistosDry.has(chaveDry)) continue
+      vistosDry.add(chaveDry)
       if (SITUACAO_REAL.has(info.status)) saida.cnpj.irregular++
       else saida.cnpj.invalido++
-      const marcador = SITUACAO_REAL.has(info.status) ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO
       if (!(lead.observacoes ?? '').includes(`[${marcador}:`)) {
         saida.cnpj.novos.push(`• ${(lead.nome ?? '').trim() || lead.id} — CNPJ ${soDigitos(reg.cnpj)} · ${info.situacao ?? info.status}`)
       }
@@ -314,14 +317,22 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   const cnpjNovos: string[] = []
   if (irregulares.size) {
     const leadPorId = new Map(leads.map((l) => [l.id, l]))
+    // ⚠️ A chave é lead+MARCADOR, não o lead sozinho (achado 24/09/2026).
+    // Com `vistos` por lead, quem tinha DOIS CNPJs problemáticos só recebia o
+    // marcador do primeiro e o outro sumia — foi o caso da Smarttech Celulares,
+    // com 62555956000108 inválido e 13222874000135 INAPTA: ficou só o de inválido
+    // e a situação real na Receita, que é a mais grave, não apareceu em lugar
+    // nenhum. Os dois marcadores são independentes e podem coexistir.
     const vistos = new Set<string>()
     for (const reg of registros) {
       const info = irregulares.get(soDigitos(reg.cnpj))
       const lead = reg.lead_id ? leadPorId.get(reg.lead_id) : null
-      if (!info || !lead || vistos.has(lead.id)) continue
-      vistos.add(lead.id)
+      if (!info || !lead) continue
       const real = SITUACAO_REAL.has(info.status)
       const marcador = real ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO
+      const chave = `${lead.id}:${marcador}`
+      if (vistos.has(chave)) continue
+      vistos.add(chave)
       if (real) saida.cnpj.irregular++
       else saida.cnpj.invalido++
       if ((lead.observacoes ?? '').includes(`[${marcador}:`)) continue
@@ -339,7 +350,16 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       const obs = lead.observacoes ?? ''
       for (const m of [MARCADOR_CNPJ_IRREGULAR, MARCADOR_CNPJ_INVALIDO]) {
         if (!obs.includes(`[${m}:`)) continue
-        const aindaRuim = registros.some((reg) => reg.lead_id === lead.id && irregulares.has(soDigitos(reg.cnpj)))
+        // ⚠️ Confere se ainda há CNPJ ruim DAQUELE TIPO. Antes bastava existir
+        // qualquer CNPJ problemático pra segurar os DOIS marcadores: o lojista que
+        // regularizasse a inaptidão mas seguisse com um CNPJ de dígito inválido
+        // (ou o contrário) ficava com o marcador errado pra sempre.
+        const aindaRuim = registros.some((reg) => {
+          if (reg.lead_id !== lead.id) return false
+          const info = irregulares.get(soDigitos(reg.cnpj))
+          if (!info) return false
+          return (SITUACAO_REAL.has(info.status) ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO) === m
+        })
         if (!aindaRuim && await desmarcar(lead.id, m)) saida.cnpj.regularizados++
       }
     }
