@@ -34,7 +34,7 @@ const { data: manuaisRaw } = await sb
   .like('conteudo', '%manual via painel%')
   .gte('enviado_em', desde)
   .order('enviado_em', { ascending: false })
-  .limit(40)
+  .limit(150)
 console.log('fonte A (Enviar info):', manuaisRaw?.length ?? 0, 'respostas manuais')
 
 // ── FONTE B: avanços de status recentes ──────────────────────────────────────
