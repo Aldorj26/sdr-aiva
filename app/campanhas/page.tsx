@@ -18,6 +18,9 @@ interface CampanhaDia {
   produtos: string[] | null
   /** status LOJA_FINALIZADA_E_VENDENDO — loja finalizada e ativa (25/09/2026) */
   vendendo: number
+  /** passou de Interessado e ainda não vende: pré-aprovação, cadastro recebido,
+   *  em análise AIVA, treinar, login (25/09/2026) */
+  em_andamento: number
 }
 
 async function getCampanhasPorDia(): Promise<CampanhaDia[]> {
@@ -114,13 +117,14 @@ export default async function CampanhasPage() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table className="tbl" style={{ minWidth: 720 }}>
+          <table className="tbl" style={{ minWidth: 820 }}>
             <thead>
               <tr>
                 <th>Dia</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'right' }}>Responderam</th>
                 <th style={{ textAlign: 'right' }}>Interessados</th>
+                <th style={{ textAlign: 'right' }} title="Pré-aprovação, cadastro recebido, em análise AIVA, treinar e login">Em andamento</th>
                 <th style={{ textAlign: 'right' }}>Vendendo</th>
                 <th style={{ textAlign: 'right' }}>Opt-out</th>
                 <th style={{ textAlign: 'right' }}>Não qualif.</th>
@@ -160,6 +164,9 @@ export default async function CampanhasPage() {
                     <td style={{ textAlign: 'right', color: '#fb923c' }}>{responderam}</td>
                     <td style={{ textAlign: 'right', color: '#34d399' }}>
                       {Number(c.interessados)}
+                    </td>
+                    <td style={{ textAlign: 'right', color: '#60a5fa', fontWeight: 600 }}>
+                      {Number(c.em_andamento ?? 0)}
                     </td>
                     <td style={{ textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>
                       {vendendo}
@@ -207,6 +214,7 @@ export default async function CampanhasPage() {
 
       <p style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.72rem', textAlign: 'center' }}>
         Clique no dia pra ver os leads daquele lote · taxas calculadas sobre o total disparado naquele dia ·
+        “Em andamento” = pré-aprovação, cadastro recebido, em análise AIVA, treinar e login ·
         “Responderam” inclui quem já avançou (pré-aprovação até vendendo) · lote recente ainda não teve tempo de virar loja
       </p>
     </main>
