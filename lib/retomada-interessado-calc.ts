@@ -174,15 +174,65 @@ export type ItemFila = { status: string; dias: number; temDados: boolean }
 
 /**
  * Monta a fila do dia com DOIS orçamentos.
- *  - INTERESSADO: ordem aprovada em 23/09 (mais frio primeiro), até `maxInteressado`.
+ *  - INTERESSADO: quem já deu dados primeiro (25/09), e dentro disso o mais frio
+ *    primeiro (ordem aprovada em 23/09), até `maxInteressado`.
  *  - AGUARDANDO: quem já deu dados primeiro, e dentro disso o MENOS frio primeiro
  *    — 22 dias de silêncio se recupera, 85 quase nunca. Até `maxAguardando`.
  * O INTERESSADO vem antes na lista porque, se a rota bater o teto de tempo, é
  * ele que precisa ter saído (é o público mais quente).
  */
 export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: number, maxAguardando: number): T[] {
-  const interessados = itens.filter((i) => i.status === 'INTERESSADO').sort((a, b) => b.dias - a.dias)
+  // 25/09 (Aldo): quem JÁ deu dados vem primeiro também no INTERESSADO. Medido nos
+  // 326 envios de 23-24/09: 18% de resposta de pessoa com dados × 9% sem dados.
+  // Dentro de cada grupo segue a ordem aprovada em 23/09 (mais frio primeiro).
+  const interessados = itens.filter((i) => i.status === 'INTERESSADO')
+    .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (b.dias - a.dias))
   const aguardando = itens.filter((i) => i.status === 'AGUARDANDO')
     .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (a.dias - b.dias))
   return [...interessados.slice(0, Math.max(0, maxInteressado)), ...aguardando.slice(0, Math.max(0, maxAguardando))]
+}
+
+/**
+ * Resposta automática do WhatsApp Business da loja ("agradece seu contato",
+ * "seja bem-vindo", menu de opções, horário de atendimento).
+ *
+ * POR QUE (Aldo, 25/09/2026): dos 157 que "responderam" à retomada em 23-24/09,
+ * 129 eram essa mensagem automática. E um terço dos 326 destinatários NUNCA tinha
+ * falado com uma pessoa — só o robô da loja respondeu ao disparo D+0, e isso bastou
+ * pra virar INTERESSADO. Resposta de pessoa nesse grupo: 6% (contra 18% de quem já
+ * deu dados). Mandar pra eles gasta HSM pago e é o perfil que denuncia como spam.
+ *
+ * ⚠️ Erra pro lado conservador: uma pessoa que escreve "em que posso ajudar?"
+ * pode cair aqui. O custo disso é NÃO mandar a retomada — nunca mandar errado.
+ */
+export const RESPOSTA_AUTOMATICA = /agradece (o |seu )?contato|agradecemos (o |seu |sua )?(contato|mensagem)|bem[ -]?vind|como (podemos|posso) (te |lhe )?ajudar|em que (podemos|posso)|hor[aá]rio de (atendimento|funcionamento)|digite (a |o )?(op|n[uú]mero)|op[cç][aã]o desejada|mensagem autom|retornaremos|responderemos|em breve (retorn|respond|te atend)|salv[ae] nosso contato|nosso cat[aá]logo|visualizar nosso|n[aã]o foi recebida|estamos (fechad|ausent|indispon)|fora do hor[aá]rio|j[aá],? j[aá] (iremos|vamos)|um minuto e j[aá]|feliz em (t[eê]-lo|lhe ver|ter voc)|prazer (em )?(atend|ter voc)|canal de atendimento/i
+
+export function ehRespostaAutomatica(texto: string | null | undefined): boolean {
+  return RESPOSTA_AUTOMATICA.test(String(texto ?? ''))
+}
+
+/** true quando TUDO que o lojista mandou foi resposta automática (ou vazio).
+ *  Sem mensagem nenhuma devolve false — esse caso já é o `nunca_falou`. */
+export function soRespostaAutomatica(textos: ReadonlyArray<string | null | undefined>): boolean {
+  const reais = textos.map((t) => String(t ?? '').trim()).filter(Boolean)
+  return reais.length > 0 && reais.every(ehRespostaAutomatica)
+}
+
+/**
+ * Nome da saudação do HSM 48 ("Oi {nome}, tudo bem?" — o texto é fixo no template,
+ * então não dá pra tirar o nome).
+ *
+ * POR QUE (25/09/2026): 26 de 326 retomadas saíram como "Oi Jf", "Oi Hr", "Oi 3d":
+ * sem nome de sócio, o primeiro nome vem do nome da LOJA, e em "JF Celulares" ele é
+ * uma sigla. Quando o nome curto tem 2 caracteres ou menos, usa a sigla + a palavra
+ * seguinte da loja ("Oi JF Celulares"). Se não houver palavra que ajude, cai no
+ * "lojista", o mesmo fallback do resto do sistema.
+ */
+export function saudacaoRetomada(nomeCurto: string, nomeLoja: string | null | undefined): string {
+  const sinais = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, '').length
+  if (sinais(nomeCurto) > 2) return nomeCurto
+  const palavras = String(nomeLoja ?? '').trim().split(/\s+/).filter(Boolean)
+  if (palavras.length < 2 || sinais(palavras[1]) < 3) return 'lojista'
+  const segunda = palavras[1] === palavras[1].toLowerCase() ? palavras[1][0].toUpperCase() + palavras[1].slice(1) : palavras[1]
+  return `${palavras[0].toUpperCase()} ${segunda}`
 }

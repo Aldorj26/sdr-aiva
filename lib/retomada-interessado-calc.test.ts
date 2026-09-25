@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidir, lerMarcadores, remontarObs, miolo, montarFila, SILENCIO_MAX_DIAS, ORCAMENTO_DIA, ROTULO, restanteHoje,
+  decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, saudacaoRetomada, SILENCIO_MAX_DIAS, ORCAMENTO_DIA, ROTULO, restanteHoje,
   MIOLOS_COM_DADOS, MIOLOS_SEM_DADOS, SILENCIO_DIAS, DIAS_ENTRE_TOQUES, MAX_TOQUES,
 } from './retomada-interessado-calc.ts'
 
@@ -129,4 +129,35 @@ test('rótulo próprio por etapa — não se confunde com a cobrança nem com a 
     assert.notEqual(r, 'aiva_reativacao_48h', 'era o rótulo compartilhado com 9 rotinas')
     assert.match(r, /^aiva_retomada_/)
   }
+})
+
+test('25/09: quem já deu dados vem primeiro também no INTERESSADO', () => {
+  const f = montarFila([
+    { status: 'INTERESSADO', dias: 80, temDados: false, id: 'frio' },
+    { status: 'INTERESSADO', dias: 10, temDados: true, id: 'dados-morno' },
+    { status: 'INTERESSADO', dias: 40, temDados: true, id: 'dados-frio' },
+  ], 2, 0)
+  assert.deepEqual(f.map((x) => x.id), ['dados-frio', 'dados-morno'])
+})
+
+test('só resposta automática da loja fica fora; qualquer fala de pessoa segura', () => {
+  assert.equal(soRespostaAutomatica(['GMCELL agradece seu contato. Como podemos ajudar?']), true)
+  assert.equal(soRespostaAutomatica(['Olá! Seja bem-vindo à Bellou Cell.', 'Nosso horário de atendimento é das 9h às 18h']), true)
+  assert.equal(soRespostaAutomatica(['Olá, esse é o canal de atendimento da loja Vivo Pantanal']), true)
+  assert.equal(soRespostaAutomatica(['Seja bem-vindo!', 'Sim, quero saber mais']), false)
+  assert.equal(soRespostaAutomatica(['Como funciona e qual custo seria ?']), false)
+  assert.equal(soRespostaAutomatica([]), false)          // nunca falou é outro motivo
+  assert.equal(soRespostaAutomatica(['', '  ']), false)
+})
+
+test('saudação: sigla vira o começo do nome da loja; nome de verdade não muda', () => {
+  assert.equal(saudacaoRetomada('Jf', 'JF Celulares e Eletrônicos'), 'JF Celulares')
+  assert.equal(saudacaoRetomada('Hr', 'HR celulares assistência técnica'), 'HR Celulares')
+  assert.equal(saudacaoRetomada('Mp', 'MP CELL assistência e acessórios'), 'MP CELL')
+  assert.equal(saudacaoRetomada('W.', 'W. Cell'), 'W. Cell')
+  assert.equal(saudacaoRetomada('3d', '3D Tech Assistência'), '3D Tech')
+  assert.equal(saudacaoRetomada('Rf', 'RF'), 'lojista')
+  assert.equal(saudacaoRetomada('La', 'La Ca sa do Celular'), 'lojista')
+  assert.equal(saudacaoRetomada('Jennifer', 'WL Imports'), 'Jennifer')
+  assert.equal(saudacaoRetomada('Ana', 'AF Celulares'), 'Ana')
 })

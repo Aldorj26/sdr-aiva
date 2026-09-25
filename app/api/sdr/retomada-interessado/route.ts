@@ -45,7 +45,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import {
-  decidir, lerMarcadores, remontarObs, miolo, montarFila,
+  decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, saudacaoRetomada,
   MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA,
   ORCAMENTO_DIA, ROTULO, restanteHoje, diaBrt,
 } from '@/lib/retomada-interessado-calc'
@@ -111,17 +111,29 @@ async function executar(req: NextRequest) {
     !(l.observacoes ?? '').includes('[CNPJ_IRREGULAR_AIVA:') &&
     !l.telefone.startsWith('000'))
 
-  // 2) silêncio do LOJISTA: última mensagem direcao='in' de cada lead
+  // 2) silêncio do LOJISTA: última mensagem direcao='in' de cada lead, e o que ele
+  //    escreveu (pra separar quem só respondeu com a mensagem automática da loja).
+  // ⚠️ Paginado desde 25/09: 200 leads por lote passavam fácil de 1.000 mensagens e
+  // o PostgREST cortava calado — lead com histórico cortado virava `nunca_falou`.
   const ultimaIn = new Map<string, number>()
+  const textosIn = new Map<string, string[]>()
   for (let i = 0; i < elegiveis.length; i += 200) {
     const ids = elegiveis.slice(i, i + 200).map((l) => l.id)
-    const { data } = await supabaseAdmin
-      .from('sdr_mensagens').select('lead_id, enviado_em')
-      .in('lead_id', ids).eq('direcao', 'in')
-      .order('enviado_em', { ascending: false })
-    for (const m of data ?? []) {
-      const t = Date.parse(m.enviado_em)
-      if (!ultimaIn.has(m.lead_id) || t > (ultimaIn.get(m.lead_id) as number)) ultimaIn.set(m.lead_id, t)
+    for (let de = 0; ; de += 1000) {
+      const { data, error } = await supabaseAdmin
+        .from('sdr_mensagens').select('lead_id, enviado_em, conteudo')
+        .in('lead_id', ids).eq('direcao', 'in')
+        .order('enviado_em', { ascending: false })
+        .range(de, de + 999)
+      if (error) return NextResponse.json({ ok: false, erro: `sdr_mensagens: ${error.message}` }, { status: 500 })
+      for (const m of data ?? []) {
+        const t = Date.parse(m.enviado_em)
+        if (!ultimaIn.has(m.lead_id) || t > (ultimaIn.get(m.lead_id) as number)) ultimaIn.set(m.lead_id, t)
+        const lista = textosIn.get(m.lead_id) ?? []
+        lista.push(m.conteudo ?? '')
+        textosIn.set(m.lead_id, lista)
+      }
+      if (!data || data.length < 1000) break
     }
   }
 
@@ -136,9 +148,16 @@ async function executar(req: NextRequest) {
     // gente conversou" / "paramos no meio" — com quem nunca respondeu isso é
     // mentira. Fica de fora; se for pra falar com eles, é outra abordagem.
     if (!ult) { nada.nunca_falou = (nada.nunca_falou ?? 0) + 1; continue }
+    const temDados = (l.observacoes ?? '').includes('[DADOS_COLETADOS:')
+    // Só o robô da loja respondeu até hoje (25/09, Aldo): fica fora. Quem já deu
+    // dados nunca cai aqui — passar dados é prova de que houve uma pessoa.
+    if (!temDados && soRespostaAutomatica(textosIn.get(l.id) ?? [])) {
+      nada.so_resposta_automatica = (nada.so_resposta_automatica ?? 0) + 1
+      continue
+    }
     const dias = Math.floor((agora - ult) / DIA_MS)
     const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora)
-    if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados: (l.observacoes ?? '').includes('[DADOS_COLETADOS:'), dias, status: l.status })
+    if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados, dias, status: l.status })
     else if (d.acao === 'encerrar') encerrar.push(l)
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
@@ -165,8 +184,9 @@ async function executar(req: NextRequest) {
   if (dry) {
     return NextResponse.json({
       ok: true, dry: true, ...resumo,
-      exemplo_com_dados: (() => { const f = fila.find((x) => x.temDados); return f ? `Oi ${nomeSaudacao(f.lead.nome, f.lead.observacoes)}, tudo bem?\n${miolo(f.toque, true)} É só responder essa mensagem. 😊` : null })(),
-      exemplo_sem_dados: (() => { const f = fila.find((x) => !x.temDados); return f ? `Oi ${nomeSaudacao(f.lead.nome, f.lead.observacoes)}, tudo bem?\n${miolo(f.toque, false)} É só responder essa mensagem. 😊` : null })(),
+      exemplo_com_dados: (() => { const f = fila.find((x) => x.temDados); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(f.toque, true)} É só responder essa mensagem. 😊` : null })(),
+      exemplo_sem_dados: (() => { const f = fila.find((x) => !x.temDados); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(f.toque, false)} É só responder essa mensagem. 😊` : null })(),
+      saudacoes_de_sigla: fila.filter((f) => saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome) !== nomeSaudacao(f.lead.nome, f.lead.observacoes)).slice(0, 10).map((f) => `${f.lead.nome} → Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}`),
       destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, status: f.status, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
       primeiros_aguardando: fila.filter((f) => f.status === 'AGUARDANDO').slice(0, 10).map((f) => ({ loja: f.lead.nome, silencio_dias: f.dias, tem_dados: f.temDados })),
     })
@@ -178,7 +198,7 @@ async function executar(req: NextRequest) {
   const enviadosPorStatus: Record<string, number> = {}
   for (const { lead, toque, temDados, status } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) break
-    const nome = nomeSaudacao(lead.nome, lead.observacoes)
+    const nome = saudacaoRetomada(nomeSaudacao(lead.nome, lead.observacoes), lead.nome)
     const texto = miolo(toque, temDados)
     try {
       await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, texto])
