@@ -40,6 +40,7 @@ import { ehSoReconhecimento } from '@/lib/reconhecimento'
 import { reenviarSenhaApi, telefonePorRetailer } from '@/lib/portal-aiva'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
+import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE } from '@/lib/resposta-automatica'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1383,6 +1384,32 @@ export async function POST(req: NextRequest) {
         `REGRESSÃO BLOQUEADA — mantendo ${lead.status}.`,
       )
       resposta.novo_status = lead.status as typeof resposta.novo_status
+    }
+  }
+
+  // 9a2. Só o ROBÔ da loja respondeu → não promove pra INTERESSADO (Aldo, 25/09/2026).
+  // A mensagem automática do WhatsApp Business ("agradece seu contato", "seja
+  // bem-vindo") chegava depois do disparo, a VictorIA tentava furar o bot e devolvia
+  // INTERESSADO — o lead virava interessado sem nunca ter falado com uma pessoa. Na
+  // fila da retomada de 25/09 eram 695 assim. A conversa segue IGUAL (o prompt trata
+  // INICIO/SEM_RESPOSTA/INTERESSADO com o mesmo bloco de Fase 1, e o contador de 10
+  // tentativas do bot continua valendo); muda só o status e, com ele, o card no Evo.
+  // Na primeira fala de pessoa a promoção acontece normalmente. Regra em
+  // lib/resposta-automatica.ts (`npm run test:auto`).
+  if (resposta.novo_status === 'INTERESSADO' && STATUS_ANTES_DO_INTERESSE.has(lead.status)) {
+    const temDados =
+      (lead.observacoes ?? '').includes('[DADOS_COLETADOS:') ||
+      Object.values((resposta.dados_coletados ?? {}) as Record<string, unknown>).some((v) => v && v !== 'null')
+    if (!temDados) {
+      const { data: insLead } = await supabaseAdmin
+        .from('sdr_mensagens').select('conteudo')
+        .eq('lead_id', lead.id).eq('direcao', 'in')
+        .order('enviado_em', { ascending: false }).limit(50)
+      const textosIn = (insLead ?? []).map((m) => m.conteudo as string)
+      if (manterAntesDoInteresse({ statusAtual: lead.status, novoStatus: resposta.novo_status, textosIn, temDados })) {
+        console.log(`[so-robo] ${lead.telefone}: só resposta automática da loja até agora — mantém ${lead.status} (não vira INTERESSADO)`)
+        resposta.novo_status = lead.status as typeof resposta.novo_status
+      }
     }
   }
 

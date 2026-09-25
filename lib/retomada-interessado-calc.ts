@@ -192,31 +192,9 @@ export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: numbe
   return [...interessados.slice(0, Math.max(0, maxInteressado)), ...aguardando.slice(0, Math.max(0, maxAguardando))]
 }
 
-/**
- * Resposta automática do WhatsApp Business da loja ("agradece seu contato",
- * "seja bem-vindo", menu de opções, horário de atendimento).
- *
- * POR QUE (Aldo, 25/09/2026): dos 157 que "responderam" à retomada em 23-24/09,
- * 129 eram essa mensagem automática. E um terço dos 326 destinatários NUNCA tinha
- * falado com uma pessoa — só o robô da loja respondeu ao disparo D+0, e isso bastou
- * pra virar INTERESSADO. Resposta de pessoa nesse grupo: 6% (contra 18% de quem já
- * deu dados). Mandar pra eles gasta HSM pago e é o perfil que denuncia como spam.
- *
- * ⚠️ Erra pro lado conservador: uma pessoa que escreve "em que posso ajudar?"
- * pode cair aqui. O custo disso é NÃO mandar a retomada — nunca mandar errado.
- */
-export const RESPOSTA_AUTOMATICA = /agradece (o |seu )?contato|agradecemos (o |seu |sua )?(contato|mensagem)|bem[ -]?vind|como (podemos|posso) (te |lhe )?ajudar|em que (podemos|posso)|hor[aá]rio de (atendimento|funcionamento)|digite (a |o )?(op|n[uú]mero)|op[cç][aã]o desejada|mensagem autom|retornaremos|responderemos|em breve (retorn|respond|te atend)|salv[ae] nosso contato|nosso cat[aá]logo|visualizar nosso|n[aã]o foi recebida|estamos (fechad|ausent|indispon)|fora do hor[aá]rio|j[aá],? j[aá] (iremos|vamos)|um minuto e j[aá]|feliz em (t[eê]-lo|lhe ver|ter voc)|prazer (em )?(atend|ter voc)|canal de atendimento/i
-
-export function ehRespostaAutomatica(texto: string | null | undefined): boolean {
-  return RESPOSTA_AUTOMATICA.test(String(texto ?? ''))
-}
-
-/** true quando TUDO que o lojista mandou foi resposta automática (ou vazio).
- *  Sem mensagem nenhuma devolve false — esse caso já é o `nunca_falou`. */
-export function soRespostaAutomatica(textos: ReadonlyArray<string | null | undefined>): boolean {
-  const reais = textos.map((t) => String(t ?? '').trim()).filter(Boolean)
-  return reais.length > 0 && reais.every(ehRespostaAutomatica)
-}
+// Reconhecer a mensagem automática da loja mora em lib/resposta-automatica.ts desde
+// 25/09 — o webhook usa a MESMA regra pra não promover robô a INTERESSADO.
+export { RESPOSTA_AUTOMATICA, ehRespostaAutomatica, soRespostaAutomatica } from './resposta-automatica.ts'
 
 /**
  * Nome da saudação do HSM 48 ("Oi {nome}, tudo bem?" — o texto é fixo no template,

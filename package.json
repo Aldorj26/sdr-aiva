@@ -21,7 +21,8 @@
     "test:json": "node --test lib/claude-json.test.ts",
     "test:descarte": "node --test lib/descarte-calc.test.ts",
     "test:contas": "node --test lib/saude-contas-calc.test.ts",
-    "test:jornada": "node --test lib/jornada-aiva-calc.test.ts"
+    "test:jornada": "node --test lib/jornada-aiva-calc.test.ts",
+    "test:auto": "node --test lib/resposta-automatica.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
