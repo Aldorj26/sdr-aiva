@@ -1,0 +1,155 @@
+[
+ {
+  "nome": "CASE CELULARES",
+  "dest": 50,
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Wm celulares",
+  "dest": 50,
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Francell Celulares",
+  "dest": 50,
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Bussis Store",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Loosetech",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "José Phone",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Grupo ABC",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "JP Informática",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Skycell Celulares",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Havok Store",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "RN Imports",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Stoniki",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Jimmy Cell",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "JF CELULARES",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Home Celulares",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Os bigboycell",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ },
+ {
+  "nome": "Feel X",
+  "dest": 70,
+  "card": 70,
+  "status": "TREINAR",
+  "mensagens_saidas": 0,
+  "marca_consumida": true,
+  "ok": true
+ }
+]
