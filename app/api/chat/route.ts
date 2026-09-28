@@ -10,7 +10,7 @@ export const maxDuration = 60
 // O cliente devolve `dados` acumulados a cada turno pra simular o
 // [DADOS_COLETADOS:] que o webhook real mantém em observacoes.
 export async function POST(req: NextRequest) {
-  const { mensagem, historico, nome, status, dados } = await req.json()
+  const { mensagem, historico, nome, status, dados, teste_abertura } = await req.json()
 
   if (!mensagem?.trim()) {
     return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
@@ -36,6 +36,9 @@ export async function POST(req: NextRequest) {
       statusAtual,
       'AIVA',
       dados && typeof dados === 'object' ? dados : undefined,
+      // teste A/B da abertura (lib/teste-abertura.ts): `teste_abertura: 'B'` simula a variante B
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      teste_abertura === 'B' ? 'B' : null,
     )
     return NextResponse.json(resposta)
   } catch (err) {
