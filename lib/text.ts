@@ -128,7 +128,8 @@ export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente = false
     (senhaPendente
       ? `O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou isso pra eles. Assim que sair, chega aqui no seu WhatsApp pelo número +55 21 4020-2024.\n`
       : `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n`) +
-    `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 2 dias. 📵 Se não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊`
+    `Pra criar os logins dos seus vendedores: abre o chat dentro da plataforma (círculo azul no canto) → opção *Cadastrar/Remover Usuário* → preenche ali e a senha chega por SMS em até 2 dias. 📵 Se não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊\n` +
+    `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login`
 
   return [msgReuniao, msgMateriais, msgCadastro]
 }
@@ -150,7 +151,8 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], sen
     (senhaPendente
       ? `2️⃣ O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou pra eles; assim que sair chega no seu WhatsApp pelo +55 21 4020-2024\n`
       : `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n`) +
-    `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n\n` +
+    `3️⃣ Logins dos vendedores: você mesmo solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n` +
+    `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )
 }
