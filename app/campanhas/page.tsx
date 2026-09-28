@@ -34,6 +34,16 @@ function fmtDia(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
+/** Dias desde o disparo do lote (dia em BRT, 'YYYY-MM-DD'). */
+function idadeDoLote(dia: string): number {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+  return Math.round((Date.parse(`${hoje}T12:00:00Z`) - Date.parse(`${dia}T12:00:00Z`)) / 86_400_000)
+}
+/** Abaixo disso o lote ainda está amadurecendo: conversa, 5 dados e pré-aprovação levam
+ *  1–3 semanas. Medido em 28/09/2026: de quem se engajou, avançou 10% nos lotes de até
+ *  10 dias, 23% nos de 10–20 e 30% nos de 3+ semanas. */
+const LOTE_NOVO_DIAS = 14
+
 function pct(num: number, den: number): string {
   if (den === 0) return '—'
   return `${((num / den) * 100).toFixed(1)}%`
@@ -154,6 +164,14 @@ export default async function CampanhasPage() {
                       >
                         {fmtDia(c.dia)}
                       </Link>
+                      {idadeDoLote(c.dia) < LOTE_NOVO_DIAS && (
+                        <div
+                          title="Lote ainda amadurecendo: a conversa, os 5 dados e a pré-aprovação levam 1 a 3 semanas. Compare com lotes de 3+ semanas."
+                          style={{ display: 'inline-block', marginTop: 2, fontSize: '0.64rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', borderRadius: 4, padding: '0 0.3rem' }}
+                        >
+                          lote novo · {idadeDoLote(c.dia)} {idadeDoLote(c.dia) === 1 ? 'dia' : 'dias'}
+                        </div>
+                      )}
                       {c.produtos && c.produtos.length > 0 && (
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>
                           {c.produtos.join(', ')}
@@ -214,7 +232,8 @@ export default async function CampanhasPage() {
 
       <p style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.72rem', textAlign: 'center' }}>
         Clique no dia pra ver os leads daquele lote · taxas calculadas sobre o total disparado naquele dia ·
-        “Em andamento” = pré-aprovação, cadastro recebido, em análise AIVA, treinar e login ·
+        “Em andamento” = pré-aprovação, cadastro recebido, em análise AIVA, treinar e login — inclui quem já foi aprovado e só falta o e-mail (Fase 3) ·
+        “lote novo” = menos de 14 dias: ainda amadurecendo, o avanço costuma triplicar até 3 semanas ·
         “Responderam” inclui quem já avançou (pré-aprovação até vendendo) · lote recente ainda não teve tempo de virar loja
       </p>
     </main>
