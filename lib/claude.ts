@@ -9,6 +9,7 @@ import { removeFonesNaoOficiais, contextoDeData } from '@/lib/text'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { parseRespostaJson } from './claude-json'
+import { INSTRUCAO_VARIANTE_B } from '@/lib/teste-abertura'
 
 function loadEnvKey(key: string): string | undefined {
   // Tenta process.env primeiro
@@ -377,7 +378,7 @@ Se a loja for única (numero_lojas = 1), cnpjs_adicionais não se aplica — o s
 
   if (statusAtual === 'INTERESSADO' || statusAtual === 'INICIO' || statusAtual === 'SEM_RESPOSTA') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA — NÃO IGNORAR]\nStatus do lead = ${statusAtual}. Você está na FASE 1.\nNUNCA retorne "CADASTRO_RECEBIDO" — esse status é da Fase 3 e o lead ainda não foi aprovado pra avançar.\nVocê só pode retornar: "INTERESSADO" (ainda coletando os 5 dados da Fase 1) ou "PRE_APROVACAO" (quando os 5 estiverem completos: nome_socio, telefone_socio, nome_varejo, cnpj_matriz, numero_lojas).
-⛔ NÃO peça região/cidade, faturamento, valor de boleto nem "possui outra financeira" como dado — saíram do fluxo em 16/09/2026.\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
+⛔ NÃO peça região/cidade, faturamento, valor de boleto nem "possui outra financeira" como dado — saíram do fluxo em 16/09/2026.\nTermine a sua mensagem com UMA pergunta que faça a conversa andar (o próximo dado que falta; se o nome ainda não veio, é o nome) — regra da pergunta no final, seção FASE 1, que lista as exceções (já é cliente AIVA, cliente final, pediu pra falar depois, confirmar_contato, irritado, pediu humano, OPT_OUT, NAO_QUALIFICADO, pré-aprovação). Se precisar esclarecer algo (Odres/UME, nome ambíguo, CNPJ com 11 dígitos), essa é a pergunta do fim, sozinha.\nOutros retornos válidos só pra desqualificação: OPT_OUT, NAO_QUALIFICADO, AGUARDANDO, BOT_DETECTADO.\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   // Mesmo sem instrução de fase específica, injeta dados acumulados se houver
   if (dadosBlock) return dadosBlock.trimEnd()
@@ -691,6 +692,10 @@ export async function processarMensagem(
   onbEtapaAberta?: string | null,
   /** [SENHA_REENVIADA:ISO] — o sistema JÁ pediu o reenvio à AIVA por este lead (trava de 24h) */
   senhaReenviadaEm?: string | null,
+  /** Teste A/B da 1ª resposta (lib/teste-abertura.ts, 28/09/2026). 'B' junta o pedido do
+   *  nome à pergunta do crediário; 'A' e null não mudam nada. O webhook só manda quando
+   *  é de fato a 1ª resposta a uma pessoa. */
+  testeAbertura?: 'A' | 'B' | null,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -753,6 +758,8 @@ export async function processarMensagem(
   // (Vem DEPOIS do envelope <mensagem_lead> — fica fora dele, como instrução real.)
   const status = statusAtual ?? 'INTERESSADO'
   let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true, importadoPortal === true, biometriaLink ?? null, onbEtapaAberta ?? null)
+  // Teste A/B da abertura: bloco dinâmico (fora do cache), só na variante B
+  if (testeAbertura === 'B') faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${INSTRUCAO_VARIANTE_B}` : INSTRUCAO_VARIANTE_B
   // Senha da loja pedida à AIVA e ainda NÃO enviada (marcador gravado pelo cron
   // /api/sdr/senha-pendente, lido do portal). Sem isso a VictorIA manda o lojista
   // procurar no spam um SMS que a AIVA nunca enviou (regra 16/09/2026).

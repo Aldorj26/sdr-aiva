@@ -40,7 +40,8 @@ import { ehSoReconhecimento } from '@/lib/reconhecimento'
 import { reenviarSenhaApi, telefonePorRetailer } from '@/lib/portal-aiva'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
-import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE } from '@/lib/resposta-automatica'
+import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE, ehRespostaAutomatica } from '@/lib/resposta-automatica'
+import { TESTE_ABERTURA_ATIVO, varianteAbertura, ehPrimeiraResposta } from '@/lib/teste-abertura'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1228,6 +1229,13 @@ export async function POST(req: NextRequest) {
     // (Fase 1 = INTERESSADO, Fase 2 = PRE_APROVACAO, Fase 3 = INTERESSADO).
     // O produto determina o prompt: AIVA (default) ou TRIAGEM (lead inbound puro).
     let resposta
+    // Teste A/B da 1ª resposta (lib/teste-abertura.ts, Aldo 28/09/2026): variante fixa
+    // por lead; só vale quando é a 1ª fala da VictorIA a uma PESSOA nesta conversa.
+    const testeAbertura =
+      TESTE_ABERTURA_ATIVO && (lead.produto ?? 'AIVA') === 'AIVA' &&
+      ehPrimeiraResposta({ status: lead.status, dados: dadosAcumulados, historico, mensagemEhAutomatica: ehRespostaAutomatica(conteudoEfetivo) })
+        ? varianteAbertura(lead.id)
+        : null
     try {
       // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
       // fallback — o status sozinho não distingue Fase 1 de Fase 3.
@@ -1247,6 +1255,7 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').match(/\[ONB_ETAPA:([^:\]]+)/)?.[1] ?? null,
         // reenvio de senha JÁ pedido por nós — sem isso ela reprometeria a cada "não chegou"
         (lead.observacoes ?? '').match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1] ?? null,
+        testeAbertura,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -1832,6 +1841,10 @@ export async function POST(req: NextRequest) {
 
     if (autoDetected && !obsPrev.includes('[AUTO_DETECTED')) {
       partes.push(`[AUTO_DETECTED:${new Date().toISOString()}]`)
+    }
+    // Teste A/B da abertura: marca a variante UMA vez, na 1ª resposta — é por aqui que se mede
+    if (testeAbertura && !obsPrev.includes('[TESTE_ABERTURA:')) {
+      partes.push(`[TESTE_ABERTURA:${testeAbertura}:${new Date().toISOString()}]`)
     }
     // CAF concluído pelo lojista → marcador DURÁVEL. O motivo_humano é texto
     // SOLTO e é substituído a cada turno (só o que está em [colchetes] sobrevive
