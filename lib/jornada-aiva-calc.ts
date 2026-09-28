@@ -91,6 +91,8 @@ export type Perf = {
   n_aprovados?: number | null
   n_vendas?: number | null
   valor_vendas?: number | string | null
+  /** data de cadastro da loja no desempenho (YYYY-MM-DD) */
+  registered_at?: string | null
 }
 export type LeadRef = { id: string; nome: string | null; status: string | null; opp: number | null }
 
@@ -155,8 +157,24 @@ export function movimentoPorCnpj(perf: Perf[], onbs: Onb[], mesAtual: string): M
   return out
 }
 
+/** O portal só registra pedido/envio de senha (login_sends) desde 12/08/2026. Loja criada
+ *  ANTES disso, sem nenhum pedido registrado, provavelmente recebeu a senha fora desse
+ *  controle — "sem senha" seria falso alarme (medido em 28/09: ~10 lojas nessa situação). */
+export const INICIO_CONTROLE_SENHA = '2026-08-12'
+/** O portal só registra cadastros (onboardings.created_at) desde 28/08/2026 — várias lojas
+ *  antigas entraram em lote nessa data. A idade medida por created_at é um PISO. */
+export const INICIO_PORTAL = '2026-08-28'
+
+/** Loja criada antes do controle de senha e sem nenhum pedido registrado. */
+export function senhaAnteriorAoControle(o: Onb, senhaPedida?: Map<string, string>): boolean {
+  const rid = o.retailer_id != null ? String(o.retailer_id) : ''
+  if (!rid || senhaPedida?.has(rid)) return false
+  const criada = String(o.retailer_registered_at ?? '').slice(0, 10)
+  return !!criada && criada < INICIO_CONTROLE_SENHA
+}
+
 // ─── a fase de UM cadastro ────────────────────────────────────────────────────
-export function faseDe(o: Onb, mov: Movimento | undefined, senhaEnviada: Map<string, string>): Fase {
+export function faseDe(o: Onb, mov: Movimento | undefined, senhaEnviada: Map<string, string>, senhaPedida?: Map<string, string>): Fase {
   // VENDA vence qualquer stage (o lote importado de 16/09 está em dados_varejo e vende)
   if (mov && mov.vendasTotal > 0) return (mov.vendasMes > 0 || mov.vendasMesAnt > 0) ? 'vendendo' : 'parou'
   if (mov && mov.consultasTotal > 0) return 'consultando'
@@ -164,7 +182,10 @@ export function faseDe(o: Onb, mov: Movimento | undefined, senhaEnviada: Map<str
   if (String(o.pre_cadastro_status ?? '').toLowerCase() === 'declined') return 'pre_recusado'
   if (stage === 'not_approved') return 'reprovado'
   if (o.retailer_id != null && String(o.retailer_id) !== '') {
-    return senhaEnviada.has(String(o.retailer_id)) ? 'sem_movimento' : 'sem_senha'
+    if (senhaEnviada.has(String(o.retailer_id))) return 'sem_movimento'
+    // criada antes de o portal registrar senhas e sem pedido nenhum: não dá pra dizer que
+    // falta senha — trata como "com senha, sem uso" (o detalhe da loja avisa)
+    return senhaAnteriorAoControle(o, senhaPedida) ? 'sem_movimento' : 'sem_senha'
   }
   if (stage === 'dados_varejo') return 'formulario'
   if (stage === 'biometria') {
@@ -184,7 +205,7 @@ export function desdeQuando(fase: Fase, o: Onb, senhaEnviada: Map<string, string
   const rid = o.retailer_id != null ? String(o.retailer_id) : ''
   switch (fase) {
     case 'formulario': case 'biometria': case 'biometria_negada':
-      return { iso: o.created_at ?? null, base: 'desde o pré-cadastro' }
+      return { iso: o.created_at ?? null, base: 'no portal desde o pré-cadastro (o portal começou em 28/08 — lojas antigas estão paradas há mais tempo)' }
     case 'aguardando_aiva':
       return { iso: o.updated_at ?? o.created_at ?? null, base: 'desde a última atualização no portal' }
     case 'sem_senha':
@@ -305,9 +326,10 @@ export function montarPainel(e: Entradas, etapasEvoQtd: Map<number, number>): Pa
   const lojas: Loja[] = []
   for (const [c, o] of porCnpj) {
     const m = mov.get(c)
-    const fase = faseDe(o, m, e.senhaEnviada)
+    const fase = faseDe(o, m, e.senhaEnviada, e.senhaPedida)
     const { iso } = desdeQuando(fase, o, e.senhaEnviada)
     const rid = o.retailer_id != null && String(o.retailer_id) !== '' ? String(o.retailer_id) : null
+    const preControle = fase === 'sem_movimento' && !e.senhaEnviada.has(rid ?? '') && senhaAnteriorAoControle(o, e.senhaPedida)
     lojas.push({
       cnpj: c,
       loja: (o.legal_name ?? '').trim() || e.leadPorCnpj.get(c)?.nome || `CNPJ ${c}`,
@@ -317,20 +339,20 @@ export function montarPainel(e: Entradas, etapasEvoQtd: Map<number, number>): Pa
       dias: diasDesde(iso, e.agora),
       lead: e.leadPorCnpj.get(c) ?? null,
       rid,
-      detalhe: null,
+      detalhe: preControle ? 'senha anterior ao controle do portal (12/08) — envio não registrado' : null,
     })
   }
 
   // Loja que só existe no DESEMPENHO (cadastrada antes da API de onboardings, ou por
   // outro caminho): sem ela a estação "Vendendo" mostraria menos lojas que o portal.
-  const semCadastro = new Map<string, { nome: string; rid: string | null }>()
+  const semCadastro = new Map<string, { nome: string; rid: string | null; registrada: string | null }>()
   for (const p of e.perf) {
     const c = soDigitos(p.cnpj)
     if (c.length !== 14 || porCnpj.has(c) || semCadastro.has(c)) continue
-    semCadastro.set(c, { nome: nomeDoSlug(p.retailer_name), rid: p.retailer_id != null ? String(p.retailer_id) : null })
+    semCadastro.set(c, { nome: nomeDoSlug(p.retailer_name), rid: p.retailer_id != null ? String(p.retailer_id) : null, registrada: p.registered_at ?? null })
   }
   for (const [c, x] of semCadastro) {
-    const fase = faseDe({ retailer_id: x.rid }, mov.get(c), e.senhaEnviada)
+    const fase = faseDe({ retailer_id: x.rid, retailer_registered_at: x.registrada }, mov.get(c), e.senhaEnviada, e.senhaPedida)
     lojas.push({
       cnpj: c, loja: x.nome || e.leadPorCnpj.get(c)?.nome || `CNPJ ${c}`, socio: null, telefone: null,
       fase, dias: diasDesde(fase === 'sem_movimento' && x.rid ? e.senhaEnviada.get(x.rid) : null, e.agora),

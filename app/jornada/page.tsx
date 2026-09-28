@@ -175,7 +175,10 @@ export default async function JornadaPage({ searchParams }: { searchParams: Prom
                   <span className={s.nome}>{ROTULO_FASE[f]}</span>
                   {f !== 'vendendo' ? <span className={s.quem}>falta: {NOME_QUEM[QUEM_AGE[f]]}</span> : <span className={s.quem}>operando</span>}
                   {r.mediana != null ? (
-                    <span className={s.meta}>metade há {r.mediana}d ou mais<br />mais antiga: {r.maisAntigo}d</span>
+                    ['formulario', 'biometria'].includes(f)
+                      // o portal só registra cadastro desde 28/08: a idade aqui é um PISO
+                      ? <span className={s.meta} title="O portal da AIVA só registra cadastros desde 28/08/2026 — lojas antigas estão paradas há mais tempo do que isso.">no portal: metade há {r.mediana}d+<br />mais antiga: {r.maisAntigo}d+ (portal desde 28/08)</span>
+                      : <span className={s.meta}>metade há {r.mediana}d ou mais<br />mais antiga: {r.maisAntigo}d</span>
                   ) : null}
                 </div>
               )

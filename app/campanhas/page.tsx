@@ -16,7 +16,9 @@ interface CampanhaDia {
   sem_resposta: number
   disparo_realizado: number
   produtos: string[] | null
-  /** status LOJA_FINALIZADA_E_VENDENDO — loja finalizada e ativa (25/09/2026) */
+  /** JÁ VENDEU de verdade: venda registrada no portal da AIVA (aiva_desempenho, qualquer mês),
+   *  casada pelo CNPJ do lead. Até 28/09/2026 era o status LOJA_FINALIZADA_E_VENDENDO — 255
+   *  leads, só 87 com venda real (a etapa 51 recebia loja finalizada, não loja vendendo). */
   vendendo: number
   /** passou de Interessado e ainda não vende: pré-aprovação, cadastro recebido,
    *  em análise AIVA, treinar, login (25/09/2026) */
@@ -98,9 +100,9 @@ export default async function CampanhasPage() {
           color="#fb923c"
         />
         <SummaryCard
-          label="Lojas vendendo"
+          label="Lojas que já venderam"
           value={vendendoGeral}
-          hint={`${pct(vendendoGeral, totalGeral)} do disparado · ${pct(vendendoGeral, respondGeral)} de quem respondeu`}
+          hint={`venda registrada no portal da AIVA · ${pct(vendendoGeral, totalGeral)} do disparado · ${pct(vendendoGeral, respondGeral)} de quem respondeu`}
           color="#16a34a"
         />
         <SummaryCard
@@ -135,7 +137,7 @@ export default async function CampanhasPage() {
                 <th style={{ textAlign: 'right' }}>Responderam</th>
                 <th style={{ textAlign: 'right' }}>Interessados</th>
                 <th style={{ textAlign: 'right' }} title="Pré-aprovação, cadastro recebido, em análise AIVA, treinar e login">Em andamento</th>
-                <th style={{ textAlign: 'right' }}>Vendendo</th>
+                <th style={{ textAlign: 'right' }} title="Loja com venda registrada no portal da AIVA (qualquer mês)">Já vendeu</th>
                 <th style={{ textAlign: 'right' }}>Opt-out</th>
                 <th style={{ textAlign: 'right' }}>Não qualif.</th>
                 <th style={{ textAlign: 'right' }}>Sem resposta</th>
@@ -232,7 +234,8 @@ export default async function CampanhasPage() {
 
       <p style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.72rem', textAlign: 'center' }}>
         Clique no dia pra ver os leads daquele lote · taxas calculadas sobre o total disparado naquele dia ·
-        “Em andamento” = pré-aprovação, cadastro recebido, em análise AIVA, treinar e login — inclui quem já foi aprovado e só falta o e-mail (Fase 3) ·
+        “Já vendeu” = venda registrada no portal da AIVA (não é o status do card) ·
+        “Em andamento” = pré-aprovação até login, aprovado esperando e-mail (Fase 3) e loja finalizada que ainda não vendeu ·
         “lote novo” = menos de 14 dias: ainda amadurecendo, o avanço costuma triplicar até 3 semanas ·
         “Responderam” inclui quem já avançou (pré-aprovação até vendendo) · lote recente ainda não teve tempo de virar loja
       </p>

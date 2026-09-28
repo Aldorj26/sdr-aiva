@@ -113,3 +113,18 @@ test('nome do slug do portal vira nome legível', async () => {
   assert.equal(nomeDoSlug('andre-cell-mauriti-57252321000109'), 'ANDRE CELL MAURITI')
   assert.equal(nomeDoSlug(null), '')
 })
+
+test('loja criada antes do controle de senha (12/08) e sem pedido não vira "sem senha"', async () => {
+  const { faseDe: f } = await import('./jornada-aiva-calc.ts')
+  const vazio2 = new Map<string, string>()
+  const antiga = { stage: 'cadastro_finalizado', retailer_id: '4100', retailer_registered_at: '2026-06-10T12:00:00Z' }
+  assert.equal(f(antiga, undefined, vazio2, new Map()), 'sem_movimento')
+  // com pedido registrado e sem envio → a pendência é real
+  assert.equal(f(antiga, undefined, vazio2, new Map([['4100', '2026-08-20T12:00:00Z']])), 'sem_senha')
+  // loja criada depois do controle, sem envio → sem senha
+  assert.equal(f({ ...antiga, retailer_registered_at: '2026-09-01T12:00:00Z' }, undefined, vazio2, new Map()), 'sem_senha')
+  const p = montarPainel(entradas({ onbs: [{ cnpj: C1, legal_name: 'ANTIGA', ...antiga }] }), new Map())
+  assert.equal(p.lojas[0].fase, 'sem_movimento')
+  assert.match(p.lojas[0].detalhe ?? '', /anterior ao controle/)
+  assert.equal(p.acoes.find((a) => a.chave === 'sem_senha')!.lojas.length, 0)
+})
