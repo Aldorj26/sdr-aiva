@@ -163,6 +163,36 @@ export async function POST(req: NextRequest) {
 
   const stageNum = Number(destStageId)
 
+  // ─── ARRUMAÇÃO SEM MENSAGEM (Aldo 28/09/2026) ────────────────────────────────
+  // Card corrigido pra trás por nós (ex.: estava em 51 sem a loja operar) NÃO pode
+  // reenviar o que o lojista já recebeu quando passou pela etapa: o HSM 69 da 70 e o
+  // link de cadastro da 50 não têm trava de repetição. Quem move grava antes no lead
+  // [MOVE_SILENCIOSO:<etapa>:<ISO>]; se a marca for desta etapa e tiver < 30 min, aqui
+  // só atualizamos o status, apagamos a marca e encerramos — sem alerta, sem HSM, sem
+  // texto. Sem a marca, o fluxo normal segue igual.
+  const STATUS_SILENCIOSO: Record<number, string> = { [STAGES.EM_ANALISE_AIVA]: 'EM_ANALISE_AIVA', [STAGES.TREINAR]: 'TREINAR' }
+  if (STATUS_SILENCIOSO[stageNum]) {
+    try {
+      const oppS = await getOpportunity(Number(opportunityId))
+      const formsS = (oppS.formsdata ?? {}) as Record<string, string | null>
+      const telS = normalizePhoneBR((oppS.mainphone ?? formsS['db8569f0'] ?? '').toString())
+      const { data: leadS } = telS
+        ? await supabaseAdmin.from('sdr_leads').select('id, observacoes').eq('telefone', telS).maybeSingle()
+        : { data: null }
+      const m = (leadS?.observacoes ?? '').match(new RegExp(`\\[MOVE_SILENCIOSO:${stageNum}:([^\\]]+)\\]`))
+      if (leadS?.id && m && Date.now() - Date.parse(m[1]) < 30 * 60_000) {
+        const obsSem = (leadS.observacoes ?? '').replace(/\s*\[MOVE_SILENCIOSO:[^\]]*\]/g, '').trim()
+        await supabaseAdmin.from('sdr_leads')
+          .update({ status: STATUS_SILENCIOSO[stageNum], observacoes: obsSem, acionar_humano: false })
+          .eq('id', leadS.id)
+        console.log(`[move-silencioso] opp #${opportunityId} → ${stageNum}: só status (${STATUS_SILENCIOSO[stageNum]}), sem mensagens`)
+        return NextResponse.json({ ok: true, silencioso: true, status: STATUS_SILENCIOSO[stageNum] })
+      }
+    } catch (err) {
+      console.error(`[move-silencioso] falha ao checar opp #${opportunityId} — segue o fluxo normal:`, err)
+    }
+  }
+
   // ─── Aviso Aldo + Nei nas etapas pós-aprovação (pedido do Aldo 2026-07-16) ───
   // Roda ANTES dos handlers específicos de propósito: cada bloco abaixo pode
   // retornar cedo (telefone ausente, template não configurado, erro de API) e

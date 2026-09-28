@@ -10,7 +10,9 @@
  *   - portal em dados_varejo/biometria (pré-cadastro aprovado) → 50 Em Análise
  *   - cadastro_finalizado (tem retailer_id)                  → 70 Treinar
  *   - login_sends.credentials_sent_at preenchido             → 71 Login
- *   - alguma venda em retailer_performance                    → 51 Vendendo
+ *   - alguma venda OU consulta em retailer_performance        → 51 Vendendo
+ *     (consulta entrou em 28/09/2026, Aldo: loja que já consulta está operando e a
+ *     etapa 51 é "loja operando", não "loja que já vendeu")
  *   - SÓ AVANÇA. Nunca regride (mesma ordem linear do changeStageSeAvanco).
  *   - Sem Resposta (53) pode avançar; Bot (69), Menos de 1 Ano (93) e CNPJ
  *     Irregular (94) nunca são tocados. Status terminais do lead também não.
@@ -78,7 +80,8 @@ export type Entrada = {
   onboardings: OnbApi[]
   /** retailer_ids com credentials_sent_at preenchido em login_sends */
   loginEnviado: Set<string>
-  /** retailer_ids com n_vendas > 0 em algum mês de retailer_performance */
+  /** retailer_ids OPERANDO: n_vendas > 0 ou n_consultas > 0 em algum mês de retailer_performance
+   *  (o nome ficou `vendeu` por histórico; consulta entrou em 28/09/2026) */
   vendeu: Set<string>
   registros: RegistroCnpj[]
   leads: LeadEspelho[]
@@ -215,7 +218,7 @@ export function calcularEspelho(e: Entrada): Resultado {
     if (ordem(melhor.para) >= ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR] && melhor.para !== ETAPA.TREINAR) via.push(ETAPA.TREINAR)
     const rid = melhor.onb.retailer_id != null ? String(melhor.onb.retailer_id) : ''
     const motivo =
-      melhor.para === ETAPA.VENDENDO ? `venda registrada no portal (RID ${rid})`
+      melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`
       : melhor.para === ETAPA.LOGIN ? `senha enviada pela AIVA (RID ${rid})`
       : melhor.para === ETAPA.TREINAR ? `cadastro finalizado no portal${rid ? ` (RID ${rid})` : ''}`
       : `pré-cadastro aprovado, portal em ${melhor.onb.stage}`

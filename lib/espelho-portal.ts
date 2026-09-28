@@ -63,8 +63,10 @@ async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<
       if (data.length < 1000) break
     }
     for (let de = 0; ; de += 1000) {
+      // Loja OPERANDO vai pra 51 (Aldo 28/09/2026): vendeu OU já consultou crédito.
+      // Antes era só venda — loja que consultava ficava presa em Em Análise/Treinar/Login.
       const { data } = await rest<Array<{ retailer_id: string | number }>>(
-        s, `retailer_performance?select=retailer_id&partner_id=eq.${encodeURIComponent(partner)}&n_vendas=gt.0`, [de, de + 999],
+        s, `retailer_performance?select=retailer_id&partner_id=eq.${encodeURIComponent(partner)}&or=(n_vendas.gt.0,n_consultas.gt.0)`, [de, de + 999],
       )
       for (const l of data) vendeu.add(String(l.retailer_id))
       if (data.length < 1000) break
