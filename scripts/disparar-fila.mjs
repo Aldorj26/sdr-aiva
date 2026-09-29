@@ -3,7 +3,7 @@
  * Dispara D+0 pros próximos N leads PENDENTES da fila sdr_fila_disparo
  * (lista varredura 01/09 — meta 150/dia útil).
  *
- * - Pega os N mais antigos com status PENDENTE
+ * - Pega os N PENDENTES mais avaliados no Google Maps (empate: o mais antigo)
  * - POST em lotes de 5 pro /api/sdr/send-initial de produção (padrão comprovado
  *   do disparar-lote-aiva.mjs — chunks pequenos pra não estourar o timeout)
  * - Marca cada um na fila: DISPARADO (ok/bloqueado com lead criado) ou ERRO
@@ -31,6 +31,9 @@ if (!DRY && (horaBrt < 8 || horaBrt >= 19)) { console.error(`ABORTADO: ${horaBrt
 const { data: fila } = await sb.from('sdr_fila_disparo')
   .select('id,nome,telefone,cidade')
   .eq('status', 'PENDENTE')
+  // mais avaliados no Google Maps primeiro (Aldo 29/09/2026): loja com muita
+  // avaliação é loja com movimento — é quem vende mais financiamento
+  .order('avaliacoes', { ascending: false, nullsFirst: false })
   .order('criado_em', { ascending: true })
   .limit(QTD)
 if (!fila?.length) { console.log('Fila vazia — nada a disparar.'); process.exit(0) }
