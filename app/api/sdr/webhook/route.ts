@@ -1554,6 +1554,12 @@ export async function POST(req: NextRequest) {
   // fase pós-credenciamento o CNPJ que chega é de loja nova/filial ou confirmação
   // pro painel de repasses — aí só avisa o time (achado do revisor 10/09: sem este
   // gate, uma loja vendendo viraria NAO_QUALIFICADO e a conversa morreria).
+  // Prospect que diz que JÁ trabalha com a AIVA por outro canal (Aldo 29/09/2026,
+  // bloco 🚦 do prompt): a VictorIA pede o CNPJ só pra conferir na base e encerra.
+  // Aqui vale SÓ a checagem da base — a da Receita existe pra quem vai ser
+  // pré-aprovado, e com CNPJ inválido ela acionaria humano pra loja que nem é nossa.
+  const jaClienteOutroCanal = resposta.motivo_humano === 'ja_cliente_aiva_outro_canal'
+  if (jaClienteOutroCanal) resposta.acionar_humano = false
   const faseInicialCnpj = ['DISPARO_REALIZADO', 'INICIO', 'INTERESSADO', 'SEM_RESPOSTA', 'PRE_APROVACAO', 'AGUARDANDO'].includes(lead.status)
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
@@ -1604,8 +1610,8 @@ export async function POST(req: NextRequest) {
         console.error(`[BASE_AIVA] Falha na checagem do CNPJ ${cnpjPraChecar}:`, err)
       }
 
-      // 2) Receita — só se NÃO for cliente da base
-      if (!naBaseAiva) {
+      // 2) Receita — só se NÃO for cliente da base (nem prospect já cliente por outro canal)
+      if (!naBaseAiva && !jaClienteOutroCanal) {
         try {
           const consulta = await consultarCNPJDetalhado(cnpjPraChecar)
           cnpjInfoNovo = consulta.info
@@ -2423,7 +2429,9 @@ export async function POST(req: NextRequest) {
 
         }
       } else if (resposta.novo_status === 'NAO_QUALIFICADO') {
-        await addOpportunityNote(oppId, `Lead não qualificado: ${resposta.motivo_humano ?? 'sem perfil'}`)
+        await addOpportunityNote(oppId, resposta.motivo_humano === 'ja_cliente_aiva_outro_canal'
+          ? 'Lead não qualificado: disse que já trabalha com a AIVA por outro canal (não é cliente da Track) — encerrado sem proposta'
+          : `Lead não qualificado: ${resposta.motivo_humano ?? 'sem perfil'}`)
         // CNPJ < 1 ano → card vai pra etapa 93 "Lojas menos de 01 Ano" (Aldo
         // 08/09/2026): o Nei enxerga no kanban quem volta a valer daqui a meses.
         if (resposta.motivo_humano === 'cnpj_menos_de_1_ano') {
