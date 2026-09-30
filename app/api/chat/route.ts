@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     enviado_em: new Date().toISOString(),
   }))
 
-  const STATUS_VALIDOS = ['INTERESSADO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA']
+  const STATUS_VALIDOS = ['INTERESSADO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
   const statusAtual = STATUS_VALIDOS.includes(status) ? status : 'INTERESSADO'
 
   try {

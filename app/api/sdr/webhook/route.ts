@@ -2602,7 +2602,7 @@ export async function POST(req: NextRequest) {
             const numeroDiferente = !!cadastroAiva && soDig(cadastroAiva.telefone) !== soDig(lead.telefone)
             const fmtFinal = (t: string) => `final ${soDig(t).slice(-4)}`
             const avisoLojista = numeroDiferente && cadastroAiva
-              ? `Pedi o reenvio do seu acesso à AIVA 🙂 Só que ele vai pro número que está no CADASTRO da loja (${fmtFinal(cadastroAiva.telefone)}${cadastroAiva.nome ? `, em nome de ${cadastroAiva.nome.split(' ')[0]}` : ''}), que é diferente deste WhatsApp aqui.\n\nA senha chega pelo +55 21 4020-2024 (Comunicados Aiva Pay) nesse número do cadastro — é só clicar em "Sim, quero". Se você não tiver acesso a ele, me avisa que eu peço pro time atualizar o cadastro.`
+              ? `Pedi o reenvio do seu acesso à AIVA 🙂 Só que ele vai pro número que está no CADASTRO da loja (${fmtFinal(cadastroAiva.telefone)}${cadastroAiva.nome ? `, em nome de ${cadastroAiva.nome.split(' ')[0]}` : ''}), que é diferente deste WhatsApp aqui.\n\nA senha chega pelo +55 21 4020-2024 (Comunicados Aiva Pay) nesse número do cadastro — é só clicar em "Sim, quero". Se você não tiver acesso a ele, dá pra atualizar o telefone do cadastro aqui: https://operadores.ume.com.br/atualizacao-cadastral`
               : 'Pedi o reenvio do seu acesso à AIVA 🙂 Quando sair, chega pelo WhatsApp do +55 21 4020-2024 ' +
                 '(Comunicados Aiva Pay), no número que está no cadastro da loja — é só clicar em "Sim, quero" ' +
                 'que o login e a senha vêm na sequência. Se não aparecer, me avisa aqui que eu chamo o time.'
