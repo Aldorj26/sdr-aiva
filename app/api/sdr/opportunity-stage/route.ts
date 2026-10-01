@@ -670,7 +670,7 @@ export async function POST(req: NextRequest) {
           : '🎓 Treinamento: temos turmas ao vivo durante a semana — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
         linkTurmas,
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
-        '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você solicita no chat dentro da plataforma (opção Cadastrar/Remover Usuário — senha por SMS em até 2 dias; se não chegar, confere o spam do SMS).',
+        '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS).',
       ])
 
       // Atualiza status no Supabase e registra histórico

@@ -2602,7 +2602,7 @@ export async function POST(req: NextRequest) {
             const numeroDiferente = !!cadastroAiva && soDig(cadastroAiva.telefone) !== soDig(lead.telefone)
             const fmtFinal = (t: string) => `final ${soDig(t).slice(-4)}`
             const avisoLojista = numeroDiferente && cadastroAiva
-              ? `Pedi o reenvio do seu acesso à AIVA 🙂 Só que ele vai pro número que está no CADASTRO da loja (${fmtFinal(cadastroAiva.telefone)}${cadastroAiva.nome ? `, em nome de ${cadastroAiva.nome.split(' ')[0]}` : ''}), que é diferente deste WhatsApp aqui.\n\nA senha chega pelo +55 21 4020-2024 (Comunicados Aiva Pay) nesse número do cadastro — é só clicar em "Sim, quero". Se você não tiver acesso a ele, dá pra atualizar o telefone do cadastro aqui: https://operadores.ume.com.br/atualizacao-cadastral`
+              ? `Pedi o reenvio do seu acesso à AIVA 🙂 Só que ele vai pro número que está no CADASTRO da loja (${fmtFinal(cadastroAiva.telefone)}${cadastroAiva.nome ? `, em nome de ${cadastroAiva.nome.split(' ')[0]}` : ''}), que é diferente deste WhatsApp aqui.\n\nA senha chega pelo +55 21 4020-2024 (Comunicados Aiva Pay) nesse número do cadastro — é só clicar em "Sim, quero". Se você não tiver acesso a ele, dá pra atualizar o telefone do cadastro aqui: https://operadores.flexfone.com.br/atualizacao-cadastral`
               : 'Pedi o reenvio do seu acesso à AIVA 🙂 Quando sair, chega pelo WhatsApp do +55 21 4020-2024 ' +
                 '(Comunicados Aiva Pay), no número que está no cadastro da loja — é só clicar em "Sim, quero" ' +
                 'que o login e a senha vêm na sequência. Se não aparecer, me avisa aqui que eu chamo o time.'
@@ -2838,11 +2838,11 @@ export async function POST(req: NextRequest) {
         partesForm.push(
           `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO pela AIVA — nada foi lançado.\n` +
             `${nomes}\n` +
-            `➡️ Orientar o SÓCIO a criar esses usuários pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 2 dias; pode cair no spam do SMS).`,
+            `➡️ Orientar o SÓCIO a pedir esses usuários no formulário de Login de operadores da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6`,
         )
       }
       if (incompletos > 0) {
-        partesForm.push(`⚠️ ${incompletos} colaborador(es) com dados incompletos — o sócio cadastra direto no Live Chat da plataforma (fluxo novo 27/08).`)
+        partesForm.push(`⚠️ ${incompletos} colaborador(es) com dados incompletos — o sócio pede no formulário de Login de operadores (https://forms.gle/izjwzRDXzYWDvtEt6).`)
       }
       if (validos.length === 0 && incompletos === 0) {
         // Parse não reconheceu NADA — nunca falhar em silêncio (bug Diana Upstore
@@ -2913,7 +2913,7 @@ export async function POST(req: NextRequest) {
           `🏪 ${lead.nome}\n📞 ${lead.telefone}\n\n` +
           `👤 ${colab.nome}\n🆔 CPF: ${colab.cpf}\n📧 ${colab.email}\n📱 ${colab.telefone}\n\n` +
           `⚠️ FLUXO NOVO (27/08): o formulário de colaboradores foi DESATIVADO — nada foi lançado automaticamente. ` +
-          `Orientar o SÓCIO a criar esse usuário pelo Live Chat da plataforma (Cadastrar/Remover Usuário — senha por SMS em até 2 dias; pode cair no spam do SMS).`
+          `Orientar o SÓCIO a pedir esse usuário no formulário de Login de operadores da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6`
         if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
         console.log(`[REDE_COLAB] ${lead.telefone}: ${colab.nome} (${colab.cpf}) capturado — form_ok=${formOk}`)
@@ -2961,6 +2961,12 @@ export async function POST(req: NextRequest) {
   // (mesmo padrão das outras redes): dispara quando a mensagem traz um e-mail
   // E o contexto é repasses (campanha marcada ou papo recente sobre o painel).
   const STATUS_REPASSE = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+  // ⛔ DESLIGADO em 01/10/2026: a AIVA trocou o form "Painel de Repasse - Sócio" pelo
+  // "Solicitação de acesso ao painel financeiro" (pede também nome, função, CPF do
+  // sócio, nome da loja e telefone) e o Aldo decidiu que o PRÓPRIO lojista preenche
+  // — a VictorIA só manda o link. O form antigo foi desativado; o contextoRep abaixo
+  // continua calculado porque ele também suprime o falso "CNPJ novo" no papo de repasse.
+  const REPASSE_AUTO_ATIVO = false
   let repasseCapturado = false
   // Contexto de repasse calculado FORA do gate de e-mail: também suprime a
   // captura de LOJA NOVA quando o lojista manda o CNPJ num turno e o Gmail no
@@ -2970,7 +2976,9 @@ export async function POST(req: NextRequest) {
   if (STATUS_REPASSE.includes(lead.status)) {
     try {
       const obsRep = lead.observacoes ?? ''
-      contextoRep = obsRep.includes('[CAMPANHA_PAINEL_REPASSES') || /repasse|painel/i.test(conteudoEfetivo ?? '')
+      // com a coleta automática desligada, o marcador da campanha de 03/09 não deve mais
+      // calar a captura de LOJA NOVA (183 leads ficariam sem registro de filial pra sempre)
+      contextoRep = (REPASSE_AUTO_ATIVO && obsRep.includes('[CAMPANHA_PAINEL_REPASSES')) || /repasse|painel/i.test(conteudoEfetivo ?? '')
       if (!contextoRep) {
         const { data: ultimas } = await supabaseAdmin
           .from('sdr_mensagens').select('conteudo').eq('lead_id', lead.id)
@@ -2978,7 +2986,7 @@ export async function POST(req: NextRequest) {
         contextoRep = (ultimas ?? []).some((m) => /painel de repasse|repasses/i.test(m.conteudo ?? ''))
       }
       const emailMatch = (conteudoEfetivo ?? '').match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)
-      if (emailMatch) {
+      if (emailMatch && REPASSE_AUTO_ATIVO) {
         const jaSolicitado = obsRep.includes('[REPASSE_SOLICITADO')
         if (contextoRep && !jaSolicitado) {
           const email = emailMatch[0]
@@ -3108,8 +3116,9 @@ export async function POST(req: NextRequest) {
             linhasAlerta.join('\n') +
             (novos.length > 0
               ? `\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
-                `\nSe for LOJA NOVA: lançar o pré-cadastro (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
-                `\nSe for TROCA/CORREÇÃO do CNPJ cadastral: ajustar na mão e desconsiderar o registro.`
+                `\n📮 Desde 01/10 a VictorIA manda pro lojista o form oficial de credenciamento de filial (https://forms.gle/AyWzxY2bqktyz61v6) — é ELE quem preenche; a linha da planilha fica como registro.` +
+                `\nSe for LOJA NOVA: só acompanhar — o lojista preenche o form (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
+                `\nSe for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.`
               : '') +
             (filiaisLancadas.length
               ? `\n\n📄 Linha(s) já criada(s) na aba *Filiais* da planilha (modelo da AIVA, endereço puxado da Receita):\n` +
