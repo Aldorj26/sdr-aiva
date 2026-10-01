@@ -1,6 +1,8 @@
 /**
  * lib/colaborador-form.ts — ⛔ FLUXO DESATIVADO EM 2026-08-27 (aviso do Edu/AIVA:
- * o formulário foi desligado; o sócio cria usuários pelo Live Chat da plataforma).
+ * o formulário foi desligado). Desde 01/10/2026 o sócio pede usuários no form oficial
+ * "Cadastro Operadores do varejo" (Login de operadores) — linkColaboradorPreenchido
+ * agora monta o link PRÉ-PREENCHIDO desse form novo (botão "Lançar manual" do /registros).
  * enviarColaboradorAoForm tem guard e não posta mais. Histórico abaixo:
  * lançava colaboradores no Google Form "Colaborador AIVA" (pedido do Aldo 2026-07-28).
  *
@@ -127,17 +129,32 @@ export async function enviarColaboradorAoForm(nomeLoja: string, c: Colaborador):
 }
 
 /** Link pré-preenchido (fallback manual quando o envio automático falhar). */
+// Form oficial "Cadastro Operadores do varejo" (AIVA 01/10/2026, https://forms.gle/izjwzRDXzYWDvtEt6).
+// Entry ids lidos da página pública do form em 01/10/2026. O antigo (FORM_ID acima) responde 410.
+const LOGIN_OPERADORES_VIEW = 'https://docs.google.com/forms/d/e/1FAIpQLScZDF2-kdsZf2fhzLbHP1OGesQA9iTDbZ4673MfnjzNNDAerQ/viewform'
+const LOGIN_OPERADORES = {
+  funcao: 'entry.734055102', // Vendedor | Gerente | Financeiro
+  acao: 'entry.1794133239', // Cadastrar Novo Operador | Troca de loja | Inativar Operador | Troca de cargo
+  cnpjMatriz: 'entry.1535841188',
+  nomeLoja: 'entry.1003438243',
+  nome: 'entry.987837316',
+  cpf: 'entry.717671579',
+  email: 'entry.661212616',
+  telefone: 'entry.1035165720',
+} as const
+
+/** Link PRÉ-PREENCHIDO do form de Login de operadores ("Cadastrar Novo Operador", função Vendedor). */
 export function linkColaboradorPreenchido(nomeLoja: string, c: Colaborador): string {
   const q = new URLSearchParams({
     usp: 'pp_url',
-    [ENTRIES.nomeLoja]: nomeLoja,
-    [ENTRIES.cnpjMatriz]: c.cnpjMatriz,
-    [ENTRIES.cnpjLoja]: c.cnpjLoja,
-    [ENTRIES.nome]: c.nome,
-    [ENTRIES.cpf]: c.cpf,
-    [ENTRIES.email]: c.email,
-    [ENTRIES.telefone]: c.telefone,
-    [ENTRIES.indicacao]: INDICACAO_TRACK,
+    [LOGIN_OPERADORES.funcao]: 'Vendedor',
+    [LOGIN_OPERADORES.acao]: 'Cadastrar Novo Operador',
+    [LOGIN_OPERADORES.cnpjMatriz]: (c.cnpjMatriz || c.cnpjLoja).replace(/\D/g, ''),
+    [LOGIN_OPERADORES.nomeLoja]: nomeLoja,
+    [LOGIN_OPERADORES.nome]: c.nome,
+    [LOGIN_OPERADORES.cpf]: c.cpf,
+    [LOGIN_OPERADORES.email]: c.email,
+    [LOGIN_OPERADORES.telefone]: c.telefone,
   })
-  return `${VIEW_URL}?${q.toString()}`
+  return `${LOGIN_OPERADORES_VIEW}?${q.toString()}`
 }

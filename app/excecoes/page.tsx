@@ -171,7 +171,7 @@ export default async function ExcecoesPage() {
 
       <Secao id="senha" titulo="🔑 Senha não enviada pela AIVA" count={d.senha.length}
         oque="acesso do sócio solicitado e a AIVA ainda não mandou"
-        acao="Cobrar no Live Chat da AIVA. A VictorIA já sabe e não manda o lojista procurar no spam.">
+        acao="Cobrar a AIVA (Mauricio/Edu) pelo envio da senha do sócio. A VictorIA já sabe e não manda o lojista procurar no spam.">
         {cabecalho('Pedido')}
         <tbody>{d.senha.map((l) => (
           <ClickableRow key={l.id} leadId={l.id}>
@@ -185,8 +185,8 @@ export default async function ExcecoesPage() {
       </Secao>
 
       <Secao id="senha-equipe" titulo="👤 Usuário de vendedor/gerente pedido e a senha não veio" count={d.senhaEquipe.length}
-        oque="o sócio pediu o usuário pelo Live Chat da AIVA e o SMS com a senha não chegou (spam já conferido, prazo de 2 dias vencido)"
-        acao="Cobrar a AIVA (Live Chat/Edu) com nome, função e data do pedido. ⚠️ Reenviar a senha do SÓCIO não resolve — não cria usuário. A VictorIA não promete retorno.">
+        oque="o sócio pediu o usuário (formulário de Login de operadores — ou Live Chat, antes de 01/10) e a senha não chegou (spam conferido e reset pedido no formulário)"
+        acao="Cobrar a AIVA (Mauricio/Edu) com nome, função e data do pedido. ⚠️ Reenviar a senha do SÓCIO não resolve — não cria usuário. A VictorIA não promete retorno.">
         {cabecalho('Acionado')}
         <tbody>{d.senhaEquipe.map((l) => (
           <ClickableRow key={l.id} leadId={l.id}>

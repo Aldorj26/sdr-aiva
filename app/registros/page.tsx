@@ -207,7 +207,7 @@ export default async function RegistrosPage({
       {tab === 'colabs' && (
         <section>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem' }}>
-            Histórico de colaboradores capturados pela VictorIA (fluxo encerrado em 27/08/2026 — agora o sócio cria os usuários pelo Live Chat da plataforma; nada mais é lançado em formulário).
+            Histórico de colaboradores capturados pela VictorIA (fluxo encerrado em 27/08/2026 — desde 01/10 o sócio pede os usuários no formulário de Login de operadores da AIVA; o "Lançar manual" abre esse formulário já preenchido).
             {falhasColab > 0 && <b style={{ color: '#ef4444' }}> {falhasColab} com falha no envio automático — use o link pra lançar manualmente.</b>}
           </p>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

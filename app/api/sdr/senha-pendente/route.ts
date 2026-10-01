@@ -222,7 +222,7 @@ async function executar(req: NextRequest) {
       `(acesso solicitado e senha ainda não saiu; prazo do Edu é ${DIAS_UTEIS_PRAZO} dias úteis)\n` +
       `${novos} nova(s) · ${avisar.length - novos} já avisada(s) antes\n\n` +
       linhas.slice(0, 25).join('\n') + (linhas.length > 25 ? `\n… +${linhas.length - 25}` : '') +
-      `\n\nCobrar no Live Chat da AIVA. Reaviso a cada 7 dias enquanto continuar pendente.`
+      `\n\nCobrar a AIVA (Mauricio/Edu) pelo envio da senha do sócio. Reaviso a cada 7 dias enquanto continuar pendente.`
     for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
       try { await alertHuman(tel, texto) } catch (e) { console.error('[senha-pendente] alerta falhou:', e) }
     }

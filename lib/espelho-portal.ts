@@ -457,7 +457,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     blocos.push(
       `⏳ *Cadastro pronto e a AIVA não criou a loja* (${paradosAiva.length})\n${paradosAiva.join('\n')}\n\n` +
       'O lojista fez tudo: formulário concluído e biometria APROVADA. O portal fica parado em "biometria" até a AIVA ' +
-      'criar o ID da loja — sem isso não há treinamento nem acesso. Cobrar no Live Chat/com o Edu. ' +
+      'criar o ID da loja — sem isso não há treinamento nem acesso. Cobrar a AIVA (Mauricio/Edu).' +
       'A VictorIA já sabe e não cobra mais nada dele.',
     )
   }
