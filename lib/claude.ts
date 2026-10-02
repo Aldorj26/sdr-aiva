@@ -694,6 +694,9 @@ export async function processarMensagem(
    *  nome à pergunta do crediário; 'A' e null não mudam nada. O webhook só manda quando
    *  é de fato a 1ª resposta a uma pessoa. */
   testeAbertura?: 'A' | 'B' | null,
+  /** Números da loja no portal da AIVA (lib/desempenho-loja-calc.ts → blocoPrompt), só pra
+   *  loja que já opera. Bloco dinâmico, fora do cache (Aldo 02/10/2026). */
+  desempenhoLoja?: string | null,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -758,6 +761,8 @@ export async function processarMensagem(
   let faseInstrucao = buildFaseInstrucao(status, dadosAcumulados, emFase3 === true, importadoPortal === true, biometriaLink ?? null, onbEtapaAberta ?? null)
   // Teste A/B da abertura: bloco dinâmico (fora do cache), só na variante B
   if (testeAbertura === 'B') faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${INSTRUCAO_VARIANTE_B}` : INSTRUCAO_VARIANTE_B
+  // Números da loja no portal (só loja que opera — o webhook decide quem recebe)
+  if (desempenhoLoja) faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${desempenhoLoja}` : desempenhoLoja
   // Senha da loja pedida à AIVA e ainda NÃO enviada (marcador gravado pelo cron
   // /api/sdr/senha-pendente, lido do portal). Sem isso a VictorIA manda o lojista
   // procurar no spam um SMS que a AIVA nunca enviou (regra 16/09/2026).

@@ -42,6 +42,8 @@ import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFili
 import { registrarFilialAiva } from '@/lib/manual-docs'
 import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE, ehRespostaAutomatica } from '@/lib/resposta-automatica'
 import { TESTE_ABERTURA_ATIVO, varianteAbertura, ehPrimeiraResposta } from '@/lib/teste-abertura'
+import { desempenhoDoLead } from '@/lib/desempenho-loja'
+import { blocoPrompt as blocoPromptDesempenho } from '@/lib/desempenho-loja-calc'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1236,6 +1238,17 @@ export async function POST(req: NextRequest) {
       ehPrimeiraResposta({ status: lead.status, dados: dadosAcumulados, historico, mensagemEhAutomatica: ehRespostaAutomatica(conteudoEfetivo) })
         ? varianteAbertura(lead.id)
         : null
+    // Números da loja no portal da AIVA (Aldo 02/10/2026): só pra loja que opera. Falha na
+    // leitura não pode calar a VictorIA — sem números ela responde como sempre respondeu.
+    let desempenhoLoja: string | null = null
+    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO') {
+      try {
+        const r = await desempenhoDoLead(lead.id, lead.observacoes, [String(dadosAcumulados?.cnpj_matriz ?? '')])
+        if (r) desempenhoLoja = blocoPromptDesempenho(r)
+      } catch (e) {
+        console.error('[webhook] desempenho da loja:', e instanceof Error ? e.message : e)
+      }
+    }
     try {
       // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
       // fallback — o status sozinho não distingue Fase 1 de Fase 3.
@@ -1256,6 +1269,7 @@ export async function POST(req: NextRequest) {
         // reenvio de senha JÁ pedido por nós — sem isso ela reprometeria a cada "não chegou"
         (lead.observacoes ?? '').match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1] ?? null,
         testeAbertura,
+        desempenhoLoja,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

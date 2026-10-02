@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processarMensagem } from '@/lib/claude'
 import type { Mensagem } from '@/lib/supabase'
+import { desempenhoPorCnpjs } from '@/lib/desempenho-loja'
+import { blocoPrompt } from '@/lib/desempenho-loja-calc'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -10,7 +12,7 @@ export const maxDuration = 60
 // O cliente devolve `dados` acumulados a cada turno pra simular o
 // [DADOS_COLETADOS:] que o webhook real mantém em observacoes.
 export async function POST(req: NextRequest) {
-  const { mensagem, historico, nome, status, dados, teste_abertura } = await req.json()
+  const { mensagem, historico, nome, status, dados, teste_abertura, cnpj_desempenho } = await req.json()
 
   if (!mensagem?.trim()) {
     return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
@@ -29,6 +31,9 @@ export async function POST(req: NextRequest) {
   const statusAtual = STATUS_VALIDOS.includes(status) ? status : 'INTERESSADO'
 
   try {
+    // `cnpj_desempenho`: simula os números de uma loja real do portal (só leitura)
+    const cnpjDes = String(cnpj_desempenho ?? '').replace(/\D/g, '')
+    const r = cnpjDes.length === 14 ? await desempenhoPorCnpjs([cnpjDes]) : null
     const resposta = await processarMensagem(
       mensagem,
       msgs,
@@ -39,6 +44,7 @@ export async function POST(req: NextRequest) {
       // teste A/B da abertura (lib/teste-abertura.ts): `teste_abertura: 'B'` simula a variante B
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       teste_abertura === 'B' ? 'B' : null,
+      r ? blocoPrompt(r) : null,
     )
     return NextResponse.json(resposta)
   } catch (err) {
