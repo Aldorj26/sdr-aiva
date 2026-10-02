@@ -329,18 +329,15 @@ function buildFaseInstrucao(
         `[DADOS JÁ COLETADOS — NÃO PERGUNTE DE NOVO]\n` +
         linhas.join('\n') +
         `\nNUNCA repita uma pergunta cujo dado já está listado acima.\n` +
-        `(Exceções: o CNPJ de uma LOJA NOVA que o lojista queira incluir — seção LOJA NOVA — — painel de repasses/financeiro NÃO é coleta: é o formulário oficial (seção REPASSE DE VENDA).)\n\n`
+        `(Exceções: o CNPJ de uma LOJA NOVA que o lojista queira incluir — seção LOJA NOVA; painel de repasses/financeiro NÃO é coleta: é o formulário oficial (seção REPASSE DE VENDA).)\n\n`
     }
   }
 
-  if (statusAtual === 'EM_ANALISE_AIVA' && importadoPortal) {
-    // Os 82 clientes Track importados do portal em 16/09/2026: já operam com a AIVA,
-    // não têm formulário pendente pra nós cobrarmos e o telefone pode ser fixo. O
-    // status EM_ANALISE_AIVA aqui é só espelho do portal — a FASE 4 normal cobraria
-    // formulário e mandaria link de onboarding pra uma loja que já vende.
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA, mas esta loja é CLIENTE TRACK QUE JÁ OPERA COM A AIVA (importada do portal da AIVA em 16/09/2026 — não passou pelo nosso funil).\nNÃO cobre formulário de onboarding, NÃO envie o link do onboarding, NÃO peça dados de qualificação e NÃO trate como lead novo. Trate como loja ativa: dúvidas de operação/plataforma → seção PÓS-APROVAÇÃO e Fase 5 do seu conhecimento; pedidos de painel financeiro, repasse, conta bancária, dados da empresa, login de operadores, senha do sócio ou filial → o formulário/link da seção CANAIS OFICIAIS (o lojista preenche); problema que você não resolve ou qualquer outra coisa que dependa do time → acionar_humano = true, motivo_humano = "cliente_importado_portal".\nRetorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via CRM). EXCEÇÕES: OPT_OUT se pedir pra parar.\n[FIM INSTRUÇÃO DO SISTEMA]`
-  }
-
+  // ⛔ Bloco especial dos importados do portal REMOVIDO em 02/10/2026 (Aldo, raio-x do funil):
+  // ele tratava todo importado em EM_ANALISE_AIVA como "cliente que já opera" e mandava NÃO
+  // cobrar formulário. Mas o espelho leva pra 51 quem consulta ou vende — quem continua em
+  // EM_ANALISE_AIVA tem o cadastro ABERTO e não opera (70 em 02/10, nenhum com consulta).
+  // Agora eles seguem a FASE 4 normal e entram na cobrança do formulário.
   if (statusAtual === 'EM_ANALISE_AIVA') {
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = EM_ANALISE_AIVA. Você está na FASE 4.\nO lead já foi aprovado e recebeu o link de onboarding (https://retail-onboarding-hub.vercel.app/).\nEle precisa: acessar o link e preencher 7 etapas com dados da empresa. O reconhecimento facial (biometria) vem DEPOIS, por um link à parte que o sistema manda quando o formulário fecha — você só usa o link que vier nesta instrução (se não vier, vale a etapa que esta instrução informar — ausência de link NÃO prova que ele está no formulário).\nSeu papel agora:\n- Verificar se ele concluiu o formulário e, depois, a biometria\n- Ajudar com dúvidas sobre o processo (começa pelo CNPJ, 7 etapas; biometria é a etapa seguinte, com link próprio)\n- Se confirmar que concluiu: acionar_humano = true, motivo_humano = "cadastro_caf_confirmado"\n⛔ "Confirmar" = ele DIZER que fez ("já preenchi", "fiz sim", "terminei") ou mandar print. "ok", "certo", "blz", "entendi", 👍 NÃO são confirmação — nesses casos NÃO acione, NÃO use "cadastro_caf_confirmado" e repergunte fechado ("já fiz / ainda não"). Regra "OK" NÃO É CONFIRMAÇÃO DE FATO.\n⛔ EXCEÇÃO ao print que confirma: a tela "Obrigado pelo interesse!" NÃO é a de conclusão — ela é do começo do fluxo (logo depois do botão "Enviar Interesse"). Print dela = cadastro NÃO concluído: não use "cadastro_caf_confirmado", peça pra abrir o link de novo e seguir até o fim e, se ele disser que já tentou e continua caindo nela, acionar_humano = true, motivo_humano = "dificuldade_onboarding_caf".\n- Se tiver dificuldade (link não abre, trava em alguma etapa, erro na tela): PEÇA O PRINT da tela primeiro, se ainda não mandou (regra 📸) — depois ajude com orientações práticas (seção PÓS-APROVAÇÃO do seu conhecimento)\n${onbEtapa === 'aguardando_aiva'
   ? `✅ CADASTRO CONCLUÍDO E BIOMETRIA APROVADA (portal): ⛔ NÃO cobre formulário, NÃO mande o link do onboarding e NÃO peça biometria — não falta NADA da parte dele. Vale a instrução do sistema sobre isso, logo abaixo.\n`

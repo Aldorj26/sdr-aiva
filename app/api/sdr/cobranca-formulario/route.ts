@@ -63,7 +63,10 @@ async function executar(req: NextRequest) {
     .eq('acionar_humano', false)
     .not('nome', 'ilike', '%teste%')
   if (error) return NextResponse.json({ ok: false, erro: error.message }, { status: 500 })
-  const todos = (leads ?? []).filter((l) => !(l.observacoes ?? '').includes('[IMPORTADO_PORTAL:') && !l.telefone.startsWith('000'))
+  // Importados do portal (16/09) ENTRAM desde 02/10/2026 (Aldo, raio-x do funil): quem
+  // ainda está em EM_ANALISE_AIVA não opera — o espelho leva pra 51 quem consulta ou vende —
+  // e nenhuma automação tocava neles. Só ficam de fora os sem WhatsApp (telefone 000…).
+  const todos = (leads ?? []).filter((l) => !l.telefone.startsWith('000'))
 
   // 2) etapa real no portal (via CNPJ registrado)
   let onboardings

@@ -62,13 +62,19 @@ export const SILENCIO_MAX_DIAS = 90
  *   com o da régua D+3 (já abordado 3-4 vezes pelas rotinas antigas), que rendeu
  *   0,2% — a medição de uma semana pelo rótulo segue valendo pra decidir se fica.
  *
+ * 02/10/2026 (Aldo, raio-x do funil): a retomada rendeu mais que o disparo frio — de cada 100
+ *   envios, 3,5 (AGUARDANDO) e 3,9 (INTERESSADO) leads avançaram, contra ~1,5 do disparo novo.
+ *   O AGUARDANDO batia o teto de 60 TODO dia → 120. O INTERESSADO NÃO usava os 150 (33–55 em
+ *   vários dias: falta elegível, não orçamento) → 200 só como folga. 320/dia cabe nas 7
+ *   rodadas (~49 cada, ~340).
+ *
  * ⚠️ Pra DESLIGAR uma etapa: ponha o orçamento dela em 0 aqui e faça deploy. O
  * `?max_aguardando=0` da URL só vale pra rodada MANUAL — o cron chama o caminho
  * sem parâmetro. (Estava documentado errado em 23/09 como "desliga sem deploy".)
  */
 export const ORCAMENTO_DIA: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', number>> = {
-  INTERESSADO: 150,
-  AGUARDANDO: 60,
+  INTERESSADO: 200,
+  AGUARDANDO: 120,
 }
 
 /** Rótulo gravado em sdr_mensagens.template_hsm. PRÓPRIO da retomada: até 23/09

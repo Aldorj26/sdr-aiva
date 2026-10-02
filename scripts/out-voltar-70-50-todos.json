@@ -1,0 +1,44 @@
+[
+ {
+  "nome": "Distribuidora de Varejo",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ },
+ {
+  "nome": "TEM TEM celulares",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ },
+ {
+  "nome": "Cezar Mobile",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ },
+ {
+  "nome": "Nexus Tech",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ },
+ {
+  "nome": "Conserta Center",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ },
+ {
+  "nome": "Nunes Celulares E Acessorios Ltda",
+  "card": 50,
+  "status": "EM_ANALISE_AIVA",
+  "mensagens_saidas": 0,
+  "ok": true
+ }
+]

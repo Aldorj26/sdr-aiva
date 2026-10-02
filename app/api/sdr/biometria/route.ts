@@ -76,7 +76,8 @@ async function executar(req: NextRequest) {
         .eq('produto', 'AIVA').eq('status', 'EM_ANALISE_AIVA').eq('acionar_humano', false).not('nome', 'ilike', '%teste%')
     : { data: [], error: null }
   if (error) return NextResponse.json({ ok: false, erro: error.message }, { status: 500 })
-  const elegiveis = (leads ?? []).filter((l) => !(l.observacoes ?? '').includes('[IMPORTADO_PORTAL:') && !l.telefone.startsWith('000'))
+  // importados em EM_ANALISE_AIVA entram desde 02/10/2026 (não operam — ver cobranca-formulario)
+  const elegiveis = (leads ?? []).filter((l) => !l.telefone.startsWith('000'))
   const onbDe = (leadId: string) => {
     for (const r of regs ?? []) if (r.lead_id === leadId) { const o = porCnpj.get(soDigitos(r.cnpj)); if (o) return o }
     return null

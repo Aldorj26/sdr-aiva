@@ -114,8 +114,8 @@ test('AGUARDANDO: quem deu dados primeiro, depois o MENOS frio', () => {
 })
 
 test('orçamento diário: cada rodada gasta só o que sobrou', () => {
-  assert.equal(ORCAMENTO_DIA.INTERESSADO, 150)
-  assert.equal(ORCAMENTO_DIA.AGUARDANDO, 60)
+  assert.equal(ORCAMENTO_DIA.INTERESSADO, 200)
+  assert.equal(ORCAMENTO_DIA.AGUARDANDO, 120)
   assert.equal(restanteHoje(150, 0), 150)
   assert.equal(restanteHoje(150, 40), 110)   // 1ª rodada mandou 40 (teto de tempo)
   assert.equal(restanteHoje(150, 150), 0)    // estourou: as rodadas seguintes não mandam nada

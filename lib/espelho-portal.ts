@@ -200,13 +200,15 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       if (sit) stagePorCnpj.set(soDigitos(o.cnpj), sit)
     }
     // Fora: quem JÁ OPERA. Duas portas de erro, as duas reais:
-    //  - importado do portal (lote de 16/09): o portal os tem em dados_varejo, mas
-    //    são clientes Track que vendem há meses (mesma exclusão do cron da biometria).
+    //  - importado do portal (lote de 16/09) que JÁ SAIU da Em Análise: o portal o tem em
+    //    dados_varejo, mas vende. ⚠️ Desde 02/10/2026 o importado que CONTINUA em
+    //    EM_ANALISE_AIVA não conta como "opera": quem consulta ou vende já foi pra 51, então
+    //    o que ficou tem o cadastro aberto de verdade (raio-x do funil, Aldo).
     //  - lojista com matriz vendendo e FILIAL nova em cadastro: o marcador é do LEAD,
     //    a etapa é do CNPJ — sem esta trava, a VictorIA diria "você não tem acesso"
     //    a quem está logado e vendendo.
     const opera = new Set<string>()
-    for (const l of leads) if ((l.observacoes ?? '').includes('[IMPORTADO_PORTAL:')) opera.add(l.id)
+    for (const l of leads) if ((l.observacoes ?? '').includes('[IMPORTADO_PORTAL:') && l.status !== 'EM_ANALISE_AIVA') opera.add(l.id)
     for (const reg of registros) if (reg.lead_id && (reg.rid || reg.status === 'ativa')) opera.add(reg.lead_id)
     for (const reg of registros) {
       if (!reg.lead_id || opera.has(reg.lead_id)) continue
