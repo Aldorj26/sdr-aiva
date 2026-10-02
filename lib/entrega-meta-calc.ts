@@ -74,7 +74,7 @@ export function avaliarEntrega(amostra: number, entregues: number, recente?: Rec
 export const pct = (t: number) => `${Math.round(t * 100)}%`
 
 /** Uma mensagem de template como a Evo devolve (só o que importa pro recibo). */
-export type MsgEvo = { direction: number; srvrcvtime?: string | null; clientrcvtime?: string | null }
+export type MsgEvo = { direction: number; srvrcvtime?: string | null; clientrcvtime?: string | null; clientreadtime?: string | null }
 
 /**
  * Do histórico de UM chat, o veredito daquele envio.
@@ -90,7 +90,11 @@ export function entregaDoChat(msgs: MsgEvo[], deISO: string, ateISO: string): 'e
   // escondido: entregou de manhã + falhou às 15h contaria como entregue, e o dia
   // em que a falha começa é exatamente o dia que importa. O último também resolve
   // o reenvio (falhou de manhã, reenviado à tarde → entregue).
-  return tpls[tpls.length - 1].clientrcvtime ? 'entregue' : 'nao_entregue'
+  // LIDO também é entregue: a Evo deixa o clientrcvtime vazio em parte das mensagens que
+  // já têm clientreadtime (02/10: amostra de 30 deu 6 com recibo de entrega e 14 lidas —
+  // contando só o clientrcvtime a entrega aparecia em 20% num lote de 63%).
+  const ult = tpls[tpls.length - 1]
+  return ult.clientrcvtime || ult.clientreadtime ? 'entregue' : 'nao_entregue'
 }
 
 /** Texto do alerta. Diz onde olhar PRIMEIRO — a fatura — porque foi exatamente

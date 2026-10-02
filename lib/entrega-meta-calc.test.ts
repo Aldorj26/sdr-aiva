@@ -31,6 +31,11 @@ test('entregaDoChat: recibo da Meta é clientrcvtime', () => {
   assert.equal(entregaDoChat([], DE, ATE), 'sem_template')
 })
 
+test('entregaDoChat: lido sem clientrcvtime conta como entregue (Evo nem sempre preenche, 02/10)', () => {
+  const lido = [{ direction: 2, srvrcvtime: '2026-09-22T12:33:50.000Z', clientrcvtime: null, clientreadtime: '2026-09-22T13:10:00.000Z' }]
+  assert.equal(entregaDoChat(lido, DE, ATE), 'entregue')
+})
+
 test('mensagem do lojista (direction 1) e do atendente (3) não contam', () => {
   const msgs = [
     { direction: 1, srvrcvtime: '2026-09-22T13:00:00.000Z', clientrcvtime: '2026-09-22T13:00:00.000Z' },
