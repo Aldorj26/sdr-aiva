@@ -1,0 +1,128 @@
+[
+ {
+  "lead": "Oficina do Celular AG telecomunicações",
+  "tel": "5527998308839",
+  "status": "DESCARTADO",
+  "cnpj": "22935067000150",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Rener Celulares",
+  "tel": "5577999390052",
+  "status": "DESCARTADO",
+  "cnpj": "40182715000127",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Senna",
+  "tel": "5564981172862",
+  "status": "AGUARDANDO",
+  "cnpj": "31106953000162",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "C&mtech celulares",
+  "tel": "5573999386913",
+  "status": "DESCARTADO",
+  "cnpj": "39989915000107",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Loja",
+  "tel": "5551996180000",
+  "status": "LOJA_FINALIZADA_E_VENDENDO",
+  "cnpj": "34839617000117",
+  "stage": "cadastro_finalizado",
+  "rid": "5243",
+  "razao": "BENDER COMERCIO DE CELULARES LTDA"
+ },
+ {
+  "lead": "MEGA COMPUTADORES E ELETRONICOS",
+  "tel": "5538998095446",
+  "status": "LOJA_FINALIZADA_E_VENDENDO",
+  "cnpj": "19008709000161",
+  "stage": "cadastro_finalizado",
+  "rid": "5217",
+  "razao": "ANTONIO VIEIRA LOBO"
+ },
+ {
+  "lead": "Gfourr",
+  "tel": "5511984441488",
+  "status": "EM_ANALISE_AIVA",
+  "cnpj": "61255811000128",
+  "stage": "cadastro_finalizado",
+  "rid": "6798",
+  "razao": "C.O.P. COMERCIO E SERVICOS DE ACESSORIOS ELETROELETRONICOS LTDA"
+ },
+ {
+  "lead": "Loja",
+  "tel": "554191009723",
+  "status": "AGUARDANDO",
+  "cnpj": "67932463000162",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Loja",
+  "tel": "556699447348",
+  "status": "AGUARDANDO",
+  "cnpj": "62948395000106",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Magazine Sousa",
+  "tel": "559491644655",
+  "status": "INTERESSADO",
+  "cnpj": "40149506000181",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ },
+ {
+  "lead": "Lojista",
+  "tel": "5511984112544",
+  "status": "LOJA_FINALIZADA_E_VENDENDO",
+  "cnpj": "51005306000171",
+  "stage": "cadastro_finalizado",
+  "rid": "4750",
+  "razao": "GOLD STORE COTIA COMERCIO DE CELULARES ACESSORIOS , MANUTENCAO E AGENCIAMENTO LTDA"
+ },
+ {
+  "lead": "Francell Celulares",
+  "tel": "5519983000619",
+  "status": "EM_ANALISE_AIVA",
+  "cnpj": "53610617000195",
+  "stage": "cadastro_finalizado",
+  "rid": "5488",
+  "razao": "FC CELULARES LTDA"
+ },
+ {
+  "lead": "Santa Helena Celulares",
+  "tel": "5563984320303",
+  "status": "LOJA_FINALIZADA_E_VENDENDO",
+  "cnpj": "22030329000138",
+  "stage": "biometria",
+  "rid": null,
+  "razao": "SANTA HELENA ACESSORIOS LTDA"
+ },
+ {
+  "lead": "Loja Caranda imports",
+  "tel": "556781226074",
+  "status": "DESCARTADO",
+  "cnpj": "49225333000108",
+  "stage": "dados_varejo",
+  "rid": null,
+  "razao": null
+ }
+]
