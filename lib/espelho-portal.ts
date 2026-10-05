@@ -19,6 +19,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
+import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
   calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, ONB_ORDEM, situacaoOnb, type OnbSituacao,
@@ -132,6 +133,8 @@ export type SaidaEspelho = {
   ok: boolean
   dry: boolean
   avisos: string[]
+  /** CNPJs do portal ligados a um lead pelo telefone nesta rodada (no dry: os que seriam) */
+  vinculados: string[]
   onboardings: number
   leads: number
   movidos: Array<Movimento & { erro?: string }>
@@ -151,7 +154,8 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   const avisos: string[] = []
 
   // 1) portal
-  const onboardings = (await listarOnboardingsApi()).map((o): OnbApi => ({
+  const brutos = await listarOnboardingsApi()
+  const onboardings = brutos.map((o): OnbApi => ({
     cnpj: String(o.cnpj ?? ''), stage: String(o.stage ?? ''), pre_cadastro_status: o.pre_cadastro_status ?? null,
     retailer_id: o.retailer_id ?? null, legal_name: o.legal_name ?? null,
     cnpj_check_status: o.cnpj_check_status ?? null, cnpj_situacao: o.cnpj_situacao ?? null, cnpj_check_reason: o.cnpj_check_reason ?? null,
@@ -159,6 +163,38 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   }))
   const sinais = await sinaisPortal()
   if (sinais.aviso) avisos.push(sinais.aviso)
+
+  // 1b) CNPJ que o lojista usou no cadastro da AIVA e a gente NÃO tinha anotado → vincula ao
+  //     lead pelo telefone do sócio (Gfourr e Francell, 05/10/2026: loja criada, RID, e o card
+  //     preso em Em Análise levando cobrança de formulário). Regras em lib/vinculo-portal-calc.ts.
+  //     Falha aqui não derruba o espelho: o resto da rodada segue com o que já está registrado.
+  const vinculados: string[] = []
+  try {
+    const registrados = new Set<string>()
+    for (let de = 0; ; de += 1000) {
+      const { data, error } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').order('id', { ascending: true }).range(de, de + 999)
+      if (error) throw new Error(error.message)
+      for (const r of data ?? []) registrados.add(soDigitos(r.cnpj))
+      if (!data || data.length < 1000) break
+    }
+    const cands = candidatosVinculo(brutos.map((o) => ({ cnpj: String(o.cnpj ?? ''), phone_number: (o.phone_number as string | null) ?? null, stage: String(o.stage ?? ''), retailer_id: o.retailer_id ?? null, legal_name: o.legal_name ?? null })), registrados)
+    if (cands.length) {
+      const tels = [...new Set(cands.flatMap((c) => variantesTelefone(c.phone_number)))]
+      const { data: possiveis, error } = await supabaseAdmin.from('sdr_leads').select('id,telefone,status').in('telefone', tels)
+      if (error) throw new Error(error.message)
+      for (const v of vinculos(cands, (possiveis ?? []) as Array<{ id: string; telefone: string; status: string }>)) {
+        vinculados.push(`• ${v.loja ?? v.cnpj} — CNPJ ${v.cnpj}${v.rid ? ` · RID ${v.rid}` : ''} · lead ${v.telefone}`)
+        if (dry) continue
+        const { error: eIns } = await supabaseAdmin.from('sdr_registros_cnpj').insert({
+          lead_id: v.leadId, loja: v.loja, telefone: v.telefone, cnpj: v.cnpj, tipo: 'adicional', enviado: true,
+          origem: 'portal-telefone', status: 'pre_cadastro_enviado', rid: v.rid,
+        })
+        if (eIns) { avisos.push(`vínculo do CNPJ ${v.cnpj} não gravado: ${eIns.message.slice(0, 100)}`); vinculados.pop() }
+      }
+    }
+  } catch (e) {
+    avisos.push(`vínculo de CNPJ pelo telefone falhou: ${String(e).slice(0, 120)}`)
+  }
 
   // 2) nossa base + Evo
   const registros = await registrosComLead()
@@ -184,7 +220,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   }
 
   const saida: SaidaEspelho = {
-    ok: true, dry, avisos, onboardings: onboardings.length, leads: leads.length,
+    ok: true, dry, avisos, vinculados, onboardings: onboardings.length, leads: leads.length,
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
@@ -453,6 +489,13 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       '\n\nINAPTA/BAIXADA/SUSPENSA = situação real: a cobrança do formulário parou sozinha, a loja precisa regularizar na Receita.' +
       '\nDÍGITO INVÁLIDO / NÃO ENCONTRADO = o CNPJ digitado no portal não fecha (tem loja vendendo assim) — conferir com a AIVA, não é problema da loja.' +
       '\nA lista completa fica em https://sdr-aiva.vercel.app/excecoes',
+    )
+  }
+  if (vinculados.length && !dry) {
+    blocos.push(
+      `🔗 *CNPJ diferente no cadastro da AIVA — vinculei ao lead* (${vinculados.length})\n${vinculados.join('\n')}\n\n` +
+      'O lojista fez o cadastro na AIVA com um CNPJ que não era o que estava anotado com a gente. ' +
+      'Achei pelo telefone do cadastro e registrei em Registros AIVA; o card passa a andar pela etapa real desse CNPJ.',
     )
   }
   if (paradosAiva.length) {
