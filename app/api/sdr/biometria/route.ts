@@ -26,6 +26,8 @@ import { nomeSaudacao } from '@/lib/text'
 import { loginPortal, partnerIdTrack, listarBiometriaPendenteApi, registrarLivenessSend } from '@/lib/portal-aiva'
 import { decidir, lerMarcadores, remontarObs, miolo, MAX_TOQUES } from '@/lib/biometria-calc'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -159,7 +161,8 @@ async function executar(req: NextRequest) {
     const aviso =
       `🪪 *BIOMETRIA DA AIVA — ${esgotar.length} loja(s) sem concluir após ${MAX_TOQUES} envios do link (D0/D+2/D+5)*\n\n` +
       esgotar.map((l) => `• ${l.nome} (${l.telefone})`).slice(0, 30).join('\n') +
-      '\n\nParei de mandar o link pra essas. Vale um contato direto — pode ser dificuldade com a câmera ou o documento.'
+      '\n\nParei de mandar o link pra essas. Vale um contato direto — pode ser dificuldade com a câmera ou o documento.' + RODAPE_PAINEL
+    await registrarAvisos('biometria', esgotar.map((l) => ({ leadId: l.id, loja: l.nome, telefone: l.telefone })))
     try {
       if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)

@@ -6,6 +6,8 @@ import LeadDrawer from '../_components/LeadDrawer'
 import ChamadoResolver from '../_components/ChamadoResolver'
 import AtendidoButton from '../_components/AtendidoButton'
 import Copiavel from '@/app/_components/Copiavel'
+import AvisoResolver from '../_components/AvisoResolver'
+import { CATALOGO, TIPOS, avisoVelho, type TipoAviso } from '@/lib/avisos-painel-calc'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
@@ -110,7 +112,87 @@ async function getDados() {
     chamados: listaChamados,
     travados,
     cs: (csFila.data ?? []) as LeadFila[],
+    avisos: await getAvisos(),
   }
+}
+
+interface AvisoPainel {
+  id: string
+  tipo: TipoAviso
+  lead_id: string | null
+  loja: string
+  telefone: string | null
+  detalhe: string | null
+  status_lead: string | null
+  criado_em: string
+  cnpj?: string | null
+  statusAtual?: string | null
+}
+
+// 🚨 Avisos do robô (Aldo 05/10/2026): os digests de WhatsApp ("3 lojas sem concluir a
+// biometria…") passavam batido no meio dos outros alertas. Cada loja avisada vira uma linha
+// aqui até alguém clicar em Resolvido — ou até a situação andar sozinha (avisoVelho).
+async function getAvisos(): Promise<Array<{ tipo: TipoAviso; itens: AvisoPainel[] }>> {
+  const { data, error } = await supabaseAdmin
+    .from('sdr_avisos_painel')
+    .select('id, tipo, lead_id, loja, telefone, detalhe, status_lead, criado_em')
+    .is('resolvido_em', null)
+    .order('criado_em', { ascending: false })
+    .limit(400)
+  if (error || !data?.length) return []
+  const lista = (data as AvisoPainel[]).filter((a) => a.tipo in CATALOGO)
+  const ids = [...new Set(lista.map((a) => a.lead_id).filter(Boolean))] as string[]
+  const { data: leads } = ids.length
+    ? await supabaseAdmin.from('sdr_leads').select('id, status, observacoes').in('id', ids)
+    : { data: [] as Array<{ id: string; status: string; observacoes: string | null }> }
+  const leadPorId = new Map((leads ?? []).map((l) => [l.id, l]))
+  const vivos: AvisoPainel[] = []
+  const velhos = new Map<string, string[]>()
+  for (const a of lista) {
+    const l = a.lead_id ? leadPorId.get(a.lead_id) : undefined
+    const motivo = avisoVelho(a.status_lead, l?.status ?? null)
+    if (motivo) { velhos.set(motivo, [...(velhos.get(motivo) ?? []), a.id]); continue }
+    vivos.push({ ...a, cnpj: cnpjDeObs(l?.observacoes ?? null), statusAtual: l?.status ?? a.status_lead })
+  }
+  // fecha os que andaram sozinhos (melhor esforço: se falhar, tentam de novo no próximo carregamento)
+  for (const [motivo, idsVelhos] of velhos) {
+    await supabaseAdmin.from('sdr_avisos_painel').update({ resolvido_em: new Date().toISOString(), resolvido_como: motivo }).in('id', idsVelhos)
+  }
+  return TIPOS
+    .map((tipo) => ({ tipo, itens: vivos.filter((a) => a.tipo === tipo) }))
+    .filter((g) => g.itens.length)
+    .sort((a, b) => CATALOGO[a.tipo].ordem - CATALOGO[b.tipo].ordem)
+}
+
+function haQuanto(iso: string): string {
+  const dias = Math.floor((Date.now() - Date.parse(iso)) / 86400000)
+  return dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`
+}
+
+/** Quantas linhas de cada grupo ficam à vista; o resto abre em "ver mais". */
+const AVISOS_A_VISTA = 8
+
+function LinhaAviso({ a }: { a: AvisoPainel }) {
+  const celulas = (
+    <>
+      <td style={td}>{a.loja}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{a.telefone ? <Copiavel valor={a.telefone} /> : null}{a.cnpj ? <> · <Copiavel valor={a.cnpj.replace(/\D/g, '')} exibir={a.cnpj} /></> : null}</div></td>
+      <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{a.detalhe ?? a.statusAtual ?? '—'}</td>
+      <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(a.criado_em)} · <b style={{ color: 'var(--text-dim)' }}>{haQuanto(a.criado_em)}</b></td>
+      <td style={{ ...td, textAlign: 'right' }}><AvisoResolver id={a.id} /></td>
+    </>
+  )
+  return a.lead_id ? <ClickableRow leadId={a.lead_id}>{celulas}</ClickableRow> : <tr>{celulas}</tr>
+}
+
+function TabelaAvisos({ itens }: { itens: AvisoPainel[] }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr><th style={th}>Loja</th><th style={th}>Detalhe</th><th style={th}>Avisado</th><th style={th}>Ação</th></tr></thead>
+        <tbody>{itens.map((a) => <LinhaAviso key={a.id} a={a} />)}</tbody>
+      </table>
+    </div>
+  )
 }
 
 function CardResumo({ label, value, color }: { label: string; value: number; color?: string }) {
@@ -157,7 +239,8 @@ const cab = (
 )
 
 export default async function AtendimentoPage() {
-  const { grupos, chamados, travados, cs } = await getDados()
+  const { grupos, chamados, travados, cs, avisos } = await getDados()
+  const totalAvisos = avisos.reduce((t, g) => t + g.itens.length, 0)
 
   return (
     <main>
@@ -170,6 +253,7 @@ export default async function AtendimentoPage() {
       </header>
 
       <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        <CardResumo label="🚨 Avisos do robô" value={totalAvisos} color="var(--red)" />
         <CardResumo label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
         <CardResumo label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
         <CardResumo label="🛠 Chamados" value={chamados.length} color="var(--red)" />
@@ -178,6 +262,36 @@ export default async function AtendimentoPage() {
         <CardResumo label="📄 Docs" value={grupos.docs.length} />
         <CardResumo label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
       </div>
+
+      {totalAvisos > 0 && (
+        <section id="Avisosdorob" style={{ marginBottom: '1.8rem', padding: '0.9rem 1rem', border: '1px solid var(--red)', borderRadius: 10, background: 'var(--bg-elev)' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--red)' }}>🚨 Avisos do robô <span style={{ fontWeight: 400 }}>({totalAvisos})</span></h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o robô parou de insistir nessas lojas e avisou no WhatsApp — ficam aqui até alguém tratar e clicar em Resolvido</span>
+          </div>
+          {avisos.map((g) => {
+            const c = CATALOGO[g.tipo]
+            const vista = g.itens.slice(0, AVISOS_A_VISTA)
+            const resto = g.itens.slice(AVISOS_A_VISTA)
+            return (
+              <div key={g.tipo} style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.92rem' }}>{c.titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.itens.length})</span></h3>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{c.oque}</span>
+                </div>
+                <p style={{ margin: '0.1rem 0 0.35rem', fontSize: '0.76rem', color: 'var(--text-dim)' }}>👉 {c.acao}</p>
+                <TabelaAvisos itens={vista} />
+                {resto.length > 0 && (
+                  <details style={{ marginTop: '0.3rem' }}>
+                    <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--accent)' }}>ver mais {resto.length} (mais antigos)</summary>
+                    <TabelaAvisos itens={resto} />
+                  </details>
+                )}
+              </div>
+            )
+          })}
+        </section>
+      )}
 
       <Secao id="Aopendente" titulo="🔴 Ação pendente" sub="acionaram humano — resolver hoje" vazio="Fila zerada. 🎉" count={grupos.acao.length}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>

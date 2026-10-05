@@ -63,6 +63,19 @@ export default function Sidebar() {
     return () => { document.body.style.overflow = '' }
   }, [aberto])
 
+  // Avisos do robô em aberto (05/10/2026): contador vermelho ao lado de "Atendimento",
+  // visível em qualquer tela — o aviso de WhatsApp passava batido. Atualiza ao navegar
+  // e a cada 2 min; falha de rede só esconde o número.
+  const [avisos, setAvisos] = useState(0)
+  useEffect(() => {
+    if (pathname === '/login' || pathname === '/chat') return
+    let vivo = true
+    const ler = () => fetch('/api/avisos-painel').then((r) => (r.ok ? r.json() : null)).then((j) => { if (vivo && j) setAvisos(Number(j.abertos) || 0) }).catch(() => {})
+    ler()
+    const t = setInterval(ler, 120_000)
+    return () => { vivo = false; clearInterval(t) }
+  }, [pathname])
+
   // Login e chat (simulador full-screen) não têm sidebar
   if (pathname === '/login' || pathname === '/chat') return null
 
@@ -110,6 +123,9 @@ export default function Sidebar() {
               >
                 <span className="sidebar-link-icon">{item.icon}</span>
                 {item.label}
+                {item.href === '/atendimento' && avisos > 0 && (
+                  <span title={`${avisos} aviso(s) do robô esperando ação`} style={{ marginLeft: 'auto', minWidth: 20, padding: '1px 6px', borderRadius: 999, background: 'var(--red, #dc2626)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, textAlign: 'center', lineHeight: 1.5 }}>{avisos}</span>
+                )}
               </Link>
             ))}
           </div>

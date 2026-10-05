@@ -27,6 +27,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -120,7 +122,8 @@ async function executar(req: NextRequest) {
       (novos.length > 20 ? `\n… +${novos.length - 20}` : '') +
       `\n\nEsses leads já têm TODOS os dados obrigatórios, mas a conclusão nunca rodou — ` +
       `ela só é avaliada quando o lojista manda mensagem, e eles pararam de falar.\n` +
-      `Os CNPJs deles já foram colocados no painel pra lançar: https://sdr-aiva.vercel.app/registros`
+      `Os CNPJs deles já foram colocados no painel pra lançar: https://sdr-aiva.vercel.app/registros` + RODAPE_PAINEL
+    await registrarAvisos('fase3_destravada', novos.map((l) => ({ leadId: l.id, loja: l.nome, telefone: l.telefone, status: l.status })))
     for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
       try { await alertHuman(tel, texto) } catch (e) { console.error('[fase3-destravada] aviso falhou:', e) }
     }

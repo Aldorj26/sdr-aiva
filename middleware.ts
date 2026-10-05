@@ -53,6 +53,7 @@ export const config = {
     '/api/curadoria/:path*',
     '/api/registros',
     '/api/chamados',
+    '/api/avisos-painel',
     '/api/comissoes/:path*',
     '/api/atalhos-info',
     '/api/assistente',

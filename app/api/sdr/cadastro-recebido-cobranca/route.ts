@@ -23,6 +23,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { listarCadastroRecebidoIncompletos } from '@/lib/cadastro-recebido'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos } from '@/lib/avisos-painel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -113,6 +114,7 @@ export async function GET(req: NextRequest) {
       const novaObs = `[COBRANCA_ESGOTADA] ${obs.replace(/\s*\[COBRANCA_ESGOTADA\]\s*/g, ' ').trim()}`.trim()
       await supabaseAdmin.from('sdr_leads').update({ observacoes: novaObs }).eq('id', c.leadId)
       const msg = `🚨 *${c.nome}* (${c.telefone}) — em Cadastro Recebido há ${diasNaEtapa}d e ainda faltam dados após ${tentativas} cobranças automáticas: ${c.faltando.join(', ')}. Precisa de um help manual.`
+      await registrarAvisos('cadastro_recebido', [{ leadId: c.leadId, loja: c.nome, telefone: c.telefone, detalhe: `falta: ${c.faltando.join(', ')}` }])
       if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, msg)
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
       escalados++

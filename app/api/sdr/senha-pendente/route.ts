@@ -30,6 +30,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { loginPortal, listarSenhasPendentes, listarSenhasEnviadas, onboardingsPorRetailer } from '@/lib/portal-aiva'
 import { decidir, lerPendenteDesde, lerUltimoAviso, linhaAlerta, remontarObs, DIAS_UTEIS_PRAZO } from '@/lib/senha-pendente-calc'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -206,6 +208,7 @@ async function executar(req: NextRequest) {
     }
   }
 
+  await resolverAvisos('senha_pendente', resolvidos.map((r) => r.id), 'auto: a AIVA enviou a senha')
   for (const r of resolvidos) {
     const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', r.id).maybeSingle()
     await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(fresco?.observacoes ?? r.observacoes, { limpar: true }) }).eq('id', r.id)
@@ -222,7 +225,12 @@ async function executar(req: NextRequest) {
       `(acesso solicitado e senha ainda não saiu; prazo do Edu é ${DIAS_UTEIS_PRAZO} dias úteis)\n` +
       `${novos} nova(s) · ${avisar.length - novos} já avisada(s) antes\n\n` +
       linhas.slice(0, 25).join('\n') + (linhas.length > 25 ? `\n… +${linhas.length - 25}` : '') +
-      `\n\nCobrar a AIVA (Mauricio/Edu) pelo envio da senha do sócio. Reaviso a cada 7 dias enquanto continuar pendente.`
+      `\n\nCobrar a AIVA (Mauricio/Edu) pelo envio da senha do sócio. Reaviso a cada 7 dias enquanto continuar pendente.` + RODAPE_PAINEL
+    // painel: só os NOVOS com lead (o reaviso semanal é a mesma loja — o aviso aberto já está lá)
+    await registrarAvisos('senha_pendente', avisar.filter((a) => !a.reaviso && leadDe(a.alvo.leadId)).map((a) => {
+      const l = leadDe(a.alvo.leadId)!
+      return { leadId: l.id, loja: a.alvo.loja || l.nome, telefone: l.telefone, detalhe: `pedido em ${brt(a.alvo.pedido)} · RID ${a.alvo.rid}` }
+    }))
     for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
       try { await alertHuman(tel, texto) } catch (e) { console.error('[senha-pendente] alerta falhou:', e) }
     }

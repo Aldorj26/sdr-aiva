@@ -32,6 +32,8 @@ import { nomeSaudacao } from '@/lib/text'
 import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import { decidir, lerMarcadores, remontarObs, MIOLOS, MAX_TOQUES } from '@/lib/cobranca-formulario-calc'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -195,7 +197,8 @@ async function executar(req: NextRequest) {
     const aviso =
       `📋 *FORMULÁRIO DA AIVA — ${esgotar.length} loja(s) sem preencher após ${MAX_TOQUES} cobranças (D+1/3/7/14)*\n\n` +
       linhas.slice(0, 30).join('\n') + (linhas.length > 30 ? `\n… +${linhas.length - 30}` : '') +
-      '\n\nParei de cobrar essas. Vale um contato direto ou descartar no Evo.'
+      '\n\nParei de cobrar essas. Vale um contato direto ou descartar no Evo.' + RODAPE_PAINEL
+    await registrarAvisos('formulario', esgotar.map((l) => ({ leadId: l.id, loja: l.nome, telefone: l.telefone })))
     try {
       if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)

@@ -40,6 +40,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { proximasTurmas, houveTurmaHoje, inscricoesPorCnpj, classificarInscricoes, rotulo, type Inscricao, type Turma } from '@/lib/turmas-treinamento'
 import { flag } from '@/lib/req-flags'
+import { registrarAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -269,7 +271,12 @@ async function executar(req: NextRequest) {
     const aviso =
       `🎓 *CHECK DE TREINAMENTO — ${esgotados.length} loja(s) sem resposta após ${MAX_TOQUES} toques*\n\n` +
       esgotados.map((e) => `• ${e.split('|')[0]}`).join('\n') +
-      `\n\nParei de perguntar pra essas. Vale um contato direto ou reavaliar a etapa.`
+      `\n\nParei de perguntar pra essas. Vale um contato direto ou reavaliar a etapa.` + RODAPE_PAINEL
+    await registrarAvisos('treinamento', esgotados.map((e) => {
+      const [rotulo, id] = e.split('|')
+      const m = rotulo.match(/^(.*) \((\d+)\)$/)
+      return { leadId: id ?? '', loja: m?.[1] ?? rotulo, telefone: m?.[2] ?? null }
+    }))
     if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
     // Carimba pra não repetir o aviso na próxima rodada.
     for (const e of esgotados) {
