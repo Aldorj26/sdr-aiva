@@ -50,11 +50,11 @@ export function categoriaFila(motivo: string, status?: string): CategoriaFila {
  * Marcadores [ASSIM] saem antes: o [CAMPANHA_PAINEL_REPASSES:...] casava com o
  * padrão e vazava na coluna de motivo (04/09).
  */
-export function motivoDeObs(obs: string | null): string {
+export function motivoDeObs(obs: string | null, max = 70): string {
   const s = (obs ?? '').replace(/\[[^\]]*\]/g, ' ')
   const inicios: number[] = []
   for (const m of s.matchAll(RE_INICIO_MOTIVO)) inicios.push((m.index ?? 0) + m[0].length - m[1].length)
   if (!inicios.length) return ''
   const ini = inicios[inicios.length - 1]
-  return s.slice(ini).split(/[|[]/)[0].trim().slice(0, 70)
+  return s.slice(ini).split(/[|[]/)[0].trim().slice(0, max)
 }

@@ -24,7 +24,7 @@
     "test:jornada": "node --test lib/jornada-aiva-calc.test.ts",
     "test:auto": "node --test lib/resposta-automatica.test.ts",
     "test:abertura": "node --test lib/teste-abertura.test.ts",
-    "test:avisos": "node --test lib/avisos-painel-calc.test.ts",
+    "test:avisos": "node --test lib/avisos-painel-calc.test.ts lib/atendimento-orientacao.test.ts",
     "test:desempenho": "node --test lib/desempenho-loja-calc.test.ts lib/dicas-desempenho-calc.test.ts"
   },
   "dependencies": {

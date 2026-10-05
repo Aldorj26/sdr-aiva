@@ -8,12 +8,17 @@ import AtendidoButton from '../_components/AtendidoButton'
 import Copiavel from '@/app/_components/Copiavel'
 import AvisoResolver from '../_components/AvisoResolver'
 import { CATALOGO, TIPOS, avisoVelho, type TipoAviso } from '@/lib/avisos-painel-calc'
+import { orientar, resumirFala, haQuanto } from '@/lib/atendimento-orientacao'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
-// WhatsApp das 8h. Desde 04/09 o CS (lojas ativas) também mora aqui: a seção
-// no /desempenho travava a página (main overflow:hidden + seção crescendo além
-// da tela) e o Aldo pediu pra tirar de lá.
+// WhatsApp das 8h. Desde 04/09 o CS (lojas ativas) também mora aqui.
+//
+// 05/10/2026 (Aldo): todas as seções no MESMO formato do painel da Parcelex —
+// Loja · O que está acontecendo · O que fazer · Última fala do lojista · Parado há · Ação.
+// O "o que está acontecendo / o que fazer" sai do motivo do acionamento
+// (lib/atendimento-orientacao.ts); antes a coluna mostrava o código cru
+// ("acesso_flexfone_nao_chegou") e o Nei tinha que abrir a conversa pra saber o que fazer.
 export const dynamic = 'force-dynamic'
 
 interface LeadFila {
@@ -25,8 +30,25 @@ interface LeadFila {
   data_ultimo_contato: string | null
 }
 
+/** Uma linha de qualquer seção, já no formato das seis colunas. */
+interface Linha {
+  key: string
+  leadId: string | null
+  loja: string
+  telefone: string | null
+  cnpj: string | null
+  etapa?: string | null
+  situacao: string
+  acao: string
+  desde: string | null
+  prints?: string[]
+  botao: React.ReactNode
+}
+
+type Falas = Map<string, { texto: string; quando: string }>
+
 const th: React.CSSProperties = { textAlign: 'left', padding: '0.45rem 0.6rem', fontSize: '0.72rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-strong)', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em' }
-const td: React.CSSProperties = { padding: '0.45rem 0.6rem', fontSize: '0.83rem', borderBottom: '1px solid var(--border)' }
+const td: React.CSSProperties = { padding: '0.5rem 0.6rem', fontSize: '0.83rem', borderBottom: '1px solid var(--border)', verticalAlign: 'top' }
 
 function fmtQuando(iso: string | null): string {
   if (!iso) return '—'
@@ -37,13 +59,78 @@ function fmtQuando(iso: string | null): string {
 // observações do lead — mesmos marcadores que o /desempenho usa pra casar
 // snapshot ↔ lead (cnpj_matriz= dos dados coletados; CNPJ_RECEITA: da validação).
 function cnpjDeObs(obs: string | null): string | null {
-  const d = (obs ?? '').match(/cnpj_matriz=([0-9]{14})/)?.[1]
-    ?? (obs ?? '').match(/CNPJ_RECEITA:cnpj=([0-9]{14})/)?.[1]
-  return d ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : null
+  const bruto = (obs ?? '').match(/cnpj_matriz=([0-9./-]{14,18})/)?.[1] ?? (obs ?? '').match(/CNPJ_RECEITA:cnpj=([0-9]{14})/)?.[1]
+  const d = (bruto ?? '').replace(/\D/g, '')
+  return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : null
+}
+
+const ETAPA: Record<string, string> = {
+  INICIO: 'Início', DISPARO_REALIZADO: 'Início', SEM_RESPOSTA: 'Sem resposta', INTERESSADO: 'Interessado', AGUARDANDO: 'Aguardando',
+  PRE_APROVACAO: 'Pré-aprovação', CADASTRO_RECEBIDO: 'Cadastro recebido', EM_ANALISE_AIVA: 'Em análise AIVA', TREINAR: 'Treinar',
+  LOGIN: 'Login', LOJA_FINALIZADA_E_VENDENDO: 'Loja finalizada', BOT_DETECTADO: 'Bot detectado',
+}
+
+function linhaDeLead(l: LeadFila, botao: React.ReactNode): Linha {
+  // 200 e não os 70 do digest de WhatsApp: aqui o detalhe que a VictorIA escreveu cabe e orienta
+  const o = orientar(motivoDeObs(l.observacoes, 200))
+  return { key: l.id, leadId: l.id, loja: l.nome, telefone: l.telefone, cnpj: cnpjDeObs(l.observacoes), etapa: l.status, situacao: o.situacao, acao: o.acao, desde: l.data_ultimo_contato, botao }
+}
+
+interface AvisoPainel {
+  id: string
+  tipo: TipoAviso
+  lead_id: string | null
+  loja: string
+  telefone: string | null
+  detalhe: string | null
+  status_lead: string | null
+  criado_em: string
+}
+
+// 🚨 Avisos do robô (Aldo 05/10/2026): os digests de WhatsApp ("3 lojas sem concluir a
+// biometria…") passavam batido no meio dos outros alertas. Cada loja avisada vira uma linha
+// aqui até alguém clicar em Resolvido — ou até a situação andar sozinha (avisoVelho).
+async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>> {
+  const { data, error } = await supabaseAdmin
+    .from('sdr_avisos_painel')
+    .select('id, tipo, lead_id, loja, telefone, detalhe, status_lead, criado_em')
+    .is('resolvido_em', null)
+    .order('criado_em', { ascending: false })
+    .limit(400)
+  if (error || !data?.length) return []
+  const lista = (data as AvisoPainel[]).filter((a) => a.tipo in CATALOGO)
+  const ids = [...new Set(lista.map((a) => a.lead_id).filter(Boolean))] as string[]
+  const { data: leads } = ids.length
+    ? await supabaseAdmin.from('sdr_leads').select('id, status, observacoes').in('id', ids)
+    : { data: [] as Array<{ id: string; status: string; observacoes: string | null }> }
+  const leadPorId = new Map((leads ?? []).map((l) => [l.id, l]))
+  const vivos: Array<AvisoPainel & { linha: Linha }> = []
+  const velhos = new Map<string, string[]>()
+  for (const a of lista) {
+    const l = a.lead_id ? leadPorId.get(a.lead_id) : undefined
+    const motivo = avisoVelho(a.status_lead, l?.status ?? null)
+    if (motivo) { velhos.set(motivo, [...(velhos.get(motivo) ?? []), a.id]); continue }
+    const c = CATALOGO[a.tipo]
+    vivos.push({
+      ...a,
+      linha: {
+        key: a.id, leadId: a.lead_id, loja: a.loja, telefone: a.telefone, cnpj: cnpjDeObs(l?.observacoes ?? null), etapa: l?.status ?? a.status_lead,
+        situacao: (a.detalhe ? `${c.oque} — ${a.detalhe}` : c.oque).replace(/^./, (x) => x.toUpperCase()), acao: c.acao, desde: a.criado_em, botao: <AvisoResolver id={a.id} />,
+      },
+    })
+  }
+  // fecha os que andaram sozinhos (melhor esforço: se falhar, tentam de novo no próximo carregamento)
+  for (const [motivo, idsVelhos] of velhos) {
+    await supabaseAdmin.from('sdr_avisos_painel').update({ resolvido_em: new Date().toISOString(), resolvido_como: motivo }).in('id', idsVelhos)
+  }
+  return TIPOS
+    .map((tipo) => ({ tipo, linhas: vivos.filter((a) => a.tipo === tipo).map((a) => a.linha) }))
+    .filter((g) => g.linhas.length)
+    .sort((a, b) => CATALOGO[a.tipo].ordem - CATALOGO[b.tipo].ordem)
 }
 
 async function getDados() {
-  const [fila, chamados, travadosRaw, csFila] = await Promise.all([
+  const [fila, chamados, travadosRaw, csFila, avisos] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
@@ -51,7 +138,7 @@ async function getDados() {
       .not('status', 'in', '("FORMULARIO_ENVIADO","OPT_OUT","NAO_QUALIFICADO","DESCARTADO","LOJA_FINALIZADA_E_VENDENDO")')
       .order('data_ultimo_contato', { ascending: true, nullsFirst: true }),
     // Chamados abertos de TODAS as etapas (04/09: os de loja ativa vinham no
-    // /desempenho; agora a coluna Etapa distingue credenciamento × LFV)
+    // /desempenho; agora a etapa distingue credenciamento × loja ativa)
     supabaseAdmin
       .from('sdr_chamados')
       .select('id, lead_id, loja, telefone, problema, status_lead, criado_em')
@@ -72,23 +159,32 @@ async function getDados() {
       .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
       .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
       .limit(40),
+    getAvisos(),
   ])
 
-  const travados = ((travadosRaw.data ?? []) as Array<LeadFila & { status_alterado_em: string | null }>)
+  const travadosLeads = ((travadosRaw.data ?? []) as Array<LeadFila & { status_alterado_em: string | null }>)
     .sort((a, b) => (a.status_alterado_em ?? '').localeCompare(b.status_alterado_em ?? ''))
   // Travados no CAF têm precedência (08/09): quem esgotou as 3 cobranças é
   // lista de ligação — não repete em Ação/Mover com um motivo antigo.
-  const idsTravados = new Set(travados.map((t) => t.id))
-  const grupos: Record<CategoriaFila, LeadFila[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
+  const idsTravados = new Set(travadosLeads.map((t) => t.id))
+  const grupos: Record<CategoriaFila, Linha[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
   for (const l of (fila.data ?? []) as LeadFila[]) {
     if (idsTravados.has(l.id)) continue
-    grupos[categoriaFila(motivoDeObs(l.observacoes), l.status)].push(l)
+    grupos[categoriaFila(motivoDeObs(l.observacoes), l.status)].push(linhaDeLead(l, <AtendidoButton leadId={l.id} />))
   }
+  const cs = ((csFila.data ?? []) as LeadFila[]).map((l) => linhaDeLead(l, <AtendidoButton leadId={l.id} />))
+  const travados: Linha[] = travadosLeads.map((l) => ({
+    key: l.id, leadId: l.id, loja: l.nome, telefone: l.telefone, cnpj: cnpjDeObs(l.observacoes), etapa: l.status,
+    situacao: 'Esgotou as 3 cobranças automáticas do cadastro e não concluiu', acao: 'Ligar pro lojista — o robô não cobra mais.',
+    desde: l.status_alterado_em ?? l.data_ultimo_contato, botao: null,
+  }))
 
   // CNPJ dos chamados: sdr_chamados não guarda CNPJ — vem das observações do
   // lead vinculado (mesmos marcadores das outras seções).
-  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string; cnpj?: string | null; prints?: string[] }>
+  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>
   const idsChamados = [...new Set(listaChamados.map((c) => c.lead_id).filter(Boolean))] as string[]
+  const cnpjPorLead = new Map<string, string | null>()
+  const printsPorChamado = new Map<string, string[]>()
   if (idsChamados.length) {
     const [{ data: leadsCh }, { data: imgs }] = await Promise.all([
       supabaseAdmin.from('sdr_leads').select('id, observacoes').in('id', idsChamados),
@@ -96,151 +192,108 @@ async function getDados() {
       // 24h antes de abrir o chamado — o print costuma vir junto do relato.
       supabaseAdmin.from('sdr_mensagens').select('lead_id, conteudo, enviado_em').in('lead_id', idsChamados).eq('direcao', 'in').like('conteudo', '[LEAD_ENVIOU_IMAGEM:%').order('enviado_em'),
     ])
-    const cnpjPorLead = new Map((leadsCh ?? []).map((l) => [l.id, cnpjDeObs(l.observacoes)]))
+    for (const l of leadsCh ?? []) cnpjPorLead.set(l.id, cnpjDeObs(l.observacoes))
     for (const c of listaChamados) {
-      c.cnpj = c.lead_id ? cnpjPorLead.get(c.lead_id) ?? null : null
       const desde = new Date(new Date(c.criado_em).getTime() - 24 * 3600e3).toISOString()
-      c.prints = [...new Set((imgs ?? [])
+      printsPorChamado.set(c.id, [...new Set((imgs ?? [])
         .filter((m) => m.lead_id === c.lead_id && m.enviado_em >= desde)
         .map((m) => m.conteudo.match(/\[LEAD_ENVIOU_IMAGEM:(\d+)\]/)?.[1] ?? '')
-        .filter(Boolean))]
+        .filter(Boolean))])
     }
   }
+  const linhasChamados: Linha[] = listaChamados.map((c) => ({
+    key: c.id, leadId: c.lead_id, loja: c.loja ?? c.telefone, telefone: c.telefone, cnpj: c.lead_id ? cnpjPorLead.get(c.lead_id) ?? null : null, etapa: c.status_lead,
+    situacao: (c.problema ?? 'Erro de portal/sistema — ver a conversa').slice(0, 220),
+    acao: 'Se o erro for do portal da AIVA, abrir com o Edu; quando resolver, avisar o lojista e clicar em Resolver.',
+    desde: c.criado_em, prints: printsPorChamado.get(c.id), botao: <ChamadoResolver id={c.id} />,
+  }))
 
-  return {
-    grupos,
-    chamados: listaChamados,
-    travados,
-    cs: (csFila.data ?? []) as LeadFila[],
-    avisos: await getAvisos(),
+  // Última fala do lojista de todo mundo que aparece na tela (uma consulta só)
+  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.docs, ...grupos.mover, ...grupos.sem_motivo, ...cs, ...travados, ...linhasChamados]
+  const idsFala = [...new Set(todas.map((l) => l.leadId).filter(Boolean))] as string[]
+  const falas: Falas = new Map()
+  if (idsFala.length) {
+    const { data: f } = await supabaseAdmin.rpc('sdr_ultimas_falas', { ids: idsFala })
+    for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
+
+  return { grupos, chamados: linhasChamados, travados, cs, avisos, falas }
 }
 
-interface AvisoPainel {
-  id: string
-  tipo: TipoAviso
-  lead_id: string | null
-  loja: string
-  telefone: string | null
-  detalhe: string | null
-  status_lead: string | null
-  criado_em: string
-  cnpj?: string | null
-  statusAtual?: string | null
-}
-
-// 🚨 Avisos do robô (Aldo 05/10/2026): os digests de WhatsApp ("3 lojas sem concluir a
-// biometria…") passavam batido no meio dos outros alertas. Cada loja avisada vira uma linha
-// aqui até alguém clicar em Resolvido — ou até a situação andar sozinha (avisoVelho).
-async function getAvisos(): Promise<Array<{ tipo: TipoAviso; itens: AvisoPainel[] }>> {
-  const { data, error } = await supabaseAdmin
-    .from('sdr_avisos_painel')
-    .select('id, tipo, lead_id, loja, telefone, detalhe, status_lead, criado_em')
-    .is('resolvido_em', null)
-    .order('criado_em', { ascending: false })
-    .limit(400)
-  if (error || !data?.length) return []
-  const lista = (data as AvisoPainel[]).filter((a) => a.tipo in CATALOGO)
-  const ids = [...new Set(lista.map((a) => a.lead_id).filter(Boolean))] as string[]
-  const { data: leads } = ids.length
-    ? await supabaseAdmin.from('sdr_leads').select('id, status, observacoes').in('id', ids)
-    : { data: [] as Array<{ id: string; status: string; observacoes: string | null }> }
-  const leadPorId = new Map((leads ?? []).map((l) => [l.id, l]))
-  const vivos: AvisoPainel[] = []
-  const velhos = new Map<string, string[]>()
-  for (const a of lista) {
-    const l = a.lead_id ? leadPorId.get(a.lead_id) : undefined
-    const motivo = avisoVelho(a.status_lead, l?.status ?? null)
-    if (motivo) { velhos.set(motivo, [...(velhos.get(motivo) ?? []), a.id]); continue }
-    vivos.push({ ...a, cnpj: cnpjDeObs(l?.observacoes ?? null), statusAtual: l?.status ?? a.status_lead })
-  }
-  // fecha os que andaram sozinhos (melhor esforço: se falhar, tentam de novo no próximo carregamento)
-  for (const [motivo, idsVelhos] of velhos) {
-    await supabaseAdmin.from('sdr_avisos_painel').update({ resolvido_em: new Date().toISOString(), resolvido_como: motivo }).in('id', idsVelhos)
-  }
-  return TIPOS
-    .map((tipo) => ({ tipo, itens: vivos.filter((a) => a.tipo === tipo) }))
-    .filter((g) => g.itens.length)
-    .sort((a, b) => CATALOGO[a.tipo].ordem - CATALOGO[b.tipo].ordem)
-}
-
-function haQuanto(iso: string): string {
-  const dias = Math.floor((Date.now() - Date.parse(iso)) / 86400000)
-  return dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`
-}
-
-/** Quantas linhas de cada grupo ficam à vista; o resto abre em "ver mais". */
-const AVISOS_A_VISTA = 8
-
-function LinhaAviso({ a }: { a: AvisoPainel }) {
-  const celulas = (
-    <>
-      <td style={td}>{a.loja}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{a.telefone ? <Copiavel valor={a.telefone} /> : null}{a.cnpj ? <> · <Copiavel valor={a.cnpj.replace(/\D/g, '')} exibir={a.cnpj} /></> : null}</div></td>
-      <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{a.detalhe ?? a.statusAtual ?? '—'}</td>
-      <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(a.criado_em)} · <b style={{ color: 'var(--text-dim)' }}>{haQuanto(a.criado_em)}</b></td>
-      <td style={{ ...td, textAlign: 'right' }}><AvisoResolver id={a.id} /></td>
-    </>
-  )
-  return a.lead_id ? <ClickableRow leadId={a.lead_id}>{celulas}</ClickableRow> : <tr>{celulas}</tr>
-}
-
-function TabelaAvisos({ itens }: { itens: AvisoPainel[] }) {
+function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={th}>Loja</th><th style={th}>Detalhe</th><th style={th}>Avisado</th><th style={th}>Ação</th></tr></thead>
-        <tbody>{itens.map((a) => <LinhaAviso key={a.id} a={a} />)}</tbody>
-      </table>
-    </div>
-  )
-}
-
-function CardResumo({ label, value, color }: { label: string; value: number; color?: string }) {
-  return (
-    <a href={`#${label.replace(/\W/g, '')}`} style={{ display: 'block', textDecoration: 'none', padding: '0.7rem 0.9rem', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elev)', minWidth: 140 }}>
+    <a href={`#${id}`} style={{ display: 'block', textDecoration: 'none', padding: '0.7rem 0.9rem', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elev)', minWidth: 140 }}>
       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
       <div style={{ fontSize: '1.25rem', fontWeight: 700, color: value > 0 ? (color ?? 'var(--text)') : 'var(--text-muted)' }}>{value}</div>
     </a>
   )
 }
 
-function Secao({ id, titulo, sub, vazio, children, count }: { id: string; titulo: string; sub: string; vazio: string; count: number; children: React.ReactNode }) {
+function Tabela({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
   return (
-    <section id={id} style={{ marginBottom: '1.6rem' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.4rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.02rem' }}>{titulo} {count > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({count})</span>}</h2>
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={th}>Loja</th><th style={th}>O que está acontecendo</th><th style={th}>O que fazer</th><th style={th}>Última fala do lojista</th><th style={th}>Parado há</th><th style={th}>Ação</th>
+        </tr></thead>
+        <tbody>
+          {linhas.map((l) => {
+            const fala = l.leadId ? falas.get(l.leadId) : undefined
+            const celulas = (
+              <>
+                <td style={{ ...td, minWidth: 170 }}>
+                  <b>{l.loja}</b>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {l.telefone ? <Copiavel valor={l.telefone} /> : null}{l.cnpj ? <> · <Copiavel valor={l.cnpj.replace(/\D/g, '')} exibir={l.cnpj} /></> : null}
+                  </div>
+                  {l.etapa ? <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{ETAPA[l.etapa] ?? l.etapa}</div> : null}
+                </td>
+                <td style={{ ...td, color: 'var(--yellow)', fontSize: '0.8rem', maxWidth: 330 }}>
+                  {l.situacao}
+                  {(l.prints?.length ?? 0) > 0 && (
+                    <span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>
+                      {l.prints!.map((id, i) => (
+                        <a key={id} href={`/api/leads/media/${id}`} target="_blank" rel="noopener noreferrer" title={`Print ${i + 1} enviado pelo lojista`} style={{ color: 'var(--accent)', textDecoration: 'none', marginRight: 4 }}>📷{l.prints!.length > 1 ? i + 1 : ''}</a>
+                      ))}
+                    </span>
+                  )}
+                </td>
+                <td style={{ ...td, fontSize: '0.8rem', color: 'var(--text-dim)', maxWidth: 270 }}>{l.acao}</td>
+                <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)', maxWidth: 240 }}>
+                  {fala?.texto ? <>“{fala.texto}” <span style={{ whiteSpace: 'nowrap' }}>· {fmtQuando(fala.quando)}</span></> : l.leadId ? 'nunca respondeu' : '—'}
+                </td>
+                <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.78rem' }} title={fmtQuando(l.desde)}><b>{haQuanto(l.desde)}</b></td>
+                <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{l.botao}</td>
+              </>
+            )
+            return l.leadId ? <ClickableRow key={l.key} leadId={l.leadId}>{celulas}</ClickableRow> : <tr key={l.key}>{celulas}</tr>
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: string; sub: string; vazio: string; linhas: Linha[]; falas: Falas }) {
+  return (
+    <section id={id} style={{ marginBottom: '1.7rem', scrollMarginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+        <h2 style={{ margin: 0, fontSize: '1.02rem' }}>{titulo} {linhas.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({linhas.length})</span>}</h2>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sub}</span>
       </div>
-      {count === 0
+      {linhas.length === 0
         ? <p style={{ margin: 0, padding: '0.6rem 0.2rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{vazio}</p>
-        : children}
+        : <Tabela linhas={linhas} falas={falas} />}
     </section>
   )
 }
 
-function LinhaLead({ l, botao }: { l: LeadFila; botao: React.ReactNode }) {
-  const motivo = motivoDeObs(l.observacoes)
-  const cnpj = cnpjDeObs(l.observacoes)
-  return (
-    <ClickableRow leadId={l.id}>
-      <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={l.telefone} />{cnpj ? <> · <Copiavel valor={cnpj.replace(/\D/g, '')} exibir={cnpj} /></> : null}</div></td>
-      <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-dim)' }}>{l.status}</td>
-      <td style={{ ...td, color: 'var(--yellow)', fontSize: '0.8rem' }}>{motivo || 'ver conversa'}</td>
-      <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
-      <td style={{ ...td, textAlign: 'right' }}>{botao}</td>
-    </ClickableRow>
-  )
-}
-
-const cab = (
-  <thead><tr>
-    <th style={th}>Loja</th><th style={th}>Etapa</th><th style={th}>Motivo</th><th style={th}>Último contato</th><th style={th}>Ação</th>
-  </tr></thead>
-)
+/** Quantas linhas de cada grupo de aviso ficam à vista; o resto abre em "ver mais". */
+const AVISOS_A_VISTA = 8
 
 export default async function AtendimentoPage() {
-  const { grupos, chamados, travados, cs, avisos } = await getDados()
-  const totalAvisos = avisos.reduce((t, g) => t + g.itens.length, 0)
+  const { grupos, chamados, travados, cs, avisos, falas } = await getDados()
+  const totalAvisos = avisos.reduce((t, g) => t + g.linhas.length, 0)
 
   return (
     <main>
@@ -253,38 +306,33 @@ export default async function AtendimentoPage() {
       </header>
 
       <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <CardResumo label="🚨 Avisos do robô" value={totalAvisos} color="var(--red)" />
-        <CardResumo label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
-        <CardResumo label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
-        <CardResumo label="🛠 Chamados" value={chamados.length} color="var(--red)" />
-        <CardResumo label="🟡 Mover card" value={grupos.mover.length} color="var(--yellow)" />
-        <CardResumo label="⏱ Travados no CAF" value={travados.length} color="var(--yellow)" />
-        <CardResumo label="📄 Docs" value={grupos.docs.length} />
-        <CardResumo label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
+        <CardResumo id="avisos" label="🚨 Avisos do robô" value={totalAvisos} color="var(--red)" />
+        <CardResumo id="acao" label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
+        <CardResumo id="cs" label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
+        <CardResumo id="chamados" label="🛠 Chamados" value={chamados.length} color="var(--red)" />
+        <CardResumo id="mover" label="🟡 Mover card" value={grupos.mover.length} color="var(--yellow)" />
+        <CardResumo id="travados" label="⏱ Travados no CAF" value={travados.length} color="var(--yellow)" />
+        <CardResumo id="docs" label="📄 Docs" value={grupos.docs.length} />
+        <CardResumo id="semmotivo" label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
       </div>
 
       {totalAvisos > 0 && (
-        <section id="Avisosdorob" style={{ marginBottom: '1.8rem', padding: '0.9rem 1rem', border: '1px solid var(--red)', borderRadius: 10, background: 'var(--bg-elev)' }}>
+        <section id="avisos" style={{ marginBottom: '1.8rem', padding: '0.9rem 1rem', border: '1px solid var(--red)', borderRadius: 10, background: 'var(--bg-elev)', scrollMarginTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--red)' }}>🚨 Avisos do robô <span style={{ fontWeight: 400 }}>({totalAvisos})</span></h2>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o robô parou de insistir nessas lojas e avisou no WhatsApp — ficam aqui até alguém tratar e clicar em Resolvido</span>
           </div>
           {avisos.map((g) => {
-            const c = CATALOGO[g.tipo]
-            const vista = g.itens.slice(0, AVISOS_A_VISTA)
-            const resto = g.itens.slice(AVISOS_A_VISTA)
+            const vista = g.linhas.slice(0, AVISOS_A_VISTA)
+            const resto = g.linhas.slice(AVISOS_A_VISTA)
             return (
               <div key={g.tipo} style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.92rem' }}>{c.titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.itens.length})</span></h3>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{c.oque}</span>
-                </div>
-                <p style={{ margin: '0.1rem 0 0.35rem', fontSize: '0.76rem', color: 'var(--text-dim)' }}>👉 {c.acao}</p>
-                <TabelaAvisos itens={vista} />
+                <h3 style={{ margin: '0 0 0.3rem', fontSize: '0.92rem' }}>{CATALOGO[g.tipo].titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.linhas.length})</span></h3>
+                <Tabela linhas={vista} falas={falas} />
                 {resto.length > 0 && (
                   <details style={{ marginTop: '0.3rem' }}>
                     <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--accent)' }}>ver mais {resto.length} (mais antigos)</summary>
-                    <TabelaAvisos itens={resto} />
+                    <Tabela linhas={resto} falas={falas} />
                   </details>
                 )}
               </div>
@@ -293,81 +341,13 @@ export default async function AtendimentoPage() {
         </section>
       )}
 
-      <Secao id="Aopendente" titulo="🔴 Ação pendente" sub="acionaram humano — resolver hoje" vazio="Fila zerada. 🎉" count={grupos.acao.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
-          {grupos.acao.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
-        </tbody></table>
-      </Secao>
-
-      <Secao id="CSlojasativas" titulo="🟣 CS — lojas ativas" sub="lojas vendendo que acionaram humano — veio do Desempenho (04/09)" vazio="Nenhuma loja ativa aguardando. ✓" count={cs.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
-          {cs.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
-        </tbody></table>
-      </Secao>
-
-      <Secao id="Chamados" titulo="🛠 Chamados abertos" sub="erro de portal/sistema — abrir com o Edu se for da AIVA" vazio="Nenhum chamado aberto. ✓" count={chamados.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={th}>Loja</th><th style={th}>Problema</th><th style={th}>Etapa</th><th style={th}>Quando</th><th style={th}>Ação</th></tr></thead>
-          <tbody>
-            {chamados.map((c) => {
-              const celulas = (
-                <>
-                  <td style={td}>{c.loja ?? c.telefone}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={c.telefone} />{c.cnpj ? <> · <Copiavel valor={c.cnpj.replace(/\D/g, '')} exibir={c.cnpj} /></> : null}</div></td>
-                  <td style={{ ...td, fontSize: '0.8rem', color: 'var(--yellow)' }} title={c.problema ?? ''}>
-                    {(c.problema ?? 'ver conversa').slice(0, 110)}
-                    {(c.prints?.length ?? 0) > 0 && (
-                      <span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>
-                        {c.prints!.map((id, i) => (
-                          <a key={id} href={`/api/leads/media/${id}`} target="_blank" rel="noopener noreferrer" title={`Print ${i + 1} enviado pelo lojista`} style={{ color: 'var(--accent)', textDecoration: 'none', marginRight: 4 }}>📷{c.prints!.length > 1 ? i + 1 : ''}</a>
-                        ))}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)' }}>{c.status_lead ?? '—'}</td>
-                  <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>{fmtQuando(c.criado_em)}</td>
-                  <td style={{ ...td, textAlign: 'right' }}><ChamadoResolver id={c.id} /></td>
-                </>
-              )
-              return c.lead_id
-                ? <ClickableRow key={c.id} leadId={c.lead_id}>{celulas}</ClickableRow>
-                : <tr key={c.id}>{celulas}</tr>
-            })}
-          </tbody>
-        </table>
-      </Secao>
-
-      <Secao id="Movercard" titulo="🟡 Mover card" sub="cadastro/biometria confirmados — mover no Evo" vazio="Nada pra mover. ✓" count={grupos.mover.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
-          {grupos.mover.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
-        </tbody></table>
-      </Secao>
-
-      <Secao id="TravadosnoCAF" titulo="⏱ Travados no CAF" sub="esgotaram as 3 cobranças automáticas — lista de ligação" vazio="Ninguém travado. ✓" count={travados.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={th}>Loja</th><th style={th}>Na etapa desde</th><th style={th}>Último contato</th></tr></thead>
-          <tbody>
-            {travados.map((l) => (
-              <ClickableRow key={l.id} leadId={l.id}>
-                <td style={td}>{l.nome}<div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={l.telefone} />{cnpjDeObs(l.observacoes) ? <> · <Copiavel valor={cnpjDeObs(l.observacoes)!.replace(/\D/g, '')} exibir={cnpjDeObs(l.observacoes)!} /></> : null}</div></td>
-                <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{l.status_alterado_em ? new Date(l.status_alterado_em).toLocaleDateString('pt-BR') : '—'}</td>
-                <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtQuando(l.data_ultimo_contato)}</td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </table>
-      </Secao>
-
-      <Secao id="Docs" titulo="📄 Docs / colaboradores" sub="processar com o Edu" vazio="Nada pendente. ✓" count={grupos.docs.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
-          {grupos.docs.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
-        </tbody></table>
-      </Secao>
-
-      <Secao id="Semmotivo" titulo="⚪ Sem motivo registrado" sub="revisar a conversa e marcar Atendido" vazio="Nenhum. ✓" count={grupos.sem_motivo.length}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>{cab}<tbody>
-          {grupos.sem_motivo.map((l) => <LinhaLead key={l.id} l={l} botao={<AtendidoButton leadId={l.id} />} />)}
-        </tbody></table>
-      </Secao>
+      <Secao id="acao" titulo="🔴 Ação pendente" sub="a VictorIA passou pra uma pessoa (o lojista pediu, ou ela não soube resolver) — resolver hoje" vazio="Fila zerada. 🎉" linhas={grupos.acao} falas={falas} />
+      <Secao id="cs" titulo="🟣 CS — lojas ativas" sub="lojas já operando que acionaram atendimento" vazio="Nenhuma loja ativa aguardando. ✓" linhas={cs} falas={falas} />
+      <Secao id="chamados" titulo="🛠 Chamados abertos" sub="erro de portal/sistema relatado pelo lojista" vazio="Nenhum chamado aberto. ✓" linhas={chamados} falas={falas} />
+      <Secao id="mover" titulo="🟡 Mover card" sub="cadastro completo — lançar em Registros AIVA" vazio="Nada pra mover. ✓" linhas={grupos.mover} falas={falas} />
+      <Secao id="travados" titulo="⏱ Travados no CAF" sub="esgotaram as 3 cobranças automáticas — lista de ligação" vazio="Ninguém travado. ✓" linhas={travados} falas={falas} />
+      <Secao id="docs" titulo="📄 Docs / colaboradores" sub="dados de colaborador pra processar" vazio="Nada pendente. ✓" linhas={grupos.docs} falas={falas} />
+      <Secao id="semmotivo" titulo="⚪ Sem motivo registrado" sub="a VictorIA acionou sem dizer por quê" vazio="Nenhum. ✓" linhas={grupos.sem_motivo} falas={falas} />
 
       <LeadDrawer />
     </main>
