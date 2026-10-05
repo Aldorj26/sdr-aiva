@@ -40,8 +40,10 @@ export function miolo(toque: number, url: string): string {
  * se não tivesse feito (TevCell: negada em 29/09, 3 lembretes errados até 05/10).
  * Trilha própria: aviso na hora em que o cron vê a negativa, um reforço em 2 dias e fim —
  * a loja já está no painel do Nei desde o primeiro dia (aviso `biometria_negada`).
- * ⛔ Enquanto ENVIO_NEGADA_ATIVO for false, nada é enviado ao lojista (texto aguardando
- * aprovação do Aldo); os lembretes genéricos param do mesmo jeito.
+ * ⛔ Enquanto ENVIO_NEGADA_ATIVO for false, nada é enviado ao lojista; os lembretes genéricos
+ * param do mesmo jeito. Os textos abaixo foram APROVADOS pelo Aldo em 05/10/2026 — a flag só
+ * espera o Mauricio (AIVA) dizer se o link reabre depois da negativa: se precisar de link novo,
+ * ligar como está mandaria link morto.
  */
 export const ENVIO_NEGADA_ATIVO = false
 export const MAX_TOQUES_NEGADA = 2
