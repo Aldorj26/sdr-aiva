@@ -23,6 +23,7 @@ const EXATOS: Record<string, Orientacao> = {
   corrigir_dado_cadastro: { situacao: 'Lojista quer corrigir um dado do cadastro antes de a loja ser criada', acao: `Pedir a correção pra ${AIVA}.` },
   dificuldade_onboarding_caf: { situacao: 'Lojista travou no cadastro da AIVA (formulário ou biometria)', acao: `Ver o print na conversa. Se for erro do site, abrir com ${AIVA}; se for dúvida, ligar e fazer junto.` },
   link_biometria_nao_chegou: { situacao: 'Lojista não achou o link da biometria', acao: 'Reenviar o link da biometria (está no card da loja no painel da AIVA).' },
+  link_biometria_nao_reabre: { situacao: 'Biometria negada e o link só abre a tela de concluído — o lojista não consegue refazer', acao: `Pedir um link novo de biometria pra ${AIVA} e mandar pro lojista.` },
   biometria_refeita: { situacao: 'A selfie tinha sido reprovada e o lojista diz que refez', acao: 'Conferir no painel da AIVA se a biometria passou agora.' },
   portal_nao_atualizou_cadastro: { situacao: 'Lojista insiste que concluiu o cadastro, mas o portal da AIVA mostra em aberto', acao: `Conferir no painel da AIVA em que etapa parou; se ele fez mesmo, abrir com ${AIVA}.` },
   cadastro_caf_confirmado: { situacao: 'Lojista disse que concluiu o cadastro', acao: 'Nada a mover: o card anda sozinho quando a AIVA criar a loja. Marcar Atendido.' },

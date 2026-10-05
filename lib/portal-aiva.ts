@@ -508,10 +508,10 @@ export async function listarOnboardingsApi(): Promise<OnboardingApi[]> {
  * importa porque antes o cron morria inteiro (502) quando o login do portal
  * falhava: ninguém recebia o link da biometria e o erro era silencioso.
  */
-export async function listarBiometriaPendenteApi(): Promise<Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }>> {
+export async function listarBiometriaPendenteApi(): Promise<Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null; negada: boolean }>> {
   const chave = process.env.AIVA_PORTAL_API_KEY
   if (!chave) throw new Error('AIVA_PORTAL_API_KEY não configurada')
-  const tudo: Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null }> = []
+  const tudo: Array<{ id: string; cnpj: string; legal_name: string | null; liveness_url: string | null; phone_number: string | null; negada: boolean }> = []
   let cursor: string | null = null
   do {
     const q = new URLSearchParams({ limit: '500', stage: 'biometria' })
@@ -530,6 +530,8 @@ export async function listarBiometriaPendenteApi(): Promise<Array<{ id: string; 
       // e o lojista, que fez tudo, ouve que falta fazer.
       if ((o.biometry_status ?? '').toLowerCase() === 'aprovado') continue
       tudo.push({
+        // selfie feita e REPROVADA pela AIVA (a análise é posterior — o lojista sai do link achando que concluiu)
+        negada: (o.biometry_status ?? '').toLowerCase() === 'negado',
         id: String(o.id ?? ''),
         cnpj: String(o.cnpj ?? ''),
         legal_name: (o.legal_name as string | null) ?? null,

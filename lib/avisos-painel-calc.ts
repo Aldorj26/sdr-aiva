@@ -5,9 +5,15 @@
  * Parte PURA (catálogo + regra de aviso velho); IO em lib/avisos-painel.ts.
  */
 
-export type TipoAviso = 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
+export type TipoAviso = 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
 
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
+  biometria_negada: {
+    titulo: '🚫 Biometria negada pela AIVA',
+    oque: 'o lojista fez o reconhecimento facial e a AIVA não aprovou (a análise sai depois — ele acha que concluiu)',
+    acao: 'Avisar o lojista e pedir pra refazer: lugar claro, sem boné/óculos, documento original. Se o link só abrir a tela de concluído, pedir um link novo pra AIVA (Mauricio/Edu).',
+    ordem: 0,
+  },
   biometria: {
     titulo: '🪪 Biometria não concluída',
     oque: 'link do reconhecimento facial enviado 3× e a loja não fez',

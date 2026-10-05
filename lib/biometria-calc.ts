@@ -13,6 +13,7 @@
  *   [BIOMETRIA:n:ISO]        último envio (n = 1..3)
  *   [BIOMETRIA_LINK:url]     link atual (a VictorIA usa na conversa — FASE 4)
  *   [BIOMETRIA_ESGOTADO] [BIOMETRIA_ESGOTADO_AVISADO] [BIOMETRIA_OPTOUT]
+ *   [BIO_NEGADA:n:ISO]       aviso de selfie REPROVADA pela AIVA (n = 1..2) — trilha própria, abaixo
  */
 
 export const DIAS_TOQUE = [0, 2, 5] as const
@@ -32,7 +33,43 @@ export function miolo(toque: number, url: string): string {
   }
 }
 
+/**
+ * BIOMETRIA NEGADA (Aldo 05/10/2026). A AIVA analisa a selfie DEPOIS: o lojista sai do link
+ * com a tela de concluído e só mais tarde o portal vira `negado`. Até aqui ele nunca era
+ * avisado — levava os lembretes genéricos acima ("falta só o reconhecimento facial"), como
+ * se não tivesse feito (TevCell: negada em 29/09, 3 lembretes errados até 05/10).
+ * Trilha própria: aviso na hora em que o cron vê a negativa, um reforço em 2 dias e fim —
+ * a loja já está no painel do Nei desde o primeiro dia (aviso `biometria_negada`).
+ * ⛔ Enquanto ENVIO_NEGADA_ATIVO for false, nada é enviado ao lojista (texto aguardando
+ * aprovação do Aldo); os lembretes genéricos param do mesmo jeito.
+ */
+export const ENVIO_NEGADA_ATIVO = false
+export const MAX_TOQUES_NEGADA = 2
+export const DIAS_REFORCO_NEGADA = 2
+
+/** {{2}} do HSM 48 — UMA linha, com o link dentro. */
+export function mioloNegada(toque: number, url: string): string {
+  const u = url.trim()
+  return toque <= 1
+    ? `A AIVA analisou o seu reconhecimento facial e ele não foi aprovado. Isso acontece quando a foto do documento ou do rosto não fica legível. É só refazer, em lugar bem iluminado, sem boné nem óculos e com o documento original em mãos: ${u}`
+    : `Passando pra lembrar: o reconhecimento facial do seu cadastro na AIVA não foi aprovado e precisa ser refeito pra loja ser liberada. Lugar claro, sem boné nem óculos, documento original: ${u}`
+}
+
+export function decidirNegada(m: Marcadores, respondeuRecente: boolean, agora = Date.now(), ativo: boolean = ENVIO_NEGADA_ATIVO): Decisao {
+  if (m.optout) return { acao: 'nada', motivo: 'optout' }
+  if (m.pausaVigente) return { acao: 'nada', motivo: 'pausa' }
+  if (!ativo) return { acao: 'nada', motivo: 'negada_envio_desligado' }
+  if (m.negadaToques >= MAX_TOQUES_NEGADA) return { acao: 'nada', motivo: 'negada_avisada' }
+  // o 1º aviso sai mesmo com conversa viva: é notícia que ele não tem como saber sozinho
+  if (m.negadaToques === 0) return { acao: 'enviar', toque: 1 }
+  if (respondeuRecente) return { acao: 'nada', motivo: 'conversa_recente' }
+  if (m.negadaUltimoMs != null && agora - m.negadaUltimoMs < DIAS_REFORCO_NEGADA * DIA_MS - 12 * 3_600_000) return { acao: 'nada', motivo: 'negada_aguardando_reforco' }
+  return { acao: 'enviar', toque: m.negadaToques + 1 }
+}
+
 export type Marcadores = {
+  negadaToques: number
+  negadaUltimoMs: number | null
   inicioMs: number | null
   toques: number
   ultimoMs: number | null
@@ -48,7 +85,10 @@ export function lerMarcadores(obs: string | null | undefined, agora = Date.now()
   const ms = (re: RegExp) => { const iso = o.match(re)?.[1]; const t = iso ? Date.parse(iso) : NaN; return Number.isFinite(t) ? t : null }
   const toque = o.match(/\[BIOMETRIA:(\d+):([^\]]+)\]/)
   const pausa = ms(/\[PAUSA_ATE:([^\]]+)\]/)
+  const neg = o.match(/\[BIO_NEGADA:(\d+):([^\]]+)\]/)
   return {
+    negadaToques: neg ? Number(neg[1]) : 0,
+    negadaUltimoMs: neg && Number.isFinite(Date.parse(neg[2])) ? Date.parse(neg[2]) : null,
     inicioMs: ms(/\[BIOMETRIA_INICIO:([^\]]+)\]/),
     toques: toque ? Number(toque[1]) : 0,
     ultimoMs: toque && Number.isFinite(Date.parse(toque[2])) ? Date.parse(toque[2]) : null,
@@ -86,7 +126,7 @@ export function decidir(m: Marcadores, respondeuRecente: boolean, agora = Date.n
 
 export function remontarObs(
   obs: string | null | undefined,
-  patch: { inicio?: boolean; toque?: number; link?: string; esgotado?: boolean; esgotadoAvisado?: boolean },
+  patch: { inicio?: boolean; toque?: number; link?: string; esgotado?: boolean; esgotadoAvisado?: boolean; negada?: number },
   agora = new Date(),
 ): string {
   let base = (obs ?? '').trim()
@@ -94,6 +134,7 @@ export function remontarObs(
   if (patch.inicio && !base.includes('[BIOMETRIA_INICIO:')) base = `${base} [BIOMETRIA_INICIO:${iso}]`.trim()
   if (patch.link) base = `${base.replace(/\s*\[BIOMETRIA_LINK:[^\]]*\]/g, '')} [BIOMETRIA_LINK:${patch.link.trim()}]`.trim()
   if (patch.toque != null) base = `${base.replace(/\s*\[BIOMETRIA:\d+:[^\]]*\]/g, '')} [BIOMETRIA:${patch.toque}:${iso}]`.trim()
+  if (patch.negada != null) base = `${base.replace(/\s*\[BIO_NEGADA:\d+:[^\]]*\]/g, '')} [BIO_NEGADA:${patch.negada}:${iso}]`.trim()
   if (patch.esgotado && !base.includes('[BIOMETRIA_ESGOTADO]')) base = `${base} [BIOMETRIA_ESGOTADO]`
   if (patch.esgotadoAvisado && !base.includes('[BIOMETRIA_ESGOTADO_AVISADO]')) base = `${base} [BIOMETRIA_ESGOTADO_AVISADO]`
   return base.trim()

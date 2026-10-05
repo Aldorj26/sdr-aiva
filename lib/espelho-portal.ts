@@ -20,6 +20,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
+import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
   calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, ONB_ORDEM, situacaoOnb, type OnbSituacao,
@@ -419,6 +420,11 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     if (alvo === atual) continue
     try {
       if (atual) await desmarcar(lead.id, MARCADOR_ONB_ETAPA)
+      // Biometria NEGADA entra no painel do Nei no MESMO ciclo em que o portal muda (05/10/2026)
+      // — e sai sozinha quando o lojista refaz e a etapa anda. Só na TROCA de etapa: se o Nei
+      // clicar em Resolvido com a selfie ainda negada, o aviso não reabre a cada 15 min.
+      if (alvo === 'biometria_negada') await registrarAvisos('biometria_negada', [{ leadId: lead.id, loja: lead.nome, status: lead.status }])
+      if (atual === 'biometria_negada') await resolverAvisos('biometria_negada', [lead.id], `auto: portal saiu de negada (${alvo ?? 'sem etapa aberta'})`)
       if (alvo) { await marcar(lead.id, MARCADOR_ONB_ETAPA, `${alvo}:${new Date().toISOString()}`); saida.onboarding_aberto.marcados++ }
       else saida.onboarding_aberto.limpos++
     } catch (e) {

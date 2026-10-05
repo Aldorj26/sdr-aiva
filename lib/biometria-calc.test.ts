@@ -43,3 +43,39 @@ test('remontarObs guarda o link sem duplicar e o troca quando muda', () => {
   assert.equal(lerMarcadores(b).link, 'https://cadastro.io/novo')
   assert.equal(lerMarcadores(b).toques, 2)
 })
+
+// ── Biometria NEGADA pela AIVA (05/10/2026) ──────────────────────────────────
+import { decidirNegada, mioloNegada, MAX_TOQUES_NEGADA } from './biometria-calc.ts'
+
+test('negada: textos em uma linha, com o link, dizendo que NAO foi aprovado', () => {
+  for (const n of [1, 2]) {
+    const m = mioloNegada(n, ' https://cadastro.io/abc ')
+    assert.doesNotMatch(m, /\n/)
+    assert.match(m, /https:\/\/cadastro\.io\/abc$/)
+    assert.match(m, /n.o foi aprovado/)
+    assert.ok(m.length < 330, String(m.length))
+  }
+  assert.equal(MAX_TOQUES_NEGADA, 2)
+})
+
+test('negada: avisa na hora, reforca em 2 dias e para; desligada nao envia nada', () => {
+  const T = Date.parse('2026-10-06T12:00:00Z'); const DIA = 86400000
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const ler = (o: string) => lerMarcadores(o, T)
+  // mesmo com conversa viva e mesmo ja "esgotada" nos lembretes genericos, o 1o aviso sai
+  assert.deepEqual(decidirNegada(ler('[BIOMETRIA:3:2026-10-05T12:00:00Z] [BIOMETRIA_ESGOTADO] [BIOMETRIA_ESGOTADO_AVISADO]'), true, T, true), { acao: 'enviar', toque: 1 })
+  assert.deepEqual(decidirNegada(ler(`[BIO_NEGADA:1:${iso(T - DIA)}]`), false, T, true), { acao: 'nada', motivo: 'negada_aguardando_reforco' })
+  assert.deepEqual(decidirNegada(ler(`[BIO_NEGADA:1:${iso(T - 2 * DIA)}]`), true, T, true), { acao: 'nada', motivo: 'conversa_recente' })
+  assert.deepEqual(decidirNegada(ler(`[BIO_NEGADA:1:${iso(T - 2 * DIA)}]`), false, T, true), { acao: 'enviar', toque: 2 })
+  assert.deepEqual(decidirNegada(ler(`[BIO_NEGADA:2:${iso(T - 9 * DIA)}]`), false, T, true), { acao: 'nada', motivo: 'negada_avisada' })
+  assert.deepEqual(decidirNegada(ler('[BIOMETRIA_OPTOUT]'), false, T, true), { acao: 'nada', motivo: 'optout' })
+  assert.deepEqual(decidirNegada(ler(''), false, T, false), { acao: 'nada', motivo: 'negada_envio_desligado' })
+})
+
+test('negada: marcador proprio, sem mexer nos toques genericos', () => {
+  const o = remontarObs('[BIOMETRIA:3:2026-10-05T12:00:00Z] [BIOMETRIA_ESGOTADO]', { link: 'https://cadastro.io/x', negada: 1 }, new Date('2026-10-06T12:00:00Z'))
+  assert.match(o, /\[BIO_NEGADA:1:2026-10-06T12:00:00.000Z\]/)
+  assert.match(o, /\[BIOMETRIA:3:2026-10-05T12:00:00Z\]/)
+  const m = lerMarcadores(o, Date.parse('2026-10-06T13:00:00Z'))
+  assert.equal(m.negadaToques, 1); assert.equal(m.toques, 3)
+})

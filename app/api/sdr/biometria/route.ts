@@ -24,7 +24,7 @@ import { sendTemplate, alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { loginPortal, partnerIdTrack, listarBiometriaPendenteApi, registrarLivenessSend } from '@/lib/portal-aiva'
-import { decidir, lerMarcadores, remontarObs, miolo, MAX_TOQUES } from '@/lib/biometria-calc'
+import { decidir, decidirNegada, lerMarcadores, remontarObs, miolo, mioloNegada, MAX_TOQUES } from '@/lib/biometria-calc'
 import { flag } from '@/lib/req-flags'
 import { registrarAvisos } from '@/lib/avisos-painel'
 import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
@@ -93,7 +93,8 @@ async function executar(req: NextRequest) {
   }
 
   // 4) decisão
-  const enviar: Array<{ lead: (typeof elegiveis)[number]; toque: number; onb: NonNullable<ReturnType<typeof onbDe>> }> = []
+  const enviar: Array<{ lead: (typeof elegiveis)[number]; toque: number; onb: NonNullable<ReturnType<typeof onbDe>>; negada?: boolean }> = []
+  let negadas = 0
   const esgotar: typeof elegiveis = []
   const semLink: string[] = []
   const nada: Record<string, number> = {}
@@ -107,20 +108,31 @@ async function executar(req: NextRequest) {
     if (!onb.liveness_url) { semLink.push(l.nome); continue }
     const marc = lerMarcadores(l.observacoes, agora)
     if (marc.ultimoMs != null && marc.ultimoMs >= meiaNoiteBrt) tocadosHoje++
+    // Selfie REPROVADA pela AIVA: trilha própria (aviso + 1 reforço), nunca o lembrete genérico
+    // de "falta fazer" nem o esgotamento — ele FEZ, a AIVA é que não aprovou.
+    if (onb.negada) {
+      negadas++
+      if (marc.negadaUltimoMs != null && marc.negadaUltimoMs >= meiaNoiteBrt) tocadosHoje++
+      const dn = decidirNegada(marc, recentes.has(l.id), agora)
+      if (dn.acao === 'enviar') enviar.push({ lead: l, toque: dn.toque, onb, negada: true })
+      else if (dn.acao === 'nada') nada[dn.motivo] = (nada[dn.motivo] ?? 0) + 1
+      continue
+    }
     const d = decidir(marc, recentes.has(l.id), agora)
     if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, onb })
     else if (d.acao === 'esgotou') esgotar.push(l)
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
-  enviar.sort((a, b) => a.toque - b.toque)   // primeiro envio tem prioridade (loja acabou de fechar o formulário)
+  // negada primeiro (notícia que o lojista não tem como saber), depois o 1º envio de quem acabou de fechar o formulário
+  enviar.sort((a, b) => Number(!!b.negada) - Number(!!a.negada) || a.toque - b.toque)
   const fila = enviar.slice(0, max)
-  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length, enviar: enviar.length, esgotar: esgotar.length, sem_link: semLink.length, tocados_hoje: tocadosHoje, nada }
+  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length - negadas, negadas, enviar: enviar.length, esgotar: esgotar.length, sem_link: semLink.length, tocados_hoje: tocadosHoje, nada }
 
   if (dry) {
     return NextResponse.json({
       ok: true, dry: true, ...resumo,
-      exemplo: fila[0] ? `Oi ${nomeSaudacao(fila[0].lead.nome, fila[0].lead.observacoes)}, tudo bem?\n${miolo(fila[0].toque, fila[0].onb.liveness_url!)} É só responder essa mensagem. 😊` : null,
-      destinatarios: fila.map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, toque: f.toque, portal: f.onb.legal_name })),
+      exemplo: fila[0] ? `Oi ${nomeSaudacao(fila[0].lead.nome, fila[0].lead.observacoes)}, tudo bem?\n${fila[0].negada ? mioloNegada(fila[0].toque, fila[0].onb.liveness_url!) : miolo(fila[0].toque, fila[0].onb.liveness_url!)} É só responder essa mensagem. 😊` : null,
+      destinatarios: fila.map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, toque: f.toque, negada: !!f.negada, portal: f.onb.legal_name })),
       sem_link_nomes: semLink,
     })
   }
@@ -129,11 +141,11 @@ async function executar(req: NextRequest) {
   let enviados = 0
   const falhas: string[] = []
   const avisos: string[] = []
-  for (const { lead, toque, onb } of fila) {
+  for (const { lead, toque, onb, negada } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) break
     const nome = nomeSaudacao(lead.nome, lead.observacoes)
     const link = onb.liveness_url!.trim()
-    const texto = miolo(toque, link)
+    const texto = negada ? mioloNegada(toque, link) : miolo(toque, link)
     try {
       await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, texto])
       await supabaseAdmin.from('sdr_mensagens').insert({
@@ -143,12 +155,12 @@ async function executar(req: NextRequest) {
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
       await supabaseAdmin.from('sdr_leads')
-        .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { inicio: true, link, toque, esgotado: toque >= MAX_TOQUES }), data_ultimo_contato: new Date().toISOString() })
+        .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, negada ? { link, negada: toque } : { inicio: true, link, toque, esgotado: toque >= MAX_TOQUES }), data_ultimo_contato: new Date().toISOString() })
         .eq('id', lead.id)
       enviados++
       try { if (sessao && partnerId) await registrarLivenessSend(sessao, partnerId, { onboardingId: onb.id, url: link, telefone: lead.telefone, nome }) }
       catch (e) { avisos.push(`liveness_sends não gravado p/ ${lead.nome}: ${String(e).slice(0, 80)}`) }
-      console.log(`[biometria] ✅ ${lead.nome} (${lead.telefone}) — toque ${toque}/${MAX_TOQUES}`)
+      console.log(`[biometria] ✅ ${lead.nome} (${lead.telefone}) — ${negada ? 'NEGADA, aviso' : 'toque'} ${toque}${negada ? '' : `/${MAX_TOQUES}`}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       falhas.push(`${lead.telefone} (${lead.nome}): ${msg}`)
