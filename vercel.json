@@ -17,8 +17,8 @@
       "schedule": "0 8 * * 1-5"
     },
     {
-      "path": "/api/sdr/consultoria-vendas",
-      "schedule": "0 17 * * 1-5"
+      "path": "/api/sdr/dicas-desempenho",
+      "schedule": "0 13 * * 1-5"
     },
     {
       "path": "/api/sdr/cadastro-recebido-cobranca",

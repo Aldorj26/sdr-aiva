@@ -90,6 +90,9 @@ export async function GET(req: NextRequest) {
     // Consultoria mandou toque há menos de 10 dias → ela já perguntou das vendas
     const ultConsultoria = parseFlagDate(obs, 'CONSULTORIA_ULTIMA')
     if (ultConsultoria && agora - ultConsultoria.getTime() < 10 * DIA_MS) return false
+    // dica de desempenho (substituta da consultoria, 05/10/2026) — mesma folga
+    const ultDica = parseFlagDate(obs, 'DICAS_ULTIMA')
+    if (ultDica && agora - ultDica.getTime() < 10 * DIA_MS) return false
     // Máximo de checks e cooldown entre eles
     const n = parseInt(obs.match(/\[CHECK_VENDA_N:(\d+)\]/)?.[1] ?? '0', 10)
     if (n >= MAX_CHECKS) return false

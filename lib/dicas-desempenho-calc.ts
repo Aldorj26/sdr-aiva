@@ -22,6 +22,7 @@ export type Marcadores = {
   ultima: number | null
   count: number
   consultoriaUltima: number | null
+  checkVendaUltima: number | null
   optout: boolean
   pausaAte: number | null
   semAcesso: boolean        // senha pendente ou cadastro aberto: não dá pra cobrar venda
@@ -36,6 +37,7 @@ export function lerMarcadores(obs: string | null | undefined): Marcadores {
     ultima: data(/\[DICAS_ULTIMA:([^\]]+)\]/),
     count: Number(o.match(/\[DICAS_COUNT:(\d+)\]/)?.[1] ?? 0),
     consultoriaUltima: data(/\[CONSULTORIA_ULTIMA:([^\]]+)\]/),
+    checkVendaUltima: data(/\[CHECK_VENDA_ULTIMA:([^\]]+)\]/),
     optout: o.includes('[CONSULTORIA_OPTOUT]') || o.includes('[DICAS_OPTOUT]'),
     pausaAte: data(/\[PAUSA_ATE:([^\]]+)\]/),
     semAcesso: o.includes('[SENHA_PENDENTE_DESDE:') || o.includes('[ONB_ETAPA:'),
@@ -52,6 +54,8 @@ export function decidir(m: Marcadores, seg: Segmento, ultimaFalaLojista: number 
   if (m.pausaAte && m.pausaAte > agora) return { acao: 'nada', motivo: 'pausa' }
   if (ultimaFalaLojista && agora - ultimaFalaLojista < CONVERSA_VIVA_HORAS * 3600_000) return { acao: 'nada', motivo: 'conversa_viva' }
   if (m.consultoriaUltima && agora - m.consultoriaUltima < RESPIRO_CONSULTORIA_DIAS * DIA) return { acao: 'nada', motivo: 'consultoria_recente' }
+  // check da 1ª venda (terças, /check-primeira-venda) também é HSM pra mesma loja
+  if (m.checkVendaUltima && agora - m.checkVendaUltima < RESPIRO_CONSULTORIA_DIAS * DIA) return { acao: 'nada', motivo: 'check_venda_recente' }
   if (m.ultima === null) {
     // 1ª dica: 7 dias depois de entrar na etapa. Loja sem a data (entrou antes do marcador
     // existir) é antiga — está liberada.

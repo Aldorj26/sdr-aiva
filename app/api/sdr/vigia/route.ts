@@ -93,6 +93,8 @@ const ALVOS: Alvo[] = [
   { rota: 'senha-pendente', tolerancia: 8, fila: (j) => n(j.pendentes_portal), acao: (j) => n(j.avisar) + n(j.resolvidos) },
   // 2 toques com 8 dias entre eles
   { rota: 'retomada-interessado', tolerancia: 9, fila: (j) => n(j.elegiveis), acao: (j) => n(j.enviar) + n(j.encerrar) },
+  // dicas de desempenho (05/10/2026): 45/dia enquanto houver fila; fila 0 = todas aguardando o intervalo
+  { rota: 'dicas-desempenho', tolerancia: 3, fila: (j) => n(j.fila) + tocadosHoje(j), acao: (j) => tocadosHoje(j) },
   // rede de segurança: fila 0 é o estado saudável, então nunca grita por silêncio
   { rota: 'fase3-destravada', tolerancia: 999, fila: () => 0, acao: (j) => n(j.ativos) },
   // espelho: fila 0 é NORMAL (tudo espelhado); o que se vigia é ele responder

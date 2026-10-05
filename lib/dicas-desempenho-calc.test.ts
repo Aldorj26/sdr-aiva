@@ -32,6 +32,7 @@ test('travas', () => {
   assert.deepEqual(ok(`[PAUSA_ATE:${iso(T0 + DIA)}]`), { acao: 'nada', motivo: 'pausa' })
   assert.deepEqual(ok('', T0 - 20 * 3600_000), { acao: 'nada', motivo: 'conversa_viva' })
   assert.deepEqual(ok(`[CONSULTORIA_ULTIMA:${iso(T0 - 2 * DIA)}]`), { acao: 'nada', motivo: 'consultoria_recente' })
+  assert.deepEqual(ok(`[CHECK_VENDA_ULTIMA:${iso(T0 - 1 * DIA)}]`), { acao: 'nada', motivo: 'check_venda_recente' })
 })
 
 test('textos: uma linha, sem link, cabem no HSM, numeros certos', () => {

@@ -110,10 +110,16 @@ export async function GET(req: NextRequest) {
   }
 
   if (dry) {
+    // quem já levou dica HOJE (BRT): o vigia roda às 17h, depois da rodada das 10h, e o ?dry só vê o que sobrou
+    const hojeBrt = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    const tocadosHoje = alvo.filter((l) => {
+      const u = lerMarcadores(l.observacoes).ultima
+      return u !== null && new Date(u - 3 * 3600_000).toISOString().slice(0, 10) === hojeBrt
+    }).length
     const porSegFila: Record<string, number> = {}
     for (const f of fila) porSegFila[f.seg] = (porSegFila[f.seg] ?? 0) + 1
     return NextResponse.json({
-      ok: true, dry: true, semana_fechada: ult, lojas: alvo.length, por_segmento: porSegmento,
+      ok: true, dry: true, semana_fechada: ult, lojas: alvo.length, por_segmento: porSegmento, tocados_hoje: tocadosHoje,
       fila: fila.length, fila_por_segmento: porSegFila, nesta_rodada: Math.min(fila.length, max), motivos,
       amostra: fila.slice(0, 12).map((f) => ({ loja: f.lead.nome, segmento: f.seg, texto: `Olá ${nomeDe(f.lead)}, ${f.texto}` })),
     })
