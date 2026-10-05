@@ -1574,6 +1574,14 @@ export async function POST(req: NextRequest) {
   // pré-aprovado, e com CNPJ inválido ela acionaria humano pra loja que nem é nossa.
   const jaClienteOutroCanal = resposta.motivo_humano === 'ja_cliente_aiva_outro_canal'
   if (jaClienteOutroCanal) resposta.acionar_humano = false
+  // Lojista DISSE que concluiu o cadastro/biometria (Aldo 05/10/2026): quem confirma é o PORTAL,
+  // não a fila humana. Com acionar_humano=true o lead saía da biometria automática e da cobrança
+  // do formulário (as duas filtram acionar_humano=false) e ia pra "Mover card" — onde não há o que
+  // mover: o card só anda quando a AIVA cria a loja, e isso o espelho já faz. Serginho Import ficou
+  // 4 dias assim com a biometria PENDENTE no portal; Distribuidora de Varejo, 3 semanas.
+  // O motivo continua sendo emitido (é ele que carimba [CAF_OK]); só não vira fila.
+  // Se a AIVA demorar a criar a loja, quem avisa o time é o espelho (aiva_sem_criar, 24h).
+  if (resposta.motivo_humano === 'cadastro_caf_confirmado' && lead.status === 'EM_ANALISE_AIVA') resposta.acionar_humano = false
   const faseInicialCnpj = ['DISPARO_REALIZADO', 'INICIO', 'INTERESSADO', 'SEM_RESPOSTA', 'PRE_APROVACAO', 'AGUARDANDO'].includes(lead.status)
   {
     const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
