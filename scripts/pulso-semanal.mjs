@@ -110,6 +110,7 @@ const stats = { A: 0, B: 0, C: 0, D: 0 }
 let enviados = 0, jaTinha = 0, semLead = 0, conversaAtiva = 0, falhas = 0
 const radar = [] // segmentos A/B/C pro digest
 const semLeadNomes = []
+const leadsTocados = new Set() // lead com 2+ CNPJs recebe UM pulso por semana (o marcador em observacoes é lido no início e não se atualiza na rodada)
 
 for (const r of snapW) {
   if (Date.now() - INICIO > 240_000) { console.warn('TETO DE TEMPO (240s) — rode de novo pra completar.'); break }
@@ -117,6 +118,7 @@ for (const r of snapW) {
   const lead = porCnpj.get(r.cnpj)
   if (!lead) { semLead++; semLeadNomes.push(`${r.loja ?? r.nome_varejo} (${r.cnpj})`); continue }
   if ((lead.observacoes ?? '').includes(MARCADOR)) { jaTinha++; continue }
+  if (leadsTocados.has(lead.id)) { jaTinha++; continue }
   if (lead.data_ultimo_contato && Date.now() - new Date(lead.data_ultimo_contato).getTime() < 24 * 3600e3) {
     conversaAtiva++
     continue // conversa quente — não interrompe com pulso
@@ -130,6 +132,7 @@ for (const r of snapW) {
     : seg === 'C' ? textoC(nome, loja, r.vendas, vendasAnt ?? 0)
     : textoD(nome, loja, r.vendas)
 
+  leadsTocados.add(lead.id)
   if (DRY) {
     console.log(`[DRY][${seg}] ${lead.nome} (${lead.telefone}): ${corpo.slice(0, 110)}...`)
     stats[seg]++
