@@ -749,9 +749,9 @@ export default async function Page({
           href="/?cadastro_completo=true"
         />
         <Card
-          label="CAF preenchido"
+          label="Disse que concluiu"
           value={agora.cafPreenchido}
-          hint="biometria ok — aguarda AIVA"
+          hint="lojista avisou que fez — quem confirma é o portal"
           color={agora.cafPreenchido > 0 ? 'var(--accent)' : 'var(--text-muted)'}
           href="/?caf_preenchido=true"
         />
