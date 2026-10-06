@@ -45,6 +45,28 @@ interface Linha {
   desde: string | null
   prints?: string[]
   botao: React.ReactNode
+  /** Outras pendências da MESMA loja em temas de baixo — mostradas dentro desta linha (ver `semRepetir`). */
+  extras?: Array<{ rotulo: string; situacao: string; acao: string; prints?: string[]; botao: React.ReactNode; key: string }>
+}
+
+/**
+ * Cada loja aparece UMA vez na tela (Aldo 06/10/2026 — "está repetindo tudo"): a Prime estava no CS
+ * (pediu humano) e de novo em Chamados (login não chegou). A linha fica no PRIMEIRO tema em que a loja
+ * aparece, na ordem da tela, e as pendências dos temas de baixo entram nela como "+ tema: situação",
+ * com o botão de cada uma — resolver um não fecha o outro.
+ */
+function semRepetir(vistos: Map<string, Linha>, linhas: Linha[], rotulo: string): Linha[] {
+  const out: Linha[] = []
+  for (const l of linhas) {
+    const dono = l.leadId ? vistos.get(l.leadId) : undefined
+    if (dono) {
+      (dono.extras ??= []).push({ rotulo, situacao: l.situacao, acao: l.acao, prints: l.prints, botao: l.botao, key: l.key })
+      continue
+    }
+    if (l.leadId) vistos.set(l.leadId, l)
+    out.push(l)
+  }
+  return out
 }
 
 type Falas = Map<string, { texto: string; quando: string }>
@@ -288,8 +310,18 @@ async function getDados() {
     desde: c.criado_em, prints: printsPorChamado.get(c.id), botao: <ChamadoResolver id={c.id} />,
   }))
 
+  // uma loja, uma linha — na ordem em que os temas aparecem na tela
+  const vistos = new Map<string, Linha>()
+  const avisosUnicos = avisos
+    .map((g) => ({ ...g, linhas: semRepetir(vistos, g.linhas, CATALOGO[g.tipo].titulo) }))
+    .filter((g) => g.linhas.length)
+  grupos.acao = semRepetir(vistos, grupos.acao, '🔴 Ação pendente')
+  const csUnicos = semRepetir(vistos, cs, '🟣 CS')
+  const chamadosUnicos = semRepetir(vistos, linhasChamados, '🛠 Chamado aberto')
+  grupos.sem_motivo = semRepetir(vistos, grupos.sem_motivo, '⚪ Sem motivo')
+
   // Última fala do lojista de todo mundo que aparece na tela (uma consulta só)
-  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.sem_motivo, ...cs, ...linhasChamados]
+  const todas = [...avisosUnicos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.sem_motivo, ...csUnicos, ...chamadosUnicos]
   const idsFala = [...new Set(todas.map((l) => l.leadId).filter(Boolean))] as string[]
   const falas: Falas = new Map()
   if (idsFala.length) {
@@ -297,7 +329,7 @@ async function getDados() {
     for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
 
-  return { grupos, chamados: linhasChamados, cs, avisos, falas, registros }
+  return { grupos, chamados: chamadosUnicos, cs: csUnicos, avisos: avisosUnicos, falas, registros }
 }
 
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
@@ -337,13 +369,27 @@ function Tabela({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
                       ))}
                     </span>
                   )}
+                  {l.extras?.map((x) => (
+                    <div key={x.key} style={{ marginTop: '0.45rem' }}>
+                      <b>+ {x.rotulo}:</b> {x.situacao}
+                      {x.prints?.map((id, i) => <a key={id} href={`/api/leads/media/${id}`} target="_blank" rel="noopener noreferrer" title={`Print ${i + 1} enviado pelo lojista`} style={{ color: 'var(--accent)', textDecoration: 'none', marginLeft: 4 }}>📷</a>)}
+                    </div>
+                  ))}
                 </td>
-                <td style={{ ...td, fontSize: '0.8rem', color: 'var(--text-dim)', maxWidth: 270 }}>{l.acao}</td>
+                <td style={{ ...td, fontSize: '0.8rem', color: 'var(--text-dim)', maxWidth: 270 }}>
+                  {l.acao}
+                  {l.extras?.map((x) => <div key={x.key} style={{ marginTop: '0.45rem' }}><b style={{ color: 'var(--text)' }}>{x.rotulo}:</b> {x.acao}</div>)}
+                </td>
                 <td style={{ ...td, fontSize: '0.76rem', color: 'var(--text-muted)', maxWidth: 240 }}>
                   {fala?.texto ? <>“{fala.texto}” <span style={{ whiteSpace: 'nowrap' }}>· {fmtQuando(fala.quando)}</span></> : l.leadId ? 'nunca respondeu' : '—'}
                 </td>
                 <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.78rem' }} title={fmtQuando(l.desde)}><b>{haQuanto(l.desde)}</b></td>
-                <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{l.botao}</td>
+                <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                    {l.botao}
+                    {l.extras?.map((x) => <span key={x.key} title={x.rotulo}>{x.botao}</span>)}
+                  </div>
+                </td>
               </>
             )
             return l.leadId ? <ClickableRow key={l.key} leadId={l.leadId}>{celulas}</ClickableRow> : <tr key={l.key}>{celulas}</tr>
