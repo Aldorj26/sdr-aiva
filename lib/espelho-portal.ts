@@ -261,6 +261,11 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   {
     const stagePorCnpj = new Map<string, string>()
     for (const o of onboardings) {
+      // CNPJ com situação REAL irregular (inapta/baixada/suspensa) nunca fecha o formulário — ele
+      // não pode "vencer" a etapa do lead. Smarttech (06/10/2026): matriz com biometria APROVADA
+      // esperando a AIVA, e a filial INAPTA prendia o lead em "formulário aberto" — a VictorIA
+      // cobraria um formulário que não existe pra fazer. Esse CNPJ já tem marcador próprio.
+      if (SITUACAO_REAL.has(String(o.cnpj_check_status ?? '').toLowerCase())) continue
       const sit = situacaoOnb(String(o.stage ?? ''), o.biometry_status)
       if (sit) stagePorCnpj.set(soDigitos(o.cnpj), sit)
     }
