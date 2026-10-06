@@ -108,6 +108,9 @@ const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BO
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
 export const MARCADOR_CONFERIR = 'PORTAL_REPROVADO_CONFERIR'
 /** Motivo do movimento pra Treinar SEM loja criada (biometria aprovada, a AIVA ainda não gerou o ID). */
+/** ⏸ Aldo 06/10/2026: "segura por enquanto essa mudança" — biometria aprovada volta a esperar a AIVA criar a
+ *  loja em Em Análise. Ligar = true + deploy (os textos 'sem loja' do HSM 69/kit/VictorIA já estão prontos). */
+export const BIO_APROVADA_VAI_PRA_TREINAR = false
 export const MOTIVO_BIO_APROVADA = 'biometria aprovada — falta a AIVA criar a loja'
 
 export const soDigitos = (c: unknown): string => String(c ?? '').replace(/\D/g, '')
@@ -118,7 +121,7 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
   if (rid && vendeu.has(rid)) return ETAPA.VENDENDO
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN
   if (onb.stage === 'cadastro_finalizado' || rid) return ETAPA.TREINAR
-  if (onb.stage === 'biometria' && String(onb.biometry_status ?? '').toLowerCase() === 'aprovado') return ETAPA.TREINAR
+  if (BIO_APROVADA_VAI_PRA_TREINAR && onb.stage === 'biometria' && String(onb.biometry_status ?? '').toLowerCase() === 'aprovado') return ETAPA.TREINAR
   if (onb.stage === 'dados_varejo' || onb.stage === 'biometria') return ETAPA.EM_ANALISE
   return null
 }

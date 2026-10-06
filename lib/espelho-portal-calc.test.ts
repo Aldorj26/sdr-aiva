@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { calcularEspelho, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
+import { calcularEspelho, etapaDesejada, situacaoOnb, BIO_APROVADA_VAI_PRA_TREINAR, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
 
 const onb = (p: Partial<OnbApi> & { cnpj: string }): OnbApi => ({ stage: 'dados_varejo', pre_cadastro_status: 'approved', retailer_id: null, legal_name: 'LOJA X', ...p })
 const base = (p: Partial<Entrada> = {}): Entrada => ({
@@ -17,8 +17,8 @@ test('etapaDesejada: escada do portal', () => {
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria' }), l, v), 50)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'pendente' }), l, v), 50)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'negado' }), l, v), 50)
-  // biometria aprovada vai pra Treinar sem esperar a AIVA criar a loja (Aldo 06/10/2026)
-  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'aprovado' }), l, v), 70)
+  // biometria aprovada → Treinar: regra SEGURADA em 06/10/2026 (flag BIO_APROVADA_VAI_PRA_TREINAR)
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'aprovado' }), l, v), BIO_APROVADA_VAI_PRA_TREINAR ? 70 : 50)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: 7 }), l, v), 70)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '5' }), l, v), 71)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '9' }), l, v), 51)

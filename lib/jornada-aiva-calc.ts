@@ -290,7 +290,7 @@ export const ETAPAS_EVO: ReadonlyArray<{ id: number; nome: string; cor: string }
 const ORDEM_EVO: Record<number, number> = { 66: 0, 47: 1, 53: 1, 54: 2, 49: 3, 50: 4, 70: 5, 71: 6, 51: 7 }
 /** Etapa do Evo que corresponde a cada fase do portal (o que o espelho faria). */
 const ETAPA_DA_FASE: Partial<Record<Fase, number>> = {
-  formulario: 50, biometria: 50, biometria_negada: 50, aguardando_aiva: 70,
+  formulario: 50, biometria: 50, biometria_negada: 50, aguardando_aiva: 50,
   sem_senha: 70, sem_movimento: 71, consultando: 71, vendendo: 51, parou: 51,
 }
 
