@@ -211,10 +211,28 @@ function ItemRegistro({ r }: { r: RegPendente }) {
   )
 }
 
-function QuadroRegistros({ pendentes, hoje, semana }: { pendentes: RegPendente[]; hoje: number; semana: number }) {
-  const resto = pendentes.slice(A_VISTA)
+/** Pré-cadastro marcado como enviado e que não chegou à AIVA — mora no quadro de Registros (Aldo 06/10/2026:
+ *  o Nei olhava o quadro "nada a enviar" e não via a Minas, que estava lá embaixo nos avisos). */
+function ItemNaoChegou({ l }: { l: Linha }) {
+  const marcado = l.situacao.match(/marcado em (\d{2}\/\d{2})/)?.[1]
   return (
-    <aside style={{ flex: '1 1 340px', maxWidth: 480, padding: '0.7rem 0.9rem', borderRadius: 10, border: `1px solid ${pendentes.length ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--bg-elev)' }}>
+    <li style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0', borderTop: '1px solid var(--border)' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.loja}</div>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          {l.cnpj ? <Copiavel valor={l.cnpj.replace(/\D/g, '')} exibir={l.cnpj} /> : null}{l.telefone ? <> · <Copiavel valor={l.telefone} /></> : null}{marcado ? ` · marcado em ${marcado}` : ''}
+        </div>
+      </div>
+      {l.botao}
+    </li>
+  )
+}
+
+function QuadroRegistros({ pendentes, hoje, semana, naoChegou }: { pendentes: RegPendente[]; hoje: number; semana: number; naoChegou: Linha[] }) {
+  const resto = pendentes.slice(A_VISTA)
+  const restoNC = naoChegou.slice(A_VISTA)
+  return (
+    <aside style={{ flex: '1 1 340px', maxWidth: 480, padding: '0.7rem 0.9rem', borderRadius: 10, border: `1px solid ${pendentes.length || naoChegou.length ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--bg-elev)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '0.95rem' }}>
           📋 Registros AIVA{' '}
@@ -237,6 +255,21 @@ function QuadroRegistros({ pendentes, hoje, semana }: { pendentes: RegPendente[]
           <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent)', padding: '0.3rem 0' }}>ver mais {resto.length}</summary>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{resto.map((r) => <ItemRegistro key={r.id} r={r} />)}</ul>
         </details>
+      )}
+      {naoChegou.length > 0 && (
+        <div style={{ marginTop: '0.6rem' }}>
+          <h3 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--red)' }}>📮 Marcado e não chegou à AIVA ({naoChegou.length})</h3>
+          <p style={{ margin: '0.15rem 0 0.2rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            Marcado como enviado há mais de 24h e o CNPJ não aparece no portal (a AIVA importa de hora em hora) — o formulário não foi. Reenviar e conferir a tela &quot;Sua resposta foi registrada&quot;.
+          </p>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{naoChegou.slice(0, A_VISTA).map((l) => <ItemNaoChegou key={l.key} l={l} />)}</ul>
+          {restoNC.length > 0 && (
+            <details>
+              <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent)', padding: '0.3rem 0' }}>ver mais {restoNC.length}</summary>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{restoNC.map((l) => <ItemNaoChegou key={l.key} l={l} />)}</ul>
+            </details>
+          )}
+        </div>
       )}
       <div style={{ marginTop: '0.4rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
         {hoje} CNPJ{hoje === 1 ? '' : 's'} registrado{hoje === 1 ? '' : 's'} hoje · {semana} em 7 dias ·{' '}
@@ -325,7 +358,8 @@ async function getDados() {
 
   // uma loja, uma linha — na ordem em que os temas aparecem na tela
   const vistos = new Map<string, Linha>()
-  const avisosUnicos = avisos
+  const naoChegou = semRepetir(vistos, avisos.find((g) => g.tipo === 'pre_cadastro_nao_chegou')?.linhas ?? [], '📮 Pré-cadastro não chegou')
+  const avisosUnicos = avisos.filter((g) => g.tipo !== 'pre_cadastro_nao_chegou')
     .map((g) => ({ ...g, linhas: semRepetir(vistos, g.linhas, CATALOGO[g.tipo].titulo) }))
     .filter((g) => g.linhas.length)
   grupos.acao = semRepetir(vistos, grupos.acao, '🔴 Ação pendente')
@@ -334,7 +368,7 @@ async function getDados() {
   grupos.sem_motivo = semRepetir(vistos, grupos.sem_motivo, '⚪ Sem motivo')
 
   // Última fala do lojista de todo mundo que aparece na tela (uma consulta só)
-  const todas = [...avisosUnicos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.sem_motivo, ...csUnicos, ...chamadosUnicos]
+  const todas = [...naoChegou, ...avisosUnicos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.sem_motivo, ...csUnicos, ...chamadosUnicos]
   const idsFala = [...new Set(todas.map((l) => l.leadId).filter(Boolean))] as string[]
   const falas: Falas = new Map()
   if (idsFala.length) {
@@ -342,7 +376,7 @@ async function getDados() {
     for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
 
-  return { grupos, chamados: chamadosUnicos, cs: csUnicos, avisos: avisosUnicos, falas, registros }
+  return { grupos, chamados: chamadosUnicos, cs: csUnicos, avisos: avisosUnicos, falas, registros: { ...registros, naoChegou } }
 }
 
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
