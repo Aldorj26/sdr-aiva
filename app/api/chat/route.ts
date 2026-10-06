@@ -12,7 +12,7 @@ export const maxDuration = 60
 // O cliente devolve `dados` acumulados a cada turno pra simular o
 // [DADOS_COLETADOS:] que o webhook real mantém em observacoes.
 export async function POST(req: NextRequest) {
-  const { mensagem, historico, nome, status, dados, teste_abertura, cnpj_desempenho, onb_etapa, biometria_link } = await req.json()
+  const { mensagem, historico, nome, status, dados, teste_abertura, cnpj_desempenho, onb_etapa, biometria_link, pre_cadastro_nao_chegou } = await req.json()
 
   if (!mensagem?.trim()) {
     return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       undefined,
       teste_abertura === 'B' ? 'B' : null,
       r ? blocoPrompt(r) : null,
+      pre_cadastro_nao_chegou === true,
     )
     return NextResponse.json(resposta)
   } catch (err) {

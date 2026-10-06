@@ -699,6 +699,8 @@ export async function processarMensagem(
   /** Números da loja no portal da AIVA (lib/desempenho-loja-calc.ts → blocoPrompt), só pra
    *  loja que já opera. Bloco dinâmico, fora do cache (Aldo 02/10/2026). */
   desempenhoLoja?: string | null,
+  /** [PRE_CAD_NAO_CHEGOU:ISO] — o pré-cadastro foi marcado como enviado e não chegou à AIVA (espelho, 06/10/2026) */
+  preCadastroNaoChegou?: boolean,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -765,6 +767,12 @@ export async function processarMensagem(
   if (testeAbertura === 'B') faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${INSTRUCAO_VARIANTE_B}` : INSTRUCAO_VARIANTE_B
   // Números da loja no portal (só loja que opera — o webhook decide quem recebe)
   if (desempenhoLoja) faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${desempenhoLoja}` : desempenhoLoja
+  // Pré-cadastro que não chegou à AIVA: a pendência é do NOSSO time (Minas Celulares, 06/10/2026 —
+  // ela respondeu "depende do time da AIVA" quando o formulário nem tinha sido enviado).
+  if (preCadastroNaoChegou && (status === 'CADASTRO_RECEBIDO' || status === 'PRE_APROVACAO')) {
+    const bloco = `[INSTRUÇÃO DO SISTEMA — O PRÉ-CADASTRO DESTA LOJA AINDA NÃO FOI ENVIADO À AIVA]\nO cadastro dele está completo do NOSSO lado, mas o envio do pré-cadastro pra AIVA ainda não foi concluído pelo NOSSO time (informação do sistema; o time já foi avisado). A pendência é nossa, não dele e não da AIVA.\n- Se ele perguntar de prazo, análise ou próximo passo: diga que está tudo certo do lado dele e que o nosso time está finalizando o envio do cadastro pra AIVA; assim que entrar, o próximo passo (o link do cadastro da AIVA) chega por aqui.\n- ⛔ NÃO diga que "depende da análise da AIVA", NÃO cite "24h" e NÃO prometa prazo. NÃO peça dado nenhum de novo.\n- acionar_humano = false (o time já está avisado pelo painel), a menos que ele peça pra falar com alguém ou demonstre irritação.\n[FIM INSTRUÇÃO DO SISTEMA]`
+    faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${bloco}` : bloco
+  }
   // Senha da loja pedida à AIVA e ainda NÃO enviada (marcador gravado pelo cron
   // /api/sdr/senha-pendente, lido do portal). Sem isso a VictorIA manda o lojista
   // procurar no spam um SMS que a AIVA nunca enviou (regra 16/09/2026).

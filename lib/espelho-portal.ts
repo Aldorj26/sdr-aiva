@@ -84,7 +84,7 @@ async function registrosComLead(): Promise<RegistroCnpj[]> {
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabaseAdmin
       .from('sdr_registros_cnpj')
-      .select('id,cnpj,lead_id,status,rid')
+      .select('id,cnpj,lead_id,status,rid,criado_em')
       .not('lead_id', 'is', null)
       .order('id', { ascending: true })
       .range(de, de + 999)
@@ -148,6 +148,8 @@ export type SaidaEspelho = {
   cnpj: { irregular: number; invalido: number; novos: string[]; regularizados: number }
   /** cadastro do lojista ainda aberto no portal (form ou biometria) — contexto pra VictorIA */
   onboarding_aberto: { dados_varejo: number; biometria: number; aguardando_aiva: number; marcados: number; limpos: number }
+  /** leads com pré-cadastro marcado como enviado há 24h+ que não chegou ao portal (no dry: os que seriam) */
+  pre_cadastro_nao_chegou: string[]
 }
 
 export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
@@ -225,6 +227,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
+    pre_cadastro_nao_chegou: [],
   }
 
   // Etapa do onboarding por lead. dados_varejo vence biometria quando o lojista tem
@@ -475,7 +478,63 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     }
   }
 
+  // 11) PRÉ-CADASTRO QUE NÃO CHEGOU (Aldo 06/10/2026). O "Abrir form" do /registros marca o CNPJ
+  //     como enviado no CLIQUE; se o formulário não é enviado, o lead fica parado em Cadastro
+  //     Recebido sem ninguém saber — e a VictorIA dizia que "dependia da análise da AIVA" (Minas
+  //     Celulares, 02→06/10). Medido em 06/10: 106 de 111 pré-cadastros aparecem no portal com
+  //     mediana de 1h30 e máximo de 30h — passou de 24h sem aparecer, o formulário não foi.
+  //     Vale só pra PRE_APROVACAO/CADASTRO_RECEBIDO e só quando NENHUM CNPJ do lead está no portal.
+  const novosPreCad: string[] = []
+  {
+    const LIMITE_MS = 24 * 3_600_000
+    const agoraMs = Date.now()
+    const noPortal = new Set(onboardings.map((o) => soDigitos(o.cnpj)))
+    const leadPorId = new Map(leads.map((l) => [l.id, l]))
+    const porLead = new Map<string, { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }>()
+    for (const reg of registros) {
+      if (!reg.lead_id) continue
+      const lead = leadPorId.get(reg.lead_id)
+      if (!lead || !['PRE_APROVACAO', 'CADASTRO_RECEBIDO'].includes(String(lead.status))) continue
+      const c = soDigitos(reg.cnpj)
+      const x = porLead.get(reg.lead_id) ?? { algumNoPortal: false, maisAntigo: Infinity, cnpjs: [] }
+      if (noPortal.has(c)) x.algumNoPortal = true
+      else if (reg.status === 'pre_cadastro_enviado') {
+        const t = Date.parse(String(reg.criado_em ?? ''))
+        if (Number.isFinite(t)) { x.maisAntigo = Math.min(x.maisAntigo, t); x.cnpjs.push(c) }
+      }
+      porLead.set(reg.lead_id, x)
+    }
+    const travados = new Set<string>()
+    for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
+    for (const lead of leads) {
+      const tem = (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:')
+      const deve = travados.has(lead.id)
+      if (deve) saida.pre_cadastro_nao_chegou.push(`${lead.nome} (${porLead.get(lead.id)!.cnpjs.join(', ')})`)
+      if (dry || deve === tem) continue
+      try {
+        if (deve) {
+          const x = porLead.get(lead.id)!
+          await marcar(lead.id, 'PRE_CAD_NAO_CHEGOU', new Date(x.maisAntigo).toISOString())
+          await registrarAvisos('pre_cadastro_nao_chegou', [{ leadId: lead.id, loja: lead.nome, status: String(lead.status), detalhe: `CNPJ ${x.cnpjs.join(', ')} · marcado em ${new Date(x.maisAntigo).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` }])
+          novosPreCad.push(`• ${lead.nome} — CNPJ ${x.cnpjs.join(', ')}`)
+        } else {
+          await desmarcar(lead.id, 'PRE_CAD_NAO_CHEGOU')
+          await resolverAvisos('pre_cadastro_nao_chegou', [lead.id], 'auto: o CNPJ apareceu no portal (ou o lead saiu da etapa)')
+        }
+      } catch (e) {
+        avisos.push(`pré-cadastro não chegou (${lead.nome}): ${String(e).slice(0, 100)}`)
+      }
+    }
+  }
+
   const blocos: string[] = []
+  if (novosPreCad.length) {
+    blocos.push(
+      `📮 *Pré-cadastro não chegou à AIVA* (${novosPreCad.length})\n${novosPreCad.join('\n')}\n\n` +
+      'Marcado como enviado em Registros AIVA há mais de 24h e o CNPJ não aparece no portal — o formulário não foi enviado. ' +
+      'Reenviar pelo Registros AIVA; o card anda sozinho depois.\n📌 Também está no topo do Atendimento.',
+    )
+  }
   if (novos.length) {
     blocos.push(
       `⛔ *Pré-cadastro REPROVADO pela AIVA* (${novos.length})\n${novos.join('\n')}\n\n` +

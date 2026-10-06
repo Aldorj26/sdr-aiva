@@ -44,7 +44,7 @@ export type OnbApi = {
    *  história sozinho — aprovado com stage=biometria é a loja esperando a AIVA. */
   biometry_status?: string | null
 }
-export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null }
+export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null; criado_em?: string | null }
 export type LeadEspelho = {
   id: string
   nome: string | null

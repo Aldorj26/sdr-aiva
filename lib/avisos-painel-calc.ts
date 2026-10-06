@@ -5,9 +5,15 @@
  * Parte PURA (catálogo + regra de aviso velho); IO em lib/avisos-painel.ts.
  */
 
-export type TipoAviso = 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
+export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
 
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
+  pre_cadastro_nao_chegou: {
+    titulo: '📮 Pré-cadastro não chegou à AIVA',
+    oque: 'o CNPJ foi marcado como enviado em Registros AIVA há mais de 24h e não aparece no portal — o formulário não foi enviado (o "Abrir form" marca no clique)',
+    acao: 'Abrir Registros AIVA e enviar o formulário de pré-cadastro de novo. O card anda sozinho quando a AIVA registrar.',
+    ordem: -1,
+  },
   biometria_negada: {
     titulo: '🚫 Biometria negada pela AIVA',
     oque: 'o lojista fez o reconhecimento facial e a AIVA não aprovou (a análise sai depois — ele acha que concluiu)',

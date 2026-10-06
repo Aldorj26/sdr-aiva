@@ -1270,6 +1270,7 @@ export async function POST(req: NextRequest) {
         (lead.observacoes ?? '').match(/\[SENHA_REENVIADA:([^\]]+)\]/)?.[1] ?? null,
         testeAbertura,
         desempenhoLoja,
+        (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
