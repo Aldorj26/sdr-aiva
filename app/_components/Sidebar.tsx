@@ -23,9 +23,8 @@ const SECTIONS: NavSection[] = [
       { label: 'Atendimento', href: '/atendimento', icon: '🎧' },
       { label: 'Jornada AIVA', href: '/jornada', icon: '🧭' },
       { label: 'Exceções', href: '/excecoes', icon: '🚨' },
-      { label: 'Registros AIVA', href: '/registros', icon: '📋' },
-      { label: 'Alertas', href: '/alertas', icon: '🔔' },
-      { label: 'Clientes', href: '/clientes', icon: '🏪' },
+      // (06/10/2026, Aldo) saíram do menu: Registros AIVA (só pelo quadro do Atendimento → "abrir completo"),
+      // Alertas e Clientes. As páginas continuam no ar.
       { label: 'Desempenho', href: '/desempenho', icon: '📈' },
       { label: 'Comissões', href: '/comissoes', icon: '💰' },
     ],
