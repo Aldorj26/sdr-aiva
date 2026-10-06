@@ -68,6 +68,13 @@ export function decidir(m: Marcadores, seg: Segmento, ultimaFalaLojista: number 
 
 /** Ordem da fila: onde a dica rende mais primeiro (aprovado que não fecha é venda pronta). */
 export const PRIORIDADE: Record<Segmento, number> = { aprova_nao_vende: 0, vende_pouco: 1, parou: 2, vende_firme: 3, sem_uso: 4 }
+/** Loja criada há menos que isto e SEM consulta é "ativação": vai na frente de todo mundo (Aldo 06/10/2026). */
+export const DIAS_LOJA_NOVA = 30
+/** Chave de ordenação da fila: loja nova sem uso < segmentos por PRIORIDADE. */
+export function prioridade(seg: Segmento, diasLojaCriada: number | null): number {
+  if (seg === 'sem_uso' && diasLojaCriada != null && diasLojaCriada < DIAS_LOJA_NOVA) return -1
+  return PRIORIDADE[seg]
+}
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { lerMarcadores, decidir, textoDica, remontarObs, PRIORIDADE } from './dicas-desempenho-calc.ts'
+import { lerMarcadores, decidir, textoDica, remontarObs, PRIORIDADE, prioridade } from './dicas-desempenho-calc.ts'
 import { resumir, type Segmento } from './desempenho-loja-calc.ts'
 
 const DIA = 24 * 60 * 60 * 1000
@@ -70,4 +70,11 @@ test('marcadores sao trocados, nao empilhados', () => {
 test('prioridade: aprovado que nao fecha vem primeiro', () => {
   const ord = (Object.keys(PRIORIDADE) as Segmento[]).sort((a, b) => PRIORIDADE[a] - PRIORIDADE[b])
   assert.equal(ord[0], 'aprova_nao_vende')
+})
+
+test('loja nova sem consulta vai na frente de todo mundo; sem_uso antigo continua por ultimo', () => {
+  assert.ok(prioridade('sem_uso', 12) < prioridade('aprova_nao_vende', 100))
+  assert.equal(prioridade('sem_uso', 45), PRIORIDADE.sem_uso)
+  assert.equal(prioridade('sem_uso', null), PRIORIDADE.sem_uso)
+  assert.equal(prioridade('vende_pouco', 5), PRIORIDADE.vende_pouco)
 })

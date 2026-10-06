@@ -19,7 +19,7 @@ import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { resumir, type LinhaMes, type LinhaSemana, type Segmento } from '@/lib/desempenho-loja-calc'
 import { mesBrt, ultimaSemanaFechada } from '@/lib/desempenho-loja'
-import { decidir, lerMarcadores, remontarObs, textoDica, PRIORIDADE, ROTULO, CONVERSA_VIVA_HORAS } from '@/lib/dicas-desempenho-calc'
+import { decidir, lerMarcadores, remontarObs, textoDica, prioridade, ROTULO, CONVERSA_VIVA_HORAS } from '@/lib/dicas-desempenho-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
   const desde = new Date(Date.parse(ult + 'T12:00:00Z') - 5 * 7 * 86400_000).toISOString().slice(0, 10)
   const [sem, mens, falas] = await Promise.all([
     todosCnpjs.length ? todas<LinhaSemana & { cnpj: string }>((de, ate) => supabaseAdmin.from('aiva_desempenho_semanal').select('cnpj,semana,aprovados,vendas,valor_vendas').in('cnpj', todosCnpjs).gte('semana', desde).range(de, ate)) : [],
-    todosCnpjs.length ? todas<LinhaMes & { cnpj: string }>((de, ate) => supabaseAdmin.from('aiva_desempenho').select('cnpj,mes,consultas,aprovados,vendas,valor_vendas').in('cnpj', todosCnpjs).range(de, ate)) : [],
+    todosCnpjs.length ? todas<LinhaMes & { cnpj: string }>((de, ate) => supabaseAdmin.from('aiva_desempenho').select('cnpj,mes,consultas,aprovados,vendas,valor_vendas,cadastro_em').in('cnpj', todosCnpjs).range(de, ate)) : [],
     ids.length ? todas<{ lead_id: string; enviado_em: string }>((de, ate) => supabaseAdmin.from('sdr_mensagens').select('lead_id,enviado_em').in('lead_id', ids).eq('direcao', 'in').gte('enviado_em', new Date(Date.now() - CONVERSA_VIVA_HORAS * 3600_000).toISOString()).range(de, ate)) : [],
   ])
   const ultimaFala = new Map<string, number>()
@@ -91,7 +91,8 @@ export async function GET(req: NextRequest) {
 
   const motivos: Record<string, number> = {}
   const porSegmento: Record<string, number> = {}
-  const fila: { lead: (typeof alvo)[number]; seg: Segmento; texto: string; count: number }[] = []
+  const fila: { lead: (typeof alvo)[number]; seg: Segmento; texto: string; count: number; diasCriada: number | null }[] = []
+  const diasDesde = (iso: string | null | undefined) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400_000) : null)
   for (const l of alvo) {
     const cs = cnpjsPorLead.get(l.id) ?? new Set<string>()
     const r = resumir(sem.filter((x) => cs.has(x.cnpj)), mens.filter((x) => cs.has(x.cnpj)), ult, mes)
@@ -100,9 +101,13 @@ export async function GET(req: NextRequest) {
     const m = lerMarcadores(l.observacoes)
     const d = decidir(m, r.segmento, ultimaFala.get(l.id) ?? null)
     if (d.acao === 'nada') { motivos[d.motivo] = (motivos[d.motivo] ?? 0) + 1; continue }
-    fila.push({ lead: l, seg: r.segmento, texto: textoDica(r, m.count), count: m.count })
+    // data de criação da loja (menor cadastro_em entre os CNPJs) — define quem é "loja nova" na fila
+    const criada = (mens as Array<LinhaMes & { cnpj: string; cadastro_em?: string | null }>).filter((x) => cs.has(x.cnpj) && x.cadastro_em).map((x) => x.cadastro_em as string).sort()[0] ?? null
+    fila.push({ lead: l, seg: r.segmento, texto: textoDica(r, m.count), count: m.count, diasCriada: diasDesde(criada) })
   }
-  fila.sort((a, b) => PRIORIDADE[a.seg] - PRIORIDADE[b.seg])
+  // loja criada há <30 dias e sem consulta vai na FRENTE (Aldo 06/10): é a janela de ativação —
+  // antes o sem_uso era o último e ficava dias sem receber nada
+  fila.sort((a, b) => prioridade(a.seg, a.diasCriada) - prioridade(b.seg, b.diasCriada) || (a.diasCriada ?? 9999) - (b.diasCriada ?? 9999))
 
   const nomeDe = (l: (typeof alvo)[number]) => {
     const socio = (l.observacoes ?? '').match(/nome_socio=([^|\]]+)/)?.[1]?.trim()
