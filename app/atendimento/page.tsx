@@ -124,6 +124,19 @@ interface AvisoPainel {
 // 🚨 Avisos do robô (Aldo 05/10/2026): os digests de WhatsApp ("3 lojas sem concluir a
 // biometria…") passavam batido no meio dos outros alertas. Cada loja avisada vira uma linha
 // aqui até alguém clicar em Resolvido — ou até a situação andar sozinha (avisoVelho).
+/** Pré-cadastro que não chegou: o Nei reenvia o formulário dali mesmo, sem ir ao /registros. */
+function botaoAviso(a: AvisoPainel) {
+  const cnpj = a.tipo === 'pre_cadastro_nao_chegou' ? (a.detalhe ?? '').match(/\d{14}/)?.[0] : undefined
+  const link = cnpj ? linkFormPreenchido(cnpj) : null
+  if (!link) return <AvisoResolver id={a.id} />
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+      <a href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: '0.8rem', padding: '0.2rem 0.5rem', border: '1px solid var(--accent)', borderRadius: 6, textDecoration: 'none' }}>Abrir form ↗</a>
+      <AvisoResolver id={a.id} />
+    </span>
+  )
+}
+
 async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>> {
   const { data, error } = await supabaseAdmin
     .from('sdr_avisos_painel')
@@ -149,7 +162,7 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
       ...a,
       linha: {
         key: a.id, leadId: a.lead_id, loja: a.loja, telefone: a.telefone || l?.telefone || '', cnpj: cnpjDeObs(l?.observacoes ?? null), etapa: l?.status ?? a.status_lead,
-        situacao: (a.detalhe ? `${c.oque} — ${a.detalhe}` : c.oque).replace(/^./, (x) => x.toUpperCase()), acao: c.acao, desde: a.criado_em, botao: <AvisoResolver id={a.id} />,
+        situacao: (a.detalhe ? `${c.oque} — ${a.detalhe}` : c.oque).replace(/^./, (x) => x.toUpperCase()), acao: c.acao, desde: a.criado_em, botao: botaoAviso(a),
       },
     })
   }
