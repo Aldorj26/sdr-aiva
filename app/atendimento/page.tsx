@@ -111,8 +111,8 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
   const lista = (data as AvisoPainel[]).filter((a) => a.tipo in CATALOGO)
   const ids = [...new Set(lista.map((a) => a.lead_id).filter(Boolean))] as string[]
   const { data: leads } = ids.length
-    ? await supabaseAdmin.from('sdr_leads').select('id, status, observacoes').in('id', ids)
-    : { data: [] as Array<{ id: string; status: string; observacoes: string | null }> }
+    ? await supabaseAdmin.from('sdr_leads').select('id, status, observacoes, telefone').in('id', ids)
+    : { data: [] as Array<{ id: string; status: string; observacoes: string | null; telefone: string | null }> }
   const leadPorId = new Map((leads ?? []).map((l) => [l.id, l]))
   const vivos: Array<AvisoPainel & { linha: Linha }> = []
   const velhos = new Map<string, string[]>()
@@ -124,7 +124,7 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
     vivos.push({
       ...a,
       linha: {
-        key: a.id, leadId: a.lead_id, loja: a.loja, telefone: a.telefone, cnpj: cnpjDeObs(l?.observacoes ?? null), etapa: l?.status ?? a.status_lead,
+        key: a.id, leadId: a.lead_id, loja: a.loja, telefone: a.telefone || l?.telefone || '', cnpj: cnpjDeObs(l?.observacoes ?? null), etapa: l?.status ?? a.status_lead,
         situacao: (a.detalhe ? `${c.oque} — ${a.detalhe}` : c.oque).replace(/^./, (x) => x.toUpperCase()), acao: c.acao, desde: a.criado_em, botao: <AvisoResolver id={a.id} />,
       },
     })
@@ -216,7 +216,7 @@ async function getDados() {
   }))
 
   // Última fala do lojista de todo mundo que aparece na tela (uma consulta só)
-  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.docs, ...grupos.mover, ...grupos.sem_motivo, ...cs, ...linhasChamados]
+  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.sem_motivo, ...cs, ...linhasChamados]
   const idsFala = [...new Set(todas.map((l) => l.leadId).filter(Boolean))] as string[]
   const falas: Falas = new Map()
   if (idsFala.length) {
@@ -290,13 +290,29 @@ function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: 
       </div>
       {linhas.length === 0
         ? <p style={{ margin: 0, padding: '0.6rem 0.2rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{vazio}</p>
-        : <Tabela linhas={linhas} falas={falas} />}
+        : <TabelaLimitada linhas={linhas} falas={falas} />}
     </section>
   )
 }
 
-/** Quantas linhas de cada grupo de aviso ficam à vista; o resto abre em "ver mais". */
-const AVISOS_A_VISTA = 8
+/** Quantas lojas de cada tema ficam à vista; o resto abre em "ver mais" (Aldo 06/10/2026 — 27 linhas
+ *  num tema só deixavam o painel enorme). Vale pra todos os temas, avisos do robô e seções. */
+const A_VISTA = 3
+
+function TabelaLimitada({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
+  const resto = linhas.slice(A_VISTA)
+  return (
+    <>
+      <Tabela linhas={linhas.slice(0, A_VISTA)} falas={falas} />
+      {resto.length > 0 && (
+        <details style={{ marginTop: '0.3rem' }}>
+          <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--accent)' }}>ver mais {resto.length}</summary>
+          <Tabela linhas={resto} falas={falas} />
+        </details>
+      )}
+    </>
+  )
+}
 
 export default async function AtendimentoPage() {
   const { grupos, chamados, cs, avisos, falas } = await getDados()
@@ -317,8 +333,6 @@ export default async function AtendimentoPage() {
         <CardResumo id="acao" label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
         <CardResumo id="cs" label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
         <CardResumo id="chamados" label="🛠 Chamados" value={chamados.length} color="var(--red)" />
-        <CardResumo id="mover" label="🟡 Mover card" value={grupos.mover.length} color="var(--yellow)" />
-        <CardResumo id="docs" label="📄 Docs" value={grupos.docs.length} />
         <CardResumo id="semmotivo" label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
       </div>
 
@@ -328,30 +342,20 @@ export default async function AtendimentoPage() {
             <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--red)' }}>🚨 Avisos do robô <span style={{ fontWeight: 400 }}>({totalAvisos})</span></h2>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o robô parou de insistir nessas lojas e avisou no WhatsApp — ficam aqui até alguém tratar e clicar em Resolvido</span>
           </div>
-          {avisos.map((g) => {
-            const vista = g.linhas.slice(0, AVISOS_A_VISTA)
-            const resto = g.linhas.slice(AVISOS_A_VISTA)
-            return (
-              <div key={g.tipo} style={{ marginBottom: '1rem' }}>
-                <h3 style={{ margin: '0 0 0.3rem', fontSize: '0.92rem' }}>{CATALOGO[g.tipo].titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.linhas.length})</span></h3>
-                <Tabela linhas={vista} falas={falas} />
-                {resto.length > 0 && (
-                  <details style={{ marginTop: '0.3rem' }}>
-                    <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--accent)' }}>ver mais {resto.length} (mais antigos)</summary>
-                    <Tabela linhas={resto} falas={falas} />
-                  </details>
-                )}
-              </div>
-            )
-          })}
+          {avisos.map((g) => (
+            <div key={g.tipo} style={{ marginBottom: '1rem' }}>
+              <h3 style={{ margin: '0 0 0.3rem', fontSize: '0.92rem' }}>{CATALOGO[g.tipo].titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.linhas.length})</span></h3>
+              <TabelaLimitada linhas={g.linhas} falas={falas} />
+            </div>
+          ))}
         </section>
       )}
 
       <Secao id="acao" titulo="🔴 Ação pendente" sub="a VictorIA passou pra uma pessoa (o lojista pediu, ou ela não soube resolver) — resolver hoje" vazio="Fila zerada. 🎉" linhas={grupos.acao} falas={falas} />
       <Secao id="cs" titulo="🟣 CS — lojas ativas" sub="lojas já operando que acionaram atendimento" vazio="Nenhuma loja ativa aguardando. ✓" linhas={cs} falas={falas} />
       <Secao id="chamados" titulo="🛠 Chamados abertos" sub="erro de portal/sistema relatado pelo lojista" vazio="Nenhum chamado aberto. ✓" linhas={chamados} falas={falas} />
-      <Secao id="mover" titulo="🟡 Mover card" sub="cadastro completo — lançar em Registros AIVA" vazio="Nada pra mover. ✓" linhas={grupos.mover} falas={falas} />
-      <Secao id="docs" titulo="📄 Docs / colaboradores" sub="dados de colaborador pra processar" vazio="Nada pendente. ✓" linhas={grupos.docs} falas={falas} />
+      {/* (06/10/2026) "Mover card" e "Docs / colaboradores" saíram: o card anda sozinho (Registros AIVA →
+          49, espelho do portal) e o colaborador é o próprio lojista que lança no formulário oficial da AIVA. */}
       <Secao id="semmotivo" titulo="⚪ Sem motivo registrado" sub="a VictorIA acionou sem dizer por quê" vazio="Nenhum. ✓" linhas={grupos.sem_motivo} falas={falas} />
 
       <LeadDrawer />
