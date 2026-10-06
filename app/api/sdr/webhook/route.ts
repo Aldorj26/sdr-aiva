@@ -24,6 +24,7 @@ import {
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
+import { registrarAvisos } from '@/lib/avisos-painel'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { proximasTurmas } from '@/lib/turmas-treinamento'
 import { classificarFalha, exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
@@ -2524,6 +2525,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('sdr_leads')
         .update({ observacoes: `${frescoU?.observacoes ?? lead.observacoes ?? ''} [SENHA_USUARIO_NAO_CHEGOU:${new Date().toISOString()}${detalhe ? `|${detalhe}` : ''}]`.trim() })
         .eq('id', lead.id)
+      await registrarAvisos('senha_usuario', [{ leadId: lead.id, loja: lead.nome, telefone: lead.telefone, status: lead.status, detalhe: detalhe || null }])
     } catch (e) { console.error('[SENHA_USUARIO] marcador não gravado:', e) }
   }
 

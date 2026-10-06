@@ -382,6 +382,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     if (x.jaAvisado) continue
     try {
       await marcar(x.lead_id, MARCADOR_CONFERIR, new Date().toISOString())
+      await registrarAvisos('portal_reprovado_conferir', [{ leadId: x.lead_id, loja: x.nome, detalhe: `CNPJ ${soDigitos(x.cnpj)} · ${x.motivo}` }])
       conferirNovos.push(`• ${x.nome}${x.loja ? ` — ${x.loja}` : ''} (CNPJ ${soDigitos(x.cnpj)}) · opp #${x.opp} · ${x.motivo}`)
     } catch (e) {
       avisos.push(`conferir ${x.nome} não marcado: ${String(e).slice(0, 100)}`)
@@ -417,6 +418,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       try {
         await marcar(lead.id, marcador, `${info.status}:${new Date().toISOString()}`)
         const nome = (lead.nome ?? '').trim() || lead.id
+        await registrarAvisos(real ? 'cnpj_irregular' : 'cnpj_invalido', [{ leadId: lead.id, loja: nome, status: String(lead.status), detalhe: `CNPJ ${soDigitos(reg.cnpj)} · ${info.situacao ?? info.status}${info.motivo ? ` (${info.motivo})` : ''}` }])
         cnpjNovos.push(`• ${nome} — CNPJ ${soDigitos(reg.cnpj)} · ${info.situacao ?? info.status}${info.motivo ? ` (${info.motivo})` : ''}`)
       } catch (e) {
         avisos.push(`cnpj de ${lead.nome} não marcado: ${String(e).slice(0, 100)}`)
@@ -438,7 +440,10 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
           if (!info) return false
           return (SITUACAO_REAL.has(info.status) ? MARCADOR_CNPJ_IRREGULAR : MARCADOR_CNPJ_INVALIDO) === m
         })
-        if (!aindaRuim && await desmarcar(lead.id, m)) saida.cnpj.regularizados++
+        if (!aindaRuim && await desmarcar(lead.id, m)) {
+          saida.cnpj.regularizados++
+          await resolverAvisos(m === MARCADOR_CNPJ_IRREGULAR ? 'cnpj_irregular' : 'cnpj_invalido', [lead.id], 'auto: CNPJ regularizado no portal')
+        }
       }
     }
   }

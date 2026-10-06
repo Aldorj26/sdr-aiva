@@ -6,6 +6,7 @@
  */
 
 export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
+  | 'senha_usuario' | 'portal_reprovado_conferir' | 'cnpj_irregular' | 'cnpj_invalido'
 
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
   pre_cadastro_nao_chegou: {
@@ -56,6 +57,31 @@ export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: s
     acao: 'Cobrar a AIVA (Mauricio/Edu). Some sozinho quando a senha sair.',
     ordem: 6,
   },
+  // ── vieram da tela de Exceções (Aldo 06/10/2026 — a tela saiu do menu) ──
+  senha_usuario: {
+    titulo: '👤 Senha de vendedor/gerente não veio',
+    oque: 'o lojista pediu usuário de equipe e a AIVA não mandou o acesso',
+    acao: 'Cobrar a AIVA (Mauricio/Edu). Reenviar a senha do SÓCIO não resolve — não cria usuário de equipe.',
+    ordem: 7,
+  },
+  portal_reprovado_conferir: {
+    titulo: '🔎 Reprovado no portal, mas a loja opera',
+    oque: 'a AIVA marcou o cadastro como reprovado, mas a loja tem ID ou já vende — o card não foi mexido',
+    acao: 'Confirmar com a AIVA (Mauricio/Edu) se a loja segue liberada. Se não seguir, mover o card pra 95.',
+    ordem: 8,
+  },
+  cnpj_irregular: {
+    titulo: '🧾 CNPJ irregular na Receita',
+    oque: 'a checagem da AIVA achou o CNPJ inapto, baixado ou suspenso',
+    acao: 'Avisar o lojista que precisa regularizar na Receita; sem isso a AIVA não libera. Some sozinho quando regularizar.',
+    ordem: 9,
+  },
+  cnpj_invalido: {
+    titulo: '🔢 CNPJ do cadastro não confere',
+    oque: 'o CNPJ no portal da AIVA tem dígito errado ou não consta na Receita',
+    acao: 'Confirmar o CNPJ certo com o lojista e pedir a correção do cadastro à AIVA. Some sozinho quando corrigir.',
+    ordem: 10,
+  },
 }
 
 export const TIPOS = Object.keys(CATALOGO) as TipoAviso[]
@@ -67,9 +93,23 @@ const TERMINAIS = ['DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO']
  * (fez a biometria, preencheu o formulário…) ou saiu do funil. Sem isso a lista só cresce e
  * o Nei liga pra loja que já resolveu.
  */
-export function avisoVelho(statusNoAviso: string | null, statusAtual: string | null): string | null {
+/**
+ * Avisos que valem enquanto o MARCADOR existir no lead, não enquanto a etapa for a mesma: CNPJ
+ * irregular continua irregular quando a loja passa de Treinar pra Vendendo. Fecham quando o
+ * marcador sai (o espelho desmarca ao regularizar) ou o lead sai do funil.
+ */
+export const PELO_MARCADOR: Partial<Record<TipoAviso, string>> = {
+  senha_usuario: 'SENHA_USUARIO_NAO_CHEGOU',
+  portal_reprovado_conferir: 'PORTAL_REPROVADO_CONFERIR',
+  cnpj_irregular: 'CNPJ_IRREGULAR_AIVA',
+  cnpj_invalido: 'CNPJ_PORTAL_INVALIDO',
+}
+
+export function avisoVelho(statusNoAviso: string | null, statusAtual: string | null, tipo?: TipoAviso, observacoes?: string | null): string | null {
   if (!statusAtual) return null
   if (TERMINAIS.includes(statusAtual)) return 'auto: lead saiu do funil'
+  const marcador = tipo ? PELO_MARCADOR[tipo] : undefined
+  if (marcador) return (observacoes ?? '').includes(`[${marcador}`) ? null : 'auto: marcador saiu (situação resolvida)'
   if (statusNoAviso && statusNoAviso !== statusAtual) return `auto: etapa mudou (${statusNoAviso} → ${statusAtual})`
   return null
 }

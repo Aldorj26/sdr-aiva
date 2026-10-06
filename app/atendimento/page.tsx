@@ -120,7 +120,7 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
   const velhos = new Map<string, string[]>()
   for (const a of lista) {
     const l = a.lead_id ? leadPorId.get(a.lead_id) : undefined
-    const motivo = avisoVelho(a.status_lead, l?.status ?? null)
+    const motivo = avisoVelho(a.status_lead, l?.status ?? null, a.tipo, l?.observacoes ?? null)
     if (motivo) { velhos.set(motivo, [...(velhos.get(motivo) ?? []), a.id]); continue }
     const c = CATALOGO[a.tipo]
     vivos.push({

@@ -12,6 +12,10 @@ test('aviso fecha sozinho quando a etapa anda ou o lead sai do funil', () => {
   assert.match(avisoVelho('EM_ANALISE_AIVA', 'TREINAR')!, /etapa mudou \(EM_ANALISE_AIVA → TREINAR\)/)
   for (const s of ['DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO']) assert.match(avisoVelho('EM_ANALISE_AIVA', s)!, /saiu do funil/)
   assert.match(avisoVelho(null, 'DESCARTADO')!, /saiu do funil/)
+  // aviso pelo marcador: etapa mudar NÃO fecha; marcador sair fecha
+  assert.equal(avisoVelho('TREINAR', 'LOJA_FINALIZADA_E_VENDENDO', 'cnpj_irregular', 'x [CNPJ_IRREGULAR_AIVA:inapta:2026-10-01]'), null)
+  assert.match(avisoVelho('TREINAR', 'TREINAR', 'cnpj_irregular', 'x [CNPJ_CORRIGIDO:1]')!, /marcador saiu/)
+  assert.match(avisoVelho('TREINAR', 'DESCARTADO', 'cnpj_invalido', '[CNPJ_PORTAL_INVALIDO:invalid:1]')!, /saiu do funil/)
 })
 
 test('catálogo: todo tipo tem título, o-que e ação, com ordem única', () => {
