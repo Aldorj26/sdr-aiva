@@ -9,6 +9,8 @@ import Copiavel from '@/app/_components/Copiavel'
 import AvisoResolver from '../_components/AvisoResolver'
 import { CATALOGO, TIPOS, avisoVelho, type TipoAviso } from '@/lib/avisos-painel-calc'
 import { orientar, resumirFala, haQuanto } from '@/lib/atendimento-orientacao'
+import AbrirFormLink from '@/app/registros/AbrirFormLink'
+import { linkFormPreenchido, formatarCnpj } from '@/lib/pre-cadastro-form'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
@@ -139,6 +141,76 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
     .sort((a, b) => CATALOGO[a.tipo].ordem - CATALOGO[b.tipo].ordem)
 }
 
+// 📋 Registros AIVA dentro do Atendimento (Aldo 06/10/2026): o Nei tinha que trocar de aba pra ver
+// se havia CNPJ esperando o pré-cadastro. O quadro mostra os pendentes (enviado = false) com o mesmo
+// "Abrir form" do /registros — que marca no clique e avança o card pra 49.
+const PLANILHA_ATENDIMENTOS = 'https://docs.google.com/spreadsheets/d/1lTB9LvptQejFd_WLygGAKDE6UDVlzvfLEDGhcdSRmQU/edit?gid=1497480463#gid=1497480463'
+interface RegPendente { id: string; loja: string | null; cnpj: string; telefone: string | null; tipo: string | null; criado_em: string; lead_id: string | null }
+async function getRegistros() {
+  const agora = Date.now()
+  const hojeBrt = new Date(new Date(agora - 3 * 3600e3).toISOString().slice(0, 10) + 'T03:00:00Z').toISOString()
+  const d7 = new Date(agora - 7 * 864e5).toISOString()
+  const [pend, hoje, semana] = await Promise.all([
+    supabaseAdmin.from('sdr_registros_cnpj').select('id, loja, cnpj, telefone, tipo, criado_em, lead_id').eq('enviado', false).order('criado_em', { ascending: true }).limit(60),
+    supabaseAdmin.from('sdr_registros_cnpj').select('id', { count: 'exact', head: true }).gte('criado_em', hojeBrt),
+    supabaseAdmin.from('sdr_registros_cnpj').select('id', { count: 'exact', head: true }).gte('criado_em', d7),
+  ])
+  return { pendentes: (pend.data ?? []) as RegPendente[], hoje: hoje.count ?? 0, semana: semana.count ?? 0 }
+}
+
+function ItemRegistro({ r }: { r: RegPendente }) {
+  return (
+    <li style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0', borderTop: '1px solid var(--border)' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.loja ?? '—'} <span style={{ fontWeight: 400, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{r.tipo === 'matriz' ? 'matriz' : 'adicional'}</span>
+        </div>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          <Copiavel valor={r.cnpj} exibir={formatarCnpj(r.cnpj)} />{r.telefone ? <> · <Copiavel valor={r.telefone} /></> : null} · há {haQuanto(r.criado_em)}
+        </div>
+      </div>
+      <span style={{ padding: '0.25rem 0.55rem', border: '1px solid var(--accent)', borderRadius: 6 }}>
+        <AbrirFormLink id={r.id} href={linkFormPreenchido(r.cnpj) ?? '#'} jaEnviado={false} />
+      </span>
+    </li>
+  )
+}
+
+function QuadroRegistros({ pendentes, hoje, semana }: { pendentes: RegPendente[]; hoje: number; semana: number }) {
+  const resto = pendentes.slice(A_VISTA)
+  return (
+    <aside style={{ flex: '1 1 340px', maxWidth: 480, padding: '0.7rem 0.9rem', borderRadius: 10, border: `1px solid ${pendentes.length ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--bg-elev)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: '0.95rem' }}>
+          📋 Registros AIVA{' '}
+          <span style={{ fontWeight: 400, color: pendentes.length ? 'var(--accent)' : 'var(--text-muted)' }}>
+            {pendentes.length ? `${pendentes.length} a enviar` : 'nada a enviar ✓'}
+          </span>
+        </h2>
+        <Link href="/registros" style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>abrir completo →</Link>
+      </div>
+      <p style={{ margin: '0.2rem 0 0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        CNPJ pronto pro pré-cadastro. <b>Abrir form</b> já vai preenchido e marca como enviado no clique (o card anda pra Cadastro Recebido).
+      </p>
+      {pendentes.length > 0 && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {pendentes.slice(0, A_VISTA).map((r) => <ItemRegistro key={r.id} r={r} />)}
+        </ul>
+      )}
+      {resto.length > 0 && (
+        <details>
+          <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent)', padding: '0.3rem 0' }}>ver mais {resto.length}</summary>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{resto.map((r) => <ItemRegistro key={r.id} r={r} />)}</ul>
+        </details>
+      )}
+      <div style={{ marginTop: '0.4rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+        {hoje} CNPJ{hoje === 1 ? '' : 's'} registrado{hoje === 1 ? '' : 's'} hoje · {semana} em 7 dias ·{' '}
+        <a href={PLANILHA_ATENDIMENTOS} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>planilha ↗</a>
+      </div>
+    </aside>
+  )
+}
+
 async function getDados() {
   const [fila, chamados, csFila, avisos] = await Promise.all([
     supabaseAdmin
@@ -165,6 +237,7 @@ async function getDados() {
       .limit(40),
     getAvisos(),
   ])
+  const registros = await getRegistros()
 
   // (06/10/2026) a seção "Travados no CAF" saiu: lia o marcador da régua antiga (followup-fase, apagada
   // em 16/09). Quem esgota a cobrança nova aparece em Avisos do robô → "Formulário da AIVA sem preencher".
@@ -224,7 +297,7 @@ async function getDados() {
     for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
 
-  return { grupos, chamados: linhasChamados, cs, avisos, falas }
+  return { grupos, chamados: linhasChamados, cs, avisos, falas, registros }
 }
 
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
@@ -315,7 +388,7 @@ function TabelaLimitada({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
 }
 
 export default async function AtendimentoPage() {
-  const { grupos, chamados, cs, avisos, falas } = await getDados()
+  const { grupos, chamados, cs, avisos, falas, registros } = await getDados()
   const totalAvisos = avisos.reduce((t, g) => t + g.linhas.length, 0)
 
   return (
@@ -328,12 +401,15 @@ export default async function AtendimentoPage() {
         </div>
       </header>
 
-      <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', flex: '1 1 520px' }}>
         <CardResumo id="avisos" label="🚨 Avisos do robô" value={totalAvisos} color="var(--red)" />
         <CardResumo id="acao" label="🔴 Ação pendente" value={grupos.acao.length} color="var(--red)" />
         <CardResumo id="cs" label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
         <CardResumo id="chamados" label="🛠 Chamados" value={chamados.length} color="var(--red)" />
         <CardResumo id="semmotivo" label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
+      </div>
+      <QuadroRegistros {...registros} />
       </div>
 
       {totalAvisos > 0 && (
