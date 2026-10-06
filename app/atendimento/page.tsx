@@ -70,6 +70,16 @@ const ETAPA: Record<string, string> = {
   LOGIN: 'Login', LOJA_FINALIZADA_E_VENDENDO: 'Loja finalizada', BOT_DETECTADO: 'Bot detectado',
 }
 
+const ORDEM_FUNIL = ['INICIO', 'DISPARO_REALIZADO', 'SEM_RESPOSTA', 'INTERESSADO', 'AGUARDANDO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+const FORA_DO_FUNIL = ['NAO_QUALIFICADO', 'DESCARTADO', 'OPT_OUT', 'BOT_DETECTADO']
+/** O lead andou pra frente desde que o chamado abriu, ou saiu do funil. */
+function chamadoVelho(statusNoChamado: string | null, statusAgora: string | null): boolean {
+  if (!statusAgora) return false
+  if (FORA_DO_FUNIL.includes(statusAgora)) return true
+  const a = ORDEM_FUNIL.indexOf(statusNoChamado ?? ''), b = ORDEM_FUNIL.indexOf(statusAgora)
+  return a >= 0 && b > a
+}
+
 function linhaDeLead(l: LeadFila, botao: React.ReactNode): Linha {
   // 200 e não os 70 do digest de WhatsApp: aqui o detalhe que a VictorIA escreveu cabe e orienta
   const o = orientar(motivoDeObs(l.observacoes, 200))
@@ -130,7 +140,7 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
 }
 
 async function getDados() {
-  const [fila, chamados, travadosRaw, csFila, avisos] = await Promise.all([
+  const [fila, chamados, csFila, avisos] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
       .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
@@ -145,12 +155,6 @@ async function getDados() {
       .eq('status', 'aberto')
       .order('criado_em', { ascending: false })
       .limit(60),
-    // Travados no CAF: esgotaram as 3 cobranças automáticas (fim da linha)
-    supabaseAdmin
-      .from('sdr_leads')
-      .select('id, nome, telefone, status, observacoes, status_alterado_em, data_ultimo_contato')
-      .eq('status', 'EM_ANALISE_AIVA')
-      .like('observacoes', '%[FOLLOWUP_FASE_COUNT:3%'),
     // 🟣 CS — acionamentos de lojas ATIVAS (veio do /desempenho em 04/09)
     supabaseAdmin
       .from('sdr_leads')
@@ -162,26 +166,29 @@ async function getDados() {
     getAvisos(),
   ])
 
-  const travadosLeads = ((travadosRaw.data ?? []) as Array<LeadFila & { status_alterado_em: string | null }>)
-    .sort((a, b) => (a.status_alterado_em ?? '').localeCompare(b.status_alterado_em ?? ''))
-  // Travados no CAF têm precedência (08/09): quem esgotou as 3 cobranças é
-  // lista de ligação — não repete em Ação/Mover com um motivo antigo.
-  const idsTravados = new Set(travadosLeads.map((t) => t.id))
+  // (06/10/2026) a seção "Travados no CAF" saiu: lia o marcador da régua antiga (followup-fase, apagada
+  // em 16/09). Quem esgota a cobrança nova aparece em Avisos do robô → "Formulário da AIVA sem preencher".
   const grupos: Record<CategoriaFila, Linha[]> = { acao: [], docs: [], mover: [], sem_motivo: [] }
   for (const l of (fila.data ?? []) as LeadFila[]) {
-    if (idsTravados.has(l.id)) continue
     grupos[categoriaFila(motivoDeObs(l.observacoes), l.status)].push(linhaDeLead(l, <AtendidoButton leadId={l.id} />))
   }
   const cs = ((csFila.data ?? []) as LeadFila[]).map((l) => linhaDeLead(l, <AtendidoButton leadId={l.id} />))
-  const travados: Linha[] = travadosLeads.map((l) => ({
-    key: l.id, leadId: l.id, loja: l.nome, telefone: l.telefone, cnpj: cnpjDeObs(l.observacoes), etapa: l.status,
-    situacao: 'Esgotou as 3 cobranças automáticas do cadastro e não concluiu', acao: 'Ligar pro lojista — o robô não cobra mais.',
-    desde: l.status_alterado_em ?? l.data_ultimo_contato, botao: null,
-  }))
 
   // CNPJ dos chamados: sdr_chamados não guarda CNPJ — vem das observações do
   // lead vinculado (mesmos marcadores das outras seções).
-  const listaChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>
+  const todosChamados = (chamados.data ?? []) as Array<{ id: string; lead_id: string | null; loja: string | null; telefone: string; problema: string | null; status_lead: string | null; criado_em: string }>
+  // Chamado VELHO fecha sozinho (Aldo 06/10/2026 — o painel acumulava resolvido): o lead avançou de
+  // etapa desde que o chamado abriu (ex.: formulário travado → loja criada) ou saiu do funil. Problema
+  // de loja que continua na MESMA etapa (aprovação baixa, login) segue aberto até alguém resolver.
+  const idsLeadCh = [...new Set(todosChamados.map((c) => c.lead_id).filter(Boolean))] as string[]
+  const statusAgora = new Map<string, string>()
+  if (idsLeadCh.length) {
+    const { data } = await supabaseAdmin.from('sdr_leads').select('id, status').in('id', idsLeadCh)
+    for (const l of data ?? []) statusAgora.set(l.id, l.status)
+  }
+  const velhos = todosChamados.filter((c) => c.lead_id && chamadoVelho(c.status_lead, statusAgora.get(c.lead_id) ?? null))
+  if (velhos.length) await supabaseAdmin.from('sdr_chamados').update({ status: 'resolvido', resolvido_em: new Date().toISOString() }).in('id', velhos.map((c) => c.id))
+  const listaChamados = todosChamados.filter((c) => !velhos.includes(c))
   const idsChamados = [...new Set(listaChamados.map((c) => c.lead_id).filter(Boolean))] as string[]
   const cnpjPorLead = new Map<string, string | null>()
   const printsPorChamado = new Map<string, string[]>()
@@ -209,7 +216,7 @@ async function getDados() {
   }))
 
   // Última fala do lojista de todo mundo que aparece na tela (uma consulta só)
-  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.docs, ...grupos.mover, ...grupos.sem_motivo, ...cs, ...travados, ...linhasChamados]
+  const todas = [...avisos.flatMap((g) => g.linhas), ...grupos.acao, ...grupos.docs, ...grupos.mover, ...grupos.sem_motivo, ...cs, ...linhasChamados]
   const idsFala = [...new Set(todas.map((l) => l.leadId).filter(Boolean))] as string[]
   const falas: Falas = new Map()
   if (idsFala.length) {
@@ -217,7 +224,7 @@ async function getDados() {
     for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
 
-  return { grupos, chamados: linhasChamados, travados, cs, avisos, falas }
+  return { grupos, chamados: linhasChamados, cs, avisos, falas }
 }
 
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
@@ -292,7 +299,7 @@ function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: 
 const AVISOS_A_VISTA = 8
 
 export default async function AtendimentoPage() {
-  const { grupos, chamados, travados, cs, avisos, falas } = await getDados()
+  const { grupos, chamados, cs, avisos, falas } = await getDados()
   const totalAvisos = avisos.reduce((t, g) => t + g.linhas.length, 0)
 
   return (
@@ -311,7 +318,6 @@ export default async function AtendimentoPage() {
         <CardResumo id="cs" label="🟣 CS lojas ativas" value={cs.length} color="#a855f7" />
         <CardResumo id="chamados" label="🛠 Chamados" value={chamados.length} color="var(--red)" />
         <CardResumo id="mover" label="🟡 Mover card" value={grupos.mover.length} color="var(--yellow)" />
-        <CardResumo id="travados" label="⏱ Travados no CAF" value={travados.length} color="var(--yellow)" />
         <CardResumo id="docs" label="📄 Docs" value={grupos.docs.length} />
         <CardResumo id="semmotivo" label="⚪ Sem motivo" value={grupos.sem_motivo.length} />
       </div>
@@ -345,7 +351,6 @@ export default async function AtendimentoPage() {
       <Secao id="cs" titulo="🟣 CS — lojas ativas" sub="lojas já operando que acionaram atendimento" vazio="Nenhuma loja ativa aguardando. ✓" linhas={cs} falas={falas} />
       <Secao id="chamados" titulo="🛠 Chamados abertos" sub="erro de portal/sistema relatado pelo lojista" vazio="Nenhum chamado aberto. ✓" linhas={chamados} falas={falas} />
       <Secao id="mover" titulo="🟡 Mover card" sub="cadastro completo — lançar em Registros AIVA" vazio="Nada pra mover. ✓" linhas={grupos.mover} falas={falas} />
-      <Secao id="travados" titulo="⏱ Travados no CAF" sub="esgotaram as 3 cobranças automáticas — lista de ligação" vazio="Ninguém travado. ✓" linhas={travados} falas={falas} />
       <Secao id="docs" titulo="📄 Docs / colaboradores" sub="dados de colaborador pra processar" vazio="Nada pendente. ✓" linhas={grupos.docs} falas={falas} />
       <Secao id="semmotivo" titulo="⚪ Sem motivo registrado" sub="a VictorIA acionou sem dizer por quê" vazio="Nenhum. ✓" linhas={grupos.sem_motivo} falas={falas} />
 
