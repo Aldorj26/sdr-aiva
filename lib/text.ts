@@ -106,11 +106,18 @@ export function contextoDeData(): {
  * Reutilizado pelo opportunity-stage (envio imediato) e pelo webhook
  * (reforço quando lead responde — Caminho 2).
  */
-export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente = false): string[] {
+/** Estado do acesso do sócio nos textos fixos da etapa 70: true = a AIVA não enviou a senha (pedido feito);
+ *  'sem_loja' = biometria aprovada e a AIVA ainda não criou a loja (06/10/2026) — não existe senha nem
+ *  formulário de vendedor ainda. */
+export type EstadoAcesso = boolean | 'sem_loja'
+
+const ACESSO_SEM_LOJA = 'O seu cadastro e a biometria estão aprovados — falta só a AIVA concluir a criação da sua loja no sistema. Assim que ela concluir, o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024. Os logins dos vendedores você pede depois disso (eu te passo o formulário na hora).'
+
+export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente: EstadoAcesso = false): string[] {
   const proxima = turmas[0]
   const msgReuniao =
     `🎓 *Treinamento:*\n` +
-    `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento.\n\n` +
+    `O vídeo *Curso_Treinamento* na pasta de materiais (link na próxima mensagem) adianta todo o aprendizado — pode assistir AGORA. 🚀 ${senhaPendente === 'sem_loja' ? 'O seu login chega no WhatsApp (+55 21 4020-2024) assim que a AIVA concluir a criação da sua loja.' : 'O seu login chega automático no WhatsApp (+55 21 4020-2024) na próxima leva, após o treinamento.'}\n\n` +
     (turmas.length
       ? `Se preferir participar ao vivo, as próximas turmas (1h, horário de Brasília) são:\n${linhasTurmas(turmas).join('\n')}\n\n` +
         `📲 *Adicionar a próxima turma (${rotulo(proxima)}) ao seu calendário:*\n👉 ${calendarLink(proxima)}`
@@ -125,16 +132,18 @@ export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente = false
     `🔑 *Acessos (regra nova):*\n` +
     // senhaPendente: a AIVA ainda não enviou o acesso desta loja — não prometer
     // que "chega automático" nem mandar procurar mensagem que não existe (revisor 16/09)
-    (senhaPendente
+    (senhaPendente === 'sem_loja'
+      ? `${ACESSO_SEM_LOJA}\n`
+      : senhaPendente
       ? `O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou isso pra eles. Assim que sair, chega aqui no seu WhatsApp pelo número +55 21 4020-2024.\n`
       : `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n`) +
-    `Pra criar os logins dos seus vendedores: é só pedir neste formulário da AIVA → https://forms.gle/izjwzRDXzYWDvtEt6 (serve também pra inativar, trocar cargo ou loja e resetar a senha deles). 📵 Se a senha deles não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊\n` +
+    (senhaPendente === 'sem_loja' ? '' : `Pra criar os logins dos seus vendedores: é só pedir neste formulário da AIVA → https://forms.gle/izjwzRDXzYWDvtEt6 (serve também pra inativar, trocar cargo ou loja e resetar a senha deles). 📵 Se a senha deles não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊\n`) +
     `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login`
 
   return [msgReuniao, msgMateriais, msgCadastro]
 }
 
-export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], senhaPendente = false): string {
+export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], senhaPendente: EstadoAcesso = false): string {
   return (
     `${nome}, enquanto o treinamento não acontece, aqui vai um resumo de como funciona a parceria — pra você já ficar por dentro de tudo: 👇\n\n` +
     `💰 *Taxa:* 12% por venda aprovada — única cobrança. Sem mensalidade e sem custo de ativação.\n` +
@@ -148,10 +157,14 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], sen
     (turmas.length
       ? `1️⃣ Participa do treinamento ao vivo — próxima turma *${rotulo(turmas[0])}* (1h; turmas às ${resumoDias(turmas)}). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`
       : `1️⃣ Participa do treinamento ao vivo (me pergunta a data da próxima turma). O vídeo Curso_Treinamento na pasta de materiais adianta tudo\n`) +
-    (senhaPendente
+    (senhaPendente === 'sem_loja'
+      ? `2️⃣ ${ACESSO_SEM_LOJA}\n`
+      : senhaPendente
       ? `2️⃣ O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou pra eles; assim que sair chega no seu WhatsApp pelo +55 21 4020-2024\n`
       : `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n`) +
-    `3️⃣ Logins dos vendedores: você mesmo pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n` +
+    (senhaPendente === 'sem_loja'
+      ? `3️⃣ Com a loja criada e os logins na mão, é só fazer a primeira venda — eu acompanho você aqui! 😊\n`
+      : `3️⃣ Logins dos vendedores: você mesmo pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n`) +
     `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )

@@ -9,6 +9,8 @@
  * Regras (decisão do Aldo 16/09/2026 — "o portal vira a fonte dos eventos"):
  *   - portal em dados_varejo/biometria (pré-cadastro aprovado) → 50 Em Análise
  *   - cadastro_finalizado (tem retailer_id)                  → 70 Treinar
+ *   - biometria APROVADA (falta só a AIVA criar a loja)       → 70 Treinar (Aldo 06/10/2026: o lojista
+ *     já fez tudo e pode treinar enquanto a AIVA cria a loja; o acesso chega depois)
  *   - login_sends.credentials_sent_at preenchido             → 71 Login
  *   - alguma venda OU consulta em retailer_performance        → 51 Vendendo
  *     (consulta entrou em 28/09/2026, Aldo: loja que já consulta está operando e a
@@ -105,6 +107,8 @@ const NAO_MEXER = new Set([69, 93, 94, 95])
 const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO'])
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
 export const MARCADOR_CONFERIR = 'PORTAL_REPROVADO_CONFERIR'
+/** Motivo do movimento pra Treinar SEM loja criada (biometria aprovada, a AIVA ainda não gerou o ID). */
+export const MOTIVO_BIO_APROVADA = 'biometria aprovada — falta a AIVA criar a loja'
 
 export const soDigitos = (c: unknown): string => String(c ?? '').replace(/\D/g, '')
 
@@ -114,6 +118,7 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
   if (rid && vendeu.has(rid)) return ETAPA.VENDENDO
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN
   if (onb.stage === 'cadastro_finalizado' || rid) return ETAPA.TREINAR
+  if (onb.stage === 'biometria' && String(onb.biometry_status ?? '').toLowerCase() === 'aprovado') return ETAPA.TREINAR
   if (onb.stage === 'dados_varejo' || onb.stage === 'biometria') return ETAPA.EM_ANALISE
   return null
 }
@@ -220,6 +225,7 @@ export function calcularEspelho(e: Entrada): Resultado {
     const motivo =
       melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`
       : melhor.para === ETAPA.LOGIN ? `senha enviada pela AIVA (RID ${rid})`
+      : melhor.para === ETAPA.TREINAR && !rid && melhor.onb.stage === 'biometria' ? MOTIVO_BIO_APROVADA
       : melhor.para === ETAPA.TREINAR ? `cadastro finalizado no portal${rid ? ` (RID ${rid})` : ''}`
       : `pré-cadastro aprovado, portal em ${melhor.onb.stage}`
     out.movimentos.push({ lead_id: leadId, nome, opp, de: atual, para: melhor.para, via, motivo })

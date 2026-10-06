@@ -23,7 +23,7 @@ import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/
 import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, ONB_ORDEM, situacaoOnb, type OnbSituacao,
+  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 
@@ -338,6 +338,9 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     if (i >= TETO_MOVIMENTOS || Date.now() - inicio > TETO_MS) break
     const m = r.movimentos[i]
     try {
+      // biometria aprovada sem loja criada: o marcador vai ANTES do move — o handler da 70 (HSM 69 + kit)
+      // lê ele pra não prometer login nem formulário de vendedor a quem ainda não tem loja (revisor 06/10)
+      if (m.motivo === MOTIVO_BIO_APROVADA) await marcar(m.lead_id, MARCADOR_ONB_ETAPA, `aguardando_aiva:${new Date().toISOString()}`)
       for (const etapa of [...m.via, m.para]) {
         await changeOpportunityStage(m.opp, etapa)
         // a automação do Evo + nosso handler rodam do outro lado; um respiro evita

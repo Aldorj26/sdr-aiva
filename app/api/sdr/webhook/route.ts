@@ -916,7 +916,7 @@ export async function POST(req: NextRequest) {
         const turmas = aviso70Pendente || aviso70KitPendente ? (await proximasTurmas(3)).turmas : []
         // acesso do sócio pedido e não enviado: os textos fixos não podem prometer
         // que o login "chega automático" (revisor 16/09)
-        const senhaPendente = obs.includes('[SENHA_PENDENTE_DESDE:')
+        const senhaPendente = obs.includes('[ONB_ETAPA:aguardando_aiva') ? 'sem_loja' as const : obs.includes('[SENHA_PENDENTE_DESDE:')
         if (aviso49Pendente) {
           msgsPraReenviar.push(buildAvisoColetandoComplementoMsg(nomeContato))
         }

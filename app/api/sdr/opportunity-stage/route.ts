@@ -645,6 +645,9 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       const nomeContato = normalizaNome(forms['da6ddf70']) || normalizaNome(lead?.nome ?? null) || 'Lojista'
+      // Biometria aprovada e a AIVA ainda não criou a loja (vem pra 70 desde 06/10/2026): não existe senha
+      // nem formulário de vendedor ainda — o espelho grava este marcador ANTES de mover o card.
+      const semLoja = (lead?.observacoes ?? '').includes('[ONB_ETAPA:aguardando_aiva')
 
       // Template HSM 69 — [AIVA] Treinamento Completo (UTILITY, aprovado).
       // Substitui o antigo fluxo "template 28 + 3 textos livres": os links
@@ -670,7 +673,9 @@ export async function POST(req: NextRequest) {
           : '🎓 Treinamento: temos turmas ao vivo durante a semana — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.',
         linkTurmas,
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
-        '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS).',
+        semLoja
+          ? '🔑 Acessos: seu cadastro e a biometria estão aprovados — assim que a AIVA concluir a criação da sua loja, o SEU login (sócio) chega automático no WhatsApp pelo +55 21 4020-2024. Os logins dos vendedores você pede depois disso.'
+          : '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS).',
       ])
 
       // Atualiza status no Supabase e registra histórico
@@ -696,7 +701,7 @@ export async function POST(req: NextRequest) {
         // Texto livre → só entrega com a janela 24h aberta; se fechada, marca
         // flag e o webhook reenvia quando o lead responder (Caminho 2).
         try {
-          const kitMsg = buildKitPosFechamentoMsg(nomeContato, turmas, (lead?.observacoes ?? '').includes('[SENHA_PENDENTE_DESDE:'))
+          const kitMsg = buildKitPosFechamentoMsg(nomeContato, turmas, semLoja ? 'sem_loja' : (lead?.observacoes ?? '').includes('[SENHA_PENDENTE_DESDE:'))
           const janelaAberta = await janela24hAberta(lead.id)
           if (janelaAberta) {
             await sendText(telefone, kitMsg)

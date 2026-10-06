@@ -89,6 +89,13 @@ export async function GET(req: NextRequest) {
       continue
     }
 
+    // Treinar sem loja criada (biometria aprovada, a AIVA não gerou o ID — 06/10/2026): não há login pra perguntar
+    if (obs.includes('[ONB_ETAPA:aguardando_aiva')) {
+      pulados++
+      resultados.push({ telefone, acao: 'sem_loja_criada' })
+      continue
+    }
+
     const nome = nomeContato(obs, lead?.nome ?? null, o.title)
 
     if (dry) {
