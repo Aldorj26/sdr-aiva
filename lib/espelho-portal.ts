@@ -79,6 +79,31 @@ async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<
   }
 }
 
+/** Pré-cadastro marcado como enviado há 24h+ e que não chegou ao portal (passo 11 — ver comentário lá). */
+function preCadastroNaoChegou(onboardings: OnbApi[], registros: RegistroCnpj[], leads: LeadEspelho[]) {
+  const LIMITE_MS = 24 * 3_600_000
+  const agoraMs = Date.now()
+  const noPortal = new Set(onboardings.map((o) => soDigitos(o.cnpj)))
+  const leadPorId = new Map(leads.map((l) => [l.id, l]))
+  const porLead = new Map<string, { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }>()
+  for (const reg of registros) {
+    if (!reg.lead_id) continue
+    const lead = leadPorId.get(reg.lead_id)
+    if (!lead || !['PRE_APROVACAO', 'CADASTRO_RECEBIDO'].includes(String(lead.status))) continue
+    const c = soDigitos(reg.cnpj)
+    const x = porLead.get(reg.lead_id) ?? { algumNoPortal: false, maisAntigo: Infinity, cnpjs: [] }
+    if (noPortal.has(c)) x.algumNoPortal = true
+    else if (reg.status === 'pre_cadastro_enviado') {
+      const t = Date.parse(String(reg.criado_em ?? ''))
+      if (Number.isFinite(t)) { x.maisAntigo = Math.min(x.maisAntigo, t); x.cnpjs.push(c) }
+    }
+    porLead.set(reg.lead_id, x)
+  }
+  const travados = new Set<string>()
+  for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
+  return { porLead, travados }
+}
+
 async function registrosComLead(): Promise<RegistroCnpj[]> {
   const out: RegistroCnpj[] = []
   for (let de = 0; ; de += 1000) {
@@ -266,6 +291,10 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   }
   if (dry) {
     saida.movidos = r.movimentos
+    {
+      const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
+      for (const l of leads) if (travados.has(l.id)) saida.pre_cadastro_nao_chegou.push(`${l.nome} (${porLead.get(l.id)!.cnpjs.join(', ')})`)
+    }
     // preview da checagem de CNPJ: o dry antes devolvia zero porque retornava
     // aqui, ANTES do passo 8 — e "?dry=1" existe justamente pra ver o que faria.
     const leadPorIdDry = new Map(leads.map((l) => [l.id, l]))
@@ -486,26 +515,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
   //     Vale só pra PRE_APROVACAO/CADASTRO_RECEBIDO e só quando NENHUM CNPJ do lead está no portal.
   const novosPreCad: string[] = []
   {
-    const LIMITE_MS = 24 * 3_600_000
-    const agoraMs = Date.now()
-    const noPortal = new Set(onboardings.map((o) => soDigitos(o.cnpj)))
-    const leadPorId = new Map(leads.map((l) => [l.id, l]))
-    const porLead = new Map<string, { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }>()
-    for (const reg of registros) {
-      if (!reg.lead_id) continue
-      const lead = leadPorId.get(reg.lead_id)
-      if (!lead || !['PRE_APROVACAO', 'CADASTRO_RECEBIDO'].includes(String(lead.status))) continue
-      const c = soDigitos(reg.cnpj)
-      const x = porLead.get(reg.lead_id) ?? { algumNoPortal: false, maisAntigo: Infinity, cnpjs: [] }
-      if (noPortal.has(c)) x.algumNoPortal = true
-      else if (reg.status === 'pre_cadastro_enviado') {
-        const t = Date.parse(String(reg.criado_em ?? ''))
-        if (Number.isFinite(t)) { x.maisAntigo = Math.min(x.maisAntigo, t); x.cnpjs.push(c) }
-      }
-      porLead.set(reg.lead_id, x)
-    }
-    const travados = new Set<string>()
-    for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
+    const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
     for (const lead of leads) {
       const tem = (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:')
       const deve = travados.has(lead.id)
