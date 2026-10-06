@@ -25,6 +25,7 @@ import {
 import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { registrarAvisos } from '@/lib/avisos-painel'
+import { bloqueioDoLead, blocoPromptBloqueio } from '@/lib/limite-originacao'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { proximasTurmas } from '@/lib/turmas-treinamento'
 import { classificarFalha, exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
@@ -997,6 +998,14 @@ export async function POST(req: NextRequest) {
     // imediato pro time. A VictorIA não resolve erro de sistema — sem esse
     // alerta a queixa morria na conversa. Cooldown de 24h por lead (sdr_alertas).
     const STATUS_POS_CADASTRO = ['CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']
+    // Loja BLOQUEADA POR LIMITE DE ORIGINAÇÃO na AIVA (Aldo 06/10/2026 — Ajucelulares ouvia "registrei pro
+    // time verificar o que travou"). Lido ANTES do detector de erro: com a causa conhecida, "minha conta
+    // travou" não pede print nem abre chamado de ERRO DE PORTAL (revisor). Falha na leitura não cala a VictorIA.
+    let bloqueioLimite: string | null = null
+    if (['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
+      const b = await bloqueioDoLead(lead.id, lead.observacoes, [String(dadosAcumulados?.cnpj_matriz ?? '')])
+      if (b) bloqueioLimite = blocoPromptBloqueio(b)
+    }
     let instrucaoPedirPrint = ''
     if (STATUS_POS_CADASTRO.includes(lead.status) && conteudoEfetivo) {
       const txt = conteudoEfetivo
@@ -1065,7 +1074,7 @@ export async function POST(req: NextRequest) {
       // travaAparelho fica FORA: desbloqueio é só Live Chat — não há time nosso
       // pra ver print, e pedir "assim o time vê" reabriria o caso Center Celulares.
       const naoAbre = /n[ãa]o (?:abre|abriu|carrega|carregou)/i.test(txt)
-      const relatouErro = !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
+      const relatouErro = !bloqueioLimite && !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
       const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
       if (relatouErro && !temPrintRecente) {
         instrucaoPedirPrint =
@@ -1074,7 +1083,7 @@ export async function POST(req: NextRequest) {
 
       // "não abre/carrega" com contexto de portal também vira chamado (Aldo: qualquer
       // erro) — assim o print pedido tem onde ficar guardado no painel.
-      if (!travaAparelho && !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
+      if (!bloqueioLimite && !travaAparelho && !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))) {
         try {
           const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: jaAlertou } = await supabaseAdmin
@@ -1272,6 +1281,7 @@ export async function POST(req: NextRequest) {
         testeAbertura,
         desempenhoLoja,
         (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
+        bloqueioLimite,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

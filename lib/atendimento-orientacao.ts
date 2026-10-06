@@ -30,6 +30,7 @@ const EXATOS: Record<string, Orientacao> = {
   cadastro_caf_confirmado: { situacao: 'Lojista disse que concluiu o cadastro', acao: 'Nada a mover: o card anda sozinho quando a AIVA criar a loja. Marcar Atendido.' },
   cadastro_completo: { situacao: 'Lojista passou todos os dados do cadastro', acao: 'Lançar o CNPJ em Registros AIVA.' },
   qualificacao_inicial_completa: { situacao: 'Qualificação completa — pronto pra pré-aprovação', acao: 'Lançar o pré-cadastro em Registros AIVA.' },
+  loja_bloqueada_limite_originacao: { situacao: 'Loja bloqueada pelo limite de originação da AIVA (bateu o teto de vendas da semana)', acao: `Tratar a liberação/aumento do limite com ${AIVA}; avisar o lojista quando liberar.` },
   aiva_nao_criou_loja: { situacao: 'Lojista fez tudo e a biometria foi aprovada — falta a AIVA criar a loja', acao: `Cobrar ${AIVA} pela criação da loja.` },
   loja_finalizada_sem_operar: { situacao: 'Loja liberada que nunca chegou a operar', acao: 'Ligar: descobrir se falta senha, treinamento ou cadastro dos vendedores.' },
   loja_ativa_sem_vendas: { situacao: 'Lojista desanimado ou reclamando de vendas fracas', acao: 'Ligar pra entender — é risco de a loja parar.' },

@@ -812,6 +812,8 @@ modelos que não vendo"): NÃO é erro de tela e não existe chamado nosso pra i
 ver"; é o bloco 🗂️ do SUPORTE PÓS-VENDA (Live Chat).
 ⛔ EXCEÇÃO 3: TRAVA/DESBLOQUEIO DE APARELHO (locker/IMEI, venda não finalizada) — NÃO peça print: ali
 não existe chamado nem time nosso olhando, só o Live Chat da plataforma (bloco 🔒 do SUPORTE PÓS-VENDA).
+⛔ EXCEÇÃO 4: LOJA BLOQUEADA POR LIMITE DE ORIGINAÇÃO (quando vier a instrução do sistema com esse nome) — NÃO
+peça print: a causa já é conhecida; siga aquele bloco.
 Não repita o pedido se já existe print da mesma tela na conversa.
 
 ## REGRA — LEAD ENVIOU IMAGEM/FOTO

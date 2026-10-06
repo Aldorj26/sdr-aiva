@@ -31,6 +31,7 @@ import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
+import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -84,8 +85,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // loja travada pelo limite de originação da AIVA não recebe "como estão as vendas?" (06/10/2026)
+  const bloqueados = await leadsBloqueadosPorLimite()
   const candidatas = (lojas ?? []).filter((l) => {
     const obs = l.observacoes ?? ''
+    if (bloqueados.has(l.id)) return false
     if (obs.includes('[CONSULTORIA_OPTOUT]')) return false
     // Consultoria mandou toque há menos de 10 dias → ela já perguntou das vendas
     const ultConsultoria = parseFlagDate(obs, 'CONSULTORIA_ULTIMA')

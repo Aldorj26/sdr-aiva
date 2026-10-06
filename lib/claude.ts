@@ -701,6 +701,8 @@ export async function processarMensagem(
   desempenhoLoja?: string | null,
   /** [PRE_CAD_NAO_CHEGOU:ISO] — o pré-cadastro foi marcado como enviado e não chegou à AIVA (espelho, 06/10/2026) */
   preCadastroNaoChegou?: boolean,
+  /** Loja bloqueada por limite de originação na AIVA (lib/limite-originacao → blocoPromptBloqueio), 06/10/2026 */
+  bloqueioLimite?: string | null,
 ): Promise<ClaudeResponse> {
   // Monta histórico no formato Claude, agrupando mensagens consecutivas do
   // mesmo role (Claude API exige alternância user/assistant — se duas user
@@ -767,6 +769,8 @@ export async function processarMensagem(
   if (testeAbertura === 'B') faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${INSTRUCAO_VARIANTE_B}` : INSTRUCAO_VARIANTE_B
   // Números da loja no portal (só loja que opera — o webhook decide quem recebe)
   if (desempenhoLoja) faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${desempenhoLoja}` : desempenhoLoja
+  // Loja travada pelo limite de originação da AIVA — vem DEPOIS dos números (e os sobrepõe)
+  if (bloqueioLimite) faseInstrucao = faseInstrucao ? `${faseInstrucao}\n\n${bloqueioLimite}` : bloqueioLimite
   // Pré-cadastro que não chegou à AIVA: a pendência é do NOSSO time (Minas Celulares, 06/10/2026 —
   // ela respondeu "depende do time da AIVA" quando o formulário nem tinha sido enviado).
   if (preCadastroNaoChegou && (status === 'CADASTRO_RECEBIDO' || status === 'PRE_APROVACAO')) {

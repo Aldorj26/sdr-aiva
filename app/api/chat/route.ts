@@ -1,3 +1,4 @@
+import { blocoPromptBloqueio } from '@/lib/limite-originacao'
 import { NextRequest, NextResponse } from 'next/server'
 import { processarMensagem } from '@/lib/claude'
 import type { Mensagem } from '@/lib/supabase'
@@ -12,7 +13,7 @@ export const maxDuration = 60
 // O cliente devolve `dados` acumulados a cada turno pra simular o
 // [DADOS_COLETADOS:] que o webhook real mantém em observacoes.
 export async function POST(req: NextRequest) {
-  const { mensagem, historico, nome, status, dados, teste_abertura, cnpj_desempenho, onb_etapa, biometria_link, pre_cadastro_nao_chegou } = await req.json()
+  const { mensagem, historico, nome, status, dados, teste_abertura, cnpj_desempenho, onb_etapa, biometria_link, pre_cadastro_nao_chegou, bloqueio_limite } = await req.json()
 
   if (!mensagem?.trim()) {
     return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       teste_abertura === 'B' ? 'B' : null,
       r ? blocoPrompt(r) : null,
       pre_cadastro_nao_chegou === true,
+      bloqueio_limite ? blocoPromptBloqueio({ rid: '0', cnpj: null, desde: typeof bloqueio_limite === 'string' ? bloqueio_limite : null }) : null,
     )
     return NextResponse.json(resposta)
   } catch (err) {

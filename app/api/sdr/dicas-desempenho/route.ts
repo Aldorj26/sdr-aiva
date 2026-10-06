@@ -20,6 +20,7 @@ import { flag } from '@/lib/req-flags'
 import { resumir, type LinhaMes, type LinhaSemana, type Segmento } from '@/lib/desempenho-loja-calc'
 import { mesBrt, ultimaSemanaFechada } from '@/lib/desempenho-loja'
 import { decidir, lerMarcadores, remontarObs, textoDica, prioridade, ROTULO, CONVERSA_VIVA_HORAS } from '@/lib/dicas-desempenho-calc'
+import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -93,11 +94,14 @@ export async function GET(req: NextRequest) {
   const porSegmento: Record<string, number> = {}
   const fila: { lead: (typeof alvo)[number]; seg: Segmento; texto: string; count: number; diasCriada: number | null }[] = []
   const diasDesde = (iso: string | null | undefined) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400_000) : null)
+  // loja travada pelo limite de originação da AIVA não recebe dica de vender (06/10/2026)
+  const bloqueados = await leadsBloqueadosPorLimite()
   for (const l of alvo) {
     const cs = cnpjsPorLead.get(l.id) ?? new Set<string>()
     const r = resumir(sem.filter((x) => cs.has(x.cnpj)), mens.filter((x) => cs.has(x.cnpj)), ult, mes)
     porSegmento[r.segmento] = (porSegmento[r.segmento] ?? 0) + 1
     if (l.acionar_humano) { motivos.fila_humano = (motivos.fila_humano ?? 0) + 1; continue }
+    if (bloqueados.has(l.id)) { motivos.bloqueada_limite = (motivos.bloqueada_limite ?? 0) + 1; continue }
     const m = lerMarcadores(l.observacoes)
     const d = decidir(m, r.segmento, ultimaFala.get(l.id) ?? null)
     if (d.acao === 'nada') { motivos[d.motivo] = (motivos[d.motivo] ?? 0) + 1; continue }
