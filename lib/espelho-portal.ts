@@ -30,6 +30,10 @@ import {
 const PIPELINE_AIVA = 15
 /** Teto por rodada: cada movimento dispara automação + HSM do lado do Evo. */
 const TETO_MOVIMENTOS = 30
+/** Virada do funil pro quadro da AIVA (Aldo 07/10/2026, decisão 4): até esta hora TODO movimento do espelho é
+ *  silencioso — grava [MOVE_SILENCIOSO:<etapa>] antes de mover, e o /opportunity-stage só atualiza o status, sem
+ *  HSM, texto ou alerta. Depois dela, só com ?silencioso. Entrada na 51 nunca é silenciosa (cria a conta MRR). */
+const VIRADA_SILENCIOSA_ATE = '2026-10-07T21:00:00Z'
 const TETO_MS = 200_000
 export const MARCADOR_ESPELHO = 'ESPELHO_PORTAL'
 /** CNPJ com situação real ruim na Receita (inapta/baixada/suspensa) segundo a AIVA. */
@@ -177,7 +181,8 @@ export type SaidaEspelho = {
   pre_cadastro_nao_chegou: string[]
 }
 
-export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
+export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean } = {}): Promise<SaidaEspelho> {
+  const silencioso = !!opts.silencioso || Date.now() < Date.parse(VIRADA_SILENCIOSA_ATE)
   const inicio = Date.now()
   const avisos: string[] = []
 
@@ -188,6 +193,7 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
     retailer_id: o.retailer_id ?? null, legal_name: o.legal_name ?? null,
     cnpj_check_status: o.cnpj_check_status ?? null, cnpj_situacao: o.cnpj_situacao ?? null, cnpj_check_reason: o.cnpj_check_reason ?? null,
     biometry_status: o.biometry_status ?? null, updated_at: o.updated_at ?? null,
+    board_column: (o.board_column as string | null | undefined) ?? null, board_column_since: (o.board_column_since as string | null | undefined) ?? null,
   }))
   const sinais = await sinaisPortal()
   if (sinais.aviso) avisos.push(sinais.aviso)
@@ -341,7 +347,11 @@ export async function executarEspelho(dry: boolean): Promise<SaidaEspelho> {
       // biometria aprovada sem loja criada: o marcador vai ANTES do move — o handler da 70 (HSM 69 + kit)
       // lê ele pra não prometer login nem formulário de vendedor a quem ainda não tem loja (revisor 06/10)
       if (m.motivo === MOTIVO_BIO_APROVADA) await marcar(m.lead_id, MARCADOR_ONB_ETAPA, `aguardando_aiva:${new Date().toISOString()}`)
-      for (const etapa of [...m.via, m.para]) {
+      // silencioso: vai direto pro destino (sem a passagem pela 70 — o marcador é um por vez e o handler
+      // da etapa intermediária leria o da seguinte) e marca antes de mover
+      const etapas = silencioso ? [m.para] : [...m.via, m.para]
+      if (silencioso && m.para !== ETAPA.VENDENDO) await marcar(m.lead_id, 'MOVE_SILENCIOSO', `${m.para}:${new Date().toISOString()}`)
+      for (const etapa of etapas) {
         await changeOpportunityStage(m.opp, etapa)
         // a automação do Evo + nosso handler rodam do outro lado; um respiro evita
         // dois webhooks do mesmo card se atropelando

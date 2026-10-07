@@ -277,9 +277,13 @@ export const ETAPAS_EVO: ReadonlyArray<{ id: number; nome: string; cor: string }
   { id: 53, nome: 'Interessado (sem resposta)', cor: '#ff3b3b' },
   { id: 54, nome: 'Pré Aprovação', cor: '#06c270' },
   { id: 49, nome: 'Cadastro Recebido', cor: '#0081cf' },
-  { id: 50, nome: 'Em Análise AIVA', cor: '#ff3b3b' },
-  { id: 70, nome: 'Treinar', cor: '#06c270' },
-  { id: 71, nome: 'Login', cor: '#06c270' },
+  // 07/10/2026: funil 15 = quadro Onboarding da AIVA (50/96/97/70/98/71)
+  { id: 50, nome: 'Formulário do varejo pendente', cor: '#ff3b3b' },
+  { id: 96, nome: 'Biometria pendente', cor: '#ff3b3b' },
+  { id: 97, nome: 'Biometria aprovada', cor: '#ff3b3b' },
+  { id: 70, nome: 'Cadastro finalizado', cor: '#06c270' },
+  { id: 98, nome: 'Treinamento agendado', cor: '#06c270' },
+  { id: 71, nome: 'Pronto para operar', cor: '#06c270' },
   { id: 51, nome: 'Loja Finalizada e Vendendo', cor: '#ff3b3b' },
   { id: 69, nome: 'Bot Detectado', cor: '#06c270' },
   { id: 93, nome: 'Lojas menos de 01 Ano', cor: '#06c270' },
@@ -287,10 +291,10 @@ export const ETAPAS_EVO: ReadonlyArray<{ id: number; nome: string; cor: string }
   { id: 95, nome: 'Loja Descartada pela Aiva', cor: '#06c270' },
 ]
 /** Posição na linha principal do funil. Laterais ficam fora (não se compara). */
-const ORDEM_EVO: Record<number, number> = { 66: 0, 47: 1, 53: 1, 54: 2, 49: 3, 50: 4, 70: 5, 71: 6, 51: 7 }
+const ORDEM_EVO: Record<number, number> = { 66: 0, 47: 1, 53: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 51: 10 }
 /** Etapa do Evo que corresponde a cada fase do portal (o que o espelho faria). */
 const ETAPA_DA_FASE: Partial<Record<Fase, number>> = {
-  formulario: 50, biometria: 50, biometria_negada: 50, aguardando_aiva: 50,
+  formulario: 50, biometria: 96, biometria_negada: 96, aguardando_aiva: 97,
   sem_senha: 70, sem_movimento: 71, consultando: 71, vendendo: 51, parou: 51,
 }
 

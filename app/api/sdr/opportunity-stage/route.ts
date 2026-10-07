@@ -36,6 +36,14 @@ function normalizePhoneBR(raw: string | null | undefined): string {
  * reforço (Caminho 2): marcar flag de aviso pendente, e quando o lead
  * responder o webhook reenvia.
  */
+/** Mensagem de etapa sai UMA vez por loja (Aldo 07/10/2026): o funil espelha o quadro da AIVA e o card
+ *  pode voltar (Treinamento agendado → Cadastro finalizado 4h depois da turma). Se o template da etapa já
+ *  está no histórico do lead, a reentrada só atualiza o status. */
+async function jaRecebeuTemplate(leadId: string, templateHsm: string): Promise<boolean> {
+  const { data } = await supabaseAdmin.from('sdr_mensagens').select('id').eq('lead_id', leadId).eq('template_hsm', templateHsm).limit(1)
+  return !!data?.length
+}
+
 async function janela24hAberta(leadId: string): Promise<boolean> {
   const { data: ultimaIn } = await supabaseAdmin
     .from('sdr_mensagens')
@@ -170,7 +178,9 @@ export async function POST(req: NextRequest) {
   // [MOVE_SILENCIOSO:<etapa>:<ISO>]; se a marca for desta etapa e tiver < 30 min, aqui
   // só atualizamos o status, apagamos a marca e encerramos — sem alerta, sem HSM, sem
   // texto. Sem a marca, o fluxo normal segue igual.
-  const STATUS_SILENCIOSO: Record<number, string> = { [STAGES.EM_ANALISE_AIVA]: 'EM_ANALISE_AIVA', [STAGES.TREINAR]: 'TREINAR' }
+  // 07/10/2026: vale pra qualquer etapa com status espelho (a virada do funil pro quadro da AIVA reposiciona
+  // todos os cards em silêncio — inclusive nas etapas novas 96/97/98 e na 71).
+  const STATUS_SILENCIOSO: Record<number, string> = STAGE_TO_STATUS
   if (STATUS_SILENCIOSO[stageNum]) {
     try {
       const oppS = await getOpportunity(Number(opportunityId))
@@ -183,7 +193,8 @@ export async function POST(req: NextRequest) {
       if (leadS?.id && m && Date.now() - Date.parse(m[1]) < 30 * 60_000) {
         const obsSem = (leadS.observacoes ?? '').replace(/\s*\[MOVE_SILENCIOSO:[^\]]*\]/g, '').trim()
         await supabaseAdmin.from('sdr_leads')
-          .update({ status: STATUS_SILENCIOSO[stageNum], observacoes: obsSem, acionar_humano: false })
+          // não mexe em acionar_humano: a virada de 07/10 reposiciona centenas de cards e não pode tirar ninguém da fila humana
+          .update({ status: STATUS_SILENCIOSO[stageNum], observacoes: obsSem })
           .eq('id', leadS.id)
         console.log(`[move-silencioso] opp #${opportunityId} → ${stageNum}: só status (${STATUS_SILENCIOSO[stageNum]}), sem mensagens`)
         return NextResponse.json({ ok: true, silencioso: true, status: STATUS_SILENCIOSO[stageNum] })
@@ -201,9 +212,9 @@ export async function POST(req: NextRequest) {
   // Dedupe por marcador [ALERTA_ETAPA:<stage>] nas observações: se o Evo
   // reenviar o webhook da mesma etapa, não repete o aviso.
   const ETAPAS_AVISO: Record<number, { emoji: string; label: string }> = {
-    [STAGES.EM_ANALISE_AIVA]: { emoji: '🔎', label: 'Em Análise AIVA' },
-    [STAGES.TREINAR]: { emoji: '🎓', label: 'Treinar' },
-    [STAGES.LOGIN]: { emoji: '🔑', label: 'Login' },
+    [STAGES.EM_ANALISE_AIVA]: { emoji: '🔎', label: 'Formulário do varejo pendente' },
+    [STAGES.TREINAR]: { emoji: '🎓', label: 'Cadastro finalizado' },
+    [STAGES.LOGIN]: { emoji: '🔑', label: 'Pronto para operar' },
     [STAGES.LOJA_FINALIZADA_E_VENDENDO]: { emoji: '🏆', label: 'Loja Finalizada e Vendendo' },
   }
   const etapaAviso = ETAPAS_AVISO[stageNum]
@@ -234,9 +245,10 @@ export async function POST(req: NextRequest) {
         if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, msg)
 
         if (leadAviso?.id) {
-          // Limpa marcadores de etapas anteriores pra permitir novo aviso se o
-          // card voltar e avançar de novo, e grava o da etapa atual.
-          const obsLimpa = (leadAviso.observacoes ?? '').replace(/\s*\[ALERTA_ETAPA:\d+\]\s*/g, ' ').trim()
+          // 07/10/2026: NÃO limpa mais os marcadores das outras etapas — o card agora vai e volta junto com
+          // o quadro da AIVA (Treinamento agendado ↔ Cadastro finalizado) e o aviso repetiria a cada volta.
+          // Cada etapa avisa uma vez por loja.
+          const obsLimpa = (leadAviso.observacoes ?? '').trim()
           await supabaseAdmin
             .from('sdr_leads')
             .update({ observacoes: `${marcador} ${obsLimpa}`.trim() })
@@ -526,6 +538,13 @@ export async function POST(req: NextRequest) {
         .eq('telefone', telefone)
         .maybeSingle()
 
+      // Reentrada na etapa (o card voltou da Biometria pendente, ou foi reposicionado): o link do cadastro
+      // já foi — só o status (07/10/2026).
+      if (lead?.id && await jaRecebeuTemplate(lead.id, 'aiva_link_cadastro')) {
+        await supabaseAdmin.from('sdr_leads').update({ status: 'EM_ANALISE_AIVA' }).eq('id', lead.id)
+        return NextResponse.json({ ok: true, ignorado: 'link_cadastro_ja_enviado', status_atualizado: 'EM_ANALISE_AIVA', telefone })
+      }
+
       // (TRAVA DE QSA removida em 2026-08-24 — o Nei resolveu com a AIVA.
       // Este bloco LIA o marcador [TRAVA_QSA] e fazia return ANTES do HSM de
       // aprovação: o lead ficava em Em Análise sem nunca receber o link do CAF.
@@ -648,6 +667,13 @@ export async function POST(req: NextRequest) {
       // Biometria aprovada e a AIVA ainda não criou a loja (vem pra 70 desde 06/10/2026): não existe senha
       // nem formulário de vendedor ainda — o espelho grava este marcador ANTES de mover o card.
       const semLoja = (lead?.observacoes ?? '').includes('[ONB_ETAPA:aguardando_aiva')
+
+      // Reentrada (Treinamento agendado → Cadastro finalizado 4h depois da turma, ou reposicionamento):
+      // o treinamento já foi mandado — só o status (07/10/2026).
+      if (lead?.id && await jaRecebeuTemplate(lead.id, 'aiva_treinamento_completo')) {
+        await supabaseAdmin.from('sdr_leads').update({ status: 'TREINAR' }).eq('id', lead.id)
+        return NextResponse.json({ ok: true, ignorado: 'treinamento_ja_enviado', status_atualizado: 'TREINAR', telefone })
+      }
 
       // Template HSM 69 — [AIVA] Treinamento Completo (UTILITY, aprovado).
       // Substitui o antigo fluxo "template 28 + 3 textos livres": os links

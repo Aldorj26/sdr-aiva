@@ -45,6 +45,11 @@ export type OnbApi = {
   /** Selfie do lojista: pendente · aprovado · negado. `stage` não conta essa
    *  história sozinho — aprovado com stage=biometria é a loja esperando a AIVA. */
   biometry_status?: string | null
+  /** Coluna do quadro Onboarding da AIVA (Mauricio, 07/10/2026): not_approved · pre_cadastro ·
+   *  dados_varejo · biometria_pendente · biometria_aprovada · cadastro_finalizado ·
+   *  treinamento_agendado · pronto_para_operar. É ela que o funil 15 espelha. */
+  board_column?: string | null
+  board_column_since?: string | null
 }
 export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null; criado_em?: string | null }
 export type LeadEspelho = {
@@ -99,18 +104,35 @@ export type Resultado = {
   conferir: Conferir[]
 }
 
-export const ETAPA = { EM_ANALISE: 50, TREINAR: 70, LOGIN: 71, VENDENDO: 51, REPROVADO: 95 } as const
+/** Funil 15 = quadro Onboarding da AIVA, coluna por coluna, do formulário até "Pronto para operar"
+ *  (Aldo 07/10/2026). Nomes no Evo: 50 Formulário do varejo pendente · 96 Biometria pendente ·
+ *  97 Biometria aprovada · 70 Cadastro finalizado · 98 Treinamento agendado · 71 Pronto para operar.
+ *  Antes e depois disso o funil é nosso (prospecção até Cadastro Recebido; 51 = loja que consulta/vende). */
+export const ETAPA = {
+  EM_ANALISE: 50, BIO_PENDENTE: 96, BIO_APROVADA: 97, TREINAR: 70, TREINO_AGENDADO: 98, LOGIN: 71, VENDENDO: 51, REPROVADO: 95,
+} as const
 /** Mesma progressão linear do ORDEM_FUNIL de lib/evotalks (duplicada aqui pra manter este módulo sem imports). */
-export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 70: 5, 71: 6, 51: 7 }
+export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 51: 10 }
+/** Etapas que ESPELHAM uma coluna da AIVA: aqui o card segue a coluna mesmo pra trás (ex.: Treinamento
+ *  agendado volta pra Cadastro finalizado 4h depois da turma). Fora delas o espelho só avança. */
+export const BLOCO_AIVA = new Set<number>([50, 96, 97, 70, 98, 71])
+/** Coluna da AIVA → etapa do Evo. not_approved e pre_cadastro ficam fora (reprovação tem trilha própria;
+ *  pré-cadastro é o nosso Cadastro Recebido, que anda pelo /registros). */
+export const COLUNA_PARA_ETAPA: Record<string, number> = {
+  dados_varejo: 50, biometria_pendente: 96, biometria_aprovada: 97,
+  cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71,
+}
+const ROTULO_COLUNA: Record<number, string> = {
+  50: 'formulário do varejo pendente', 96: 'biometria pendente', 97: 'biometria aprovada — falta a AIVA criar a loja',
+  70: 'cadastro finalizado', 98: 'treinamento agendado', 71: 'pronto para operar',
+}
 const SEM_RESPOSTA = 53
 const NAO_MEXER = new Set([69, 93, 94, 95])
 const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO'])
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
 export const MARCADOR_CONFERIR = 'PORTAL_REPROVADO_CONFERIR'
-/** Motivo do movimento pra Treinar SEM loja criada (biometria aprovada, a AIVA ainda não gerou o ID). */
-/** ⏸ Aldo 06/10/2026: "segura por enquanto essa mudança" — biometria aprovada volta a esperar a AIVA criar a
- *  loja em Em Análise. Ligar = true + deploy (os textos 'sem loja' do HSM 69/kit/VictorIA já estão prontos). */
-export const BIO_APROVADA_VAI_PRA_TREINAR = false
+/** Motivo do movimento pra Biometria aprovada (97): o espelho grava [ONB_ETAPA:aguardando_aiva] antes de mover.
+ *  (A regra de 06/10 "biometria aprovada → Treinar" foi substituída pela etapa própria em 07/10/2026.) */
 export const MOTIVO_BIO_APROVADA = 'biometria aprovada — falta a AIVA criar a loja'
 
 export const soDigitos = (c: unknown): string => String(c ?? '').replace(/\D/g, '')
@@ -118,11 +140,15 @@ export const soDigitos = (c: unknown): string => String(c ?? '').replace(/\D/g, 
 /** Etapa do Evo que o portal "pede" pra este onboarding; null = ainda no pré-cadastro ou reprovado. */
 export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Set<string>): number | null {
   const rid = onb.retailer_id != null && String(onb.retailer_id) !== '' ? String(onb.retailer_id) : null
+  // consulta/venda é nosso (51) e vence a coluna da AIVA
   if (rid && vendeu.has(rid)) return ETAPA.VENDENDO
+  // a coluna do quadro da AIVA manda (07/10/2026)
+  if (onb.board_column) return COLUNA_PARA_ETAPA[onb.board_column] ?? null
+  // cadastro antigo sem board_column: dedução pelo stage + biometria (regra de antes)
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN
   if (onb.stage === 'cadastro_finalizado' || rid) return ETAPA.TREINAR
-  if (BIO_APROVADA_VAI_PRA_TREINAR && onb.stage === 'biometria' && String(onb.biometry_status ?? '').toLowerCase() === 'aprovado') return ETAPA.TREINAR
-  if (onb.stage === 'dados_varejo' || onb.stage === 'biometria') return ETAPA.EM_ANALISE
+  if (onb.stage === 'biometria') return String(onb.biometry_status ?? '').toLowerCase() === 'aprovado' ? ETAPA.BIO_APROVADA : ETAPA.BIO_PENDENTE
+  if (onb.stage === 'dados_varejo') return ETAPA.EM_ANALISE
   return null
 }
 
@@ -219,18 +245,21 @@ export function calcularEspelho(e: Entrada): Resultado {
     const atual = e.stageAtual.get(opp)
     if (atual == null) { out.pulados.push({ lead_id: leadId, nome, motivo: `opp #${opp} não está aberta no funil 15` }); continue }
     if (NAO_MEXER.has(atual)) { out.pulados.push({ lead_id: leadId, nome, motivo: `card em etapa ${atual} (não mexe)` }); continue }
-    const podeAvancar = atual === SEM_RESPOSTA || ordem(melhor.para) > ordem(atual)
-    if (!podeAvancar) continue   // já está igual ou além — silêncio, é o caso normal
+    // Avança sempre; dentro do bloco que espelha a AIVA, SEGUE a coluna também pra trás (07/10/2026).
+    // Fora dele (Vendendo, etapas laterais) nunca regride.
+    const segueColuna = BLOCO_AIVA.has(atual) && BLOCO_AIVA.has(melhor.para) && melhor.para !== atual
+    const podeMover = atual === SEM_RESPOSTA || ordem(melhor.para) > ordem(atual) || segueColuna
+    if (!podeMover) continue   // já está igual ou além — silêncio, é o caso normal
 
+    // Pulando Cadastro finalizado (70) pra frente, passa por ela: é a entrada da 70 que manda o treinamento
+    // (HSM 69 + kit, uma vez só — o handler não repete). Pra trás nunca passa por nada.
     const via: number[] = []
-    if (ordem(melhor.para) >= ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR] && melhor.para !== ETAPA.TREINAR) via.push(ETAPA.TREINAR)
+    if (ordem(melhor.para) > ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR]) via.push(ETAPA.TREINAR)
     const rid = melhor.onb.retailer_id != null ? String(melhor.onb.retailer_id) : ''
     const motivo =
       melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`
-      : melhor.para === ETAPA.LOGIN ? `senha enviada pela AIVA (RID ${rid})`
-      : melhor.para === ETAPA.TREINAR && !rid && melhor.onb.stage === 'biometria' ? MOTIVO_BIO_APROVADA
-      : melhor.para === ETAPA.TREINAR ? `cadastro finalizado no portal${rid ? ` (RID ${rid})` : ''}`
-      : `pré-cadastro aprovado, portal em ${melhor.onb.stage}`
+      : melhor.para === ETAPA.BIO_APROVADA ? MOTIVO_BIO_APROVADA
+      : `portal da AIVA em ${ROTULO_COLUNA[melhor.para] ?? melhor.onb.stage}${rid ? ` (RID ${rid})` : ''}`
     out.movimentos.push({ lead_id: leadId, nome, opp, de: atual, para: melhor.para, via, motivo })
   }
 

@@ -28,7 +28,7 @@
 
 /** Etapas que provam AVANÇO REAL da loja: o cadastro foi recebido e a jornada
  *  andou. Card aqui trava o descarte. */
-export const ETAPAS_AVANCADAS = [49, 70, 71, 51]
+export const ETAPAS_AVANCADAS = [49, 97, 70, 98, 71, 51]   // 97/98: etapas do quadro da AIVA (07/10/2026)
 
 /** Etapas EM CURSO — o card está numa fase intermediária, mas isso sozinho não
  *  prova nada. ⚠️ "Em Análise AIVA" (50) é o caso clássico: o card entra ali
@@ -36,7 +36,7 @@ export const ETAPAS_AVANCADAS = [49, 70, 71, 51]
  *  começou o formulário e sumiu há 4 meses continua em 50. Tratar isso como
  *  trava marcava 151 dos 230 CNPJs como "não descartar", o que é o contrário do
  *  que a evidência diz. Aqui vira CONFERIR, não trava. */
-export const ETAPAS_EM_CURSO = [47, 54, 50]
+export const ETAPAS_EM_CURSO = [47, 54, 50, 96]   // 96 Biometria pendente (07/10/2026)
 
 /** As duas juntas — o card não está num fim de jornada. */
 export const ETAPAS_VIVAS = [...ETAPAS_AVANCADAS, ...ETAPAS_EM_CURSO]

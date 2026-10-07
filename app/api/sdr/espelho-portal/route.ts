@@ -28,7 +28,7 @@ async function handler(req: NextRequest) {
   }
   const dry = flag(req.nextUrl.searchParams, 'dry')
   try {
-    const saida = await executarEspelho(dry)
+    const saida = await executarEspelho(dry, { silencioso: flag(req.nextUrl.searchParams, 'silencioso') })
     console.log(`[espelho-portal] ${dry ? '[dry] ' : ''}onboardings=${saida.onboardings} leads=${saida.leads} movidos=${saida.movidos.length} sobraram=${saida.sobraram} reprovados=${saida.reprovados.length} registros=${saida.registros_enviados}`)
     return NextResponse.json(saida)
   } catch (err) {

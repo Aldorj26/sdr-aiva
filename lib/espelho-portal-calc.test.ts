@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { calcularEspelho, etapaDesejada, situacaoOnb, BIO_APROVADA_VAI_PRA_TREINAR, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
+import { calcularEspelho, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
 
 const onb = (p: Partial<OnbApi> & { cnpj: string }): OnbApi => ({ stage: 'dados_varejo', pre_cadastro_status: 'approved', retailer_id: null, legal_name: 'LOJA X', ...p })
 const base = (p: Partial<Entrada> = {}): Entrada => ({
@@ -14,14 +14,58 @@ test('etapaDesejada: escada do portal', () => {
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'pre_cadastro' }), l, v), null)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'not_approved' }), l, v), null)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'dados_varejo' }), l, v), 50)
-  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria' }), l, v), 50)
-  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'pendente' }), l, v), 50)
-  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'negado' }), l, v), 50)
-  // biometria aprovada → Treinar: regra SEGURADA em 06/10/2026 (flag BIO_APROVADA_VAI_PRA_TREINAR)
-  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'aprovado' }), l, v), BIO_APROVADA_VAI_PRA_TREINAR ? 70 : 50)
+  // sem board_column (cadastro antigo): biometria tem etapa própria desde 07/10/2026
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria' }), l, v), 96)
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'pendente' }), l, v), 96)
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'negado' }), l, v), 96)
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'biometria', biometry_status: 'aprovado' }), l, v), 97)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: 7 }), l, v), 70)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '5' }), l, v), 71)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '9' }), l, v), 51)
+})
+
+test('board_column manda: cada coluna da AIVA vira a etapa do Evo; venda vence', () => {
+  const l = new Set<string>(), v = new Set(['9'])
+  const col = (board_column: string, retailer_id: string | null = null) => etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', board_column, retailer_id }), l, v)
+  assert.equal(col('not_approved'), null)
+  assert.equal(col('pre_cadastro'), null)
+  assert.equal(col('dados_varejo'), 50)
+  assert.equal(col('biometria_pendente'), 96)
+  assert.equal(col('biometria_aprovada'), 97)
+  assert.equal(col('cadastro_finalizado', '7'), 70)
+  assert.equal(col('treinamento_agendado', '7'), 98)
+  assert.equal(col('pronto_para_operar', '7'), 71)
+  assert.equal(col('pronto_para_operar', '9'), 51)   // consultou/vendeu
+})
+
+test('Treinamento agendado volta pra Cadastro finalizado junto com a AIVA (sem passar por nada)', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'cadastro_finalizado' })],
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'TREINAR')],
+    stageAtual: new Map([[100, 98]]),
+  }))
+  assert.deepEqual({ de: r.movimentos[0].de, para: r.movimentos[0].para, via: r.movimentos[0].via }, { de: 98, para: 70, via: [] })
+})
+
+test('Vendendo (51) nunca volta pra coluna da AIVA', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'pronto_para_operar' })],
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')],
+    stageAtual: new Map([[100, 51]]),
+  }))
+  assert.equal(r.movimentos.length, 0)
+})
+
+test('Formulário → Biometria aprovada não passa por Cadastro finalizado', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'biometria', biometry_status: 'aprovado', board_column: 'biometria_aprovada' })],
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'EM_ANALISE_AIVA')],
+    stageAtual: new Map([[100, 50]]),
+  }))
+  assert.deepEqual({ para: r.movimentos[0].para, via: r.movimentos[0].via }, { para: 97, via: [] })
 })
 
 test('avança 49 → 50 quando o portal está em dados_varejo', () => {
@@ -36,12 +80,12 @@ test('avança 49 → 50 quando o portal está em dados_varejo', () => {
   assert.deepEqual(r.registrosEnviados, [1])
 })
 
-test('nunca regride e fica em silêncio quando já está igual ou além', () => {
+test('fica em silêncio quando já está na etapa da coluna (e não regride fora do bloco da AIVA)', () => {
   const r = calcularEspelho(base({
     onboardings: [onb({ cnpj: '11111111000191' })],
     registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
     leads: [lead('a', 100)],
-    stageAtual: new Map([[100, 70]]),
+    stageAtual: new Map([[100, 50]]),
   }))
   assert.equal(r.movimentos.length, 0)
   assert.equal(r.pulados.length, 0)

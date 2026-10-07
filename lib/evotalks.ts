@@ -601,8 +601,14 @@ const STAGES = {
   SEM_RESPOSTA: 53,
   PRE_APROVACAO: 54,
   CADASTRO_RECEBIDO: 49,
+  // 07/10/2026 (Aldo): funil 15 = quadro Onboarding da AIVA. Nomes no Evo: 50 "Formulário do varejo
+  // pendente", 70 "Cadastro finalizado", 71 "Pronto para operar" + as três novas abaixo. As chaves antigas
+  // (EM_ANALISE_AIVA/TREINAR/LOGIN) ficaram pra não quebrar quem usa; o STATUS do lead não mudou.
   EM_ANALISE_AIVA: 50,
+  BIOMETRIA_PENDENTE: 96,
+  BIOMETRIA_APROVADA: 97,
   TREINAR: 70,
+  TREINAMENTO_AGENDADO: 98,
   LOGIN: 71,
   LOJA_FINALIZADA_E_VENDENDO: 51,
   BOT_DETECTADO: 69,
@@ -630,10 +636,13 @@ const ORDEM_FUNIL: Record<number, number> = {
   47: 1, // INTERESSADO
   54: 2, // PRE_APROVACAO
   49: 3, // CADASTRO_RECEBIDO
-  50: 4, // EM_ANALISE_AIVA
-  70: 5, // TREINAR
-  71: 6, // LOGIN
-  51: 7, // LOJA_FINALIZADA_E_VENDENDO
+  50: 4, // Formulário do varejo pendente (EM_ANALISE_AIVA)
+  96: 5, // Biometria pendente
+  97: 6, // Biometria aprovada
+  70: 7, // Cadastro finalizado (TREINAR)
+  98: 8, // Treinamento agendado
+  71: 9, // Pronto para operar (LOGIN)
+  51: 10, // LOJA_FINALIZADA_E_VENDENDO
 }
 
 // Stages da pipeline Singlo (id 17). Por enquanto só temos INTERESSADO mapeado;
@@ -1137,7 +1146,12 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   54: 'PRE_APROVACAO',
   49: 'CADASTRO_RECEBIDO',
   50: 'EM_ANALISE_AIVA',
+  // 07/10/2026: as etapas novas do espelho da AIVA NÃO criam status novo — crons, VictorIA e telas
+  // seguem lendo EM_ANALISE_AIVA (cadastro em aberto) e TREINAR (loja criada, antes da senha).
+  96: 'EM_ANALISE_AIVA',
+  97: 'EM_ANALISE_AIVA',
   70: 'TREINAR',
+  98: 'TREINAR',
   71: 'LOGIN',
   51: 'LOJA_FINALIZADA_E_VENDENDO',
   69: 'BOT_DETECTADO',
