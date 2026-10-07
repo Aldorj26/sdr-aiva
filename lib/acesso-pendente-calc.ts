@@ -51,7 +51,7 @@ export function decidir(m: Marcas, desde: number | null, ultimaFalaLojista: numb
 export function texto(toque: 1 | 2): string {
   return toque === 1
     ? 'passando pra saber se você já conseguiu entrar na AIVA 🙂 O login e a senha vêm pelo WhatsApp do número +55 21 4020-2024, e o acesso é em https://vendas.flexfone.com.br/login. Se não achou a mensagem ou travou em algum passo, me responde aqui que eu te ajudo!'
-    : 'vi que o acesso da sua loja na AIVA ainda não foi usado. Quer uma ajuda pra entrar? Se a senha não chegou ou ficou em outro número, me avisa aqui que eu resolvo com você.'
+    : 'vi que o acesso da sua loja na AIVA ainda não foi usado. Quer uma ajuda pra entrar? Se a senha não chegou ou ficou em outro número, me avisa aqui que eu te ajudo!'
 }
 
 export function remontarObs(obs: string | null | undefined, n: number, agora: Date): string {
