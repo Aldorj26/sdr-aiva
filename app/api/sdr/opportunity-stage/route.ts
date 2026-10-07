@@ -44,6 +44,45 @@ async function jaRecebeuTemplate(leadId: string, templateHsm: string): Promise<b
   return !!data?.length
 }
 
+// ─── Aviso ao lojista nas etapas do quadro da AIVA (Aldo 07/10/2026) ───────────────────────────────
+// Biometria aprovada (97) e Pronto para operar (71) mandavam NADA pro lojista. Vai pelo HSM 48 ("Olá {{1}},
+// {{2}}" — o mesmo da cobrança/dicas), então entrega com a janela de 24h fechada. Uma vez por loja (rótulo
+// em sdr_mensagens.template_hsm). {{2}} é UMA linha só: a Meta recusa quebra de linha em variável.
+const TEMPLATE_AVISO_ETAPA = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
+const AVISO_ETAPA: Record<number, { rotulo: string; status: string; miolo: string }> = {
+  97: {
+    rotulo: 'aiva_biometria_aprovada', status: 'EM_ANALISE_AIVA',
+    miolo: 'sua biometria foi aprovada pela AIVA ✅ Do seu lado está tudo certo: agora é a AIVA criar a sua loja no sistema. Assim que ela criar, eu te mando aqui o material do treinamento e o seu acesso chega pelo WhatsApp do número +55 21 4020-2024. Por enquanto não precisa fazer mais nada 😊',
+  },
+  71: {
+    rotulo: 'aiva_pronto_operar', status: 'LOGIN',
+    miolo: 'seu acesso à AIVA foi liberado 🎉 O login e a senha vêm pelo WhatsApp do número +55 21 4020-2024 — se ainda não viu, procura essa mensagem. É só entrar em https://vendas.flexfone.com.br/login e fazer a primeira consulta, de qualquer cliente. Se não chegou ou travou em algum passo, me chama aqui que eu te ajudo!',
+  },
+}
+const SEM_AVISO_STATUS = ['OPT_OUT', 'DESCARTADO', 'NAO_QUALIFICADO', 'BOT_DETECTADO']
+
+async function avisarEtapa(opportunityId: string | number, stageNum: number): Promise<NextResponse> {
+  const cfg = AVISO_ETAPA[stageNum]
+  const opp = await getOpportunity(Number(opportunityId))
+  const forms = (opp.formsdata ?? {}) as Record<string, string | null>
+  const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
+  if (!telefone) return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
+  const { data: lead } = await supabaseAdmin.from('sdr_leads').select('id, nome, status, observacoes').eq('telefone', telefone).maybeSingle()
+  if (!lead?.id) return NextResponse.json({ ok: true, ignorado: 'lead_nao_encontrado', telefone })
+  if (SEM_AVISO_STATUS.includes(lead.status)) return NextResponse.json({ ok: true, ignorado: `status ${lead.status}`, telefone })
+  // 71 tira da fila humana como sempre fez; 97 só espelha o status
+  await supabaseAdmin.from('sdr_leads').update(stageNum === 71 ? { status: cfg.status, acionar_humano: false } : { status: cfg.status }).eq('id', lead.id)
+  if (await jaRecebeuTemplate(lead.id, cfg.rotulo)) return NextResponse.json({ ok: true, ignorado: 'aviso_ja_enviado', status_atualizado: cfg.status, telefone })
+  if (!TEMPLATE_AVISO_ETAPA) return NextResponse.json({ ok: false, erro: 'AIVA_REATIVACAO_TEMPLATE_ID não configurado', status_atualizado: cfg.status })
+  const socio = (lead.observacoes ?? '').match(/nome_socio=([^|\]]+)/)?.[1]
+  const nome = normalizaNome(forms['da6ddf70']) || normalizaNome(socio ?? null) || normalizaNome(lead.nome) || 'lojista'
+  await sendTemplate(telefone, TEMPLATE_AVISO_ETAPA, [nome, cfg.miolo])
+  await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${cfg.miolo}`, template_hsm: cfg.rotulo })
+  await supabaseAdmin.from('sdr_leads').update({ data_ultimo_contato: new Date().toISOString() }).eq('id', lead.id)
+  console.log(`[aviso-etapa-lojista] ${cfg.rotulo} → ${telefone} (opp #${opportunityId})`)
+  return NextResponse.json({ ok: true, aviso_enviado: cfg.rotulo, status_atualizado: cfg.status, telefone })
+}
+
 async function janela24hAberta(leadId: string): Promise<boolean> {
   const { data: ultimaIn } = await supabaseAdmin
     .from('sdr_mensagens')
@@ -843,23 +882,13 @@ export async function POST(req: NextRequest) {
   // Etapa 71 (Login): o Evo dispara o webhook (19 eventos em 14 dias, 08/09)
   // mas caía no "sem ação configurada" — o painel só virava LOGIN no sync
   // diário. Agora espelha na hora. Sem template: o login chega pela AIVA.
-  if (stageNum === STAGES.LOGIN) {
+  // 71 Pronto para operar e 97 Biometria aprovada: status + aviso ao lojista, uma vez por loja (07/10/2026)
+  if (stageNum === STAGES.LOGIN || stageNum === STAGES.BIOMETRIA_APROVADA) {
     try {
-      const opp = await getOpportunity(Number(opportunityId))
-      const forms = (opp.formsdata ?? {}) as Record<string, string | null>
-      const telefone = normalizePhoneBR((opp.mainphone ?? forms['db8569f0'] ?? '').toString())
-      if (!telefone) return NextResponse.json({ ok: false, erro: 'telefone_nao_encontrado' }, { status: 400 })
-      const { data: lead } = await supabaseAdmin.from('sdr_leads').select('id, status').eq('telefone', telefone).maybeSingle()
-      if (lead?.id && lead.status !== 'LOGIN') {
-        await supabaseAdmin
-          .from('sdr_leads')
-          .update({ status: 'LOGIN', acionar_humano: false })
-          .eq('id', lead.id)
-      }
-      return NextResponse.json({ ok: true, stage: 'LOGIN', telefone, atualizado: !!lead?.id })
+      return await avisarEtapa(String(opportunityId), stageNum)
     } catch (err) {
-      console.error('Erro ao espelhar stage 71 (LOGIN):', err)
-      return NextResponse.json({ ok: false, erro: 'login_stage_error' }, { status: 500 })
+      console.error(`Erro no aviso da etapa ${stageNum}:`, err)
+      return NextResponse.json({ ok: false, erro: 'aviso_etapa_error' }, { status: 500 })
     }
   }
 
