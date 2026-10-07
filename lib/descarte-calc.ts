@@ -28,7 +28,7 @@
 
 /** Etapas que provam AVANÇO REAL da loja: o cadastro foi recebido e a jornada
  *  andou. Card aqui trava o descarte. */
-export const ETAPAS_AVANCADAS = [49, 97, 70, 98, 71, 51]   // 97/98: etapas do quadro da AIVA (07/10/2026)
+export const ETAPAS_AVANCADAS = [49, 97, 70, 98, 71, 99, 51]   // 97/98: etapas do quadro da AIVA (07/10/2026)
 
 /** Etapas EM CURSO — o card está numa fase intermediária, mas isso sozinho não
  *  prova nada. ⚠️ "Em Análise AIVA" (50) é o caso clássico: o card entra ali

@@ -13,6 +13,7 @@
     "test:biometria": "node --test lib/biometria-calc.test.ts",
     "test:turmas": "node --test lib/turmas-treinamento-calc.test.ts",
     "test:senha": "node --test lib/senha-pendente-calc.test.ts",
+    "test:acesso": "node --test lib/acesso-pendente-calc.test.ts",
     "test:reconhecimento": "node --test lib/reconhecimento.test.ts",
     "test:odres": "node --test lib/odres-liberacao-calc.test.ts",
     "test:retomada": "node --test lib/retomada-interessado-calc.test.ts",

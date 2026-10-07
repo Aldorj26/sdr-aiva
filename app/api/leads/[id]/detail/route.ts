@@ -18,6 +18,7 @@ const ETAPA_LABEL: Record<number, string> = {
   70: 'Cadastro finalizado',
   98: 'Treinamento agendado',
   71: 'Pronto para operar',
+  99: 'Primeiro acesso',
   51: 'Loja finalizada e vendendo',
   69: 'Bot detectado',
 }

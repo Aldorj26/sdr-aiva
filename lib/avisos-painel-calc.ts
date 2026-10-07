@@ -6,7 +6,7 @@
  */
 
 export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
-  | 'senha_usuario' | 'portal_reprovado_conferir' | 'cnpj_irregular' | 'cnpj_invalido'
+  | 'senha_usuario' | 'portal_reprovado_conferir' | 'cnpj_irregular' | 'cnpj_invalido' | 'nunca_acessou'
 
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
   pre_cadastro_nao_chegou: {
@@ -58,6 +58,12 @@ export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: s
     ordem: 6,
   },
   // ── vieram da tela de Exceções (Aldo 06/10/2026 — a tela saiu do menu) ──
+  nunca_acessou: {
+    titulo: '🚪 Senha enviada e nunca acessou',
+    oque: 'a AIVA mandou a senha, o robô cobrou 2 vezes e a loja nunca entrou na ferramenta',
+    acao: 'Ligar: costuma ser senha que não chegou, número do cadastro diferente ou dúvida de como entrar. Some sozinho quando a loja acessar.',
+    ordem: 6.5,
+  },
   senha_usuario: {
     titulo: '👤 Senha de vendedor/gerente não veio',
     oque: 'o lojista pediu usuário de equipe e a AIVA não mandou o acesso',
@@ -100,6 +106,7 @@ const TERMINAIS = ['DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO']
  */
 export const PELO_MARCADOR: Partial<Record<TipoAviso, string>> = {
   senha_usuario: 'SENHA_USUARIO_NAO_CHEGOU',
+  nunca_acessou: 'ACESSO_ESGOTADO',
   portal_reprovado_conferir: 'PORTAL_REPROVADO_CONFERIR',
   cnpj_irregular: 'CNPJ_IRREGULAR_AIVA',
   cnpj_invalido: 'CNPJ_PORTAL_INVALIDO',

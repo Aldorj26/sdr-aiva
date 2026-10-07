@@ -17,6 +17,10 @@
       "schedule": "0 8 * * 1-5"
     },
     {
+      "path": "/api/sdr/acesso-pendente",
+      "schedule": "0 14 * * 1-5"
+    },
+    {
       "path": "/api/sdr/dicas-desempenho",
       "schedule": "0 13 * * 1-5"
     },

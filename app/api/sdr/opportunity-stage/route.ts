@@ -54,6 +54,10 @@ const AVISO_ETAPA: Record<number, { rotulo: string; status: string; miolo: strin
     rotulo: 'aiva_biometria_aprovada', status: 'EM_ANALISE_AIVA',
     miolo: 'sua biometria foi aprovada pela AIVA ✅ Do seu lado está tudo certo: agora é a AIVA criar a sua loja no sistema. Assim que ela criar, eu te mando aqui o material do treinamento e o seu acesso chega pelo WhatsApp do número +55 21 4020-2024. Por enquanto não precisa fazer mais nada 😊',
   },
+  99: {
+    rotulo: 'aiva_primeiro_acesso', status: 'LOGIN',
+    miolo: 'vi que você já entrou na plataforma da AIVA 🎉 Agora a dica de ouro: consulte o CPF de todo cliente que pedir preço, até de quem diz que vai pagar à vista — a resposta sai em uns 2 minutos e muita gente acaba parcelando. Qualquer dúvida no sistema, me chama aqui!',
+  },
   71: {
     rotulo: 'aiva_pronto_operar', status: 'LOGIN',
     miolo: 'seu acesso à AIVA foi liberado 🎉 O login e a senha vêm pelo WhatsApp do número +55 21 4020-2024 — se ainda não viu, procura essa mensagem. É só entrar em https://vendas.flexfone.com.br/login e fazer a primeira consulta, de qualquer cliente. Se não chegou ou travou em algum passo, me chama aqui que eu te ajudo!',
@@ -883,7 +887,7 @@ export async function POST(req: NextRequest) {
   // mas caía no "sem ação configurada" — o painel só virava LOGIN no sync
   // diário. Agora espelha na hora. Sem template: o login chega pela AIVA.
   // 71 Pronto para operar e 97 Biometria aprovada: status + aviso ao lojista, uma vez por loja (07/10/2026)
-  if (stageNum === STAGES.LOGIN || stageNum === STAGES.BIOMETRIA_APROVADA) {
+  if (stageNum === STAGES.LOGIN || stageNum === STAGES.BIOMETRIA_APROVADA || stageNum === STAGES.PRIMEIRO_ACESSO) {
     try {
       return await avisarEtapa(String(opportunityId), stageNum)
     } catch (err) {

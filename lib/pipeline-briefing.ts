@@ -28,6 +28,7 @@ const STAGES_ORDER: Array<{ id: number; nome: string; emoji: string }> = [
   { id: 70, nome: 'Cadastro finalizado',        emoji: '🎓' },
   { id: 98, nome: 'Treinamento agendado',       emoji: '📅' },
   { id: 71, nome: 'Pronto para operar',         emoji: '🔑' },
+  { id: 99, nome: 'Primeiro acesso',            emoji: '🚪' },
   { id: 51, nome: 'Loja Finalizada e Vendendo', emoji: '🛍' },
   { id: 69, nome: 'Bot Detectado',              emoji: '🤖' },
 ]

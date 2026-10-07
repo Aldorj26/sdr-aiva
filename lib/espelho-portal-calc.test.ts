@@ -48,14 +48,30 @@ test('Treinamento agendado volta pra Cadastro finalizado junto com a AIVA (sem p
   assert.deepEqual({ de: r.movimentos[0].de, para: r.movimentos[0].para, via: r.movimentos[0].via }, { de: 98, para: 70, via: [] })
 })
 
-test('Vendendo (51) nunca volta pra coluna da AIVA', () => {
+test('Vendendo (51) com consulta/venda nunca volta pra coluna da AIVA', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'pronto_para_operar' })],
+    vendeu: new Set(['7']),
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')],
+    stageAtual: new Map([[100, 51]]),
+  }))
+  assert.equal(r.movimentos.length, 0)
+})
+
+test('Vendendo (51) SEM consulta nem venda volta pra coluna real (Karol, 07/10/2026)', () => {
   const r = calcularEspelho(base({
     onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'pronto_para_operar' })],
     registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
     leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')],
     stageAtual: new Map([[100, 51]]),
   }))
-  assert.equal(r.movimentos.length, 0)
+  assert.deepEqual({ de: r.movimentos[0].de, para: r.movimentos[0].para, via: r.movimentos[0].via }, { de: 51, para: 71, via: [] })
+})
+
+test('primeiro_acesso vira a etapa 99', () => {
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'primeiro_acesso' }), new Set(), new Set()), 99)
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '7', primeiro_acesso_em: '2026-10-05T13:00:00Z' }), new Set(), new Set()), 99)
 })
 
 test('Formulário → Biometria aprovada não passa por Cadastro finalizado', () => {

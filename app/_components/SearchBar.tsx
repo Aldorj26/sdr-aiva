@@ -30,6 +30,7 @@ const ETAPAS_EVO: { id: number; label: string }[] = [
   { id: 70, label: 'Cadastro finalizado' },
   { id: 98, label: 'Treinamento agendado' },
   { id: 71, label: 'Pronto para operar' },
+  { id: 99, label: 'Primeiro acesso' },
   { id: 51, label: 'Loja finalizada e vendendo' },
   { id: 69, label: 'Bot detectado' },
 ]

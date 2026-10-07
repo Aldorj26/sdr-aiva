@@ -194,6 +194,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     cnpj_check_status: o.cnpj_check_status ?? null, cnpj_situacao: o.cnpj_situacao ?? null, cnpj_check_reason: o.cnpj_check_reason ?? null,
     biometry_status: o.biometry_status ?? null, updated_at: o.updated_at ?? null,
     board_column: (o.board_column as string | null | undefined) ?? null, board_column_since: (o.board_column_since as string | null | undefined) ?? null,
+    primeiro_acesso_em: (o.primeiro_acesso_em as string | null | undefined) ?? null,
   }))
   const sinais = await sinaisPortal()
   if (sinais.aviso) avisos.push(sinais.aviso)

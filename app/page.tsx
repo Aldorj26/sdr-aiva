@@ -379,6 +379,7 @@ const STAGE_LABEL: Record<number, string> = {
   70: 'Cadastro finalizado',
   98: 'Treinamento agendado',
   71: 'Pronto para operar',
+  99: 'Primeiro acesso',
   51: 'Loja finalizada e vendendo',
   69: 'Bot detectado',
 }
@@ -417,7 +418,7 @@ async function getEtapasEvo(): Promise<Record<string, EtapaEvo>> {
     // Finalizada #12064 com fone sem 9º dígito + duplicata "Loja — AIVA" #12526
     // em Início com o 9º dígito; a duplicata sobrescrevia e o painel mostrava
     // "Início"). Em colisão, fica a etapa mais avançada.
-    const STAGE_RANK: Record<number, number> = { 66: 0, 69: 0, 53: 1, 47: 2, 54: 3, 49: 4, 50: 5, 96: 6, 97: 7, 70: 8, 98: 9, 71: 10, 51: 11 }
+    const STAGE_RANK: Record<number, number> = { 66: 0, 69: 0, 53: 1, 47: 2, 54: 3, 49: 4, 50: 5, 96: 6, 97: 7, 70: 8, 98: 9, 71: 10, 99: 11, 51: 12 }
     const mapa: Record<string, EtapaEvo> = {}
     for (const o of opps) {
       const k = chaveTel(o.mainphone)

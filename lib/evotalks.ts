@@ -610,6 +610,7 @@ const STAGES = {
   TREINAR: 70,
   TREINAMENTO_AGENDADO: 98,
   LOGIN: 71,
+  PRIMEIRO_ACESSO: 99,
   LOJA_FINALIZADA_E_VENDENDO: 51,
   BOT_DETECTADO: 69,
   // "Lojas menos de 01 Ano" (etapa criada pelo Nei 08/09/2026): destino dos
@@ -642,7 +643,8 @@ const ORDEM_FUNIL: Record<number, number> = {
   70: 7, // Cadastro finalizado (TREINAR)
   98: 8, // Treinamento agendado
   71: 9, // Pronto para operar (LOGIN)
-  51: 10, // LOJA_FINALIZADA_E_VENDENDO
+  99: 10, // Primeiro acesso (Karol/AIVA 07/10/2026)
+  51: 11, // LOJA_FINALIZADA_E_VENDENDO
 }
 
 // Stages da pipeline Singlo (id 17). Por enquanto só temos INTERESSADO mapeado;
@@ -1153,6 +1155,8 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   70: 'TREINAR',
   98: 'TREINAR',
   71: 'LOGIN',
+  // 99 Primeiro acesso: entrou na ferramenta mas ainda não consultou — segue LOGIN (status de quem tem acesso)
+  99: 'LOGIN',
   51: 'LOJA_FINALIZADA_E_VENDENDO',
   69: 'BOT_DETECTADO',
   // 93 "Lojas menos de 01 Ano" (etapa criada pelo Nei): CNPJ com menos de 1 ano

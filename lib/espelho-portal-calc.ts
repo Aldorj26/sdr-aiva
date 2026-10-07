@@ -50,6 +50,8 @@ export type OnbApi = {
    *  treinamento_agendado · pronto_para_operar. É ela que o funil 15 espelha. */
   board_column?: string | null
   board_column_since?: string | null
+  /** Primeiro acesso do lojista à ferramenta (Karol/AIVA, 07/10/2026). null = nunca entrou. */
+  primeiro_acesso_em?: string | null
 }
 export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null; criado_em?: string | null }
 export type LeadEspelho = {
@@ -109,22 +111,22 @@ export type Resultado = {
  *  97 Biometria aprovada · 70 Cadastro finalizado · 98 Treinamento agendado · 71 Pronto para operar.
  *  Antes e depois disso o funil é nosso (prospecção até Cadastro Recebido; 51 = loja que consulta/vende). */
 export const ETAPA = {
-  EM_ANALISE: 50, BIO_PENDENTE: 96, BIO_APROVADA: 97, TREINAR: 70, TREINO_AGENDADO: 98, LOGIN: 71, VENDENDO: 51, REPROVADO: 95,
+  EM_ANALISE: 50, BIO_PENDENTE: 96, BIO_APROVADA: 97, TREINAR: 70, TREINO_AGENDADO: 98, LOGIN: 71, PRIMEIRO_ACESSO: 99, VENDENDO: 51, REPROVADO: 95,
 } as const
 /** Mesma progressão linear do ORDEM_FUNIL de lib/evotalks (duplicada aqui pra manter este módulo sem imports). */
-export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 51: 10 }
+export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 99: 10, 51: 11 }
 /** Etapas que ESPELHAM uma coluna da AIVA: aqui o card segue a coluna mesmo pra trás (ex.: Treinamento
  *  agendado volta pra Cadastro finalizado 4h depois da turma). Fora delas o espelho só avança. */
-export const BLOCO_AIVA = new Set<number>([50, 96, 97, 70, 98, 71])
+export const BLOCO_AIVA = new Set<number>([50, 96, 97, 70, 98, 71, 99])
 /** Coluna da AIVA → etapa do Evo. not_approved e pre_cadastro ficam fora (reprovação tem trilha própria;
  *  pré-cadastro é o nosso Cadastro Recebido, que anda pelo /registros). */
 export const COLUNA_PARA_ETAPA: Record<string, number> = {
   dados_varejo: 50, biometria_pendente: 96, biometria_aprovada: 97,
-  cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71,
+  cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71, primeiro_acesso: 99,
 }
 const ROTULO_COLUNA: Record<number, string> = {
   50: 'formulário do varejo pendente', 96: 'biometria pendente', 97: 'biometria aprovada — falta a AIVA criar a loja',
-  70: 'cadastro finalizado', 98: 'treinamento agendado', 71: 'pronto para operar',
+  70: 'cadastro finalizado', 98: 'treinamento agendado', 71: 'pronto para operar', 99: 'primeiro acesso',
 }
 const SEM_RESPOSTA = 53
 const NAO_MEXER = new Set([69, 93, 94, 95])
@@ -145,6 +147,7 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
   // a coluna do quadro da AIVA manda (07/10/2026)
   if (onb.board_column) return COLUNA_PARA_ETAPA[onb.board_column] ?? null
   // cadastro antigo sem board_column: dedução pelo stage + biometria (regra de antes)
+  if (rid && onb.primeiro_acesso_em) return ETAPA.PRIMEIRO_ACESSO
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN
   if (onb.stage === 'cadastro_finalizado' || rid) return ETAPA.TREINAR
   if (onb.stage === 'biometria') return String(onb.biometry_status ?? '').toLowerCase() === 'aprovado' ? ETAPA.BIO_APROVADA : ETAPA.BIO_PENDENTE
@@ -247,7 +250,10 @@ export function calcularEspelho(e: Entrada): Resultado {
     if (NAO_MEXER.has(atual)) { out.pulados.push({ lead_id: leadId, nome, motivo: `card em etapa ${atual} (não mexe)` }); continue }
     // Avança sempre; dentro do bloco que espelha a AIVA, SEGUE a coluna também pra trás (07/10/2026).
     // Fora dele (Vendendo, etapas laterais) nunca regride.
-    const segueColuna = BLOCO_AIVA.has(atual) && BLOCO_AIVA.has(melhor.para) && melhor.para !== atual
+    // Card em Vendendo (51) SEM consulta nem venda (as ações em massa de set/2026 punham ali loja só "pronta"):
+    // 51 é loja que opera, então ele volta pra coluna real da AIVA (Karol, 07/10/2026 — 30 lojas nunca acessaram).
+    const em51SemOperar = atual === ETAPA.VENDENDO && melhor.para !== ETAPA.VENDENDO && BLOCO_AIVA.has(melhor.para)
+    const segueColuna = (BLOCO_AIVA.has(atual) || em51SemOperar) && BLOCO_AIVA.has(melhor.para) && melhor.para !== atual
     const podeMover = atual === SEM_RESPOSTA || ordem(melhor.para) > ordem(atual) || segueColuna
     if (!podeMover) continue   // já está igual ou além — silêncio, é o caso normal
 

@@ -284,6 +284,7 @@ export const ETAPAS_EVO: ReadonlyArray<{ id: number; nome: string; cor: string }
   { id: 70, nome: 'Cadastro finalizado', cor: '#06c270' },
   { id: 98, nome: 'Treinamento agendado', cor: '#06c270' },
   { id: 71, nome: 'Pronto para operar', cor: '#06c270' },
+  { id: 99, nome: 'Primeiro acesso', cor: '#06c270' },
   { id: 51, nome: 'Loja Finalizada e Vendendo', cor: '#ff3b3b' },
   { id: 69, nome: 'Bot Detectado', cor: '#06c270' },
   { id: 93, nome: 'Lojas menos de 01 Ano', cor: '#06c270' },
@@ -291,7 +292,7 @@ export const ETAPAS_EVO: ReadonlyArray<{ id: number; nome: string; cor: string }
   { id: 95, nome: 'Loja Descartada pela Aiva', cor: '#06c270' },
 ]
 /** Posição na linha principal do funil. Laterais ficam fora (não se compara). */
-const ORDEM_EVO: Record<number, number> = { 66: 0, 47: 1, 53: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 51: 10 }
+const ORDEM_EVO: Record<number, number> = { 66: 0, 47: 1, 53: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 99: 10, 51: 11 }
 /** Etapa do Evo que corresponde a cada fase do portal (o que o espelho faria). */
 const ETAPA_DA_FASE: Partial<Record<Fase, number>> = {
   formulario: 50, biometria: 96, biometria_negada: 96, aguardando_aiva: 97,
