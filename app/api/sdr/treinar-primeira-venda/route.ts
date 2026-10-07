@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     ts: new Date().toISOString(),
-    etapa: 'Treinar (stage 70)',
+    etapa: 'Cadastro finalizado (stage 70)',
     total_na_etapa: naEtapa.length,
     enviados,
     pulados_ja_receberam: pulados,

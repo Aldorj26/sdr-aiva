@@ -90,8 +90,8 @@ function cnpjDeObs(obs: string | null): string | null {
 
 const ETAPA: Record<string, string> = {
   INICIO: 'Início', DISPARO_REALIZADO: 'Início', SEM_RESPOSTA: 'Sem resposta', INTERESSADO: 'Interessado', AGUARDANDO: 'Aguardando',
-  PRE_APROVACAO: 'Pré-aprovação', CADASTRO_RECEBIDO: 'Cadastro recebido', EM_ANALISE_AIVA: 'Em análise AIVA', TREINAR: 'Treinar',
-  LOGIN: 'Login', LOJA_FINALIZADA_E_VENDENDO: 'Loja finalizada', BOT_DETECTADO: 'Bot detectado',
+  PRE_APROVACAO: 'Pré-aprovação', CADASTRO_RECEBIDO: 'Cadastro recebido', EM_ANALISE_AIVA: 'Cadastro na AIVA', TREINAR: 'Cadastro finalizado',
+  LOGIN: 'Pronto para operar', LOJA_FINALIZADA_E_VENDENDO: 'Loja finalizada', BOT_DETECTADO: 'Bot detectado',
 }
 
 const ORDEM_FUNIL = ['INICIO', 'DISPARO_REALIZADO', 'SEM_RESPOSTA', 'INTERESSADO', 'AGUARDANDO', 'PRE_APROVACAO', 'CADASTRO_RECEBIDO', 'EM_ANALISE_AIVA', 'TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO']

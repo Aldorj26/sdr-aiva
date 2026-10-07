@@ -21,9 +21,9 @@ const ETAPAS: { status: string; label: string; cor: string }[] = [
   { status: 'SEM_RESPOSTA', label: 'Sem resposta', cor: '#d97706' },
   { status: 'PRE_APROVACAO', label: 'Pré Aprovação', cor: '#0891b2' },
   { status: 'CADASTRO_RECEBIDO', label: 'Cadastro Recebido', cor: '#2563eb' },
-  { status: 'EM_ANALISE_AIVA', label: 'Em Análise AIVA', cor: '#c026d3' },
-  { status: 'TREINAR', label: 'Treinar', cor: '#059669' },
-  { status: 'LOGIN', label: 'Login', cor: '#7c3aed' },
+  { status: 'EM_ANALISE_AIVA', label: 'Cadastro na AIVA (formulário/biometria)', cor: '#c026d3' },
+  { status: 'TREINAR', label: 'Cadastro finalizado / treinamento', cor: '#059669' },
+  { status: 'LOGIN', label: 'Pronto para operar', cor: '#7c3aed' },
   { status: 'LOJA_FINALIZADA_E_VENDENDO', label: 'Loja Finalizada e Vendendo', cor: '#15803d' },
 ]
 

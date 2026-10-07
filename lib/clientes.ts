@@ -22,9 +22,9 @@ const STAGE_LABEL: Record<string, string> = {
   SEM_RESPOSTA: 'Sem Resposta',
   PRE_APROVACAO: 'Pré Aprovação',
   CADASTRO_RECEBIDO: 'Cadastro Recebido',
-  EM_ANALISE_AIVA: 'Em Análise AIVA',
-  TREINAR: 'Treinar',
-  LOGIN: 'Login',
+  EM_ANALISE_AIVA: 'Cadastro na AIVA',
+  TREINAR: 'Cadastro finalizado',
+  LOGIN: 'Pronto para operar',
   LOJA_FINALIZADA_E_VENDENDO: 'Loja Finalizada e Vendendo',
   BOT_DETECTADO: 'Bot Detectado',
 }

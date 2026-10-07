@@ -747,7 +747,7 @@ export default async function Page({
         <Card
           label="Cadastro completo"
           value={agora.cadastroCompleto}
-          hint="cadastro completo — mover p/ Em Análise"
+          hint="cadastro completo — enviar o pré-cadastro (quadro Registros AIVA no Atendimento)"
           color={agora.cadastroCompleto > 0 ? 'var(--green)' : 'var(--text-muted)'}
           href="/?cadastro_completo=true"
         />

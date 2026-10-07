@@ -31,8 +31,8 @@ import { flag } from '@/lib/req-flags'
 export const maxDuration = 60
 
 const ETAPA_LABEL: Record<string, string> = {
-  TREINAR: 'Treinar',
-  LOGIN: 'Login',
+  TREINAR: 'Cadastro finalizado',
+  LOGIN: 'Pronto para operar',
 }
 
 export async function GET(req: NextRequest) {
