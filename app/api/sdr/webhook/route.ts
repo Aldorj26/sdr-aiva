@@ -1596,7 +1596,32 @@ export async function POST(req: NextRequest) {
   if (resposta.motivo_humano === 'cadastro_caf_confirmado' && lead.status === 'EM_ANALISE_AIVA') resposta.acionar_humano = false
   const faseInicialCnpj = ['DISPARO_REALIZADO', 'INICIO', 'INTERESSADO', 'SEM_RESPOSTA', 'PRE_APROVACAO', 'AGUARDANDO'].includes(lead.status)
   {
-    const cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
+    let cnpjPraChecar = String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '')
+    // ── O CNPJ QUE VAI NA PRÉ-APROVAÇÃO PRECISA TER PASSADO PELA CONFERÊNCIA (ARPF Tech, 07/10/2026) ──
+    // A conferência só rodava no turno em que o cnpj_matriz chegava. Dois buracos:
+    //  (1) o lojista mandou um CNPJ com dígito errado, a VictorIA pediu de novo, ele mandou o certo, ela pediu
+    //      "só confirma" e o modelo NÃO regravou o cnpj_matriz — a pré-aprovação saiu com o número errado e o
+    //      pré-cadastro chegou na AIVA como CNPJ inválido;
+    //  (2) quando a Receita não respondia no turno do CNPJ (fail-open), nada conferia depois — o Luciano
+    //      Celulares (CNPJ de 2 meses) passou assim em 01/10.
+    // Agora, no turno da PRÉ-APROVAÇÃO, o CNPJ acumulado é conferido se ainda não tem [CNPJ_RECEITA] dele; e se
+    // o gravado não fecha o dígito, vale o último CNPJ VÁLIDO que o lojista mandou na conversa.
+    const vaiPreAprovar = resposta.novo_status === 'PRE_APROVACAO' && lead.status !== 'PRE_APROVACAO'
+    if (!cnpjPraChecar && vaiPreAprovar) cnpjPraChecar = String(parseDadosAcumulados(lead.observacoes ?? null)?.cnpj_matriz ?? '').replace(/\D/g, '')
+    if (cnpjPraChecar.length === 14 && !cnpjDvValido(cnpjPraChecar)) {
+      try {
+        const msgsLead = (await getMensagens(lead.id, 30)).filter((m) => m.direcao === 'in').map((m) => String(m.conteudo ?? ''))
+        const numeros = msgsLead.flatMap((t) => (t.match(/\d[\d.\/\-\s]{12,20}\d/g) ?? []).map((x) => x.replace(/\D/g, '')).filter((x) => x.length === 14))
+        const corrigido = [...numeros].reverse().find((x) => cnpjDvValido(x))
+        if (corrigido && corrigido !== cnpjPraChecar) {
+          console.log(`[CNPJ] ${lead.telefone}: gravado ${cnpjPraChecar} não fecha o DV — usando o corrigido pelo lojista ${corrigido}`)
+          cnpjPraChecar = corrigido
+        }
+      } catch (e) { console.error('[CNPJ] busca do CNPJ corrigido falhou:', e) }
+    }
+    if (cnpjPraChecar.length === 14 && String(resposta.dados_coletados?.cnpj_matriz ?? '').replace(/\D/g, '') !== cnpjPraChecar) {
+      resposta.dados_coletados = { ...((resposta.dados_coletados as Record<string, unknown>) ?? {}), cnpj_matriz: cnpjPraChecar } as typeof resposta.dados_coletados
+    }
     const jaConsultado = (lead.observacoes ?? '').includes(`[CNPJ_RECEITA:cnpj=${cnpjPraChecar}`)
     if (cnpjPraChecar.length === 14 && !jaConsultado && resposta.novo_status !== 'ODRES' && resposta.novo_status !== 'UME') {
       // 1) Base AIVA/Odres
@@ -1647,7 +1672,18 @@ export async function POST(req: NextRequest) {
       // 2) Receita — só se NÃO for cliente da base (nem prospect já cliente por outro canal)
       if (!naBaseAiva && !jaClienteOutroCanal) {
         try {
-          const consulta = await consultarCNPJDetalhado(cnpjPraChecar)
+          let consulta = await consultarCNPJDetalhado(cnpjPraChecar)
+          // Receita fora do ar no turno da pré-aprovação: tenta mais uma vez; se seguir fora, a pré-aprovação
+          // segue (fail-open de sempre) mas o time é avisado pra conferir a idade e a situação na mão.
+          if (!consulta.info && consulta.status !== 'nao_encontrado' && consulta.status !== 'invalido' && vaiPreAprovar) {
+            await new Promise((r) => setTimeout(r, 1500))
+            consulta = await consultarCNPJDetalhado(cnpjPraChecar)
+            if (!consulta.info && consulta.status !== 'nao_encontrado' && consulta.status !== 'invalido') {
+              const alertaRf = `🧾 *PRÉ-APROVAÇÃO SEM CONFERIR O CNPJ NA RECEITA*\n\n🏪 ${lead.nome}\n📞 ${lead.telefone}\n🏢 CNPJ: ${cnpjPraChecar}\n\nA consulta pública não respondeu (2 tentativas). Conferir idade (≥ 1 ano) e situação ATIVA antes de enviar o pré-cadastro.`
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alertaRf)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alertaRf)
+            }
+          }
           cnpjInfoNovo = consulta.info
 
           // CNPJ que a Receita não conhece NÃO passa (bug ICONNECT 11/08/2026).
