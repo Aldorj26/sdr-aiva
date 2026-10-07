@@ -79,6 +79,22 @@ function fmtQuando(iso: string | null): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
+// 🔎 Busca (Aldo 07/10/2026): filtra a tela inteira por loja, telefone ou CNPJ. Busca só de números (4+ dígitos)
+// compara só os dígitos — acha telefone e CNPJ com ou sem pontuação.
+function semAcento(t: string): string {
+  return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+function soNumeros(q: string): string | null {
+  const d = q.replace(/\D/g, '')
+  return d.length >= 4 && d.length === q.replace(/[\s().\/-]/g, '').length ? d : null
+}
+function bate(q: string, campos: Array<string | null | undefined>): boolean {
+  const d = soNumeros(q)
+  if (d) return campos.some((c) => (c ?? '').replace(/\D/g, '').includes(d))
+  const termo = semAcento(q)
+  return campos.some((c) => semAcento(c ?? '').includes(termo))
+}
+
 // CNPJ da matriz ao lado do telefone (pedido do Aldo 04/09). Vem das
 // observações do lead — mesmos marcadores que o /desempenho usa pra casar
 // snapshot ↔ lead (cnpj_matriz= dos dados coletados; CNPJ_RECEITA: da validação).
@@ -279,7 +295,7 @@ function QuadroRegistros({ pendentes, hoje, semana, naoChegou }: { pendentes: Re
   )
 }
 
-async function getDados() {
+async function getDados(q: string) {
   const [fila, chamados, csFila, avisos] = await Promise.all([
     supabaseAdmin
       .from('sdr_leads')
@@ -376,7 +392,36 @@ async function getDados() {
     for (const x of (f ?? []) as Array<{ lead_id: string; conteudo: string; enviado_em: string }>) falas.set(x.lead_id, { texto: resumirFala(x.conteudo), quando: x.enviado_em })
   }
 
-  return { grupos, chamados: chamadosUnicos, cs: csUnicos, avisos: avisosUnicos, falas, registros: { ...registros, naoChegou } }
+  if (!q) return { grupos, chamados: chamadosUnicos, cs: csUnicos, avisos: avisosUnicos, falas, registros: { ...registros, naoChegou }, outros: [] as LeadBusca[] }
+
+  // com busca: cada lista fica só com o que bate; quem não está em fila nenhuma aparece em "Fora da fila"
+  const f = (ls: Linha[]) => ls.filter((l) => bate(q, [l.loja, l.telefone, l.cnpj]))
+  const g: Record<CategoriaFila, Linha[]> = { acao: f(grupos.acao), docs: f(grupos.docs), mover: f(grupos.mover), sem_motivo: f(grupos.sem_motivo) }
+  const av = avisosUnicos.map((x) => ({ ...x, linhas: f(x.linhas) })).filter((x) => x.linhas.length)
+  const ch = f(chamadosUnicos), csF = f(csUnicos), nc = f(naoChegou)
+  const pend = registros.pendentes.filter((r) => bate(q, [r.loja, r.telefone, r.cnpj]))
+  const naTela = new Set<string>()
+  for (const l of [...av.flatMap((x) => x.linhas), ...g.acao, ...g.sem_motivo, ...csF, ...ch, ...nc]) if (l.leadId) naTela.add(l.leadId)
+  for (const r of pend) if (r.lead_id) naTela.add(r.lead_id)
+  const outros = (await buscarLeads(q)).filter((l) => !naTela.has(l.id))
+  return { grupos: g, chamados: ch, cs: csF, avisos: av, falas, registros: { ...registros, pendentes: pend, naoChegou: nc }, outros }
+}
+
+interface LeadBusca { id: string; nome: string; telefone: string; status: string; observacoes: string | null; data_ultimo_contato: string | null }
+/** Leads da base inteira que batem com a busca — acha a loja mesmo quando ela não está em fila nenhuma. */
+async function buscarLeads(q: string): Promise<LeadBusca[]> {
+  const d = soNumeros(q)
+  const termo = q.replace(/[%,()*]/g, ' ').trim()
+  if (!d && termo.length < 2) return []
+  // CNPJ mora nas observações (cnpj_matriz= / CNPJ_RECEITA:)
+  const filtro = d ? `telefone.ilike.%${d}%,observacoes.ilike.%${d}%` : `nome.ilike.%${termo}%`
+  const { data } = await supabaseAdmin
+    .from('sdr_leads')
+    .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
+    .or(filtro)
+    .order('data_ultimo_contato', { ascending: false, nullsFirst: false })
+    .limit(15)
+  return (data ?? []) as LeadBusca[]
 }
 
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
@@ -447,7 +492,8 @@ function Tabela({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
   )
 }
 
-function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: string; sub: string; vazio: string; linhas: Linha[]; falas: Falas }) {
+function Secao({ id, titulo, sub, vazio, linhas, falas, buscando }: { id: string; titulo: string; sub: string; vazio: string; linhas: Linha[]; falas: Falas; buscando?: boolean }) {
+  if (buscando && linhas.length === 0) return null
   return (
     <section id={id} style={{ marginBottom: '1.7rem', scrollMarginTop: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
@@ -456,7 +502,7 @@ function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: 
       </div>
       {linhas.length === 0
         ? <p style={{ margin: 0, padding: '0.6rem 0.2rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{vazio}</p>
-        : <TabelaLimitada linhas={linhas} falas={falas} />}
+        : <TabelaLimitada linhas={linhas} falas={falas} tudo={buscando} />}
     </section>
   )
 }
@@ -465,7 +511,8 @@ function Secao({ id, titulo, sub, vazio, linhas, falas }: { id: string; titulo: 
  *  num tema só deixavam o painel enorme). Vale pra todos os temas, avisos do robô e seções. */
 const A_VISTA = 3
 
-function TabelaLimitada({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
+function TabelaLimitada({ linhas, falas, tudo }: { linhas: Linha[]; falas: Falas; tudo?: boolean }) {
+  if (tudo) return <Tabela linhas={linhas} falas={falas} />
   const resto = linhas.slice(A_VISTA)
   return (
     <>
@@ -480,9 +527,58 @@ function TabelaLimitada({ linhas, falas }: { linhas: Linha[]; falas: Falas }) {
   )
 }
 
-export default async function AtendimentoPage() {
-  const { grupos, chamados, cs, avisos, falas, registros } = await getDados()
+function BarraBusca({ q }: { q: string }) {
+  return (
+    <form method="get" action="/atendimento" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}>
+      <input
+        type="search" name="q" defaultValue={q}
+        placeholder="🔎 Buscar loja, telefone ou CNPJ…"
+        style={{ flex: '1 1 260px', maxWidth: 460, background: 'var(--bg-elev)', border: '1px solid var(--border-strong)', color: 'var(--text)', padding: '0.5rem 0.75rem', borderRadius: 8, fontFamily: 'inherit', fontSize: '0.85rem' }}
+      />
+      <button type="submit" style={{ padding: '0.5rem 0.9rem', borderRadius: 8, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'inherit' }}>Buscar</button>
+      {q ? <Link href="/atendimento" style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>✕ limpar</Link> : null}
+    </form>
+  )
+}
+
+function OutrosLeads({ leads }: { leads: LeadBusca[] }) {
+  return (
+    <section id="outros" style={{ marginBottom: '1.7rem' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+        <h2 style={{ margin: 0, fontSize: '1.02rem' }}>🗂 Fora da fila <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({leads.length})</span></h2>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>leads da base que batem com a busca e não têm nada pendente aqui — clique pra abrir a conversa</span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr><th style={th}>Loja</th><th style={th}>Etapa</th><th style={th}>Último contato</th></tr></thead>
+          <tbody>
+            {leads.map((l) => {
+              const cnpj = cnpjDeObs(l.observacoes)
+              return (
+                <ClickableRow key={l.id} leadId={l.id}>
+                  <td style={{ ...td, minWidth: 170 }}>
+                    <b>{l.nome}</b>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <Copiavel valor={l.telefone} />{cnpj ? <> · <Copiavel valor={cnpj.replace(/\D/g, '')} exibir={cnpj} /></> : null}
+                    </div>
+                  </td>
+                  <td style={{ ...td, fontSize: '0.8rem' }}>{ETAPA[l.status] ?? l.status}</td>
+                  <td style={{ ...td, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtQuando(l.data_ultimo_contato)}</td>
+                </ClickableRow>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+export default async function AtendimentoPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const q = ((await searchParams).q ?? '').trim().slice(0, 80)
+  const { grupos, chamados, cs, avisos, falas, registros, outros } = await getDados(q)
   const totalAvisos = avisos.reduce((t, g) => t + g.linhas.length, 0)
+  const achados = totalAvisos + grupos.acao.length + cs.length + chamados.length + grupos.sem_motivo.length + registros.pendentes.length + registros.naoChegou.length + outros.length
 
   return (
     <main>
@@ -492,6 +588,12 @@ export default async function AtendimentoPage() {
           <h1 style={{ margin: 0 }}>🎧 Atendimento</h1>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>a fila de trabalho — funil e lojas ativas (CS); números de desempenho ficam no <Link href="/desempenho" style={{ color: 'var(--accent)' }}>Desempenho</Link></span>
         </div>
+        <BarraBusca q={q} />
+        {q ? (
+          <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: achados ? 'var(--text-muted)' : 'var(--yellow)' }}>
+            {achados ? <>Mostrando só o que bate com <b>“{q}”</b> — tudo aberto, sem “ver mais”.</> : <>Nada encontrado com <b>“{q}”</b>, nem na fila nem na base de leads.</>}
+          </p>
+        ) : null}
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -514,18 +616,20 @@ export default async function AtendimentoPage() {
           {avisos.map((g) => (
             <div key={g.tipo} style={{ marginBottom: '1rem' }}>
               <h3 style={{ margin: '0 0 0.3rem', fontSize: '0.92rem' }}>{CATALOGO[g.tipo].titulo} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({g.linhas.length})</span></h3>
-              <TabelaLimitada linhas={g.linhas} falas={falas} />
+              <TabelaLimitada linhas={g.linhas} falas={falas} tudo={!!q} />
             </div>
           ))}
         </section>
       )}
 
-      <Secao id="acao" titulo="🔴 Ação pendente" sub="a VictorIA passou pra uma pessoa (o lojista pediu, ou ela não soube resolver) — resolver hoje" vazio="Fila zerada. 🎉" linhas={grupos.acao} falas={falas} />
-      <Secao id="cs" titulo="🟣 CS — lojas ativas" sub="lojas já operando que acionaram atendimento" vazio="Nenhuma loja ativa aguardando. ✓" linhas={cs} falas={falas} />
-      <Secao id="chamados" titulo="🛠 Chamados abertos" sub="erro de portal/sistema relatado pelo lojista" vazio="Nenhum chamado aberto. ✓" linhas={chamados} falas={falas} />
+      <Secao id="acao" buscando={!!q} titulo="🔴 Ação pendente" sub="a VictorIA passou pra uma pessoa (o lojista pediu, ou ela não soube resolver) — resolver hoje" vazio="Fila zerada. 🎉" linhas={grupos.acao} falas={falas} />
+      <Secao id="cs" buscando={!!q} titulo="🟣 CS — lojas ativas" sub="lojas já operando que acionaram atendimento" vazio="Nenhuma loja ativa aguardando. ✓" linhas={cs} falas={falas} />
+      <Secao id="chamados" buscando={!!q} titulo="🛠 Chamados abertos" sub="erro de portal/sistema relatado pelo lojista" vazio="Nenhum chamado aberto. ✓" linhas={chamados} falas={falas} />
       {/* (06/10/2026) "Mover card" e "Docs / colaboradores" saíram: o card anda sozinho (Registros AIVA →
           49, espelho do portal) e o colaborador é o próprio lojista que lança no formulário oficial da AIVA. */}
-      <Secao id="semmotivo" titulo="⚪ Sem motivo registrado" sub="a VictorIA acionou sem dizer por quê" vazio="Nenhum. ✓" linhas={grupos.sem_motivo} falas={falas} />
+      <Secao id="semmotivo" buscando={!!q} titulo="⚪ Sem motivo registrado" sub="a VictorIA acionou sem dizer por quê" vazio="Nenhum. ✓" linhas={grupos.sem_motivo} falas={falas} />
+
+      {outros.length > 0 && <OutrosLeads leads={outros} />}
 
       <LeadDrawer />
     </main>
