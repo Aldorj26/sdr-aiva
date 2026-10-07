@@ -1,0 +1,580 @@
+{
+ "chamados": [
+  {
+   "id": "90e40e80-9c28-4c2a-97a7-52c7c3b0a159",
+   "loja": "L.e smart",
+   "problema": "Campo de sócio trava na etapa de cadastro CAF (onboarding) e não permite avançar mesmo deixando em branco ou preenchendo, impedindo conclusão do cadastro da loja MEI. Lojista já tentou diferentes formas e navegadores sem sucesso.",
+   "criado": "2026-09-30T16:49:51.308414+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "eb43eae9-a6ab-445e-81a6-13b11491baf3",
+   "loja": "PP Presentes",
+   "problema": "Lojista não consegue entrar na plataforma (etapa de LOGIN) — pedido de reenvio de senha registrado desde 30/09 mas senha não chega no WhatsApp cadastrado (final 1861), lojista confirma que procurou nas conversas arquivadas/bloqueadas do número +55 21 4020-2024 e não recebeu.",
+   "criado": "2026-10-02T12:37:17.108945+00:00",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "portal": "loja criada (RID 7090)",
+   "stage": "cadastro_finalizado",
+   "bio": "aprovado",
+   "consultas": 5,
+   "vendas": 0,
+   "senha": "enviada"
+  },
+  {
+   "id": "d76d7ca6-e6e9-4cd8-8c6b-40aa27c0f2b8",
+   "loja": "Casa Azul",
+   "problema": "Cliente não consegue acessar o link do cadastro varejo (retail-onboarding-hub.vercel.app) enviado pela AIVA, necessário para preencher formulário e realizar biometria facial obrigatória.",
+   "criado": "2026-10-03T16:52:46.593775+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "biometria pendente",
+   "stage": "biometria",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "1d12cf4e-c309-4401-9c07-129978389f34",
+   "loja": "L.L Assistência",
+   "problema": "Login/senha do lojista não chegou pelo WhatsApp +55 21 4020-2024 (Comunicados Aiva Pay) após múltiplos acionamentos — loja aguardando liberação há vários dias. Cliente aprovado travou na biometria: no celular aparece \"Solicitação iniciada em outro dispositivo, finalize o processo\" e no sistema o status fica \"Validação facial pendente\".",
+   "criado": "2026-10-03T21:47:34.355001+00:00",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "portal": "loja criada (RID 6781)",
+   "stage": "cadastro_finalizado",
+   "bio": "aprovado",
+   "consultas": 22,
+   "vendas": 1,
+   "senha": "enviada"
+  },
+  {
+   "id": "8cc39044-2596-44f5-b735-2389e50d25b6",
+   "loja": "Km celulares",
+   "problema": "Lojista relata taxa de aprovação muito baixa na AIVA (1 em 10 clientes consultados) tornando operação inviável, e clientes aprovados preferem comprar em outros lugares ou querem valores de parcelas menores que os oferecidos pela AIVA.",
+   "criado": "2026-10-05T13:11:08.43429+00:00",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "portal": "loja criada (RID 6337)",
+   "stage": "cadastro_finalizado",
+   "bio": "aprovado",
+   "consultas": 22,
+   "vendas": 0,
+   "senha": "enviada"
+  },
+  {
+   "id": "2a6c2404-c608-47ab-bf99-b639b7d69275",
+   "loja": "Caçula Cell",
+   "problema": "Lojista relata que o cadastro está travando na terceira etapa do formulário do varejo (CAF), sem especificar mensagem de erro ou detalhe adicional sobre o travamento.",
+   "criado": "2026-10-05T16:09:14.333884+00:00",
+   "status": "TREINAR",
+   "portal": "loja criada (RID 7451)",
+   "stage": "cadastro_finalizado",
+   "bio": "aprovado",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "6fd400a8-88c3-47d8-88dd-b3374ca31f48",
+   "loja": "Nexus Tech",
+   "problema": "Lojista relata que não recebeu o link do formulário do varejo enviado pela AIVA após aprovação do cadastro, necessário para liberar a plataforma na loja.",
+   "criado": "2026-10-05T16:30:38.165311+00:00",
+   "status": "NAO_QUALIFICADO",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "e6f31a80-2731-408f-b555-c2f66ed40371",
+   "loja": "Magic Repairs",
+   "problema": "Lojista não recebeu o link do formulário de cadastro do varejo (CAF) enviado pela AIVA, impossibilitando a conclusão das 7 etapas obrigatórias incluindo biometria facial.",
+   "criado": "2026-10-05T18:18:27.629071+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "433ac015-0119-4805-93f4-f4b26e9e5719",
+   "loja": "TevCell",
+   "problema": "Lojista relata que o link de biometria não funciona, exibindo sempre a mesma tela (imagem enviada), e a validação da selfie facial falha repetidamente, impedindo conclusão do cadastro.",
+   "criado": "2026-10-05T18:22:34.331985+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "biometria negado",
+   "stage": "biometria",
+   "bio": "negado",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "0300f8a5-6b7b-4a82-957d-f6b29146859f",
+   "loja": "moreiratech cell",
+   "problema": "Lojista não consegue finalizar o cadastro CAF (formulário do varejo) — travou em alguma tela/etapa e enviou print, mas não detalhou a mensagem de erro ou campo específico.",
+   "criado": "2026-10-05T19:14:14.406987+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "88181ff0-d208-4e4d-b3d5-24671759e8b9",
+   "loja": "M TECH CELULARES",
+   "problema": "Lead travando na etapa 3 do formulário de cadastro do varejo (CAF) — link https://retail-onboarding-hub.vercel.app/ retorna erro ao tentar avançar dessa etapa.",
+   "criado": "2026-10-06T12:41:19.799053+00:00",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "bio": "pendente",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "829668dd-864d-4668-b896-04fc09719c4c",
+   "loja": "WL Elétron",
+   "problema": "Cliente não está conseguindo aprovação nas consultas — nenhum CPF consultado está sendo aprovado.",
+   "criado": "2026-10-06T13:06:48.194792+00:00",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "portal": "loja criada (RID 6058)",
+   "stage": "cadastro_finalizado",
+   "bio": "negado",
+   "consultas": 202,
+   "vendas": 39,
+   "senha": "—"
+  },
+  {
+   "id": "6e643484-6f0a-4e5d-8ad3-255518a38038",
+   "loja": "Prime",
+   "problema": "Lojista concluiu o treinamento mas não recebeu o login e senha automáticos que deveriam chegar via WhatsApp pelo número +55 21 4020-2024 após a participação.",
+   "criado": "2026-10-06T14:49:23.830229+00:00",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "portal": "loja criada (RID 7053)",
+   "stage": "cadastro_finalizado",
+   "bio": "aprovado",
+   "consultas": 215,
+   "vendas": 23,
+   "senha": "enviada"
+  }
+ ],
+ "fila": [
+  {
+   "id": "7d0cf8d6-fdea-47a2-a15f-b3eef78637a8",
+   "nome": "Primecell Assistência Técnica",
+   "status": "INTERESSADO",
+   "motivo": "",
+   "portal": "fora do portal",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "06f7d77f-f15f-4e82-bda0-a795de4555b7",
+   "nome": "Novacell",
+   "status": "EM_ANALISE_AIVA",
+   "motivo": "dificuldade_onboarding_caf: erro 'Não foi possível carregar os dados do CNPJ' na etapa 2 (Endereço Matriz) - CNPJ 69.158",
+   "portal": "dados_varejo",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "41a9db4d-21b5-42bf-a82a-2cbd731b04de",
+   "nome": "M TECH CELULARES",
+   "status": "EM_ANALISE_AIVA",
+   "motivo": "dificuldade_onboarding_caf: tela fica branca na etapa 3, tentou PC e celular, modo privado e navegadores diferentes - CN",
+   "portal": "dados_varejo",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "436bdc0d-fef9-4e51-830e-635cf9836d47",
+   "nome": "IPhoteca",
+   "status": "INTERESSADO",
+   "motivo": "",
+   "portal": "fora do portal",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "55221a68-8aca-4e2b-932f-d0e50df0f967",
+   "nome": "Cell7",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "motivo": "senha_reenviada_nao_chegou: pedido em 24/09, lojista insiste que não recebeu após 10+ dias, tem clientes esperando",
+   "portal": "loja criada (RID 6941)",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "enviada"
+  },
+  {
+   "id": "88f1f130-188a-4764-9dc9-8174108371aa",
+   "nome": "L.e smart",
+   "status": "EM_ANALISE_AIVA",
+   "motivo": "dificuldade_onboarding_caf: travamento persistente no campo do sócio (MEI sem QSA) - loja 63.708.851/0001-03 - já tentou",
+   "portal": "dados_varejo",
+   "consultas": 0,
+   "vendas": 0,
+   "senha": "—"
+  },
+  {
+   "id": "330969ee-d2e0-4b87-a1b9-8bd8bf175f81",
+   "nome": "Ajucelulares",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "motivo": "loja_inativada_ha_7_dias: aparece 'Loja inativada. Entre em contato com o suporte' na tela ao tentar vender; sem aviso p",
+   "portal": "loja criada (RID 6587)",
+   "consultas": 307,
+   "vendas": 35,
+   "senha": "enviada"
+  },
+  {
+   "id": "351981df-2dd0-48a5-b7b6-bd0d3f3b2df5",
+   "nome": "Prime",
+   "status": "LOJA_FINALIZADA_E_VENDENDO",
+   "motivo": "",
+   "portal": "loja criada (RID 7053)",
+   "consultas": 215,
+   "vendas": 23,
+   "senha": "enviada"
+  }
+ ],
+ "travados": [
+  {
+   "id": "7d729e73-d589-49a9-914f-2bac17ca8b9d",
+   "nome": "Hunter Promo",
+   "portal": "dados_varejo",
+   "obs_cobranca": "[COBRANCA_FORM_INICIO:2026-09-16T17:35:44.127Z] [COBRANCA_FORM:1:2026-09-17T16:02:14.865Z]"
+  },
+  {
+   "id": "df670d64-b650-49f9-bae9-0dff56c266e6",
+   "nome": "Smarttech Celulares",
+   "portal": "biometria aprovado",
+   "obs_cobranca": ""
+  },
+  {
+   "id": "91efd0a7-251c-4d93-8be8-1e4cbd9a4063",
+   "nome": "Celular & Cia",
+   "portal": "dados_varejo",
+   "obs_cobranca": "[COBRANCA_FORM_INICIO:2026-09-16T17:35:37.087Z] [COBRANCA_FORM:4:2026-10-01T16:00:35.871Z] [COBRANCA_FORM_ESGOTADO] [COBRANCA_FORM_ESGOTADO_AVISADO]"
+  },
+  {
+   "id": "3cbca437-7a7a-496d-b4c7-e09a1b7f5d4e",
+   "nome": "Lucas iPhone",
+   "portal": "dados_varejo",
+   "obs_cobranca": "[COBRANCA_FORM_INICIO:2026-09-16T17:35:36.229Z] [COBRANCA_FORM:4:2026-09-30T16:02:26.942Z] [COBRANCA_FORM_ESGOTADO] [COBRANCA_FORM_ESGOTADO_AVISADO]"
+  }
+ ],
+ "avisos": [
+  {
+   "id": "09beedc1-f7dc-42eb-98bb-ae34ad79245d",
+   "tipo": "formulario",
+   "loja": "NuBoleto Cell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "caf325b5-83d3-45df-b035-e47538da66c4",
+   "tipo": "formulario",
+   "loja": "Android Cell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "d76b2f0d-7c4f-48c1-b921-73ff4466568e",
+   "tipo": "formulario",
+   "loja": "NegoApple",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "df0789bb-c0c6-4d7a-8869-0e16f8716bf3",
+   "tipo": "formulario",
+   "loja": "PlayCell Assistência Técnica",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "f660833a-4de5-446c-abf6-b3a97dca04b6",
+   "tipo": "formulario",
+   "loja": "Lm celulares",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "e3dd28b6-6350-4f50-99fa-8f0d6a933f2b",
+   "tipo": "formulario",
+   "loja": "Xomano Smart",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "db733cb3-b9c3-4871-b12a-769ac338d436",
+   "tipo": "formulario",
+   "loja": "Planeta Cell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "0450e900-e516-4fe8-bfdf-ef3951797736",
+   "tipo": "formulario",
+   "loja": "Nordeste Celular imports",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "812e9c90-4922-4b12-8092-1e793a9f9176",
+   "tipo": "formulario",
+   "loja": "Andcell Assistencia",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "c17b2a6f-329f-4083-8bf3-7370931dc70d",
+   "tipo": "formulario",
+   "loja": "Evolucell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "d774d8e0-a6e0-4ebb-a5e3-fd621c72427a",
+   "tipo": "formulario",
+   "loja": "Litoranea Móveis",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "1c4ec0fe-851e-4a7b-94eb-563c6adce04d",
+   "tipo": "formulario",
+   "loja": "Cleyton Barbosa informática Ltda",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "8832b6a9-ae59-41b2-af79-c7422869b0f0",
+   "tipo": "formulario",
+   "loja": "Getulio Cell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "a62ae40d-1726-4edd-97ff-b3485447a748",
+   "tipo": "formulario",
+   "loja": "Original Importados",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "6ffbe49d-b62c-42c0-abc7-bfe5357501bc",
+   "tipo": "formulario",
+   "loja": "ICM Informática e Acessórios",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "409dd8f2-de11-45b5-a228-09074548aeef",
+   "tipo": "formulario",
+   "loja": "Mobile Telecom",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "4f19c73c-104b-434f-97c1-1af5fc34edf4",
+   "tipo": "formulario",
+   "loja": "Clínica do Celular",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "51ec8154-6d69-4f0a-bc9c-a69db0d68762",
+   "tipo": "formulario",
+   "loja": "Inovaimports",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "425c547e-220b-403d-9f2c-9ed3c83a1d10",
+   "tipo": "formulario",
+   "loja": "King Informática",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "9df9e075-50fc-4e8a-aa49-85c00a6c00f9",
+   "tipo": "formulario",
+   "loja": "Multicell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "7711e61a-81b5-42e3-a959-b9456ad98e5a",
+   "tipo": "formulario",
+   "loja": "Ihard Tecnologia",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "54ea86cb-7a5e-4363-805a-bd3caa5b73c3",
+   "tipo": "formulario",
+   "loja": "Celular & Cia",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "fc74eeca-a80b-44c1-b25f-31b881fd77b6",
+   "tipo": "formulario",
+   "loja": "sncell acessorios",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "2a3c411c-753f-4b4e-908b-4ac29dc107aa",
+   "tipo": "formulario",
+   "loja": "Mais Case Cell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "afae9ec2-da63-4b52-a5db-6b5f682dd7c2",
+   "tipo": "formulario",
+   "loja": "Snapcell",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "de73b1c9-625e-4bed-885e-f11b096c3b54",
+   "tipo": "formulario",
+   "loja": "Lucas iPhone",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "198a4502-ff51-49a5-9603-e238e95bdf83",
+   "tipo": "formulario",
+   "loja": "Loja Virtual",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "f695814b-c358-4247-b7f4-e69956c7e1a2",
+   "tipo": "formulario",
+   "loja": "CellStory Curitiba",
+   "status": "EM_ANALISE_AIVA",
+   "portal": "dados_varejo",
+   "stage": "dados_varejo",
+   "consultas": 0
+  },
+  {
+   "id": "3991a177-1488-495b-8456-4b8ebb9339ba",
+   "tipo": "pre_cadastro_nao_chegou",
+   "loja": "Connect Shop",
+   "status": "CADASTRO_RECEBIDO",
+   "portal": "fora do portal",
+   "stage": null,
+   "consultas": 0
+  },
+  {
+   "id": "a9a9c338-9422-4985-8994-ccbb9c236f38",
+   "tipo": "pre_cadastro_nao_chegou",
+   "loja": "Nane Cell assistência técnica e tecnologia",
+   "status": "PRE_APROVACAO",
+   "portal": "fora do portal",
+   "stage": null,
+   "consultas": 0
+  },
+  {
+   "id": "741cefd8-4263-47bd-a344-774a84efdf4f",
+   "tipo": "pre_cadastro_nao_chegou",
+   "loja": "Luciano Celulares",
+   "status": "CADASTRO_RECEBIDO",
+   "portal": "fora do portal",
+   "stage": null,
+   "consultas": 0
+  },
+  {
+   "id": "05771e09-3af2-42c8-9dbc-515c729aa09f",
+   "tipo": "pre_cadastro_nao_chegou",
+   "loja": "Minas Celulares",
+   "status": "CADASTRO_RECEBIDO",
+   "portal": "fora do portal",
+   "stage": null,
+   "consultas": 0
+  },
+  {
+   "id": "a4db11a6-1e17-4839-a94f-7654481cc8f8",
+   "tipo": "senha_pendente",
+   "loja": "PAULO A SIMOES",
+   "status": "TREINAR",
+   "portal": "loja criada (RID 7260)",
+   "stage": "cadastro_finalizado",
+   "consultas": 0
+  }
+ ]
+}
