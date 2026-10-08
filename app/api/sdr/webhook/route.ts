@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta } from '@/lib/desistencia'
 import {
   getLeadByTelefone,
   getLeadByChatId,
@@ -652,7 +653,8 @@ export async function POST(req: NextRequest) {
       }
       leadEmFase3 = emFase3(oppAtual)
       const statusEvo = statusFromOpp(oppAtual)
-      if (statusEvo && statusEvo !== lead.status) {
+      const descarteManual = lead.status === 'DESCARTADO' && (lead.observacoes ?? '').includes('[DESCARTADO_MANUAL')
+      if (statusEvo && statusEvo !== lead.status && !descarteManual) {
         console.log(
           `[evo-sync-realtime] Lead ${lead.telefone}: status Supabase=${lead.status} → Evo=${statusEvo}. ` +
           `Usando o Evo (fonte da verdade).`,
@@ -724,8 +726,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'status_NAO_QUALIFICADO', aviso_retorno_cnpj: true })
   }
 
-  // 5. Ignora leads em status final
-  if (STATUS_IGNORAR.includes(lead.status)) {
+  // 5. Ignora leads em status final (desistente passa: o 7b decide se reabre, depois da idempotência)
+  if (STATUS_IGNORAR.includes(lead.status) && !statusDeVolta(lead.status, lead.observacoes)) {
     return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
   }
 
@@ -764,6 +766,38 @@ export async function POST(req: NextRequest) {
     console.log(`Lead ${lead.telefone}: mId ${mId} já processado, ignorando retry`)
     return NextResponse.json({ ok: true, ignorado: 'mid_duplicado' })
   }
+
+  // 7b. Lojista que DESISTIU ("vamos dar uma segurada, depois eu chamo") e voltou a escrever (Aldo 08/10/2026):
+  // reabre na etapa em que estava — foi ele quem disse que voltaria. Ver lib/desistencia.ts.
+  // Fica DEPOIS da idempotência (retry do Evo não reabre) e NÃO reabre com aceno ("obrigado", 👍), com
+  // reprocessamento interno nem nas primeiras 12h (a resposta à despedida não é retomada) — esses caem no
+  // "status final" abaixo e ficam sem resposta, como qualquer DESCARTADO.
+  {
+    const volta = statusDeVolta(lead.status, lead.observacoes)
+    const quando = Date.parse((lead.observacoes ?? '').match(/\[DESISTIU:[A-Z_]+:([^\]]+)\]/)?.[1] ?? '')
+    const recente = Number.isFinite(quando) && Date.now() - quando < 12 * 3600e3
+    const reprocesso = req.headers.get('x-auto-reprocess') === 'true'
+    if (volta && !recente && !reprocesso && !ehSoReconhecimento(conteudo)) {
+      const obsVolta = obsDaVolta(lead.observacoes, new Date())
+      await supabaseAdmin.from('sdr_leads').update({ status: volta, observacoes: obsVolta }).eq('id', lead.id)
+      console.log(`[desistencia] ${lead.telefone}: voltou a falar — reaberto em ${volta}`)
+      lead.status = volta as typeof lead.status
+      lead.observacoes = obsVolta
+      try {
+        const aviso = `🔁 *${lead.nome}* (${lead.telefone}) tinha desistido e voltou a falar — reaberto em ${volta}, a VictorIA segue a conversa.\nMensagem: "${String(conteudo).slice(0, 200)}"`
+        if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+        if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+      } catch (err) {
+        console.error('[desistencia] aviso de retorno falhou:', err)
+      }
+    }
+  }
+
+  if (statusDeVolta(lead.status, lead.observacoes)) {
+    // desistente que não reabriu (aceno, < 12h, reprocesso): fica quieto como qualquer DESCARTADO
+    return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
+  }
+
 
   // Auto-reprocess (interno) ja salvou a msg em sdr_mensagens antes de chamar
   // este webhook — pular o save abaixo evita linha duplicada com mesmo conteudo
@@ -1867,6 +1901,27 @@ export async function POST(req: NextRequest) {
     acionar_humano: resposta.acionar_humano,
   }
 
+  // Lojista desistiu (lib/desistencia.ts): sai de toda automação e da fila humana.
+  // DESCARTADO só existe pra desistência no prompt — sem o prefixo, trata como desistência mesmo
+  // (senão vira descarte "meio morto": sem carimbo, o sync revive e as automações seguem).
+  if (resposta.novo_status === 'DESCARTADO' && !ehDesistencia(resposta.novo_status, resposta.motivo_humano)) {
+    resposta.motivo_humano = `lojista_desistiu: ${resposta.motivo_humano ?? 'sem motivo registrado'}`
+  }
+  // Loja já criada na AIVA nunca é descartada pela VictorIA: mantém a etapa e vai pro time (regra 🚪).
+  if (resposta.novo_status === 'DESCARTADO' && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
+    console.warn(`[TRAVA_DESCARTE_POS] IA tentou DESCARTADO pra loja ${lead.telefone} em ${lead.status} — mantendo e acionando o time`)
+    resposta.novo_status = lead.status as typeof resposta.novo_status
+    resposta.acionar_humano = true
+    resposta.motivo_humano = `loja_quer_parar: ${String(resposta.motivo_humano ?? '').replace(/^lojista_desistiu:?\s*/, '')}`
+    updates.status = resposta.novo_status
+    updates.acionar_humano = true
+  }
+  const desistiu = ehDesistencia(resposta.novo_status, resposta.motivo_humano)
+  if (desistiu) {
+    updates.data_proximo_followup = null
+    updates.acionar_humano = false
+  }
+
   // Bot esgotou as 10 tentativas → agenda follow-up de reativação em 5 dias.
   // O cron de followup (que agora inclui BOT_DETECTADO) manda um HSM novo e devolve
   // a conta pra cadência normal — dá uma segunda chance de cair num humano.
@@ -1940,6 +1995,10 @@ export async function POST(req: NextRequest) {
     if (forcarBotDetectado) {
       partes.push('[BOT_REATIVAR]')
     }
+    if (desistiu && !obsPrev.includes('[DESISTIU:')) {
+      for (let i = partes.length - 1; i >= 0; i--) if (partes[i].startsWith('[DESCARTADO_MANUAL:')) partes.splice(i, 1)
+      partes.push(...marcadoresDesistencia(lead.status, new Date()))
+    }
     if (resposta.motivo_humano) partes.push(resposta.motivo_humano)
 
     // Merge dados novos com dados já acumulados e serializa como flag
@@ -1962,6 +2021,14 @@ export async function POST(req: NextRequest) {
   }
 
   await supabaseAdmin.from('sdr_leads').update(updates).eq('id', lead.id)
+
+  if (desistiu && lead.evotalks_opportunity_id) {
+    try {
+      await addOpportunityNote(Number(lead.evotalks_opportunity_id), `Lojista desistiu por enquanto — descartado pela VictorIA (estava em ${lead.status}). ${String(resposta.motivo_humano ?? '').replace(/^lojista_desistiu:?\s*/, '')}`.trim())
+    } catch (err) {
+      console.error('[desistencia] nota no card falhou:', err)
+    }
+  }
 
 
   // 12b. Nome do lead SEMPRE reflete o nome_varejo qualificado pela VictorIA —
