@@ -2,7 +2,9 @@
  * dicas-desempenho/route.ts — dica de vendas com os números da loja no portal da AIVA
  * (Aldo 02/10/2026). Substitui a /consultoria-vendas (4 toques fixos e iguais pra todo mundo).
  *
- * Quem: LOJA_FINALIZADA_E_VENDENDO (AIVA, com WhatsApp). Cadência e textos em
+ * Quem: LOJA_FINALIZADA_E_VENDENDO (AIVA, com WhatsApp) + LOGIN cujo CNPJ já teve primeiro acesso no portal
+ * ("Primeiro acesso": entrou e não vendeu — Aldo 08/10/2026). Na mesma rodada, quem está em Primeiro acesso
+ * e nunca recebeu o aviso da etapa 99 recebe esse aviso (uma vez por loja) no lugar da dica — lib/primeiro-acesso.ts. Cadência e textos em
  * lib/dicas-desempenho-calc.ts (`npm run test:desempenho`): 1ª dica 7 dias após entrar na
  * etapa, depois semanal pra quem vende/aprova e quinzenal pra quem está parado.
  * Números: lib/desempenho-loja-calc.ts (semanas fechadas do portal; fecham toda segunda).
@@ -21,6 +23,7 @@ import { resumir, type LinhaMes, type LinhaSemana, type Segmento } from '@/lib/d
 import { mesBrt, ultimaSemanaFechada } from '@/lib/desempenho-loja'
 import { decidir, lerMarcadores, remontarObs, textoDica, prioridade, ROTULO, CONVERSA_VIVA_HORAS } from '@/lib/dicas-desempenho-calc'
 import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
+import { cnpjsComPrimeiroAcesso, ROTULO_PRIMEIRO_ACESSO, MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,24 +63,33 @@ export async function GET(req: NextRequest) {
 
   const { data: leads, error } = await supabaseAdmin
     .from('sdr_leads')
-    .select('id, nome, telefone, observacoes, acionar_humano')
-    .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
+    .select('id, nome, telefone, status, observacoes, acionar_humano')
+    .in('status', ['LOJA_FINALIZADA_E_VENDENDO', 'LOGIN'])
     .eq('produto', 'AIVA')
-    .limit(1000)
+    .limit(2000)
   if (error) return NextResponse.json({ ok: false, erro: error.message }, { status: 500 })
-  const alvo = (leads ?? []).filter((l) => l.telefone && !l.telefone.startsWith('000'))
-  const ids = alvo.map((l) => l.id)
+  const candidatos = (leads ?? []).filter((l) => l.telefone && !l.telefone.startsWith('000'))
+  const candIds = candidatos.map((l) => l.id)
 
   // CNPJs de cada lead: registros + cnpj_matriz das observações
-  const regs = ids.length ? await todas<{ lead_id: string; cnpj: string }>((de, ate) => supabaseAdmin.from('sdr_registros_cnpj').select('lead_id,cnpj').in('lead_id', ids).range(de, ate)) : []
+  const regs = candIds.length ? await todas<{ lead_id: string; cnpj: string }>((de, ate) => supabaseAdmin.from('sdr_registros_cnpj').select('lead_id,cnpj').in('lead_id', candIds).range(de, ate)) : []
   const cnpjsPorLead = new Map<string, Set<string>>()
-  for (const l of alvo) {
+  for (const l of candidatos) {
     const s = new Set<string>()
     const m = dig((l.observacoes ?? '').match(/cnpj_matriz=([0-9./-]+)/)?.[1])
     if (m.length === 14) s.add(m)
     cnpjsPorLead.set(l.id, s)
   }
   for (const r of regs) { const c = dig(r.cnpj); if (c.length === 14) cnpjsPorLead.get(r.lead_id)?.add(c) }
+  // LOGIN só entra se já teve primeiro acesso no portal (Pronto para operar sem acesso é da /acesso-pendente)
+  const comAcesso = await cnpjsComPrimeiroAcesso()
+  const emPrimeiroAcesso = new Set(candidatos.filter((l) => l.status === 'LOGIN' && [...(cnpjsPorLead.get(l.id) ?? [])].some((c) => comAcesso.has(c))).map((l) => l.id))
+  const alvo = candidatos.filter((l) => l.status === 'LOJA_FINALIZADA_E_VENDENDO' || emPrimeiroAcesso.has(l.id))
+  const ids = alvo.map((l) => l.id)
+  // aviso da etapa 99 já enviado (uma vez por loja) — e quando, pra dica não sair colada nele
+  const avisos99 = emPrimeiroAcesso.size ? await todas<{ lead_id: string; enviado_em: string }>((de, ate) => supabaseAdmin.from('sdr_mensagens').select('lead_id,enviado_em').in('lead_id', [...emPrimeiroAcesso]).eq('template_hsm', ROTULO_PRIMEIRO_ACESSO).range(de, ate)) : []
+  const aviso99Em = new Map<string, number>()
+  for (const a of avisos99) aviso99Em.set(a.lead_id, Math.max(aviso99Em.get(a.lead_id) ?? 0, Date.parse(a.enviado_em)))
   const todosCnpjs = [...new Set([...cnpjsPorLead.values()].flatMap((s) => [...s]))]
 
   const desde = new Date(Date.parse(ult + 'T12:00:00Z') - 5 * 7 * 86400_000).toISOString().slice(0, 10)
@@ -93,6 +105,8 @@ export async function GET(req: NextRequest) {
   const motivos: Record<string, number> = {}
   const porSegmento: Record<string, number> = {}
   const fila: { lead: (typeof alvo)[number]; seg: Segmento; texto: string; count: number; diasCriada: number | null }[] = []
+  const filaAviso99: (typeof alvo)[number][] = []
+  const PULA_AVISO = new Set(['optout', 'reprovado', 'sem_acesso', 'pausa', 'conversa_viva'])
   const diasDesde = (iso: string | null | undefined) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400_000) : null)
   // loja travada pelo limite de originação da AIVA não recebe dica de vender (06/10/2026)
   const bloqueados = await leadsBloqueadosPorLimite()
@@ -104,6 +118,16 @@ export async function GET(req: NextRequest) {
     if (bloqueados.has(l.id)) { motivos.bloqueada_limite = (motivos.bloqueada_limite ?? 0) + 1; continue }
     const m = lerMarcadores(l.observacoes)
     const d = decidir(m, r.segmento, ultimaFala.get(l.id) ?? null)
+    if (emPrimeiroAcesso.has(l.id)) {
+      // nunca recebeu o aviso da 99 → recebe ele (não a dica) nesta rodada
+      if (!aviso99Em.has(l.id)) {
+        if (d.acao === 'nada' && PULA_AVISO.has(d.motivo)) { motivos[d.motivo] = (motivos[d.motivo] ?? 0) + 1; continue }
+        filaAviso99.push(l)
+        continue
+      }
+      // dica só 7 dias depois do aviso
+      if (Date.now() - (aviso99Em.get(l.id) ?? 0) < 7 * 86400_000) { motivos.aviso_primeiro_acesso_recente = (motivos.aviso_primeiro_acesso_recente ?? 0) + 1; continue }
+    }
     if (d.acao === 'nada') { motivos[d.motivo] = (motivos[d.motivo] ?? 0) + 1; continue }
     // data de criação da loja (menor cadastro_em entre os CNPJs) — define quem é "loja nova" na fila
     const criada = (mens as Array<LinhaMes & { cnpj: string; cadastro_em?: string | null }>).filter((x) => cs.has(x.cnpj) && x.cadastro_em).map((x) => x.cadastro_em as string).sort()[0] ?? null
@@ -129,7 +153,9 @@ export async function GET(req: NextRequest) {
     for (const f of fila) porSegFila[f.seg] = (porSegFila[f.seg] ?? 0) + 1
     return NextResponse.json({
       ok: true, dry: true, semana_fechada: ult, lojas: alvo.length, por_segmento: porSegmento, tocados_hoje: tocadosHoje,
-      fila: fila.length, fila_por_segmento: porSegFila, nesta_rodada: Math.min(fila.length, max), motivos,
+      em_primeiro_acesso: emPrimeiroAcesso.size, aviso_primeiro_acesso: filaAviso99.length,
+      amostra_aviso_primeiro_acesso: filaAviso99.slice(0, 5).map((l) => `${l.nome}: Olá ${nomeDe(l)}, ${MIOLO_PRIMEIRO_ACESSO}`),
+      fila: fila.length, fila_por_segmento: porSegFila, nesta_rodada: Math.min(filaAviso99.length + fila.length, max), motivos,
       amostra: fila.slice(0, 12).map((f) => ({ loja: f.lead.nome, segmento: f.seg, texto: `Olá ${nomeDe(f.lead)}, ${f.texto}` })),
     })
   }
@@ -138,7 +164,21 @@ export async function GET(req: NextRequest) {
   const enviados: { loja: string; segmento: Segmento }[] = []
   const falhas: { loja: string; erro: string }[] = []
   let cortadoPorTempo = false
-  for (const f of fila.slice(0, max)) {
+  // 1º o aviso atrasado da etapa 99 (uma vez por loja), depois as dicas com o que sobrar do lote
+  const avisados: string[] = []
+  for (const l of filaAviso99.slice(0, max)) {
+    if (Date.now() - t0 > TETO_MS) { cortadoPorTempo = true; break }
+    const nome = nomeDe(l)
+    try {
+      await sendTemplate(l.telefone, TEMPLATE_ID, [nome, MIOLO_PRIMEIRO_ACESSO])
+      await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: l.id, direcao: 'out', conteudo: `Olá ${nome}, ${MIOLO_PRIMEIRO_ACESSO}`, template_hsm: ROTULO_PRIMEIRO_ACESSO })
+      await supabaseAdmin.from('sdr_leads').update({ data_ultimo_contato: new Date().toISOString() }).eq('id', l.id)
+      avisados.push(l.nome)
+    } catch (e) {
+      falhas.push({ loja: l.nome, erro: e instanceof Error ? e.message : String(e) })
+    }
+  }
+  for (const f of fila.slice(0, Math.max(0, max - avisados.length))) {
     if (Date.now() - t0 > TETO_MS) { cortadoPorTempo = true; break }
     const nome = nomeDe(f.lead)
     try {
@@ -151,7 +191,7 @@ export async function GET(req: NextRequest) {
       falhas.push({ loja: f.lead.nome, erro: e instanceof Error ? e.message : String(e) })
     }
   }
-  return NextResponse.json({ ok: true, semana_fechada: ult, lojas: alvo.length, fila: fila.length, enviados: enviados.length, falhas, cortado_por_tempo: cortadoPorTempo, motivos, detalhe: enviados })
+  return NextResponse.json({ ok: true, semana_fechada: ult, lojas: alvo.length, aviso_primeiro_acesso: avisados.length, fila: fila.length, enviados: enviados.length, falhas, cortado_por_tempo: cortadoPorTempo, motivos, detalhe: enviados, avisados })
 }
 
 export async function POST(req: NextRequest) {

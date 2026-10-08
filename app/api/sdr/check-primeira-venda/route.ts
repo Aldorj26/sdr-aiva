@@ -32,6 +32,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
+import { cnpjsComPrimeiroAcesso } from '@/lib/primeiro-acesso'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,9 +74,10 @@ export async function GET(req: NextRequest) {
 
   const { data: lojas, error } = await supabaseAdmin
     .from('sdr_leads')
-    .select('id, nome, telefone, observacoes, data_ultimo_contato')
+    .select('id, nome, telefone, status, observacoes, data_ultimo_contato')
     .eq('produto', 'AIVA')
-    .eq('status', 'LOJA_FINALIZADA_E_VENDENDO')
+    // + LOGIN em "Primeiro acesso" (entrou e não vendeu — Aldo 08/10/2026), filtrado logo abaixo
+    .in('status', ['LOJA_FINALIZADA_E_VENDENDO', 'LOGIN'])
     .eq('acionar_humano', false)
     .lte('data_ultimo_contato', seteDiasAtras)
     .order('data_ultimo_contato', { ascending: true })
@@ -87,8 +89,22 @@ export async function GET(req: NextRequest) {
 
   // loja travada pelo limite de originação da AIVA não recebe "como estão as vendas?" (06/10/2026)
   const bloqueados = await leadsBloqueadosPorLimite()
+  // LOGIN só se o CNPJ já teve primeiro acesso no portal (lib/primeiro-acesso.ts)
+  const loginIds = (lojas ?? []).filter((l) => l.status === 'LOGIN').map((l) => l.id)
+  const emPrimeiroAcesso = new Set<string>()
+  if (loginIds.length) {
+    const comAcesso = await cnpjsComPrimeiroAcesso()
+    const { data: regs } = await supabaseAdmin.from('sdr_registros_cnpj').select('lead_id,cnpj').in('lead_id', loginIds)
+    const cnpjsDe = new Map<string, string[]>()
+    for (const r of regs ?? []) cnpjsDe.set(r.lead_id, [...(cnpjsDe.get(r.lead_id) ?? []), String(r.cnpj).replace(/\D/g, '')])
+    for (const l of (lojas ?? []).filter((x) => x.status === 'LOGIN')) {
+      const matriz = ((l.observacoes ?? '').match(/cnpj_matriz=([0-9./-]+)/)?.[1] ?? '').replace(/\D/g, '')
+      if ([matriz, ...(cnpjsDe.get(l.id) ?? [])].some((c) => comAcesso.has(c))) emPrimeiroAcesso.add(l.id)
+    }
+  }
   const candidatas = (lojas ?? []).filter((l) => {
     const obs = l.observacoes ?? ''
+    if (l.status === 'LOGIN' && !emPrimeiroAcesso.has(l.id)) return false
     if (bloqueados.has(l.id)) return false
     if (obs.includes('[CONSULTORIA_OPTOUT]')) return false
     // Consultoria mandou toque há menos de 10 dias → ela já perguntou das vendas

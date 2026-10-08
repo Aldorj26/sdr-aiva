@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
@@ -56,7 +57,7 @@ const AVISO_ETAPA: Record<number, { rotulo: string; status: string; miolo: strin
   },
   99: {
     rotulo: 'aiva_primeiro_acesso', status: 'LOGIN',
-    miolo: 'vi que você já entrou na plataforma da AIVA 🎉 Agora a dica de ouro: consulte o CPF de todo cliente que pedir preço, até de quem diz que vai pagar à vista — a resposta sai em uns 2 minutos e muita gente acaba parcelando. Qualquer dúvida no sistema, me chama aqui!',
+    miolo: MIOLO_PRIMEIRO_ACESSO, // mesmo texto do aviso atrasado da rodada das dicas (lib/primeiro-acesso.ts)
   },
   71: {
     rotulo: 'aiva_pronto_operar', status: 'LOGIN',
