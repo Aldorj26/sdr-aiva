@@ -15,6 +15,7 @@
     "test:senha": "node --test lib/senha-pendente-calc.test.ts",
     "test:acesso": "node --test lib/acesso-pendente-calc.test.ts",
     "test:desistencia": "node --test lib/desistencia.test.ts",
+    "test:campanha": "node --test lib/campanha-ativacao-calc.test.ts",
     "test:reconhecimento": "node --test lib/reconhecimento.test.ts",
     "test:odres": "node --test lib/odres-liberacao-calc.test.ts",
     "test:retomada": "node --test lib/retomada-interessado-calc.test.ts",

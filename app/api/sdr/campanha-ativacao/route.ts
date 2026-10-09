@@ -8,7 +8,7 @@
  * meta ainda não bateu) e resultado na virada da semana. HSM 48, rótulo `aiva_campanha_boas_vindas`.
  * Todo dia grava o placar no lead ([CAMP_ATIV_PLACAR:…]) — é dele que a VictorIA lê na conversa.
  *
- * ⏸ ENVIO_ATIVO = false até o Aldo aprovar os textos: ?dry mostra quem entra, o placar e as mensagens.
+ * ENVIO_ATIVO ligado em 09/10/2026 (Aldo aprovou os textos). ?dry mostra quem entra, o placar e as mensagens.
  * ?force ignora o horário. Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -27,7 +27,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const ENVIO_ATIVO = false
+const ENVIO_ATIVO = true
 const ROTULO = 'aiva_campanha_boas_vindas'
 const TEMPLATE_ID = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
 const TETO_MS = 240_000
