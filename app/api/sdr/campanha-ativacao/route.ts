@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
       lead: l, inicio: marcas.inicio ?? inicio, msg,
       obs: remontarObs(l.observacoes, marcas.inicio ?? inicio, p, msg, agora),
       texto: msg ? textoMensagem(msg, p) : null,
-      placar: `semana ${Math.min(p.semanaAtual, 4)} · ${p.semanas[Math.min(p.semanaAtual, 4) - 1].consultas} consultas · ${p.vendasTotal} vendas · R$ ${p.premioGarantido} garantidos`,
+      placar: `semana ${Math.min(p.semanaAtual, 4)} · ${p.semanas[Math.min(p.semanaAtual, 4) - 1].consultas} consultas · ${p.vendasTotal} vendas · R$ ${p.premioGarantido} previstos`,
     })
   }
 

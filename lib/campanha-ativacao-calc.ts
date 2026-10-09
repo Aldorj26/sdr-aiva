@@ -1,7 +1,8 @@
 /**
  * Campanha de ativação das lojas novas — 4 primeiras semanas no Flexfone (Aldo 09/10/2026).
  *
- * Regras (campanha da AIVA, paga junto do repasse):
+ * Regras (campanha da AIVA, paga junto do repasse). Consulta = de CPF DIFERENTE (Aldo 09/10) — o portal só dá o total de
+ * consultas, então o nosso placar é uma PRÉVIA: a AIVA confere os CPFs no fechamento. Nenhum texto diz "garantido".
  *   Semana 1: 30 consultas → R$ 80
  *   Semana 2: mais 30 consultas → R$ 80
  *   Semana 3: mais 30 consultas e 2 vendas ACUMULADAS desde a semana 1 → R$ 80
@@ -100,7 +101,7 @@ export type TipoMsg = 'boas_vindas' | `meio_s${number}` | `fim_s${number}`
 
 function metaTexto(n: number): string {
   const v = VENDAS_ACUMULADAS[n]
-  return v ? `${META_CONSULTAS} consultas e ${v} vendas somando desde a semana 1` : `${META_CONSULTAS} consultas`
+  return v ? `${META_CONSULTAS} consultas de CPFs diferentes e ${v} vendas somando desde a semana 1` : `${META_CONSULTAS} consultas de CPFs diferentes`
 }
 
 /** Próxima mensagem devida (ou null). `enviadas` = tipos já mandados. Ordem: boas-vindas (só na semana 1) →
@@ -123,7 +124,7 @@ export function proximaMensagem(p: Progresso, enviadas: Set<string>): TipoMsg | 
 
 export function textoMensagem(tipo: TipoMsg, p: Progresso): string {
   if (tipo === 'boas_vindas') {
-    return `sua loja entrou na campanha de boas-vindas da AIVA 🎁 Nas suas 4 primeiras semanas no Flexfone, cada semana que bater a meta vale R$ ${PREMIO_SEMANA}: semana 1 e 2 = ${META_CONSULTAS} consultas cada; semana 3 = ${META_CONSULTAS} consultas e 2 vendas somadas desde o início; semana 4 = ${META_CONSULTAS} consultas e 6 vendas somadas. Fechando tudo (120 consultas e 6 vendas), o prêmio total vira R$ ${PREMIO_TOTAL}, pago pela AIVA junto do repasse. A sua semana 1 vai até ${fmt(somaDias(p.inicio, 6))}. Dica: consulte o CPF de todo cliente que pedir preço — cada consulta conta!`
+    return `sua loja entrou na campanha de boas-vindas da AIVA 🎁 Nas suas 4 primeiras semanas no Flexfone, cada semana que bater a meta vale R$ ${PREMIO_SEMANA}: semana 1 e 2 = ${META_CONSULTAS} consultas de CPFs diferentes cada; semana 3 = ${META_CONSULTAS} consultas e 2 vendas somadas desde o início; semana 4 = ${META_CONSULTAS} consultas e 6 vendas somadas. Fechando tudo (120 consultas e 6 vendas), o prêmio total vira R$ ${PREMIO_TOTAL}, pago pela AIVA junto do repasse. A sua semana 1 vai até ${fmt(somaDias(p.inicio, 6))}. Dica: consulte o CPF de todo cliente que pedir preço — cada CPF novo conta!`
   }
   const n = Number(tipo.replace(/\D/g, ''))
   const s = p.semanas[n - 1]
@@ -131,18 +132,18 @@ export function textoMensagem(tipo: TipoMsg, p: Progresso): string {
     const faltaC = Math.max(0, META_CONSULTAS - s.consultas)
     const faltaV = Math.max(0, s.metaVendas - s.vendasAcum)
     const falta = [faltaC ? `${faltaC} consultas` : '', faltaV ? `${faltaV} venda${faltaV > 1 ? 's' : ''}` : ''].filter(Boolean).join(' e ')
-    return `passando o placar da campanha de boas-vindas 📊 Semana ${n}: você está com ${s.consultas} de ${META_CONSULTAS} consultas${s.metaVendas ? ` e ${s.vendasAcum} de ${s.metaVendas} vendas somadas` : ''}. Faltam ${falta} até ${fmt(somaDias(s.ate, -1))} pra garantir mais R$ ${PREMIO_SEMANA}. Consulte o CPF de todo cliente que pedir preço, até de quem diz que vai pagar à vista!`
+    return `passando o placar da campanha de boas-vindas 📊 Semana ${n}: pelo nosso placar você está com ${s.consultas} de ${META_CONSULTAS} consultas${s.metaVendas ? ` e ${s.vendasAcum} de ${s.metaVendas} vendas somadas` : ''}. Faltam ${falta} até ${fmt(somaDias(s.ate, -1))} pra ganhar mais R$ ${PREMIO_SEMANA}. Lembrando: vale CPF diferente — consultar o mesmo cliente de novo não soma. Consulte todo cliente que pedir preço, até quem diz que vai pagar à vista!`
   }
   // fim_sN
   const prox = n < SEMANAS ? p.semanas[n] : null
   const garantido = p.premioGarantido
   if (n === SEMANAS) {
     return p.completa
-      ? `campanha de boas-vindas concluída 🏆 Você fechou as 4 semanas: ${p.consultasTotal} consultas e ${p.vendasTotal} vendas — prêmio de R$ ${PREMIO_TOTAL}, pago pela AIVA junto do repasse. Parabéns pelo começo forte!`
-      : `a campanha de boas-vindas terminou 🙌 Na semana 4 você fez ${s.consultas} consultas e chegou a ${s.vendasAcum} vendas somadas. Prêmio garantido nas 4 semanas: R$ ${garantido}, pago pela AIVA junto do repasse. Agora é manter o ritmo: consultar o CPF de todo cliente é o que faz a loja vender.`
+      ? `campanha de boas-vindas concluída 🏆 Pelo nosso placar você fechou as 4 semanas: ${p.consultasTotal} consultas e ${p.vendasTotal} vendas. A AIVA confere os CPFs diferentes no fechamento e o prêmio de até R$ ${PREMIO_TOTAL} vem junto do repasse. Parabéns pelo começo forte!`
+      : `a campanha de boas-vindas terminou 🙌 Na semana 4 você fez ${s.consultas} consultas e chegou a ${s.vendasAcum} vendas somadas. Pelo nosso placar o prêmio previsto é de R$ ${garantido} — a AIVA confere os CPFs diferentes no fechamento e paga junto do repasse. Agora é manter o ritmo: consultar o CPF de todo cliente é o que faz a loja vender.`
   }
   const abertura = s.batida
-    ? `semana ${n} da campanha batida ✅ ${s.consultas} consultas${s.metaVendas ? ` e ${s.vendasAcum} vendas somadas` : ''} — mais R$ ${PREMIO_SEMANA} garantidos (total até agora: R$ ${garantido}).`
+    ? `semana ${n} da campanha batida pelo nosso placar ✅ ${s.consultas} consultas${s.metaVendas ? ` e ${s.vendasAcum} vendas somadas` : ''} — mais R$ ${PREMIO_SEMANA} previstos (total previsto: R$ ${garantido}; a AIVA confere os CPFs diferentes no fechamento).`
     : `a semana ${n} da campanha fechou com ${s.consultas} de ${META_CONSULTAS} consultas${s.metaVendas ? ` e ${s.vendasAcum} de ${s.metaVendas} vendas` : ''} — dessa vez não deu, mas a campanha continua.`
   return `${abertura} Semana ${n + 1} começou e vai até ${fmt(somaDias(prox!.ate, -1))}: a meta é ${metaTexto(n + 1)} pra ganhar mais R$ ${PREMIO_SEMANA}. Bora!`
 }
@@ -185,15 +186,15 @@ export function blocoPromptCampanha(obs: string | null | undefined, hoje = new D
   const encerrada = (m && m[6] === '1') || hoje >= somaDias(inicio, 28)
   const n = m ? Number(m[1]) : 1
   if (encerrada) {
-    return `[INSTRUÇÃO DO SISTEMA — CAMPANHA DE BOAS-VINDAS]\n🎁 CAMPANHA DE BOAS-VINDAS DA AIVA — ESTA LOJA PARTICIPOU (ENCERRADA em ${fmt(somaDias(inicio, 27))}).${m ? ` Prêmio garantido: R$ ${m[4]}, pago pela AIVA junto do repasse.` : ''}\nNão use mais a campanha como argumento. Só responda se ele perguntar; dúvida de valor ou pagamento → acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `[INSTRUÇÃO DO SISTEMA — CAMPANHA DE BOAS-VINDAS]\n🎁 CAMPANHA DE BOAS-VINDAS DA AIVA — ESTA LOJA PARTICIPOU (ENCERRADA em ${fmt(somaDias(inicio, 27))}).${m ? ` Prêmio previsto pelo placar: R$ ${m[4]} (a AIVA confere os CPFs diferentes e paga junto do repasse).` : ''}\nNão use mais a campanha como argumento. Só responda se ele perguntar; dúvida de valor ou pagamento → acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   const placar = m
-    ? `Placar (dados do portal até ${fmt(m[7])}, atualiza 1× por dia): semana ${n} de 4 (vai até ${fmt(somaDias(inicio, 7 * n - 1))}) — ${m[2]} de ${META_CONSULTAS} consultas${VENDAS_ACUMULADAS[n] ? `, ${m[3]} de ${VENDAS_ACUMULADAS[n]} vendas somadas desde o início` : ''}. Prêmio já garantido: R$ ${m[4]}. Consultas no total: ${m[5]}.`
+    ? `Placar (dados do portal até ${fmt(m[7])}, atualiza 1× por dia): semana ${n} de 4 (vai até ${fmt(somaDias(inicio, 7 * n - 1))}) — ${m[2]} de ${META_CONSULTAS} consultas${VENDAS_ACUMULADAS[n] ? `, ${m[3]} de ${VENDAS_ACUMULADAS[n]} vendas somadas desde o início` : ''}. Prêmio previsto até agora: R$ ${m[4]}. Consultas no total: ${m[5]}. ⚠️ O placar conta TODAS as consultas; a meta vale só CPF diferente e quem confere é a AIVA no fechamento — fale sempre em "pelo placar" e "previsto", nunca "garantido".`
     : 'Placar ainda não calculado (sai na próxima atualização diária).'
   return `[INSTRUÇÃO DO SISTEMA — CAMPANHA DE BOAS-VINDAS]
 🎁 CAMPANHA DE BOAS-VINDAS DA AIVA — ESTA LOJA ESTÁ PARTICIPANDO (começou em ${fmt(inicio)}).
-Regras (seção 🎁 do prompt): semanas 1 e 2 = ${META_CONSULTAS} consultas cada; semana 3 = ${META_CONSULTAS} consultas + 2 vendas somadas desde a semana 1; semana 4 = ${META_CONSULTAS} consultas + 6 vendas somadas. Cada semana batida = R$ ${PREMIO_SEMANA}; fechando tudo o total vira R$ ${PREMIO_TOTAL} (não soma com os R$ ${PREMIO_SEMANA}). Paga pela AIVA junto do repasse — NÃO é a comissão de R$ 10 por venda.
+Regras (seção 🎁 do prompt): consulta = de CPF DIFERENTE (repetir o mesmo cliente não soma). Semanas 1 e 2 = ${META_CONSULTAS} consultas cada; semana 3 = ${META_CONSULTAS} consultas + 2 vendas somadas desde a semana 1; semana 4 = ${META_CONSULTAS} consultas + 6 vendas somadas. Cada semana batida = R$ ${PREMIO_SEMANA}; fechando tudo o total vira R$ ${PREMIO_TOTAL} (não soma com os R$ ${PREMIO_SEMANA}). Paga pela AIVA junto do repasse — NÃO é a comissão de R$ 10 por venda.
 ${placar}
-Pra campanha use SÓ este placar (a semana da campanha não é a do bloco de números da loja). Use quando ele perguntar da campanha ou ao dar dica de vendas. ⛔ Não prometa prêmio de semana que ainda não fechou, não invente regra, data de pagamento ou exceção — dúvida que não está aqui: acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".
+Pra campanha use SÓ este placar (a semana da campanha não é a do bloco de números da loja). Use quando ele perguntar da campanha ou ao dar dica de vendas. ⛔ Não diga que prêmio está garantido, não prometa prêmio de semana que ainda não fechou, não invente regra, data de pagamento ou exceção — dúvida que não está aqui: acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".
 [FIM INSTRUÇÃO DO SISTEMA]`
 }
