@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { blocoPromptCampanha } from '@/lib/campanha-ativacao-calc'
 import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta } from '@/lib/desistencia'
 import {
   getLeadByTelefone,
@@ -1062,7 +1063,8 @@ export async function POST(req: NextRequest) {
       // chamado. Foi o caso que escalou até ameaça de parar de vender.
       // "prazo" sozinho fica de fora: "Qual o prazo de pagamento?" é pergunta, não
       // queixa — precisa de sinal explícito de atraso/não-recebimento.
-      const financeiro =
+      // prêmio da campanha de boas-vindas não pago é dúvida de campanha, não erro de repasse (09/10/2026)
+      const financeiro = !/pr[êe]mio|campanha|b[ôo]nus/i.test(txt) &&
         /repasse|pagamento|transfer[êe]ncia|dep[óo]sito/i.test(txt) &&
         /n[ãa]o (?:caiu|recebi|foi|chegou|pagou|veio)|atras|pendente|ultrapass|sem retorno|n[ãa]o consta/i.test(txt)
 
@@ -1315,7 +1317,8 @@ export async function POST(req: NextRequest) {
         testeAbertura,
         desempenhoLoja,
         (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
-        bloqueioLimite,
+        // + campanha de boas-vindas (placar gravado pela /campanha-ativacao — lib/campanha-ativacao-calc.ts)
+        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null].filter(Boolean).join('\n\n') || null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

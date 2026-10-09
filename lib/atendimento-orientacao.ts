@@ -34,6 +34,7 @@ const EXATOS: Record<string, Orientacao> = {
   aiva_nao_criou_loja: { situacao: 'Lojista fez tudo e a biometria foi aprovada — falta a AIVA criar a loja', acao: `Cobrar ${AIVA} pela criação da loja.` },
   loja_finalizada_sem_operar: { situacao: 'Loja liberada que nunca chegou a operar', acao: 'Ligar: descobrir se falta senha, treinamento ou cadastro dos vendedores.' },
   loja_ativa_sem_vendas: { situacao: 'Lojista desanimado ou reclamando de vendas fracas', acao: 'Ligar pra entender — é risco de a loja parar.' },
+  duvida_campanha_boas_vindas: { situacao: 'Lojista com dúvida sobre a campanha de boas-vindas da AIVA (prêmio das 4 primeiras semanas)', acao: 'Responder a dúvida; se for pagamento ou exceção, confirmar com o Mauricio/AIVA.' },
   loja_quer_parar: { situacao: 'Loja já criada na AIVA disse que vai parar de usar', acao: 'Ligar hoje pra entender o motivo — dá pra salvar antes de a loja esfriar.' },
   desanimo_reprovacao_inicial: { situacao: 'Lojista desanimado porque os primeiros clientes foram reprovados', acao: 'Ligar e explicar que a aprovação varia por CPF; reforçar consultar todo cliente.' },
   interesse_parcelex: { situacao: 'Lojista quer a Parcelex (segunda financeira)', acao: 'Encaminhar pro fluxo da Parcelex.' },

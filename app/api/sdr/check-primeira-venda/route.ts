@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
   const candidatas = (lojas ?? []).filter((l) => {
     const obs = l.observacoes ?? ''
     if (l.status === 'LOGIN' && !emPrimeiroAcesso.has(l.id)) return false
+    if (/\[CAMP_ATIV_PLACAR:[^\]]*\|fim=0\|/.test(obs)) return false // campanha de boas-vindas em curso
     if (bloqueados.has(l.id)) return false
     if (obs.includes('[CONSULTORIA_OPTOUT]')) return false
     // Consultoria mandou toque há menos de 10 dias → ela já perguntou das vendas

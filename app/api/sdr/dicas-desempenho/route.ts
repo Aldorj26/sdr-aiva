@@ -116,6 +116,8 @@ export async function GET(req: NextRequest) {
     porSegmento[r.segmento] = (porSegmento[r.segmento] ?? 0) + 1
     if (l.acionar_humano) { motivos.fila_humano = (motivos.fila_humano ?? 0) + 1; continue }
     if (bloqueados.has(l.id)) { motivos.bloqueada_limite = (motivos.bloqueada_limite ?? 0) + 1; continue }
+    // campanha de boas-vindas em curso: ela já manda placar/dica de consulta — não empilha a dica genérica (09/10/2026)
+    if (/\[CAMP_ATIV_PLACAR:[^\]]*\|fim=0\|/.test(l.observacoes ?? '')) { motivos.campanha_boas_vindas = (motivos.campanha_boas_vindas ?? 0) + 1; continue }
     const m = lerMarcadores(l.observacoes)
     const d = decidir(m, r.segmento, ultimaFala.get(l.id) ?? null)
     if (emPrimeiroAcesso.has(l.id)) {
