@@ -1,0 +1,1843 @@
+{
+ "invisiveis": [
+  {
+   "cnpj": "64941473000176",
+   "rids": [
+    "3495"
+   ],
+   "nomes": [
+    "IVS NOVA MUTUM"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": null,
+   "rids": [
+    "3267"
+   ],
+   "nomes": [
+    "IVS - PRIMAVERA I - MT"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": null,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "65554528000158",
+   "rids": [
+    "4488"
+   ],
+   "nomes": [
+    "IVS IJUI"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": null,
+   "rids": [
+    "3270"
+   ],
+   "nomes": [
+    "IVS - PRIMAVERA II - MT"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": null,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": null,
+   "rids": [
+    "4001"
+   ],
+   "nomes": [
+    "IVS - VILLA VELHA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": null,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": null,
+   "rids": [
+    "3316"
+   ],
+   "nomes": [
+    "REALME - BBC"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": null,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "57539798000161",
+   "rids": [
+    "2847"
+   ],
+   "nomes": [
+    "IVS ALTA FLORESTA MT"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "13337781000741",
+   "rids": [
+    "6035"
+   ],
+   "nomes": [
+    "Contel Telecom Ltda",
+    "Contel"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5551920052653",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "55311227000140",
+   "rids": [
+    "4677"
+   ],
+   "nomes": [
+    "IVS ARAPIRACA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "60003880000181",
+   "rids": [
+    "2776"
+   ],
+   "nomes": [
+    "IVS CARAZINHO"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "60742516000133",
+   "rids": [
+    "4774"
+   ],
+   "nomes": [
+    "IVS MARECHAL CANDIDO RONDON"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "61491132000158",
+   "rids": [
+    "3411"
+   ],
+   "nomes": [
+    "REALME NEPTUNES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "52287148000152",
+   "rids": [
+    "6529"
+   ],
+   "nomes": [
+    "Andrey Cell Assistência Técnica"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "554888519249",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "65451753000169",
+   "rids": [
+    "6326"
+   ],
+   "nomes": [
+    "65.451.753 NATHALIA DE PAIVA LOPES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "51500160000130",
+   "rids": [
+    "6255"
+   ],
+   "nomes": [
+    "51.500.160 ANDREIA OLIVEIRA COSTA MACIEL"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "38276185000134",
+   "rids": [
+    "6414"
+   ],
+   "nomes": [
+    "SHOWCELL DISTRIBUIDORA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "59330865000169",
+   "rids": [
+    "6409"
+   ],
+   "nomes": [
+    "ELEVARE TELEFONIA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "66481606000102",
+   "rids": [
+    "6318"
+   ],
+   "nomes": [
+    "66.481.606 YAGO VICENTE MUNIZ DA CONCEICAO DO NASCIMENTO"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "59256964000148",
+   "rids": [
+    "6305"
+   ],
+   "nomes": [
+    "JOTERPI TIMON"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "60091456000136",
+   "rids": [
+    "6435"
+   ],
+   "nomes": [
+    "60.091.456 BRUNO DE LUCAS FERNANDES FERREIRA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "58787377000112",
+   "rids": [
+    "6331"
+   ],
+   "nomes": [
+    "AERO PHONES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "64926846000130",
+   "rids": [
+    "6307"
+   ],
+   "nomes": [
+    "64.926.846 RODRIGO MOREIRA DA SILVA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "42347727000190",
+   "rids": [
+    "6313"
+   ],
+   "nomes": [
+    "SPACE TECHNOLOGY"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "41396828000198",
+   "rids": [
+    "6244"
+   ],
+   "nomes": [
+    "MUNDO DOS CELULARES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "65678497000147",
+   "rids": [
+    "6374"
+   ],
+   "nomes": [
+    "SMARTTECHH COMERCIO DE CELULARES LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "52794701000143",
+   "rids": [
+    "6437"
+   ],
+   "nomes": [
+    "TEXAS HOUSE"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "37780231000175",
+   "rids": [
+    "6312"
+   ],
+   "nomes": [
+    "37.780.231 DANILO SEGUESSI BRITO"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "44785047000183",
+   "rids": [
+    "6378"
+   ],
+   "nomes": [
+    "PAULA DUARTE BELEZA & ESTETICA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "40132499000105",
+   "rids": [
+    "6373"
+   ],
+   "nomes": [
+    "INFINITE PLACE LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "48823831000190",
+   "rids": [
+    "6377"
+   ],
+   "nomes": [
+    "I S TECH"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "39338334000105",
+   "rids": [
+    "7258"
+   ],
+   "nomes": [
+    "smartcell-39338334000105",
+    "SMARTCELL",
+    "39.338.334 ALEXANDRE APARECIDO DE SOUZA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5514996753795",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-02T09:00:54.377+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "21217731000163",
+   "rids": [
+    "7260"
+   ],
+   "nomes": [
+    "apcell-import-21217731000163",
+    "Apcell",
+    "PAULO A SIMOES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": null,
+   "telefone": null,
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-02T09:00:55.866+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "62995638000167",
+   "rids": [
+    "7378"
+   ],
+   "nomes": [
+    "mm-celulares-62995638000167",
+    "MM Celulares Serviços e Acessórios",
+    "62.995.638 JOSE CARLOS DE JESUS"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5531995461645",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-04T09:00:54.782+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "51367528000134",
+   "rids": [
+    "7375"
+   ],
+   "nomes": [
+    "digital-home-51367528000134",
+    "Digital Home",
+    "51.367.528 ISMAEL FEIL"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "555195180375",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-04T09:00:56.114+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "43031588000153",
+   "rids": [
+    "7379"
+   ],
+   "nomes": [
+    "guilherme-isbarrola-aguirre-02708270052-43031588000153",
+    "GL UP Store",
+    "GUILHERME ISBARROLA AGUIRRE 02708270052"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5555996559377",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-04T09:00:57.379+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "36086337000100",
+   "rids": [
+    "7449"
+   ],
+   "nomes": [
+    "edcell-celulares-36086337000100",
+    "Edcell celular",
+    "EDCELL MANUTENCAO E ASSISTENCIA EM CELULARES LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5562981126553",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-06T09:01:02.184+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "54994533000165",
+   "rids": [
+    "7450"
+   ],
+   "nomes": [
+    "clinica-do-celular-perola-d'oeste-ltda-54994533000165",
+    "Clínica do Celular Pérola D'Oeste",
+    "Clínica do celular Pérola D' Oeste Ltda",
+    "CLINICA DO CELULAR PEROLA D'OESTE LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "554699285085",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-06T09:01:03.168+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "09943434000108",
+   "rids": [
+    "7451"
+   ],
+   "nomes": [
+    "cacula-cell-multimarcas-telefonia-ltda.-09943434000108",
+    "Caçula Cell",
+    "CACULA CELL MULTIMARCAS TELEFONIA LTDA."
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5514996515988",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-06T09:01:03.999+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "60869404000148",
+   "rids": [
+    "7452"
+   ],
+   "nomes": [
+    "distribuidora-de-varejo-60869404000148",
+    "Distribuidora de Varejo",
+    "60.869.404 LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "558599607599",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-06T09:01:06.579+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "03503031000153",
+   "rids": [
+    "7508"
+   ],
+   "nomes": [
+    "via-cell-telecomunicacoes-03503031000153",
+    "Via Cell",
+    "RENATO ANTONIO FERNANDES MACHADO"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5518991015000",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:02.222+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "62555956000107",
+   "rids": [
+    "7510"
+   ],
+   "nomes": [
+    "smart-center-eletronicos-e-importados-62555956000107",
+    "Smarttech Celulares",
+    "SMART CENTER ELETRONICOS E IMPORTADOS LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5521991113627",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:03.463+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "55562751000193",
+   "rids": [
+    "7507"
+   ],
+   "nomes": [
+    "as-innovati-celulares-e-eletronicos-55562751000193",
+    "As Innovati Celulares e Eletrônicos",
+    "AS INNOVATI COMERCIO DE CELULARES ELETRONICOS E ASSISTENCIA LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "554131405546",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:04.679+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "61742542000124",
+   "rids": [
+    "7506"
+   ],
+   "nomes": [
+    "jm-celulares-61742542000124",
+    "Jm celulares",
+    "JM CELULARES & ACESSORIOS LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5544997338082",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:05.921+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "54521781000199",
+   "rids": [
+    "7509"
+   ],
+   "nomes": [
+    "54.521.781-sergio-fonseca-pereira-54521781000199",
+    "Eletrocon.pc Informática",
+    "54.521.781 SERGIO FONSECA PEREIRA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "556239544551",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:07.165+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "44601675000161",
+   "rids": [
+    "7538"
+   ],
+   "nomes": [
+    "dragon-cell-44601675000161",
+    "Dragon Cell",
+    "DRAGON CELL LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5565993525359",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-08T09:01:02.988+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "55978610000156",
+   "rids": [
+    "7548"
+   ],
+   "nomes": [
+    "serginho-import-55978610000156",
+    "Serginho import ST Celulares LTDA",
+    "ST CELULAR LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5574988573951",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-08T09:01:04.464+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "22804591000192",
+   "rids": [
+    "7549"
+   ],
+   "nomes": [
+    "evandro-celular-22804591000192",
+    "Evandro celular",
+    "E CARVALHO COSTA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5598983440808",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-08T09:01:05.338+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "58191152000107",
+   "rids": [
+    "7537"
+   ],
+   "nomes": [
+    "58.191.152-raimundo-jose-goncalves-trindade-58191152000107",
+    "Celular Assist",
+    "58.191.152 RAIMUNDO JOSE GONCALVES TRINDADE"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5598985918894",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-08T09:01:06.237+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "31807812000177",
+   "rids": [
+    "7557"
+   ],
+   "nomes": [
+    "unix-store-smartphones-31807812000177",
+    "Unix Store Smartphones",
+    "UNIXSTORE LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5544988093435",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:00:58.998+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "50836969000175",
+   "rids": [
+    "7554"
+   ],
+   "nomes": [
+    "oficina-dos-celulares-50836969000175",
+    "OFICINA DOS CELULARES",
+    "OFICINA DOS CELULARES LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5551995286263",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:00:59.846+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "31900007000193",
+   "rids": [
+    "7556"
+   ],
+   "nomes": [
+    "willian-santos-silva-48871985826-31900007000193",
+    "EspaçoTec",
+    "WILLIAN SANTOS SILVA 48871985826"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5516993892436",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:00.702+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "45985672000131",
+   "rids": [
+    "7558"
+   ],
+   "nomes": [
+    "j-hermann-assistencia-tecnica-45985672000131",
+    "Ponto Cell e Conserta Cell",
+    "HERMANN ASSISTENCIA TECNICA ESPECIALIZADA LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5561993221156",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:01.546+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "27876480000105",
+   "rids": [
+    "7573"
+   ],
+   "nomes": [
+    "mix.com-27876480000105",
+    "MIX.COM",
+    "VENICIUS ALVES CARDOSO BARROS"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5599984161364",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:02.387+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "37126783000164",
+   "rids": [
+    "7574"
+   ],
+   "nomes": [
+    "nask-tech-multi-assistência-37126783000164",
+    "Nask Tech",
+    "37.126.783 LIVAN BEZERRA DO NASCIMENTO"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5521959101826",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:03.252+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "19505464000188",
+   "rids": [
+    "7555"
+   ],
+   "nomes": [
+    "19.505.464-william-henrique-marcelino-da-silva-19505464000188",
+    "Will informática e celulares",
+    "19.505.464 WILLIAM HENRIQUE MARCELINO DA SILVA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5516991256480",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:04.084+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "61731438000134",
+   "rids": [
+    "7577"
+   ],
+   "nomes": [
+    "mundo-do-celular-imports-ltda-61731438000134",
+    "Mundo do Celular Imports",
+    "MUNDO DO CELULAR IMPORTS LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "5551993172450",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:04.924+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "49507134000192",
+   "rids": [
+    "7572"
+   ],
+   "nomes": [
+    "49.507.134-luis-fernando-pereira-nunes-49507134000192",
+    "49.507.134 Luis Fernando Pereira Nunes",
+    "49.507.134 LUIS FERNANDO PEREIRA NUNES"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · TREINAR",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "TREINAR",
+   "telefone": "00049507134000192",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-09T09:01:05.787+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "56951137000186",
+   "rids": [
+    "6570"
+   ],
+   "nomes": [
+    "MANOELLA PARISI CELULARES E ASSISTENCIA TECNICA LTDA",
+    "Loja"
+   ],
+   "fontes": [
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOGIN",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOGIN",
+   "telefone": "5519992586910",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": null,
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  }
+ ],
+ "vendendoInvisiveis": [
+  {
+   "cnpj": "51367528000134",
+   "rids": [
+    "7375"
+   ],
+   "nomes": [
+    "digital-home-51367528000134",
+    "Digital Home",
+    "51.367.528 ISMAEL FEIL"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "555195180375",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-04T09:00:56.114+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "43031588000153",
+   "rids": [
+    "7379"
+   ],
+   "nomes": [
+    "guilherme-isbarrola-aguirre-02708270052-43031588000153",
+    "GL UP Store",
+    "GUILHERME ISBARROLA AGUIRRE 02708270052"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5555996559377",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-04T09:00:57.379+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "36086337000100",
+   "rids": [
+    "7449"
+   ],
+   "nomes": [
+    "edcell-celulares-36086337000100",
+    "Edcell celular",
+    "EDCELL MANUTENCAO E ASSISTENCIA EM CELULARES LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5562981126553",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-06T09:01:02.184+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "62555956000107",
+   "rids": [
+    "7510"
+   ],
+   "nomes": [
+    "smart-center-eletronicos-e-importados-62555956000107",
+    "Smarttech Celulares",
+    "SMART CENTER ELETRONICOS E IMPORTADOS LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5521991113627",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:03.463+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "55562751000193",
+   "rids": [
+    "7507"
+   ],
+   "nomes": [
+    "as-innovati-celulares-e-eletronicos-55562751000193",
+    "As Innovati Celulares e Eletrônicos",
+    "AS INNOVATI COMERCIO DE CELULARES ELETRONICOS E ASSISTENCIA LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "554131405546",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:04.679+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  },
+  {
+   "cnpj": "61742542000124",
+   "rids": [
+    "7506"
+   ],
+   "nomes": [
+    "jm-celulares-61742542000124",
+    "Jm celulares",
+    "JM CELULARES & ACESSORIOS LTDA"
+   ],
+   "fontes": [
+    "funil 11 (contas fechadas)",
+    "sdr_registros_cnpj (rid/ativa)",
+    "sdr_leads · LOJA_FINALIZADA_E_VENDENDO",
+    "portal AIVA (cadastro com loja criada)"
+   ],
+   "etapa15": null,
+   "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+   "telefone": "5544997338082",
+   "statusPortal": null,
+   "cadastroEm": null,
+   "ativaEm": "2026-10-07T09:01:05.921+00:00",
+   "consultas": 0,
+   "aprovados": 0,
+   "vendas": 0,
+   "valorVendas": 0,
+   "vendasOut": 0,
+   "noRelatorio": false,
+   "comoCasou": null,
+   "comissao": 0
+  }
+ ]
+}

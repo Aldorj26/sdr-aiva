@@ -1,0 +1,181 @@
+[
+ {
+  "loja": "Dr. Reparo Smart - Loja 2",
+  "umeRid": 5334,
+  "cnpj": "66980944000180",
+  "vendas": 1,
+  "valor": 1627.15,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6413,
+    "cnpj": "66980944000180",
+    "varejo": "66.980.944 KAIO ROMAO BOTELHO",
+    "comissao": 36,
+    "dono": null
+   }
+  ]
+ },
+ {
+  "loja": "SORA CELULARES - 14622348",
+  "umeRid": 6330,
+  "cnpj": "52618643000105",
+  "vendas": 4,
+  "valor": 4910.49,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6330,
+    "cnpj": "52618643000105",
+    "varejo": "SORA CELULARES",
+    "comissao": 108.912,
+    "dono": "Sora Celulares"
+   }
+  ]
+ },
+ {
+  "loja": "CONSERTA MAIS CELULAR - 79290000",
+  "umeRid": 6518,
+  "cnpj": "51881564000111",
+  "vendas": 3,
+  "valor": 4002.75,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6518,
+    "cnpj": "51881564000111",
+    "varejo": "CONSERTA MAIS CELULAR",
+    "comissao": 88.56,
+    "dono": "Conserta Mais Celulares LTDA"
+   }
+  ]
+ },
+ {
+  "loja": "PORTO CELULARES 📲  - 68638000",
+  "umeRid": 6433,
+  "cnpj": "55511062000150",
+  "vendas": 2,
+  "valor": 3060.7,
+  "veredito": "OMISSÃO REAL — não existe linha no relatório",
+  "linhas": []
+ },
+ {
+  "loja": "TITECH ACESSORIOS & ASSISTENCIA TECNICA - 13220001",
+  "umeRid": 6412,
+  "cnpj": "30811536000158",
+  "vendas": 18,
+  "valor": 25456.35,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6412,
+    "cnpj": "30811536000158",
+    "varejo": "TITECH ACESSORIOS & ASSISTENCIA TECNICA",
+    "comissao": 559.3359999999999,
+    "dono": "TITÉCH"
+   }
+  ]
+ },
+ {
+  "loja": "AC PREMIUM - 49010660",
+  "umeRid": 6587,
+  "cnpj": "50297942000151",
+  "vendas": 35,
+  "valor": 47135.34,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6587,
+    "cnpj": "50297942000151",
+    "varejo": "AC PREMIUM",
+    "comissao": 1034.4119999999998,
+    "dono": "Ajucelulares"
+   }
+  ]
+ },
+ {
+  "loja": "LOJA PRINCIPAL - 91530010",
+  "umeRid": 6667,
+  "cnpj": "46993680000192",
+  "vendas": 1,
+  "valor": 1154.94,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6667,
+    "cnpj": "46993680000192",
+    "varejo": "ROSA RIO SHOP ELETRONICOS E ACESSORIOS",
+    "comissao": 25.416,
+    "dono": "Rosa-Rio Shop"
+   }
+  ]
+ },
+ {
+  "loja": "LOJA PRINCIPAL - 91530010",
+  "umeRid": 6667,
+  "cnpj": "46993680000192",
+  "vendas": 1,
+  "valor": 1154.94,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6667,
+    "cnpj": "46993680000192",
+    "varejo": "ROSA RIO SHOP ELETRONICOS E ACESSORIOS",
+    "comissao": 25.416,
+    "dono": "Rosa-Rio Shop"
+   }
+  ]
+ },
+ {
+  "loja": "ASSISTEL - 08710450",
+  "umeRid": 6692,
+  "cnpj": "22840266000185",
+  "vendas": 4,
+  "valor": 6258.81,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6692,
+    "cnpj": "22840266000185",
+    "varejo": "ASSISTEL",
+    "comissao": 137.736,
+    "dono": "Assistel"
+   }
+  ]
+ },
+ {
+  "loja": "M G A CELULARES E ASSISTENCIA TECNICA - 15170000",
+  "umeRid": 6517,
+  "cnpj": "42536358000183",
+  "vendas": 2,
+  "valor": 2440.56,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6517,
+    "cnpj": "42536358000183",
+    "varejo": "M G A CELULARES E ASSISTENCIA TECNICA",
+    "comissao": 54.120000000000005,
+    "dono": "Kmp comércio de celulares"
+   }
+  ]
+ },
+ {
+  "loja": "mundo-play-comercio-de-eletronicos-55720846000198",
+  "umeRid": 6704,
+  "cnpj": "55720846000198",
+  "vendas": 2,
+  "valor": 3066.68,
+  "veredito": "ARTEFATO — a loja ESTÁ no relatório",
+  "linhas": [
+   {
+    "rid": 6704,
+    "cnpj": "55720846000198",
+    "varejo": "MUNDO PLAY COMERCIO DE ELETRONICOS",
+    "comissao": 67.68,
+    "dono": "X Egames Eletrônicos"
+   }
+  ]
+ }
+]

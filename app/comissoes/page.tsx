@@ -359,6 +359,8 @@ export default async function ComissoesPage({
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <span style={{ color: est.cor, fontWeight: 600, fontSize: '0.76rem' }}>{est.emoji} {est.rotulo}</span>
                     {l.divergencia && <span title="Sem comissão no mês, mas o Portal AIVA mostra vendas — questionar a UME" style={{ marginLeft: 4 }}>🔴</span>}
+                    {l.irmaComissionada && <span title="A loja ESTÁ no relatório — a linha ficou com outro card do mesmo Retailer ID/CNPJ (grupo multi-loja ou card duplicado no funil)" style={{ marginLeft: 4 }}>👯</span>}
+                    {l.retailerDaUme != null && <span title={`A UME paga esta loja no Retailer ID ${l.retailerDaUme}, e o nosso cadastro diz ${l.umeRid ?? '—'}. Não é falta de comissão — é o nosso Retailer ID que está desatualizado.`} style={{ marginLeft: 4 }}>🔁</span>}
                   </td>
                   <td style={{ ...td, maxWidth: 260 }}>
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

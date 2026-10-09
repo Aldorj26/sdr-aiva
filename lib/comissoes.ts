@@ -204,6 +204,19 @@ export interface LinhaConferencia {
   estado: EstadoConferencia
   /** Divergência real: sem comissão no mês MAS Portal AIVA mostra vendas > 0. */
   divergencia: boolean
+  /**
+   * A linha do relatório desta loja existe, mas foi consumida por OUTRA conta
+   * do funil 11 com o mesmo Retailer ID/CNPJ (grupo multi-loja ou card
+   * duplicado). A loja está comissionada — só não por este card.
+   */
+  irmaComissionada: boolean
+  /**
+   * O CNPJ da conta aparece no relatório sob um Retailer ID DIFERENTE do que
+   * temos gravado, e essa linha não foi reivindicada por ninguém. A loja está
+   * sendo paga; quem está desatualizado é o nosso cadastro. Guarda o retailer
+   * que a UME usa.
+   */
+  retailerDaUme: number | null
   /** Casou por CNPJ (sem UME_RID) → candidata ao botão "gravar Retailer ID". */
   casouPorCnpj: boolean
   opp: ContaFunil11 | null
@@ -265,15 +278,42 @@ export function conferir(
     const estado: EstadoConferencia =
       rel ? 'comissionada' : p.umeRid != null ? 'sem_venda' : 'sem_rid'
     const desempenho = p.cnpj ? (desempPorCnpj.get(p.cnpj) ?? null) : null
-    const divergencia = !rel && (desempenho?.vendas ?? 0) > 0
-    out.push({ estado, divergencia, casouPorCnpj: hit?.porCnpj ?? false, opp: p.opp, umeRid: p.umeRid, cnpj: p.cnpj, relatorio: rel, desempenho })
+
+    // A loja pode estar comissionada por OUTRO card: grupo multi-loja que
+    // divide um Retailer ID (Goat, Caldas, Eletrocel…) ou card duplicado no
+    // funil. Como cada linha é consumida por uma conta só, o gêmeo ficava sem
+    // linha e, se o portal mostrasse venda, virava 🔴. Em set/26 isso gerou 10
+    // alarmes falsos contra 1 omissão real — e alarme falso ensina o time a
+    // ignorar o vermelho. Só é divergência quando NÃO existe linha nenhuma.
+    const linhaIrma =
+      (p.umeRid != null ? porRid.get(p.umeRid) : undefined) ??
+      (p.cnpj ? porCnpj.get(p.cnpj) : undefined) ??
+      null
+    const irmaComissionada = !rel && linhaIrma != null && usadas.has(linhaIrma)
+
+    // Outro caso que acendia vermelho à toa: o CNPJ está no relatório, mas sob
+    // um Retailer ID diferente do nosso (a guarda do Fone Express impede o
+    // casamento, e com razão). A UME está pagando — nosso cadastro é que está
+    // velho. Caso real de set/26: Dr. Reparo Smart, gravado 5334, pago no 6413.
+    // Mandar "questionar a UME" aqui é mandar o time cobrar o que já recebeu.
+    const porOutroRetailer =
+      !rel && !irmaComissionada && p.cnpj ? (porCnpj.get(p.cnpj) ?? null) : null
+    const retailerDaUme =
+      porOutroRetailer && !usadas.has(porOutroRetailer) && porOutroRetailer.retailer_id !== p.umeRid
+        ? porOutroRetailer.retailer_id
+        : null
+
+    const divergencia =
+      !rel && !irmaComissionada && retailerDaUme == null && (desempenho?.vendas ?? 0) > 0
+
+    out.push({ estado, divergencia, irmaComissionada, retailerDaUme, casouPorCnpj: hit?.porCnpj ?? false, opp: p.opp, umeRid: p.umeRid, cnpj: p.cnpj, relatorio: rel, desempenho })
   }
 
   // linhas do relatório que não casaram com conta nenhuma
   for (const l of linhasMes) {
     if (usadas.has(l)) continue
     out.push({
-      estado: 'so_relatorio', divergencia: false, casouPorCnpj: false,
+      estado: 'so_relatorio', divergencia: false, irmaComissionada: false, retailerDaUme: null, casouPorCnpj: false,
       opp: null, umeRid: l.retailer_id, cnpj: l.cnpj, relatorio: l,
       desempenho: l.cnpj ? (desempPorCnpj.get(l.cnpj) ?? null) : null,
     })

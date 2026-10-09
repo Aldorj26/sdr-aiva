@@ -1,0 +1,1280 @@
+{
+ "sumiram": [
+  {
+   "rid": "6326",
+   "varejo": "65.451.753 NATHALIA DE PAIVA LOPES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 2073.913999999999,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6055",
+   "varejo": "APPLE CEL CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 2005.7259999999999,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6255",
+   "varejo": "51.500.160 ANDREIA OLIVEIRA COSTA MACIEL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 1543.0759999999998,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6020",
+   "varejo": "LOJAS NOBRE",
+   "grupo": "INSIDE_SALES",
+   "comissao": 1410.4699999999998,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6414",
+   "varejo": "SHOWCELL DISTRIBUIDORA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 1082.0379999999998,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6409",
+   "varejo": "ELEVARE TELEFONIA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 469.314,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6318",
+   "varejo": "66.481.606 YAGO VICENTE MUNIZ DA CONCEICAO DO NASCIMENTO",
+   "grupo": "INSIDE_SALES",
+   "comissao": 389.758,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5896",
+   "varejo": "58.535.430 DIOGO SOARES DOS ANJOS BRUM SANTOS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 170.16000000000003,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6305",
+   "varejo": "JOTERPI TIMON",
+   "grupo": "INSIDE_SALES",
+   "comissao": 143.718,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5894",
+   "varejo": "VINICIUS CELL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 129.332,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "5803",
+   "varejo": "CAMILA DA SILVA BRITO 40062442821",
+   "grupo": "INSIDE_SALES",
+   "comissao": 116.662,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6435",
+   "varejo": "60.091.456 BRUNO DE LUCAS FERNANDES FERREIRA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 107.78399999999999,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6331",
+   "varejo": "AERO PHONES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 105.19200000000002,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5794",
+   "varejo": "TECH WORLD",
+   "grupo": "INSIDE_SALES",
+   "comissao": 102.43200000000002,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6307",
+   "varejo": "64.926.846 RODRIGO MOREIRA DA SILVA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 100.24600000000001,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6313",
+   "varejo": "SPACE TECHNOLOGY",
+   "grupo": "INSIDE_SALES",
+   "comissao": 84.888,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6244",
+   "varejo": "MUNDO DOS CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 70.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5804",
+   "varejo": "EXPRESSO PHONE LTDA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 63.598000000000006,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "6374",
+   "varejo": "SMARTTECHH COMERCIO DE CELULARES LTDA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 61.2,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6437",
+   "varejo": "TEXAS HOUSE",
+   "grupo": "INSIDE_SALES",
+   "comissao": 52.29600000000001,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6312",
+   "varejo": "37.780.231 DANILO SEGUESSI BRITO",
+   "grupo": "INSIDE_SALES",
+   "comissao": 48.93600000000001,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6378",
+   "varejo": "PAULA DUARTE BELEZA & ESTETICA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 44.400000000000006,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "3411",
+   "varejo": "REALME NEPTUNES",
+   "grupo": "REALME_CURITIBA",
+   "comissao": 41.3,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6373",
+   "varejo": "INFINITE PLACE LTDA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 36,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5670",
+   "varejo": "50.520.678 ROGELIO DE CARVALHO LOPES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 30.72,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "5802",
+   "varejo": "LOJAS MIGUI",
+   "grupo": "INSIDE_SALES",
+   "comissao": 29.014,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "5392",
+   "varejo": "SOL EMPREENDIMENTOS FOTOVOLTAICOS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 25.892000000000003,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "2776",
+   "varejo": "IVS CARAZINHO",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 23.34,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6377",
+   "varejo": "I S TECH",
+   "grupo": "INSIDE_SALES",
+   "comissao": 20.16,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5215",
+   "varejo": "L W INFORMATICA E CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 17.040000000000003,
+   "portal": "não vendeu em setembro"
+  },
+  {
+   "rid": "3688",
+   "varejo": "MASTER CASE",
+   "grupo": "INSIDE_SALES",
+   "comissao": 16.130940000000002,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "3495",
+   "varejo": "IVS NOVA MUTUM",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 10.668000000000001,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2847",
+   "varejo": "IVS ALTA FLORESTA MT",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 7.5,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "3463",
+   "varejo": "SAUDE E FORMA",
+   "grupo": "SEM GRUPO",
+   "comissao": 7.1292,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5016",
+   "varejo": "R E S",
+   "grupo": "SEM GRUPO",
+   "comissao": 5.707599999999999,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1114",
+   "varejo": "DCMODAEESTILO",
+   "grupo": "SEM GRUPO",
+   "comissao": 5.6160000000000005,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4110",
+   "varejo": "LARA FLOR",
+   "grupo": "SEM GRUPO",
+   "comissao": 5.5200000000000005,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "544",
+   "varejo": "LIVRARIA MIL KOISAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.6572,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1633",
+   "varejo": "SUBLIME MODA MIX",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.6508,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "394",
+   "varejo": "DIGISYSTEM",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.9356,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5945",
+   "varejo": "AMANDA BODY PIERCING",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.888,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1676",
+   "varejo": "MEK JOIAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.6959999999999997,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4487",
+   "varejo": "MALU MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.54,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2167",
+   "varejo": "BONITA BRECHO",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.518,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1699",
+   "varejo": "M M ENXOVAIS",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.1968,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "208",
+   "varejo": "GRID CENTRO AUTOMOTIVO",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.6392,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1832",
+   "varejo": "CIA DOS MOVEIS",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.5728,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1084",
+   "varejo": "BR CENTER",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.5056000000000003,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5332",
+   "varejo": "SILVERSTAR",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.3596,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2312",
+   "varejo": "ALPHORA PERFUMES E COSMETICOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.9839999999999998,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5047",
+   "varejo": "BERTAO E BIKES LTDA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5707",
+   "varejo": "CASA DA MODA ICARA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5717",
+   "varejo": "RIO MANIA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1778",
+   "varejo": "CRISVIANA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.9103999999999999,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5244",
+   "varejo": "LOJINHA DA SOL",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.7088,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "3154",
+   "varejo": "MAJU TRENDS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.6416,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2571",
+   "varejo": "FULLGAZZ SKATE SHOP",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.6272,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "430",
+   "varejo": "FLORATTA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.6207999999999998,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "227",
+   "varejo": "ANDREIA COSMETICOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.5984,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "366",
+   "varejo": "ÓTICA VISUAL",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.5984,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "482",
+   "varejo": "ALL CONCEPT MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.5984,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "758",
+   "varejo": "4G CELULARES E TECNOLOGIAS EIRELI",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.5984,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "198",
+   "varejo": "CALITO MOVEIS & ELETRODOMÉSTICOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.4744,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5125",
+   "varejo": "TRIZCLOTHING BOUTIQUE",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.4680000000000002,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "419",
+   "varejo": "SOL MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.4304,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "174",
+   "varejo": "COELHO INFORMÁTICA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.3784,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4579",
+   "varejo": "VITORIA STORE",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.0704,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "504",
+   "varejo": "CRIANCA BAKANA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.038,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5179",
+   "varejo": "JAQUE ESSENCEE",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.9072,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "376",
+   "varejo": "IMPERIO MÓVEIS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.8392000000000001,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2191",
+   "varejo": "STARCELL",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.672,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1229",
+   "varejo": "HOME CASA",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.5128,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "251",
+   "varejo": "CLOSET BOUTIQUE",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.5032,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5458",
+   "varejo": "MAYAN MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.336,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1636",
+   "varejo": "EMIDIO CONFECCOES",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.048,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6072",
+   "varejo": "BODYLUST",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.048,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6181",
+   "varejo": "VINTAGE SEMIJOIAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.048,
+   "portal": "não é loja AIVA"
+  }
+ ],
+ "novas": [
+  {
+   "rid": "6587",
+   "varejo": "AC PREMIUM",
+   "grupo": "INSIDE_SALES",
+   "comissao": 1034.41,
+   "portal": "SIM — 35 vendas, R$ 47.135,34"
+  },
+  {
+   "rid": "6334",
+   "varejo": "ANDRE CELL MAURITI",
+   "grupo": "INSIDE_SALES",
+   "comissao": 1000.28,
+   "portal": "SIM — 33 vendas, R$ 45.780,71"
+  },
+  {
+   "rid": "6847",
+   "varejo": "YOURCASE AVENIDA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 325.39,
+   "portal": "SIM — 11 vendas, R$ 14.747,88"
+  },
+  {
+   "rid": "6734",
+   "varejo": "AMIGAO MOVEIS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 297.6,
+   "portal": "SIM — 9 vendas, R$ 13.474,96"
+  },
+  {
+   "rid": "5883",
+   "varejo": "IBEIZE FORTALEZA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 286.42,
+   "portal": "SIM — 10 vendas, R$ 13.142,18"
+  },
+  {
+   "rid": "6516",
+   "varejo": "MAGU CELL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 256.25,
+   "portal": "SIM — 8 vendas, R$ 11.673,38"
+  },
+  {
+   "rid": "6873",
+   "varejo": "AJU CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 220.39,
+   "portal": "SIM — 7 vendas, R$ 9.992,81"
+  },
+  {
+   "rid": "5639",
+   "varejo": "UNIVERSO DOS CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 177.72,
+   "portal": "SIM — 6 vendas, R$ 8.075,83"
+  },
+  {
+   "rid": "6692",
+   "varejo": "ASSISTEL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 137.74,
+   "portal": "SIM — 4 vendas, R$ 6.258,81"
+  },
+  {
+   "rid": "6330",
+   "varejo": "SORA CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 108.91,
+   "portal": "SIM — 4 vendas, R$ 4.910,49"
+  },
+  {
+   "rid": "6103",
+   "varejo": "STAR CELL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 101.28,
+   "portal": "SIM — 3 vendas, R$ 4.624,17"
+  },
+  {
+   "rid": "6686",
+   "varejo": "55.784.676 MARCUS VINICIUS RAMOS SOUZA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 95.16,
+   "portal": "SIM — 3 vendas, R$ 4.286,12"
+  },
+  {
+   "rid": "6518",
+   "varejo": "CONSERTA MAIS CELULAR",
+   "grupo": "INSIDE_SALES",
+   "comissao": 88.56,
+   "portal": "SIM — 3 vendas, R$ 4.002,75"
+  },
+  {
+   "rid": "6804",
+   "varejo": "IVS CAMPO GRANDE III",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 77.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5050",
+   "varejo": "ELETROCEL",
+   "grupo": "INSIDE_SALES",
+   "comissao": 69.33,
+   "portal": "SIM — 2 vendas, R$ 3.150,56"
+  },
+  {
+   "rid": "6391",
+   "varejo": "IVS PINDAMONHANGABA",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 68.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6704",
+   "varejo": "MUNDO PLAY COMERCIO DE ELETRONICOS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 67.68,
+   "portal": "SIM — 2 vendas, R$ 3.066,68"
+  },
+  {
+   "rid": "6796",
+   "varejo": "61.094.859 HERONILDES GONCALVES DA CRUZ",
+   "grupo": "INSIDE_SALES",
+   "comissao": 67.68,
+   "portal": "SIM — 1 vendas, R$ 1.635,89"
+  },
+  {
+   "rid": "5814",
+   "varejo": "MASTERTECH",
+   "grupo": "INSIDE_SALES",
+   "comissao": 54.24,
+   "portal": "SIM — 2 vendas, R$ 2.453,05"
+  },
+  {
+   "rid": "6514",
+   "varejo": "33.009.529 ANTONIO DIONE DOS SANTOS SENA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 54.22,
+   "portal": "SIM — 2 vendas, R$ 2.456,61"
+  },
+  {
+   "rid": "6517",
+   "varejo": "M G A CELULARES E ASSISTENCIA TECNICA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 54.12,
+   "portal": "SIM — 2 vendas, R$ 2.440,56"
+  },
+  {
+   "rid": "6687",
+   "varejo": "IG CELL CELULARES",
+   "grupo": "INSIDE_SALES",
+   "comissao": 48.7,
+   "portal": "SIM — 2 vendas, R$ 2.190,22"
+  },
+  {
+   "rid": "4866",
+   "varejo": "CTI CELULAR",
+   "grupo": "INSIDE_SALES",
+   "comissao": 36,
+   "portal": "SIM — 1 vendas, R$ 1.635,89"
+  },
+  {
+   "rid": "6176",
+   "varejo": "HITECH IMPORTS EQUIPAMENTOS E CELULARES LTDA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 36,
+   "portal": "SIM — 1 vendas, R$ 1.627,15"
+  },
+  {
+   "rid": "6315",
+   "varejo": "50.798.154 JOHNATHA CARLOS DE ARAUJO SILVA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 36,
+   "portal": "SIM — 1 vendas, R$ 1.635,89"
+  },
+  {
+   "rid": "6413",
+   "varejo": "66.980.944 KAIO ROMAO BOTELHO",
+   "grupo": "INSIDE_SALES",
+   "comissao": 36,
+   "portal": "SIM — 1 vendas, R$ 1.627,15"
+  },
+  {
+   "rid": "6520",
+   "varejo": "ISA TECH",
+   "grupo": "INSIDE_SALES",
+   "comissao": 33.36,
+   "portal": "SIM — 1 vendas, R$ 1.507,83"
+  },
+  {
+   "rid": "6393",
+   "varejo": "IVS ITAITUBA",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 32.76,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4905",
+   "varejo": "IVS TAGUATINGA CENTRO CARLOS",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 32.52,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6394",
+   "varejo": "IVS RUA SERGIPE",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 30.72,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5169",
+   "varejo": "JOHN STORE",
+   "grupo": "INSIDE_SALES",
+   "comissao": 30.7,
+   "portal": "SIM — 1 vendas, R$ 1.394,87"
+  },
+  {
+   "rid": "6707",
+   "varejo": "IHOME",
+   "grupo": "INSIDE_SALES",
+   "comissao": 29.02,
+   "portal": "SIM — 1 vendas, R$ 1.311,49"
+  },
+  {
+   "rid": "6856",
+   "varejo": "CONSERTO LD",
+   "grupo": "INSIDE_SALES",
+   "comissao": 28.8,
+   "portal": "SIM — 1 vendas, R$ 1.308,71"
+  },
+  {
+   "rid": "6728",
+   "varejo": "33.875.674 PAMELA GOMES LEMOS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 28.1,
+   "portal": "SIM — 1 vendas, R$ 1.263,94"
+  },
+  {
+   "rid": "5666",
+   "varejo": "CASA DO CELULAR",
+   "grupo": "INSIDE_SALES",
+   "comissao": 26.4,
+   "portal": "SIM — 1 vendas, R$ 1.193,24"
+  },
+  {
+   "rid": "6667",
+   "varejo": "ROSA RIO SHOP ELETRONICOS E ACESSORIOS",
+   "grupo": "INSIDE_SALES",
+   "comissao": 25.42,
+   "portal": "SIM — 1 vendas, R$ 1.154,94"
+  },
+  {
+   "rid": "5393",
+   "varejo": "SMARTMANIA CELULARES E INFORMATICA",
+   "grupo": "INSIDE_SALES",
+   "comissao": 25.2,
+   "portal": "SIM — 1 vendas, R$ 1.139,00"
+  },
+  {
+   "rid": "6466",
+   "varejo": "IVS BANDEIRANTES PR",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 21.34,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6396",
+   "varejo": "IVS LIMEIRA 2",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 21.06,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6033",
+   "varejo": "MARTINI CELULAR",
+   "grupo": "INSIDE_SALES",
+   "comissao": 20.04,
+   "portal": "SIM — 1 vendas, R$ 927,92"
+  },
+  {
+   "rid": "6805",
+   "varejo": "IVS CURITIBANOS",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 17.4,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6464",
+   "varejo": "IVS LORENA SP",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 8.28,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6225",
+   "varejo": "IVS PORTO ALEGRE CENTRO",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 7.44,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5195",
+   "varejo": "CHICO ARMACOES E LENTES",
+   "grupo": "SEM GRUPO",
+   "comissao": 7.05,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "308",
+   "varejo": "OTICA BHERING",
+   "grupo": "SEM GRUPO",
+   "comissao": 6.71,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2190",
+   "varejo": "ROSE STORE",
+   "grupo": "SEM GRUPO",
+   "comissao": 6.67,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6759",
+   "varejo": "MAYLA MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 6.14,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5240",
+   "varejo": "BONEQUINHA FITNESS",
+   "grupo": "SEM GRUPO",
+   "comissao": 5.4,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5115",
+   "varejo": "VALENCE",
+   "grupo": "SEM GRUPO",
+   "comissao": 5.32,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2347",
+   "varejo": "JESSICA PERUCH CALCADOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.98,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "7009",
+   "varejo": "IVS CAJAMAR",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 4.8,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6595",
+   "varejo": "NOVA CALCADOS SAO DOMINGOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.8,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6596",
+   "varejo": "NOVA CALCADOS GRAVATA",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.63,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2638",
+   "varejo": "ORIENTE STORE",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.61,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "323",
+   "varejo": "TVEST ROUPAS E ACESSORIOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 4.23,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5116",
+   "varejo": "IVS LONDRINA CALCADAO 177",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 4.2,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6182",
+   "varejo": "MENINA DOS OLHOS BOUTIQUE",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.53,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2327",
+   "varejo": "MAGALI CALCADOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.48,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "782",
+   "varejo": "ARRETA CAR AUTO CENTER",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.2,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "495",
+   "varejo": "OKEM STORE",
+   "grupo": "SEM GRUPO",
+   "comissao": 3.04,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6080",
+   "varejo": "IVS CHAPECO EFAPI",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 3,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "343",
+   "varejo": "RELOJOARIA E OTICA VISUAL",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.91,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1392",
+   "varejo": "AK ELETRONICOS E ASSISTENCIA LTDA",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.88,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1634",
+   "varejo": "MARCO MATERIAIS DE CONSTRUCAO",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.88,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2043",
+   "varejo": "CASA DO ENXOVAL",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.88,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5759",
+   "varejo": "SANDRA PRODUTOS DE LIMPEZA",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.88,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "842",
+   "varejo": "MM MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.8,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6392",
+   "varejo": "IVS UNAI MG",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "comissao": 2.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "529",
+   "varejo": "HABITUAL MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "475",
+   "varejo": "LUCIANO MOVEIS",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5870",
+   "varejo": "BE A DIVA",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.67,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5698",
+   "varejo": "SA ELETRONICOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.64,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "294",
+   "varejo": "DONNA HERMES",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.4,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "288",
+   "varejo": "AMPERTEC",
+   "grupo": "SEM GRUPO",
+   "comissao": 2.38,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "425",
+   "varejo": "CASACASTHE",
+   "grupo": "SEM GRUPO",
+   "comissao": 2,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1303",
+   "varejo": "VIOLA DE OURO",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2115",
+   "varejo": "CAERO CENTER",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4105",
+   "varejo": "SUELEN MELLO",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5241",
+   "varejo": "INSTITUTO DRA ISABELLA MOTA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5984",
+   "varejo": "OTICA CONCEITO GODOY",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "6663",
+   "varejo": "ALEMAO CENTER PNEUS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4578",
+   "varejo": "TAY STYLE SHOES",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.91,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2741",
+   "varejo": "MADA MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.7,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1213",
+   "varejo": "MOUSTACHE MULTIMARCAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.68,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "1148",
+   "varejo": "LILA LILI",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.63,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "175",
+   "varejo": "COOKE KIDS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.56,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "474",
+   "varejo": "HL MOVEIS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.55,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "4106",
+   "varejo": "LA BELLA DONDOCA",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.54,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "395",
+   "varejo": "LOUCA CALCADOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.52,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5713",
+   "varejo": "ANA PAULA MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.41,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2165",
+   "varejo": "MARIARITA MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.34,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "935",
+   "varejo": "SARITA PRESENTES",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.2,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "266",
+   "varejo": "GLAMAZON",
+   "grupo": "SEM GRUPO",
+   "comissao": 1.06,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2098",
+   "varejo": "GLAMOUR MODA ACESSORIOS E PERFUMARIA",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.99,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "176",
+   "varejo": "GALINHA GORDA",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.96,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "292",
+   "varejo": "ANOMALIA",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.92,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5704",
+   "varejo": "ATITUDE MODAS E PRESENTES",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.86,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "259",
+   "varejo": "KONTAINER K",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.8,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5985",
+   "varejo": "LONDON PERFUMARIA COSMETICOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.75,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "5758",
+   "varejo": "MADAME BE",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.58,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2658",
+   "varejo": "PAPELARIA BRASIL SUL",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.42,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "2817",
+   "varejo": "DAY MODAS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.24,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "497",
+   "varejo": "MASSANEIRO MATERIAL DE CONSTRUCAO",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.19,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "3749",
+   "varejo": "CARIOCAKIDSTJ",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.19,
+   "portal": "não é loja AIVA"
+  },
+  {
+   "rid": "7029",
+   "varejo": "SS MODA E CALCADOS",
+   "grupo": "SEM GRUPO",
+   "comissao": 0.1,
+   "portal": "não é loja AIVA"
+  }
+ ]
+}
