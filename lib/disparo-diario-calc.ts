@@ -6,13 +6,15 @@
  * aqui: "o que faço agora?". Sem IO — a rota lê o estado (pausa, quanto saiu hoje,
  * fila, entrega da Meta) e executa a decisão.
  *
- * Ordem das guardas (os testes fixam): fim de semana → janela → pausado →
- * entrega em alerta → orçamento → fila.
+ * Ordem das guardas (os testes fixam): fim de semana → feriado → janela → pausado →
+ * fatia ocupada → entrega em alerta → orçamento → fila.
  *
  * A pausa NÃO expira na virada do dia: "só volta quando alguém destravar" (Aldo).
  * Pausa que se limpa à meia-noite seria retomada automática com outro nome.
  */
 import { PISO_TAXA, pct } from './entrega-meta-calc.ts'
+import { ehFeriado } from './business-time.ts'
+import { diaBrt } from './retomada-interessado-calc.ts'
 
 export const TETO_DIA = 500
 export const ROTULO = 'aiva_campanha'
@@ -34,7 +36,7 @@ export type Entrega = {
 export type Decisao =
   | { acao: 'disparar'; quantidade: number }
   | { acao: 'pausar'; motivo: string }
-  | { acao: 'nada'; motivo: 'fora_da_janela' | 'fim_de_semana' | 'pausado' | 'orcamento_gasto' | 'fila_vazia' }
+  | { acao: 'nada'; motivo: 'fora_da_janela' | 'fim_de_semana' | 'feriado' | 'pausado' | 'fatia_ocupada' | 'orcamento_gasto' | 'fila_vazia' }
 
 /** O que `resumoDoDia()` devolve e `textoResumoDia` formata. */
 export type Resumo = {
@@ -55,17 +57,33 @@ function relogioBrt(ms: number): { hora: number; minuto: number; diaSemana: stri
   return { hora: Number(pega('hour')), minuto: Number(pega('minute')), diaSemana: pega('weekday') }
 }
 
+/** Chave do lock de fatia: `disparo:<YYYY-MM-DD>T<HH>:<fatia>` com dia e hora em BRT e
+ *  `fatia = floor(minuto / 20)`. O cron roda em :07/:27/:47 (uma rodada por fatia de 20 min:
+ *  :07 e :19 → 0, :27 → 1, :47 → 2); duas rodadas na mesma fatia geram a MESMA chave.
+ *  ⚠️ Acoplado ao cron de vercel.json, como `ehUltimaRodada`. */
+export function chaveDaFatia(agoraMs: number): string {
+  const { hora, minuto } = relogioBrt(agoraMs)
+  return `disparo:${diaBrt(agoraMs)}T${String(hora).padStart(2, '0')}:${Math.floor(minuto / 20)}`
+}
+
 export function decidirRodada(e: {
   agoraMs: number
   pausado: boolean
   jaSaiuHoje: number
   filaPendente: number
   entrega: Entrega
+  /** Outra rodada já reservou esta fatia de 20 min (ver `chaveDaFatia`). Omitido = livre. */
+  fatiaOcupada?: boolean
 }): Decisao {
   const { hora, diaSemana } = relogioBrt(e.agoraMs)
   if (diaSemana === 'Sat' || diaSemana === 'Sun') return { acao: 'nada', motivo: 'fim_de_semana' }
+  if (ehFeriado(diaBrt(e.agoraMs))) return { acao: 'nada', motivo: 'feriado' }
   if (hora < JANELA.de || hora >= JANELA.ate) return { acao: 'nada', motivo: 'fora_da_janela' }
   if (e.pausado) return { acao: 'nada', motivo: 'pausado' }
+  // Antes do alerta e do orçamento: rodada duplicada (entrega dupla do cron, curl manual durante
+  // o cron) não pode pausar de novo nem mandar as mesmas lojas outra vez. Depois de `pausado`
+  // porque "pausado" é o motivo que o operador precisa ver.
+  if (e.fatiaOcupada) return { acao: 'nada', motivo: 'fatia_ocupada' }
   // sem_dados NÃO bloqueia: de manhã não há envio do dia pra medir, e Evo fora
   // do ar não é prova de bloqueio da Meta. Só o alerta (taxa abaixo do piso) pausa.
   if (e.entrega.estado === 'alerta') {

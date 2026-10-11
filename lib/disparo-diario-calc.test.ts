@@ -1,20 +1,21 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
+import { FERIADOS, ehFeriado } from './business-time.ts'
 
-// BRT = UTC-3 (sem horário de verão desde 2019). 2026-10-12 é segunda-feira.
-const SEG_10H = Date.parse('2026-10-12T13:00:00Z')
-const SEG_7H = Date.parse('2026-10-12T10:00:00Z')
-const SEG_19H = Date.parse('2026-10-12T22:00:00Z')
-const SEG_8H00 = Date.parse('2026-10-12T11:00:00Z')
-const SEG_18H59 = Date.parse('2026-10-12T21:59:00Z')
-const TER_10H = Date.parse('2026-10-13T13:00:00Z')
-const SAB_10H = Date.parse('2026-10-10T13:00:00Z')
-const DOM_10H = Date.parse('2026-10-11T13:00:00Z')
+// BRT = UTC-3 (sem horário de verão desde 2019). 2026-10-19 é segunda-feira; a de 12/10 é feriado, por isso não serve de base.
+const SEG_10H = Date.parse('2026-10-19T13:00:00Z')
+const SEG_7H = Date.parse('2026-10-19T10:00:00Z')
+const SEG_19H = Date.parse('2026-10-19T22:00:00Z')
+const SEG_8H00 = Date.parse('2026-10-19T11:00:00Z')
+const SEG_18H59 = Date.parse('2026-10-19T21:59:00Z')
+const TER_10H = Date.parse('2026-10-20T13:00:00Z')
+const SAB_10H = Date.parse('2026-10-17T13:00:00Z')
+const DOM_10H = Date.parse('2026-10-18T13:00:00Z')
 
 const OK: Entrega = { estado: 'ok', taxa: 0.87, amostra: 30, entregues: 26, motivo: '26 de 30 entregues (87%)' }
 const ALERTA: Entrega = { estado: 'alerta', taxa: 0.12, amostra: 25, entregues: 3, motivo: '3 de 25 entregues (12%)' }
@@ -84,14 +85,18 @@ test('entrega sem_dados → DISPARA (regressão: de manhã não há o que medir)
   assert.deepEqual(decidirRodada({ ...base(), entrega: semDados }), { acao: 'disparar', quantidade: 500 })
 })
 
-test('ordem das guardas: fim de semana > janela > pausado > alerta > orçamento > fila', () => {
-  const pior = { ...base(), pausado: true, entrega: ALERTA, jaSaiuHoje: 500, filaPendente: 0 }
+test('ordem das guardas: fim de semana > feriado > janela > pausado > fatia ocupada > alerta > orçamento > fila', () => {
+  const pior = { ...base(), pausado: true, fatiaOcupada: true, entrega: ALERTA, jaSaiuHoje: 500, filaPendente: 0 }
   assert.deepEqual(decidirRodada({ ...pior, agoraMs: SAB_10H }), { acao: 'nada', motivo: 'fim_de_semana' })
+  // feriado em dia de semana vence janela e todo o resto (02/11 é segunda; 07h BRT também é fora da janela)
+  assert.deepEqual(decidirRodada({ ...pior, agoraMs: Date.parse('2026-11-02T10:00:00Z') }), { acao: 'nada', motivo: 'feriado' })
   assert.deepEqual(decidirRodada({ ...pior, agoraMs: SEG_7H }), { acao: 'nada', motivo: 'fora_da_janela' })
   assert.deepEqual(decidirRodada(pior), { acao: 'nada', motivo: 'pausado' })
+  // fatia ocupada vence alerta/orçamento/fila (e não repete o alerta de pausa)
+  assert.deepEqual(decidirRodada({ ...pior, pausado: false }), { acao: 'nada', motivo: 'fatia_ocupada' })
   // já pausado não repete o alerta; despausado com alerta pausa antes de olhar o orçamento
-  assert.equal(decidirRodada({ ...pior, pausado: false }).acao, 'pausar')
-  assert.deepEqual(decidirRodada({ ...pior, pausado: false, entrega: OK }), { acao: 'nada', motivo: 'orcamento_gasto' })
+  assert.equal(decidirRodada({ ...pior, pausado: false, fatiaOcupada: false }).acao, 'pausar')
+  assert.deepEqual(decidirRodada({ ...pior, pausado: false, fatiaOcupada: false, entrega: OK }), { acao: 'nada', motivo: 'orcamento_gasto' })
 })
 
 test('textoPausa cita a taxa, quanto saiu, a fatura da Meta e /retomar', () => {
@@ -121,23 +126,23 @@ test('decidirRodada: o motivo da pausa vem de entrega.motivo (não repete "Entre
   assert.ok(d.acao === 'pausar' && !/78%.*piso/i.test(d.motivo), `78% como abaixo do piso: ${d.acao === 'pausar' && d.motivo}`)
 })
 
-// 2026-10-12 10h BRT = SEG_10H; meia-noite BRT desse dia = 03:00Z
-const DIA_INICIO = '2026-10-12T03:00:00.000Z'
+// 2026-10-19 10h BRT = SEG_10H; meia-noite BRT desse dia = 03:00Z
+const DIA_INICIO = '2026-10-19T03:00:00.000Z'
 test('inicioEfetivoDaAmostra: sem retomada → começo do dia BRT', () => {
   assert.equal(inicioEfetivoDaAmostra(SEG_10H, null), DIA_INICIO)
 })
 
 test('inicioEfetivoDaAmostra: retomada de ONTEM ou ilegível não encurta a amostra', () => {
-  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-11T20:00:00.000Z'), DIA_INICIO)
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-18T20:00:00.000Z'), DIA_INICIO)
   assert.equal(inicioEfetivoDaAmostra(SEG_10H, 'lixo'), DIA_INICIO)
 })
 
 test('inicioEfetivoDaAmostra: retomada de HOJE vira o começo da amostra (max com o início do dia)', () => {
-  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-12T12:15:00.000Z'), '2026-10-12T12:15:00.000Z')
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-19T12:15:00.000Z'), '2026-10-19T12:15:00.000Z')
 })
 
 test('inicioEfetivoDaAmostra: 21h BRT de ontem (00h UTC de hoje) ainda é ontem no Brasil', () => {
-  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-12T01:00:00.000Z'), DIA_INICIO)
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-19T01:00:00.000Z'), DIA_INICIO)
 })
 
 test('entregaIndisponivel devolve sem_dados — Evo fora não é bloqueio da Meta', () => {
@@ -252,4 +257,45 @@ test('textoPausadoAgora e textoJaPausado: o repetido diz que nada mudou e mostra
   assert.ok(/já estava pausado/i.test(j), j)
   assert.ok(j.includes('12/10') && j.includes('11:32') && j.includes('pelo WhatsApp') && j.includes('/retomar'), j)
   assert.ok(!textoJaPausado({ pausado_em: null, motivo: null }).includes('null'))
+})
+
+// ── feriados e lock de fatia (adendo de 11/10 noite) ─────────────────────────────────────────
+test('02/11/2026 (segunda, Finados) → nada, motivo feriado', () => {
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: Date.parse('2026-11-02T14:00:00Z') }), { acao: 'nada', motivo: 'feriado' })
+})
+
+test('03/11/2026 (terça) → dispara normalmente', () => {
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: Date.parse('2026-11-03T14:00:00Z') }), { acao: 'disparar', quantidade: 500 })
+})
+
+test('ehFeriado usa o dia civil BRT: 2026-11-02T02:30:00Z ainda é 01/11', () => {
+  assert.equal(ehFeriado('2026-11-02'), true)
+  assert.equal(ehFeriado('2026-11-03'), false)
+  // 02:30Z = 23:30 BRT de 01/11 (domingo): dia civil BRT não é feriado, mesmo com a data UTC sendo 02/11
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: Date.parse('2026-11-02T02:30:00Z') }), { acao: 'nada', motivo: 'fim_de_semana' })
+  // o inverso: 03/11 02:30Z = 23:30 BRT de 02/11 → ainda é o feriado, embora a data UTC seja 03/11
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: Date.parse('2026-11-03T02:30:00Z') }), { acao: 'nada', motivo: 'feriado' })
+  // 02/11 11:00Z = 08:00 BRT: dentro da janela, é o feriado
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: Date.parse('2026-11-02T11:00:00Z') }), { acao: 'nada', motivo: 'feriado' })
+  // o conjunto é o do plano, literal
+  assert.deepEqual([...FERIADOS].sort(), ['2026-10-12', '2026-11-02', '2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01'])
+})
+
+test('chaveDaFatia: 11:07Z e 11:19Z → mesma fatia 0; 11:27Z → fatia 1; 21:47Z → disparo:2026-10-13T18:2', () => {
+  const k07 = chaveDaFatia(Date.parse('2026-10-13T11:07:00Z'))
+  assert.equal(k07, 'disparo:2026-10-13T08:0')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:19:00Z')), k07)
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:27:00Z')), 'disparo:2026-10-13T08:1')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T21:47:00Z')), 'disparo:2026-10-13T18:2')
+  // dia BRT, não UTC: 02:07Z de 14/10 ainda é 13/10 às 23h BRT
+  assert.equal(chaveDaFatia(Date.parse('2026-10-14T02:07:00Z')), 'disparo:2026-10-13T23:0')
+})
+
+test('fatiaOcupada → nada, motivo fatia_ocupada, antes do orçamento', () => {
+  assert.deepEqual(decidirRodada({ ...base(), fatiaOcupada: true }), { acao: 'nada', motivo: 'fatia_ocupada' })
+  // antes do alerta e do orçamento: nem pausa nem olha o teto
+  assert.deepEqual(decidirRodada({ ...base(), fatiaOcupada: true, entrega: ALERTA }), { acao: 'nada', motivo: 'fatia_ocupada' })
+  assert.deepEqual(decidirRodada({ ...base(), fatiaOcupada: true, jaSaiuHoje: 500 }), { acao: 'nada', motivo: 'fatia_ocupada' })
+  // omitido = livre
+  assert.equal(decidirRodada(base()).acao, 'disparar')
 })

@@ -20,7 +20,7 @@ import { alertHuman } from './evotalks'
 import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
-  decidirRodada, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
+  decidirRodada, chaveDaFatia, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -78,6 +78,17 @@ async function contarFilaPendente(): Promise<number> {
     .select('id', { count: 'exact', head: true }).eq('status', 'PENDENTE')
   if (error) throw new Error(`sdr_fila_disparo: ${error.message}`)
   return count ?? 0
+}
+
+/** Reserva a fatia de 20 min desta rodada em `sdr_avisos_chave` (PK `chave`): o `insert` simples
+ *  falha com 23505 se outra rodada da mesma fatia já passou. `true` = ocupada. Qualquer outro
+ *  erro LANÇA: sem saber se a fatia é nossa, mandar às cegas é o duplicado que o lock evita. */
+async function fatiaJaOcupada(agora: number): Promise<boolean> {
+  const { error } = await supabaseAdmin.from('sdr_avisos_chave')
+    .insert({ chave: chaveDaFatia(agora), ultimo_aviso: new Date().toISOString() })
+  if (!error) return false
+  if (error.code === '23505') return true
+  throw new Error(`sdr_avisos_chave: ${error.message}`)
 }
 
 /** Evo fora do ar OU pendurado (timeout de 60 s) vira `sem_dados` — nunca derruba nem pausa a rodada.
@@ -175,9 +186,13 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   const inicio = Date.now()
 
   const estado = await lerEstado()
+  // Lock de fatia ANTES de contar e de medir a entrega: fatia ocupada não custa Evo.
+  // `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a rodada real que vem depois)
+  // e por isso não enxerga duplicidade: passa fatiaOcupada=false.
+  const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
   const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
   const entrega = await medirEntrega(agora, estado.retomado_em)
-  const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega })
+  const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega, fatiaOcupada })
 
   const montar = (extra: { enviados?: number; falhas?: number; cortado?: boolean } = {}): ResultadoRodada => {
     const enviados = extra.enviados ?? 0

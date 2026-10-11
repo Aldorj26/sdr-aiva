@@ -2,13 +2,27 @@
  * Helpers de horário comercial em BRT (America/Sao_Paulo).
  *
  * Regras:
- * - Dia útil = segunda a sexta (não conta feriado nacional por enquanto).
+ * - Dia útil = segunda a sexta, exceto os feriados de `FERIADOS`.
  * - Horário comercial = 8h às 20h.
  *
  * Usado pra bloquear automações de "impacto" (disparo HSM inicial, follow-up,
  * nudge) fora do horário comercial / fim de semana. O webhook de resposta
  * continua rodando normal — lojista pode falar com a VictorIA a qualquer hora.
  */
+
+import { diaBrt } from './retomada-interessado-calc.ts'
+
+/** Feriados nacionais em que NADA de impacto sai, como `YYYY-MM-DD` do dia civil em BRT.
+ *  Lista curta e explícita, de propósito: só entra o que a operação já decidiu respeitar.
+ *  ⚠️ O mesmo conjunto vive (copiado literal) no repo da Parcelex — mudou aqui, mude lá. */
+export const FERIADOS: ReadonlySet<string> = new Set([
+  '2026-10-12', '2026-11-02', '2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01',
+])
+
+/** `diaISO` é o dia civil em BRT (`diaBrt(ms)`), nunca o dia UTC: 02:30Z de 02/11 ainda é 01/11. */
+export function ehFeriado(diaISO: string): boolean {
+  return FERIADOS.has(diaISO)
+}
 
 function getDataBrt(): { diaSemana: number; hora: number } {
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -26,10 +40,10 @@ function getDataBrt(): { diaSemana: number; hora: number } {
   return { diaSemana: map[weekday] ?? 0, hora: hour }
 }
 
-/** Retorna true se hoje (em BRT) é segunda a sexta. */
+/** Retorna true se hoje (em BRT) é segunda a sexta e não é feriado nacional da lista. */
 export function isDiaUtil(): boolean {
   const { diaSemana } = getDataBrt()
-  return diaSemana >= 1 && diaSemana <= 5
+  return diaSemana >= 1 && diaSemana <= 5 && !ehFeriado(diaBrt(Date.now()))
 }
 
 /** Retorna true se agora é horário comercial BRT (8h–20h, seg-sex). */
