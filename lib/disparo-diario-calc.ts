@@ -47,12 +47,12 @@ export type Resumo = {
 
 /** Hora (0-23) e dia da semana no fuso de São Paulo.
  *  ⚠️ Via Intl, nunca `TZ=`: no Git Bash `TZ=America/Sao_Paulo` devolve UTC. */
-function relogioBrt(ms: number): { hora: number; diaSemana: string } {
+function relogioBrt(ms: number): { hora: number; minuto: number; diaSemana: string } {
   const partes = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo', hour: 'numeric', hourCycle: 'h23', weekday: 'short',
+    timeZone: 'America/Sao_Paulo', hour: 'numeric', minute: 'numeric', hourCycle: 'h23', weekday: 'short',
   }).formatToParts(new Date(ms))
   const pega = (t: string) => partes.find(p => p.type === t)?.value ?? ''
-  return { hora: Number(pega('hour')), diaSemana: pega('weekday') }
+  return { hora: Number(pega('hour')), minuto: Number(pega('minute')), diaSemana: pega('weekday') }
 }
 
 export function decidirRodada(e: {
@@ -91,9 +91,12 @@ export function textoPausa(entrega: Entrega, jaSaiuHoje: number): string {
   ].join('\n')
 }
 
-/** A última rodada do dia (18h37 BRT) é a que manda o resumo. */
+/** A última rodada do dia manda o resumo. ⚠️ Acoplado ao minuto do cron em vercel.json
+ *  (`7,27,47 11-21 * * 1-5` = 8h07…18h47 BRT): são 3 rodadas na hora das 18h, e só a das
+ *  18h47 (minuto ≥ 40) é a última. Mudar os minutos do cron exige mudar este corte. */
 export function ehUltimaRodada(agoraMs: number): boolean {
-  return relogioBrt(agoraMs).hora === JANELA.ate - 1
+  const { hora, minuto } = relogioBrt(agoraMs)
+  return hora === JANELA.ate - 1 && minuto >= 40
 }
 
 export function textoResumoDia(r: Resumo): string {
@@ -115,7 +118,7 @@ export function entregaIndisponivel(): Entrega {
 
 /** O que o `send-initial` devolve por telefone. */
 export type ResultadoEnvio = { telefone: string; ok: boolean; erro?: string }
-export type Marca = { id: string; status: 'DISPARADO' | 'ERRO' | 'PENDENTE'; detalhe: string | null }
+export type Marca = { id: string; status: 'DISPARADO' | 'DUPLICADO' | 'ERRO' | 'PENDENTE'; detalhe: string | null }
 
 /** Cruza o lote enviado com a resposta do `send-initial` e diz como marcar a fila.
  *  Lead SEM linha na resposta (lote que estourou o tempo, HTTP 5xx, timeout) fica
@@ -126,6 +129,10 @@ export function marcarResultados(lote: Array<{ id: string; telefone: string }>, 
     const r = resultados.find(x => x.telefone === l.telefone)
     if (!r) return { id: l.id, status: 'PENDENTE', detalhe: null }
     if (r.ok) return { id: l.id, status: 'DISPARADO', detalhe: null }
+    // `bloqueado_*` = o send-initial recusou porque o telefone JÁ está na base. É também o
+    // caminho de recuperação do lote abortado (a mensagem saiu, a resposta se perdeu): o
+    // lead não é falha, é DUPLICADO — o mesmo status de scripts/disparar-fila.mjs.
+    if (r.erro?.startsWith('bloqueado_')) return { id: l.id, status: 'DUPLICADO', detalhe: r.erro }
     return { id: l.id, status: 'ERRO', detalhe: r.erro ?? 'erro sem detalhe' }
   })
 }

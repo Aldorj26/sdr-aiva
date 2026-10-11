@@ -106,10 +106,12 @@ test('entregaIndisponivel devolve sem_dados — Evo fora não é bloqueio da Met
   assert.deepEqual(decidirRodada({ ...base(), entrega: e }), { acao: 'disparar', quantidade: 500 })
 })
 
-test('ehUltimaRodada: verdadeiro às 18h37 BRT, falso às 17h37 e às 8h37', () => {
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:37:00Z')), true)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T20:37:00Z')), false)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T11:37:00Z')), false)
+test('ehUltimaRodada: só a rodada das 18h47 BRT (cron 7,27,47) — 18h27 e 18h37 não, nem 17h47 e 8h47', () => {
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:47:00Z')), true)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:27:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:37:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T20:47:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T11:47:00Z')), false)
 })
 
 test('textoResumoDia traz saiu, restante, fila e a taxa do dia', () => {
@@ -141,4 +143,18 @@ test('marcarResultados: lead sem linha em resultados fica PENDENTE (lote que est
   ])
   // lote inteiro sem resposta (HTTP 5xx / timeout): ninguém é marcado, a próxima rodada reprocessa
   assert.ok(marcarResultados(lote, []).every(x => x.status === 'PENDENTE'))
+})
+
+test('marcarResultados: bloqueado_* (já está na base) → DUPLICADO com o detalhe, não ERRO', () => {
+  const lote = [{ id: 'a', telefone: '5511911111111' }, { id: 'b', telefone: '5511922222222' }, { id: 'c', telefone: '5511933333333' }]
+  const r = marcarResultados(lote, [
+    { telefone: '5511911111111', ok: false, erro: 'bloqueado_inicio' },
+    { telefone: '5511922222222', ok: false, erro: 'numero_sem_whatsapp' },
+    { telefone: '5511933333333', ok: false, erro: 'bloqueado_interessado' },
+  ])
+  assert.deepEqual(r, [
+    { id: 'a', status: 'DUPLICADO', detalhe: 'bloqueado_inicio' },
+    { id: 'b', status: 'ERRO', detalhe: 'numero_sem_whatsapp' },
+    { id: 'c', status: 'DUPLICADO', detalhe: 'bloqueado_interessado' },
+  ])
 })

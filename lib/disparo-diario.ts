@@ -25,9 +25,16 @@ import {
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
 
-/** Timeout de UM lote: 5 envios a ~6 s (até 12 s) cabem folgados; sem isso um fetch
- *  pendurado passaria os 300 s da função e perderia o log e o resumo do dia. */
-const TIMEOUT_LOTE_MS = 45_000
+/** O D+0 leva ~10–13 s POR LEAD (medido em produção, 01–09/10/2026): o `send-initial` cria o
+ *  lead, abre a oportunidade no Evo e só então manda o template. Lote de 5 = 48–75 s, e 100%
+ *  das janelas passaram de 45 s (o timeout fixo de 45 s da 1ª versão abortava todo lote real).
+ *  Por isso: (1) só começa lote se restarem ≥ 100 s na rodada (pior caso medido, com folga) e
+ *  (2) o timeout do lote é o que sobra até o teto da rodada, no máximo 120 s. */
+const MIN_RESTANTE_LOTE_MS = 100_000
+const TIMEOUT_LOTE_MAX_MS = 120_000
+/** `conferirEntregaHoje` faz até ~40 chamadas à Evo sem timeout próprio: Evo pendurado
+ *  queimaria os 300 s da função sem enviar nada. */
+const TIMEOUT_ENTREGA_MS = 60_000
 
 export type Estado = { pausado: boolean; motivo: string | null; pausado_em: string | null }
 
@@ -73,14 +80,23 @@ async function contarFilaPendente(): Promise<number> {
   return count ?? 0
 }
 
-/** Evo fora do ar vira `sem_dados` — nunca derruba nem pausa a rodada. */
+/** Evo fora do ar OU pendurado (timeout de 60 s) vira `sem_dados` — nunca derruba nem pausa a rodada. */
 async function medirEntrega(): Promise<Entrega> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<Entrega>((resolve) => {
+    timer = setTimeout(() => {
+      console.error(`[disparo-diario] conferirEntregaHoje: timeout de ${TIMEOUT_ENTREGA_MS / 1000}s — seguindo como sem_dados`)
+      resolve(entregaIndisponivel())
+    }, TIMEOUT_ENTREGA_MS)
+  })
+  const medir = conferirEntregaHoje().then(({ estado, taxa, amostra, entregues, motivo }): Entrega => ({ estado, taxa, amostra, entregues, motivo }))
   try {
-    const { estado, taxa, amostra, entregues, motivo } = await conferirEntregaHoje()
-    return { estado, taxa, amostra, entregues, motivo }
+    return await Promise.race([medir, timeout])
   } catch (err) {
     console.error('[disparo-diario] conferirEntregaHoje falhou — seguindo como sem_dados:', err)
     return entregaIndisponivel()
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -110,12 +126,12 @@ async function avisarTime(texto: string): Promise<void> {
 type LinhaFila = { id: string; nome: string; telefone: string; cidade: string | null }
 
 /** Manda um lote ao `send-initial`. Qualquer falha devolve [] → o lote inteiro fica PENDENTE. */
-async function enviarLote(lote: LinhaFila[]): Promise<ResultadoEnvio[]> {
+async function enviarLote(lote: LinhaFila[], timeoutMs: number): Promise<ResultadoEnvio[]> {
   const base = process.env.APP_URL ?? 'https://sdr-aiva.vercel.app'
   try {
     const res = await fetch(`${base}/api/sdr/send-initial`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(TIMEOUT_LOTE_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       // nome aparado no 1º separador (os nomes do Maps vêm com sufixo de
       // marketing: "RT Iphones - Loja de Celulares - IPhone - Xiaomi...") — igual a scripts/disparar-fila.mjs
       body: JSON.stringify({
@@ -200,27 +216,31 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
       const fila = (data ?? []) as LinhaFila[]
 
       let processados = 0
+      let duplicados = 0
       for (let i = 0; i < fila.length; i += LOTE) {
-        if (Date.now() - inicio > TETO_TEMPO_MS) { cortado = true; break }
+        const restanteMs = TETO_TEMPO_MS - (Date.now() - inicio)
+        if (restanteMs < MIN_RESTANTE_LOTE_MS) { cortado = true; break }
         const lote = fila.slice(i, i + LOTE)
-        const marcas = marcarResultados(lote, await enviarLote(lote))
+        const marcas = marcarResultados(lote, await enviarLote(lote, Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs)))
         for (const m of marcas) {
           if (m.status === 'PENDENTE') continue // fica na fila; a próxima rodada reprocessa
           const { error: erroMarca } = await supabaseAdmin.from('sdr_fila_disparo')
             .update(m.status === 'DISPARADO'
               ? { status: 'DISPARADO', disparado_em: new Date().toISOString() }
-              : { status: 'ERRO', detalhe: m.detalhe })
+              : { status: m.status, detalhe: m.detalhe })
             .eq('id', m.id)
           // a mensagem JÁ saiu; falhar em marcar só reaparece como duplicata (barrada pelo send-initial)
           if (erroMarca) console.error(`[disparo-diario] não marcou ${m.id}: ${erroMarca.message}`)
-          if (m.status === 'DISPARADO') enviados++; else falhas++
+          if (m.status === 'DISPARADO') enviados++
+          else if (m.status === 'DUPLICADO') duplicados++ // já está na base: não é falha
+          else falhas++
         }
         processados += marcas.length
       }
       // lote que ficou PENDENTE (estouro/HTTP) sem ter sido cortado pelo tempo: não é erro, a próxima rodada continua
-      if (!cortado && processados > enviados + falhas) {
-        console.log(`[disparo-diario] ${processados - enviados - falhas} ficam PENDENTES pra próxima rodada`)
-      }
+      const pendentes = processados - enviados - falhas - duplicados
+      if (duplicados) console.log(`[disparo-diario] ${duplicados} já estavam na base (DUPLICADO)`)
+      if (!cortado && pendentes > 0) console.log(`[disparo-diario] ${pendentes} ficam PENDENTES pra próxima rodada`)
     }
   }
 
