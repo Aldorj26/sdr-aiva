@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -298,4 +298,17 @@ test('fatiaOcupada → nada, motivo fatia_ocupada, antes do orçamento', () => {
   assert.deepEqual(decidirRodada({ ...base(), fatiaOcupada: true, jaSaiuHoje: 500 }), { acao: 'nada', motivo: 'fatia_ocupada' })
   // omitido = livre
   assert.equal(decidirRodada(base()).acao, 'disparar')
+})
+
+test('guardaBarata: devolve o primeiro motivo barato, ou null num dia útil normal', () => {
+  const b = { agoraMs: SEG_10H, pausado: false, fatiaOcupada: false }
+  assert.equal(guardaBarata(b), null)
+  assert.equal(guardaBarata({ agoraMs: SAB_10H, pausado: false }), 'fim_de_semana')
+  assert.equal(guardaBarata({ ...b, agoraMs: Date.parse('2026-11-02T14:00:00Z') }), 'feriado')
+  assert.equal(guardaBarata({ ...b, agoraMs: SEG_7H }), 'fora_da_janela')
+  assert.equal(guardaBarata({ ...b, pausado: true }), 'pausado')
+  assert.equal(guardaBarata({ ...b, fatiaOcupada: true }), 'fatia_ocupada')
+  // ordem: tudo ligado ao mesmo tempo em feriado → feriado; em dia útil → pausado antes de fatia ocupada
+  assert.equal(guardaBarata({ agoraMs: Date.parse('2026-11-02T10:00:00Z'), pausado: true, fatiaOcupada: true }), 'feriado')
+  assert.equal(guardaBarata({ ...b, pausado: true, fatiaOcupada: true }), 'pausado')
 })

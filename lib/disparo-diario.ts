@@ -20,7 +20,7 @@ import { alertHuman } from './evotalks'
 import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
-  decidirRodada, chaveDaFatia, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
+  decidirRodada, guardaBarata, chaveDaFatia, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -186,10 +186,27 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   const inicio = Date.now()
 
   const estado = await lerEstado()
-  // Lock de fatia ANTES de contar e de medir a entrega: fatia ocupada não custa Evo.
-  // `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a rodada real que vem depois)
-  // e por isso não enxerga duplicidade: passa fatiaOcupada=false.
+  // Lock de fatia logo após o estado. `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a
+  // rodada real que vem depois) e por isso não enxerga duplicidade: passa fatiaOcupada=false.
   const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
+
+  // FASE 1 — guardas baratas (fim de semana, feriado, janela, pausado, fatia ocupada): decidem só
+  // com o relógio, a pausa e o lock. Se pegar, a rodada para AQUI: sem contar o dia, sem fila, sem
+  // medir a Evo (~20 s) e SEM resumo do dia (nem às 18h47: duplicata ou feriado mandaria um
+  // "Saíram 0 de 500" que parece dia quebrado). Por isso, nestes casos os contadores do JSON vêm
+  // ZERADOS DE PROPÓSITO (saiu_hoje, restante, fila_pendente, entrega) e o `motivo` é que explica.
+  const barata = guardaBarata({ agoraMs: agora, pausado: estado.pausado, fatiaOcupada })
+  if (barata) {
+    console.log(`[disparo-diario] nada:${barata} enviados=0 falhas=0`)
+    const e = entregaIndisponivel()
+    return {
+      ok: true, acao: 'nada', motivo: barata, enviados: 0, falhas: 0,
+      saiu_hoje: 0, restante: 0, fila_pendente: 0,
+      entrega: { estado: e.estado, taxa: e.taxa, amostra: e.amostra }, cortado_por_tempo: false,
+    }
+  }
+
+  // FASE 2 — só agora conta, mede e decide com todas as guardas (a função pura continua completa).
   const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
   const entrega = await medirEntrega(agora, estado.retomado_em)
   const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega, fatiaOcupada })
