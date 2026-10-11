@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -157,4 +157,58 @@ test('marcarResultados: bloqueado_* (já está na base) → DUPLICADO com o deta
     { id: 'b', status: 'ERRO', detalhe: 'numero_sem_whatsapp' },
     { id: 'c', status: 'DUPLICADO', detalhe: 'bloqueado_interessado' },
   ])
+})
+
+const SEM_PAUSA = { pausado_em: null, motivo: null }
+const SEM_DADOS: Entrega = { estado: 'sem_dados', taxa: null, amostra: 0, entregues: 0, motivo: 'sem envio do dia' }
+
+test('textoStatusDisparo: ativo mostra saiu/restante/fila e a taxa de entrega', () => {
+  const t = textoStatusDisparo({ saiuHoje: 480, restante: 20, filaPendente: 3300, pausado: false, entrega: OK, ...SEM_PAUSA })
+  assert.ok(t.includes('480 de 500'), t)
+  assert.ok(t.includes('Restam 20'), t)
+  assert.ok(t.includes('Fila: 3300'), t)
+  assert.ok(t.includes('87%') && t.includes('26 de 30'), t)
+  assert.ok(!t.includes('PAUSADO') && !t.includes('/retomar'), t)
+})
+
+test('textoStatusDisparo: sem_dados diz que a entrega não é mensurável, nunca 0%', () => {
+  const t = textoStatusDisparo({ saiuHoje: 0, restante: 500, filaPendente: 3300, pausado: false, entrega: SEM_DADOS, ...SEM_PAUSA })
+  assert.ok(!t.includes('0%') && !t.includes('null') && !t.includes('NaN'), t)
+  assert.ok(/ainda/i.test(t), t)
+})
+
+test('textoStatusDisparo: pausado diz desde quando, o motivo e manda usar /retomar', () => {
+  // 2026-10-12T14:32:00Z = 11h32 em Brasília
+  const t = textoStatusDisparo({
+    saiuHoje: 200, restante: 300, filaPendente: 3300, pausado: true, entrega: ALERTA,
+    pausado_em: '2026-10-12T14:32:00Z', motivo: 'pausado por 5547996085000 pelo WhatsApp',
+  })
+  assert.ok(t.includes('PAUSADO'), t)
+  assert.ok(t.includes('12/10') && t.includes('11:32'), t)
+  assert.ok(t.includes('pausado por 5547996085000 pelo WhatsApp'), t)
+  assert.ok(t.includes('/retomar'), t)
+  // pausado sem registro de quando/por quê (linha antiga): não imprime null
+  const velho = textoStatusDisparo({ saiuHoje: 0, restante: 500, filaPendente: 1, pausado: true, entrega: OK, ...SEM_PAUSA })
+  assert.ok(velho.includes('/retomar') && !velho.includes('null'), velho)
+})
+
+test('textoRetomado: confirma e diz que a próxima rodada volta a disparar', () => {
+  const t = textoRetomado(true)
+  assert.ok(/retomad/i.test(t), t)
+  assert.ok(/próxima rodada/i.test(t), t)
+  assert.ok(t.split('\n').length <= 4, t)
+})
+
+test('textoRetomado quando já estava ativo: diz que não estava pausado', () => {
+  const t = textoRetomado(false)
+  assert.ok(/não estava pausado/i.test(t), t)
+  assert.ok(t.split('\n').length <= 4, t)
+})
+
+test('textoPausadoAgora e textoJaPausado: o repetido diz que nada mudou e mostra desde quando/por quê', () => {
+  assert.ok(/pausado/i.test(textoPausadoAgora()) && textoPausadoAgora().includes('/retomar'))
+  const j = textoJaPausado({ pausado_em: '2026-10-12T14:32:00Z', motivo: 'pausado por 5547996085000 pelo WhatsApp' })
+  assert.ok(/já estava pausado/i.test(j), j)
+  assert.ok(j.includes('12/10') && j.includes('11:32') && j.includes('pelo WhatsApp') && j.includes('/retomar'), j)
+  assert.ok(!textoJaPausado({ pausado_em: null, motivo: null }).includes('null'))
 })

@@ -111,6 +111,59 @@ export function textoResumoDia(r: Resumo): string {
   ].join('\n')
 }
 
+/** "12/10 às 11:32" em Brasília. Via Intl (nunca `TZ=`). Vazio/ilegível → "data desconhecida". */
+function quandoBrt(iso: string | null): string {
+  const ms = iso ? Date.parse(iso) : NaN
+  if (Number.isNaN(ms)) return 'data desconhecida'
+  const partes = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(ms))
+  const pega = (t: string) => partes.find(p => p.type === t)?.value ?? ''
+  return `${pega('day')}/${pega('month')} às ${pega('hour')}:${pega('minute')}`
+}
+
+/** Resposta do `/disparo`: onde o dia está e se o robô está solto ou travado. */
+export function textoStatusDisparo(r: Resumo & { pausado_em: string | null; motivo: string | null }): string {
+  const medida = r.entrega.taxa == null
+    ? 'Entrega: ainda não dá pra medir (sem envio confirmado hoje).'
+    : `Entrega: ${pct(r.entrega.taxa)} (${r.entrega.entregues} de ${r.entrega.amostra} confirmados).`
+  const linhas = [
+    r.pausado ? '🛑 Disparo AIVA — PAUSADO' : '✅ Disparo AIVA — ativo',
+    `Saíram ${r.saiuHoje} de ${TETO_DIA} hoje. Restam ${r.restante}.`,
+    `Fila: ${r.filaPendente} pendentes.`,
+    medida,
+  ]
+  if (r.pausado) {
+    linhas.push(`Pausado desde ${quandoBrt(r.pausado_em)}${r.motivo ? ` — ${r.motivo}` : ''}.`)
+    linhas.push('Pra voltar a disparar: /retomar')
+  }
+  return linhas.join('\n')
+}
+
+/** `/pausar` quando acabou de pausar. */
+export function textoPausadoAgora(): string {
+  return [
+    '🛑 Disparo AIVA pausado.',
+    'Nenhuma rodada vai disparar até alguém responder /retomar.',
+  ].join('\n')
+}
+
+/** `/pausar` repetido: já estava pausado, então diz o estado real em vez de fingir que pausou agora. */
+export function textoJaPausado(e: { pausado_em: string | null; motivo: string | null }): string {
+  return [
+    '🛑 O disparo já estava pausado — nada mudou.',
+    `Desde ${quandoBrt(e.pausado_em)}${e.motivo ? `: ${e.motivo}` : ''}.`,
+    'Pra voltar a disparar: /retomar',
+  ].join('\n')
+}
+
+/** `/retomar`: `estavaPausado` é o retorno de `retomar()`. Repetir o comando cai no `false`. */
+export function textoRetomado(estavaPausado: boolean): string {
+  return estavaPausado
+    ? ['▶️ Disparo AIVA retomado.', 'A próxima rodada agendada volta a disparar.'].join('\n')
+    : ['O disparo não estava pausado — nada a retomar.', 'Pra ver o dia: /disparo'].join('\n')
+}
+
 /** Evo fora do ar: não dá pra medir, e isso não é bloqueio da Meta → não pausa. */
 export function entregaIndisponivel(): Entrega {
   return { estado: 'sem_dados', taxa: null, amostra: 0, entregues: 0, motivo: 'Evo indisponível — entrega não medida' }
