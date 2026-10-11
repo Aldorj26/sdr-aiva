@@ -99,6 +99,9 @@ const ALVOS: Alvo[] = [
   { rota: 'fase3-destravada', tolerancia: 999, fila: () => 0, acao: (j) => n(j.ativos) },
   // espelho: fila 0 é NORMAL (tudo espelhado); o que se vigia é ele responder
   { rota: 'espelho-portal', tolerancia: 999, fila: () => 0, acao: (j) => n(j.onboardings) },
+  // disparo D+0 diário (11/10/2026): fila cheia todo dia útil, 2 dias sem envio é anormal. Ação = `saiu_hoje`, NÃO `enviados`:
+  // o vigia lê o `?dry` das 17h, que não envia nada — `enviados` seria sempre 0 e gritaria à toa (o defeito de 24/09 da cobrança/biometria)
+  { rota: 'disparo-diario', tolerancia: 2, fila: (j) => n(j.fila_pendente), acao: (j) => n(j.saiu_hoje) },
 ]
 
 const BASE = 'https://sdr-aiva.vercel.app/api/sdr'
