@@ -177,9 +177,18 @@ nada: a seguinte recalcula e continua.
 
 ## Ritmo concreto
 
-**AIVA** — teto 500/dia útil, `37 11-21 * * 1-5` (UTC) = 8h37 às 18h37 BRT,
-11 rodadas. A ~5s por lead e 240s por rodada cabem ~46 por rodada: 11 × 46 = 506,
-com folga. Lotes de 5 para o `send-initial`, como o script faz hoje.
+**AIVA** — teto 500/dia útil, `7,27,47 11-21 * * 1-5` (UTC) = 8h07 às 18h47 BRT,
+33 rodadas de 20 em 20 minutos. Lotes de 5 para o `send-initial`, como o script
+faz hoje.
+
+> **Corrigido em 11/10, na revisão da Task 2.** A primeira versão deste spec
+> assumia ~5 s por lead (medida da retomada) e 11 rodadas. O revisor mediu em
+> produção, nos 14 dias anteriores, o D+0 real: **~10–13 s por lead**, janelas
+> de 5 envios em 48–75 s — o `send-initial` cria lead, abre oportunidade no Evo
+> e só então manda o template. Com 240 s por rodada cabem ~14 leads, não ~46.
+> A alavanca é a que o spec já previa: mais rodadas. 33 × ~14 ≈ 460; o teto de
+> 500 é limite, não meta. Como 240 s < 20 min, rodadas não se sobrepõem. A rodada
+> das 18h47 é a última do dia e é a que manda o resumo.
 
 **Parcelex** — teto 500/dia útil, `17 11-21 * * 1-5` (UTC) = 8h17 às 18h17 BRT,
 11 rodadas. Lotes de 20, como a onda faz hoje. A rodada processa lotes até bater

@@ -4,6 +4,8 @@ import { sendText } from '@/lib/evotalks'
 import { buildBriefingPipeline } from '@/lib/pipeline-briefing'
 import { formatarRelatorioIncompletos } from '@/lib/cadastro-recebido'
 import { callClaudeWithRetry } from '@/lib/claude'
+import { lerEstado, pausar, retomar, resumoDoDia } from '@/lib/disparo-diario'
+import { textoStatusDisparo, textoPausadoAgora, textoJaPausado, textoRetomado } from '@/lib/disparo-diario-calc'
 
 // Números autorizados como admin
 const ADMIN_NUMBERS = [
@@ -67,6 +69,12 @@ export async function handleCommand(telefone: string, text: string): Promise<str
       case '/resumo':
       case '/funil':
         return await cmdPipeline()
+      case '/disparo':
+        return await cmdDisparo()
+      case '/pausar':
+        return await cmdPausar(telefone)
+      case '/retomar':
+        return textoRetomado(await retomar(telefone))
       case '/help':
       case '/ajuda':
         return cmdHelp()
@@ -139,9 +147,26 @@ function cmdHelp(): string {
     '/incompletos — oportunidades em Cadastro Recebido com dados faltando',
     '/disparar <telefone> [nome] — disparar campanha',
     '/followup — rodar follow-ups pendentes',
+    '/disparo — situação do disparo diário (saiu hoje, fila, entrega)',
+    '/pausar — pausar o disparo diário até alguém dar /retomar',
+    '/retomar — voltar a disparar após uma pausa',
     '/reprocessar <telefone> — retriggar lead travado',
     '/ajuda — esta mensagem',
   ].join('\n')
+}
+
+async function cmdDisparo(): Promise<string> {
+  const [resumo, estado] = await Promise.all([resumoDoDia(), lerEstado()])
+  return textoStatusDisparo({ ...resumo, pausado_em: estado.pausado_em, motivo: estado.motivo })
+}
+
+/** Repetido é o caso normal (quem não viu a resposta manda de novo): lê antes e, se já estava
+ *  pausado, devolve o estado real em vez de confirmar uma pausa que não aconteceu agora. */
+async function cmdPausar(telefone: string): Promise<string> {
+  const atual = await lerEstado()
+  if (atual.pausado) return textoJaPausado(atual)
+  await pausar(`pausado por ${telefone} pelo WhatsApp`)
+  return textoPausadoAgora()
 }
 
 async function cmdStatus(): Promise<string> {

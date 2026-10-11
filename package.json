@@ -29,7 +29,8 @@
     "test:abertura": "node --test lib/teste-abertura.test.ts",
     "test:avisos": "node --test lib/avisos-painel-calc.test.ts lib/atendimento-orientacao.test.ts",
     "test:desempenho": "node --test lib/desempenho-loja-calc.test.ts lib/dicas-desempenho-calc.test.ts",
-    "test:comissoes": "node --test lib/comissoes.test.ts"
+    "test:comissoes": "node --test lib/comissoes.test.ts",
+    "test:disparo": "node --test lib/disparo-diario-calc.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
