@@ -21,7 +21,7 @@ import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
   decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
-  lotePifou, chavePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
+  lotePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
@@ -320,8 +320,10 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
           cortado = true
           const motivoPausa = `${PREFIXO_PAUSA_ENVIO} ${quebra.n}/${lote.length}: ${(quebra.erro ?? 'sem detalhe').replace(/\s+/g, ' ').slice(0, 200)}`
           console.error(`[disparo-diario] BREAKER: ${motivoPausa} — pausando`)
-          await pausar(motivoPausa) // idempotente
-          await avisarTime(textoPifou(quebra.n, quebra.erro), teaserPifou(quebra.n), { chaveDedupe: chavePifou(agora), janelaMs: 3_600_000 })
+          // Mesma chave da pausa (`chaveDaPausa`): o aviso é UM só, tentado de novo pelo lembrete das rodadas
+          // seguintes até um coringa chegar, e depois cala (não duplica com o lembrete).
+          const pausadoEm = await pausar(motivoPausa) // idempotente
+          await avisarTime(textoPifou(quebra.n, quebra.erro), teaserPifou(quebra.n), { chaveDedupe: chaveDaPausa(pausadoEm), janelaMs: JANELA_PAUSA_MS })
           break
         }
       }

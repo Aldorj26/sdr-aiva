@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
-  lotePifou, chavePifou, textoPifou, teaserPifou,
+  lotePifou, textoPifou, teaserPifou,
   JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
@@ -476,18 +476,26 @@ test('lotePifou: só 2 erros (lote pequeno) → NÃO pifou; lote vazio → NÃO 
   assert.deepEqual(lotePifou([]), { pifou: false, n: 0, erro: null })
 })
 
-test('lotePifou: 100% numero_sem_whatsapp → pifou (Evo devolvendo 200 com erro parece "sem WhatsApp"), mesmo com <3', () => {
-  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'numero_sem_whatsapp'), er('3', 'numero_sem_whatsapp'), er('4', 'numero_sem_whatsapp'), er('5', 'numero_sem_whatsapp')]).pifou, true)
-  assert.deepEqual(lotePifou([er('1', 'numero_sem_whatsapp')]), { pifou: true, n: 1, erro: 'numero_sem_whatsapp' })
-  // misturado com outro erro não é "100% sem whatsapp": segue a regra dos 3
-  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'numero_sem_whatsapp')]).pifou, true)
+test('lotePifou: 100% numero_sem_whatsapp num lote CHEIO (LOTE) → pifou (Evo devolvendo 200 com erro parece "sem WhatsApp")', () => {
+  const cheio = Array.from({ length: LOTE }, (_, i) => er(String(i), 'numero_sem_whatsapp'))
+  assert.deepEqual(lotePifou(cheio), { pifou: true, n: LOTE, erro: 'numero_sem_whatsapp' })
+  // cheio, mas um deles saiu: é número morto de verdade
+  assert.equal(lotePifou([ok('x'), ...cheio.slice(1)]).pifou, false)
+})
+
+test('lotePifou: cauda CURTA da fila (1–4) toda numero_sem_whatsapp NÃO pausa o dia', () => {
+  for (let n = 1; n < LOTE; n++) {
+    const cauda = Array.from({ length: n }, (_, i) => er(String(i), 'numero_sem_whatsapp'))
+    assert.equal(lotePifou(cauda).pifou, false, `lote de ${n} sem WhatsApp pausou`)
+  }
+  // misturado com bloqueado_* também não é "100% sem whatsapp"
   assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'bloqueado_inicio')]).pifou, false)
 })
 
-test('chavePifou: uma por hora BRT (disparo_pifou:<dia>T<HH>)', () => {
-  assert.equal(chavePifou(Date.parse('2026-10-19T13:07:00Z')), 'disparo_pifou:2026-10-19T10')
-  assert.equal(chavePifou(Date.parse('2026-10-19T13:47:00Z')), 'disparo_pifou:2026-10-19T10')
-  assert.equal(chavePifou(Date.parse('2026-10-20T02:30:00Z')), 'disparo_pifou:2026-10-19T23')
+test('lotePifou: numero_sem_whatsapp não entra na regra dos 3 erros (só na regra do lote cheio)', () => {
+  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'numero_sem_whatsapp'), er('3', 'numero_sem_whatsapp'), er('4', 'numero_sem_whatsapp')]).pifou, false)
+  // 3 erros reais de envio continuam pifando, com sem_whatsapp no meio
+  assert.equal(lotePifou([er('1', 'Evo 503'), er('2', 'Evo 503'), er('3', 'Evo 503'), er('4', 'numero_sem_whatsapp')]).pifou, true)
 })
 
 test('textoPifou / teaserPifou: n, o 1º erro cortado, pausa, PENDENTE, /retomar; teaser em uma linha', () => {

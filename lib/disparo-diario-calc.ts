@@ -310,21 +310,20 @@ export function teaserTravado(n: number): string {
 /** Breaker do lote: o `send-initial` cria o lead ANTES de mandar o template, e quando o Evo erra
  *  rápido (5xx, 401 depois de rotação de chave, ou 200 com corpo de erro — que o envio lê como
  *  `numero_sem_whatsapp`) cada lead falha em ~1 s e uma só rodada queimaria o orçamento do dia inteiro
- *  marcando tudo como ERRO. `pifou` = nenhum `ok` E (3+ erros que NÃO são `bloqueado_*`, OU o lote
- *  inteiro é `numero_sem_whatsapp`, que num lote real de 5 é bloqueio e não azar). `bloqueado_*` é
- *  "já está na base": prova de que o send-initial respondeu direito, nunca conta como falha. */
+ *  marcando tudo como ERRO. `pifou` = nenhum `ok` E uma de duas:
+ *  (1) 3+ erros de ENVIO (nem `bloqueado_*`, nem `numero_sem_whatsapp`); ou
+ *  (2) um lote CHEIO (`LOTE` resultados) 100% `numero_sem_whatsapp`, que num lote real é bloqueio e não azar.
+ *  `bloqueado_*` é "já está na base": prova de que o send-initial respondeu direito, nunca conta.
+ *  `numero_sem_whatsapp` fica fora da regra (1) e a (2) exige lote cheio de propósito: a cauda da fila
+ *  (1–4 números mortos) é normal e não pode pausar o dia. */
 export function lotePifou(resultados: ResultadoEnvio[]): { pifou: boolean; n: number; erro: string | null } {
-  const comErro = resultados.filter((r) => !r.ok && !(r.erro ?? '').startsWith('bloqueado_'))
-  const erro = comErro.length ? (comErro[0].erro ?? 'erro sem detalhe') : null
+  const naoBloqueados = resultados.filter((r) => !r.ok && !(r.erro ?? '').startsWith('bloqueado_'))
+  const deEnvio = naoBloqueados.filter((r) => r.erro !== 'numero_sem_whatsapp')
   const algumOk = resultados.some((r) => r.ok)
-  const todosSemWhatsapp = resultados.length > 0 && resultados.every((r) => !r.ok && r.erro === 'numero_sem_whatsapp')
-  const pifou = !algumOk && (comErro.length >= 3 || todosSemWhatsapp)
-  return { pifou, n: comErro.length, erro }
-}
-
-/** Chave de dedupe do alerta do breaker: UMA por hora BRT (`disparo_pifou:<YYYY-MM-DD>T<HH>`). */
-export function chavePifou(agoraMs: number): string {
-  return `disparo_pifou:${diaBrt(agoraMs)}T${String(relogioBrt(agoraMs).hora).padStart(2, '0')}`
+  const loteCheioSemWhatsapp = resultados.length >= LOTE && resultados.every((r) => !r.ok && r.erro === 'numero_sem_whatsapp')
+  const pifou = !algumOk && (deEnvio.length >= 3 || loteCheioSemWhatsapp)
+  const primeiro = deEnvio[0] ?? naoBloqueados[0]
+  return { pifou, n: naoBloqueados.length, erro: primeiro ? (primeiro.erro ?? 'erro sem detalhe') : null }
 }
 
 /** `n` = leads do lote que falharam; `erro` = o primeiro erro (cortado em 300). */
@@ -335,7 +334,7 @@ export function textoPifou(n: number, erro: string | null): string {
     'Os leads do lote voltaram para PENDENTE (nada foi queimado) e o disparo ficou pausado até alguém destravar.',
     '',
     'Primeiro: confira o Evo (chave, instância, fora do ar) e o deploy do send-initial.',
-    'Depois, responda /retomar aqui. Este aviso sai no máximo 1× por hora.',
+    'Depois, responda /retomar aqui.',
   ].join('\n')
 }
 
