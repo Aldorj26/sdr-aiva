@@ -23,6 +23,11 @@ export const JANELA = { de: 8, ate: 19 }
 /** A função morre em 300s; parar aos 240s deixa folga pra gravar o log. */
 export const TETO_TEMPO_MS = 240_000
 export const LOTE = 5
+/** O resumo das 18h47 faz 3 consultas ao banco + avisarEquipe (até ~35 s): só começa com folga. */
+export const MIN_RESTANTE_RESUMO_MS = 40_000
+/** O aviso da pausa automática segura a chave por 30 dias: a chave carrega o `pausado_em`, então uma
+ *  pausa NOVA tem chave nova — a janela longa só garante que a MESMA pausa não avise duas vezes. */
+export const JANELA_PAUSA_MS = 30 * 24 * 3_600_000
 
 /** Mesma forma do veredito de `lib/entrega-meta-calc.ts`, achatada pra rota. */
 export type Entrega = {
@@ -70,9 +75,11 @@ export function chaveDaFatia(agoraMs: number): string {
 }
 
 /** As cinco guardas BARATAS, na ordem: fim de semana → feriado → janela → pausado → fatia ocupada.
- *  Devolve o primeiro motivo que pega, ou `null`. Pura e sem custo: o IO chama ANTES de contar
- *  o dia e de medir a entrega (Evo, ~20 s), pra rodada que não vai fazer nada não pagar por isso.
- *  `decidirRodada` chama a mesma função, então a ordem existe num lugar só. */
+ *  Devolve o primeiro motivo que pega, ou `null`. Pura e sem custo: o IO chama ANTES de medir a
+ *  entrega (Evo, ~20 s), pra rodada que não vai fazer nada não pagar por isso. O IO chama primeiro
+ *  com `fatiaOcupada: false` (as quatro guardas do relógio e da pausa, SEM reservar o lock) e só
+ *  depois de passar por elas reserva a fatia. `decidirRodada` chama a mesma função, então a ordem
+ *  existe num lugar só. */
 export function guardaBarata(e: { agoraMs: number; pausado: boolean; fatiaOcupada?: boolean }): MotivoBarato | null {
   const { hora, diaSemana } = relogioBrt(e.agoraMs)
   if (diaSemana === 'Sat' || diaSemana === 'Sun') return 'fim_de_semana'
@@ -143,6 +150,20 @@ export function textoPausa(entrega: Entrega, jaSaiuHoje: number): string {
   ].join('\n')
 }
 
+/** Chave de dedupe do aviso da pausa AUTOMÁTICA: `disparo_pausa:<pausado_em>`. O alerta original e
+ *  o lembrete das rodadas seguintes usam a MESMA chave; como `avisarEquipe` só a segura quando pelo
+ *  menos um coringa (HSM 48) saiu, a pausa reavisa a cada rodada até um chegar e depois cala. */
+export function chaveDaPausa(pausadoEm: string): string {
+  return `disparo_pausa:${pausadoEm}`
+}
+
+/** Pausa da própria rodada (entrega abaixo do piso) × pausa de gente (`/pausar` grava
+ *  "pausado por <telefone> pelo WhatsApp"). Só a automática ganha lembrete: quem pausou na mão sabe.
+ *  Motivo ausente = linha antiga, origem desconhecida → não insiste. */
+export function ehPausaAutomatica(motivo: string | null): boolean {
+  return !!motivo && !motivo.startsWith('pausado por')
+}
+
 /** A última rodada do dia manda o resumo. ⚠️ Acoplado ao minuto do cron em vercel.json
  *  (`7,27,47 11-21 * * 1-5` = 8h07…18h47 BRT): são 3 rodadas na hora das 18h, e só a das
  *  18h47 (minuto ≥ 40) é a última. Mudar os minutos do cron exige mudar este corte. */
@@ -186,6 +207,16 @@ export function teaserPausa(entrega: Entrega, jaSaiuHoje: number): string {
   return `${ini}${cortar(diag, LIMITE_TEASER - ini.length - fim.length)}${fim}`
 }
 
+/** Lembrete da pausa automática, repetido a cada rodada até UM coringa chegar (ver `chaveDaPausa`).
+ *  Mesmo desenho do teaser da pausa, mas com o "desde quando" (a pausa pode ter horas) no lugar do
+ *  "saíram N de 500"; a ação ("responda /retomar") nunca é cortada, o diagnóstico sim, em último caso. */
+export function teaserPausaLembrete(e: { motivo: string | null; pausado_em: string | null }): string {
+  const fim = ' — confira a fatura da Meta e responda /retomar'
+  const ini = `🛑 disparo AIVA segue pausado desde ${quandoBrt(e.pausado_em)}: `
+  const diag = semPontoFinal(umaLinha(e.motivo ?? 'motivo não registrado'))
+  return `${ini}${cortar(diag, LIMITE_TEASER - ini.length - fim.length)}${fim}`
+}
+
 export function teaserResumo(r: Resumo): string {
   return `📊 disparo AIVA: saíram ${r.saiuHoje} de ${TETO_DIA}, fila ${r.filaPendente}${r.pausado ? ' (PAUSADO)' : ''}`
 }
@@ -214,6 +245,55 @@ export function textoQuebrou(msg: string, agoraMs: number): string {
     'Nada foi enviado nesta rodada; a próxima tenta de novo sozinha. Se o erro se repetir, o lote do dia não fecha.',
     'Este aviso sai no máximo 1× por hora. O vigia das 17h também vai cobrar.',
   ].join('\n')
+}
+
+/** A versão LONGA do lembrete (texto livre). Diz que é repetição: o aviso original pode ter caído
+ *  fora da janela de 24 h do WhatsApp, e é por isso que o time está lendo isto de novo. */
+export function textoPausaLembrete(e: { motivo: string | null; pausado_em: string | null }): string {
+  return [
+    '🛑 Disparo AIVA: continua PAUSADO',
+    `Desde ${quandoBrt(e.pausado_em)}: ${e.motivo ?? 'motivo não registrado'}`,
+    'Pausa automática pela entrega da Meta. Repito o aviso porque o primeiro pode não ter chegado.',
+    '',
+    'Primeiro: confira a fatura da Meta (foi isso em 21/09).',
+    'Depois, responda /retomar aqui.',
+  ].join('\n')
+}
+
+/** O resumo das 18h47 só começa se ainda sobra folga do teto de 240 s da rodada. Sem folga ele
+ *  seria cortado pelo relógio da função (300 s) com o disparo já feito; pular custa pouco: o vigia
+ *  das 17h do dia seguinte enxerga o dia anterior. */
+export function cabeResumo(restanteMs: number): boolean {
+  return restanteMs >= MIN_RESTANTE_RESUMO_MS
+}
+
+/** "Travou" = a rodada tentou lotes e NENHUM lead chegou ao envio: todos ficaram PENDENTE (HTTP 5xx,
+ *  timeout ou resposta sem `resultados` — `marcarResultados` não acha o telefone). Qualquer ERRO por
+ *  lead, DUPLICADO ou envio prova que o `send-initial` rodou e respondeu, então não é travamento.
+ *  `processados = 0` (cortado pelo tempo, fila vazia) também não: não houve tentativa. */
+export function lotesTravados(c: { processados: number; enviados: number; falhas: number; duplicados: number }): boolean {
+  return c.processados > 0 && c.enviados === 0 && c.falhas === 0 && c.duplicados === 0
+}
+
+/** Chave de dedupe do alerta "lotes travados": UMA por hora BRT (`disparo_travado:<YYYY-MM-DD>T<HH>`). */
+export function chaveTravado(agoraMs: number): string {
+  return `disparo_travado:${diaBrt(agoraMs)}T${String(relogioBrt(agoraMs).hora).padStart(2, '0')}`
+}
+
+/** `n` = leads que ficaram PENDENTES; `erro` = o último erro de HTTP/timeout visto (cortado em 300). */
+export function textoTravado(n: number, erro: string | null): string {
+  return [
+    '🚨 Disparo AIVA: os lotes TRAVARAM',
+    `${n} lead(s) ficaram PENDENTES e NENHUM chegou ao envio nesta rodada.`,
+    `Último erro: ${erro ? cortar(umaLinha(erro), 300) : 'sem resposta do send-initial'}`,
+    '',
+    'Nada se perde: os leads seguem na fila e a próxima rodada tenta de novo sozinha.',
+    'Se repetir, o lote do dia não fecha. Confira o Evo e o deploy do send-initial. Este aviso sai no máximo 1× por hora.',
+  ].join('\n')
+}
+
+export function teaserTravado(n: number): string {
+  return `🚨 disparo AIVA travado: ${n} lead(s) sem resposta do envio, nenhum saiu nesta rodada`
 }
 
 /** "12/10 às 11:32" em Brasília. Via Intl (nunca `TZ=`). Vazio/ilegível → "data desconhecida". */

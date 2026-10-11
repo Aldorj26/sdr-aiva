@@ -21,7 +21,8 @@ import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
   decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
-  TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE,
+  chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
+  TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
 
@@ -46,12 +47,17 @@ export async function lerEstado(): Promise<Estado> {
 }
 
 /** Idempotente: se já está pausado, não mexe em `pausado_em` nem no motivo
- *  (o filtro `pausado = false` faz isso de forma atômica, sem ler antes). */
-export async function pausar(motivo: string): Promise<void> {
-  const { error } = await supabaseAdmin.from('sdr_disparo_estado')
-    .update({ pausado: true, pausado_em: new Date().toISOString(), motivo })
-    .eq('id', 1).eq('pausado', false)
+ *  (o filtro `pausado = false` faz isso de forma atômica, sem ler antes).
+ *  Devolve o `pausado_em` VIGENTE: o que acabou de gravar, ou o da pausa que já existia (duas rodadas
+ *  pausando juntas ficam com a mesma chave de aviso — ver `chaveDaPausa`). */
+export async function pausar(motivo: string): Promise<string> {
+  const pausadoEm = new Date().toISOString()
+  const { data, error } = await supabaseAdmin.from('sdr_disparo_estado')
+    .update({ pausado: true, pausado_em: pausadoEm, motivo })
+    .eq('id', 1).eq('pausado', false).select('pausado_em')
   if (error) throw new Error(`sdr_disparo_estado: ${error.message}`)
+  if (data?.length) return data[0].pausado_em ?? pausadoEm
+  return (await lerEstado()).pausado_em ?? pausadoEm
 }
 
 /** `false` se já estava ativo (nada a destravar). */
@@ -126,17 +132,19 @@ export async function resumoDoDia(agora = Date.now(), entrega?: Entrega): Promis
   }
 }
 
-/** Pausa e resumo saem por DOIS caminhos (ver lib/alerta-equipe): o texto longo livre e o teaser
- *  pelo coringa HSM 48, que atravessa a janela de 24 h. Aldo e Nei em paralelo, 20 s cada. */
-async function avisarTime(texto: string, teaser: string): Promise<void> {
-  const { enviados, falhas } = await avisarEquipe(texto, teaser)
+/** Pausa, resumo e travamento saem por DOIS caminhos (ver lib/alerta-equipe): o texto longo livre e o
+ *  teaser pelo coringa HSM 48, que atravessa a janela de 24 h. Aldo e Nei em paralelo, 20 s cada.
+ *  `opts.chaveDedupe`: só segura a chave se ao menos um coringa saiu — sem isso o aviso é refeito. */
+async function avisarTime(texto: string, teaser: string, opts?: { chaveDedupe: string; janelaMs: number }): Promise<void> {
+  const { enviados, falhas } = await avisarEquipe(texto, teaser, opts)
   if (falhas) console.error(`[disparo-diario] aviso à equipe: ${enviados} entregue(s), ${falhas} falha(s)`)
 }
 
 type LinhaFila = { id: string; nome: string; telefone: string; cidade: string | null }
 
-/** Manda um lote ao `send-initial`. Qualquer falha devolve [] → o lote inteiro fica PENDENTE. */
-async function enviarLote(lote: LinhaFila[], timeoutMs: number): Promise<ResultadoEnvio[]> {
+/** Manda um lote ao `send-initial`. Qualquer falha devolve `resultados: []` → o lote inteiro fica
+ *  PENDENTE, e `erro` diz por quê (vai no alerta de travamento: ver `lotesTravados`). */
+async function enviarLote(lote: LinhaFila[], timeoutMs: number): Promise<{ resultados: ResultadoEnvio[]; erro: string | null }> {
   const base = process.env.APP_URL ?? 'https://sdr-aiva.vercel.app'
   try {
     const res = await fetch(`${base}/api/sdr/send-initial`, {
@@ -153,10 +161,29 @@ async function enviarLote(lote: LinhaFila[], timeoutMs: number): Promise<Resulta
     })
     const j = await res.json().catch(() => ({}))
     if (!res.ok) console.error(`[disparo-diario] send-initial HTTP ${res.status}: ${JSON.stringify(j).slice(0, 200)}`)
-    return Array.isArray(j.resultados) ? j.resultados : []
+    const resultados: ResultadoEnvio[] = Array.isArray(j.resultados) ? j.resultados : []
+    return { resultados, erro: resultados.length ? null : (res.ok ? 'send-initial respondeu sem resultados' : `send-initial HTTP ${res.status}`) }
   } catch (err) {
-    console.error('[disparo-diario] lote falhou:', err instanceof Error ? err.message : err)
-    return []
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[disparo-diario] lote falhou:', msg)
+    return { resultados: [], erro: msg }
+  }
+}
+
+/** Pausa AUTOMÁTICA que continua de pé: repete o aviso a cada rodada até um coringa (HSM 48) chegar.
+ *  O aviso original (no momento da pausa) e este usam a mesma chave `disparo_pausa:<pausado_em>`, e o
+ *  `avisarEquipe` só a segura quando um coringa saiu — então isto É o retry: uma rodada com a chave
+ *  solta tenta de novo, com a chave segura não faz nada. Pausa manual (`/pausar`) não é lembrada.
+ *  O lock de fatia evita que uma rodada duplicada mande o lembrete duas vezes. Nunca lança: é
+ *  conforto sobre uma rodada que já ia devolver "nada", e erro de banco aqui não vira "quebrou". */
+async function lembrarPausaAutomatica(estado: Estado, agora: number): Promise<void> {
+  if (!ehPausaAutomatica(estado.motivo)) return
+  if (!estado.pausado_em) { console.warn('[disparo-diario] pausa automática sem pausado_em — sem chave pro lembrete'); return }
+  try {
+    if (await fatiaJaOcupada(agora)) return
+    await avisarTime(textoPausaLembrete(estado), teaserPausaLembrete(estado), { chaveDedupe: chaveDaPausa(estado.pausado_em), janelaMs: JANELA_PAUSA_MS })
+  } catch (err) {
+    console.error('[disparo-diario] lembrete da pausa falhou:', err instanceof Error ? err.message : err)
   }
 }
 
@@ -181,26 +208,35 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   const inicio = Date.now()
 
   const estado = await lerEstado()
-  // Lock de fatia logo após o estado. `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a
-  // rodada real que vem depois) e por isso não enxerga duplicidade: passa fatiaOcupada=false.
-  const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
 
-  // Guardas baratas (fim de semana, feriado, janela, pausado, fatia ocupada): decidem só com o
-  // relógio, a pausa e o lock. Se pegar, a rodada NÃO mede a Evo (~20 s) e NÃO manda resumo do dia
-  // (nem às 18h47: duplicata ou feriado mandaria um "Saíram 0 de 500" que parece dia quebrado),
-  // mas as contagens são REAIS (duas consultas ao Supabase, custo nulo) para o vigia das 17h
-  // enxergar uma pausa que atravessa dias: fila cheia + zero envios continua alarmando.
-  const barata = guardaBarata({ agoraMs: agora, pausado: estado.pausado, fatiaOcupada })
+  // Ordem (F4): estado → guardas do relógio e da pausa → SÓ ENTÃO o lock de fatia. O lock é uma
+  // escrita em `sdr_avisos_chave`; rodada que vai responder "nada" (pausado, feriado, fim de semana,
+  // fora da janela) não tem por que gravar nada nem arriscar um erro de banco nessa escrita. Também
+  // lê as contagens ANTES do lock: leitura que lança não deixa uma fatia reservada sem rodada.
+  // As contagens são REAIS mesmo quando a guarda pega (duas consultas ao Supabase, custo nulo): o
+  // vigia das 17h precisa enxergar uma pausa que atravessa dias — fila cheia + zero envios alarma.
+  const barata = guardaBarata({ agoraMs: agora, pausado: estado.pausado, fatiaOcupada: false })
   const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
-  if (barata) {
-    console.log(`[disparo-diario] nada:${barata} enviados=0 falhas=0`)
+  const devolverNada = (motivo: string): ResultadoRodada => {
+    console.log(`[disparo-diario] nada:${motivo} enviados=0 falhas=0`)
     const e = entregaIndisponivel()
     return {
-      ok: true, acao: 'nada', motivo: barata, enviados: 0, falhas: 0,
+      ok: true, acao: 'nada', motivo, enviados: 0, falhas: 0,
       saiu_hoje: jaSaiuHoje, restante: Math.max(0, TETO_DIA - jaSaiuHoje), fila_pendente: filaPendente,
       entrega: { estado: e.estado, taxa: e.taxa, amostra: e.amostra }, cortado_por_tempo: false,
     }
   }
+  // Guardas baratas NÃO medem a Evo (~20 s) e NÃO mandam resumo do dia (nem às 18h47: duplicata ou
+  // feriado mandaria um "Saíram 0 de 500" que parece dia quebrado).
+  if (barata) {
+    if (barata === 'pausado' && !opts.dry) await lembrarPausaAutomatica(estado, agora)
+    return devolverNada(barata)
+  }
+
+  // Lock de fatia. `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a rodada real que vem
+  // depois) e por isso não enxerga duplicidade.
+  const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
+  if (fatiaOcupada) return devolverNada('fatia_ocupada')
 
   // Só agora mede a entrega e decide com todas as guardas (a função pura continua completa).
   const entrega = await medirEntrega(agora, estado.retomado_em)
@@ -224,8 +260,10 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   if (opts.dry) return montar()
 
   if (decisao.acao === 'pausar') {
-    await pausar(decisao.motivo)
-    await avisarTime(textoPausa(entrega, jaSaiuHoje), teaserPausa(entrega, jaSaiuHoje))
+    const pausadoEm = await pausar(decisao.motivo)
+    // Chave amarrada a ESTA pausa: se nenhum coringa chegar, as rodadas seguintes repetem o aviso
+    // (`lembrarPausaAutomatica`) até um chegar; depois disso a chave segura e a pausa fica calada.
+    await avisarTime(textoPausa(entrega, jaSaiuHoje), teaserPausa(entrega, jaSaiuHoje), { chaveDedupe: chaveDaPausa(pausadoEm), janelaMs: JANELA_PAUSA_MS })
     console.log(`[disparo-diario] PAUSADO: ${decisao.motivo}`)
     return montar()
   }
@@ -248,11 +286,14 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
       let processados = 0
       let duplicados = 0
+      let ultimoErroLote: string | null = null
       for (let i = 0; i < fila.length; i += LOTE) {
         const restanteMs = TETO_TEMPO_MS - (Date.now() - inicio)
         if (restanteMs < MIN_RESTANTE_LOTE_MS) { cortado = true; break }
         const lote = fila.slice(i, i + LOTE)
-        const marcas = marcarResultados(lote, await enviarLote(lote, Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs)))
+        const { resultados, erro: erroLote } = await enviarLote(lote, Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs))
+        if (erroLote) ultimoErroLote = erroLote
+        const marcas = marcarResultados(lote, resultados)
         for (const m of marcas) {
           if (m.status === 'PENDENTE') continue // fica na fila; a próxima rodada reprocessa
           const { error: erroMarca } = await supabaseAdmin.from('sdr_fila_disparo')
@@ -272,6 +313,14 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
       const pendentes = processados - enviados - falhas - duplicados
       if (duplicados) console.log(`[disparo-diario] ${duplicados} já estavam na base (DUPLICADO)`)
       if (!cortado && pendentes > 0) console.log(`[disparo-diario] ${pendentes} ficam PENDENTES pra próxima rodada`)
+
+      // Lotes tentados e NENHUM lead chegou ao envio (HTTP 5xx/timeout em todos): a rodada devolve 200
+      // com enviados=0, e sem isto o time só descobriria às 17h pelo vigia. Uma vez por hora BRT; a
+      // chave só fica presa se um coringa saiu (avisarEquipe), então um alerta perdido tenta de novo.
+      if (lotesTravados({ processados, enviados, falhas, duplicados })) {
+        console.error(`[disparo-diario] TRAVADO: ${processados} lead(s) tentados, nenhum chegou ao envio (${ultimoErroLote ?? 'sem erro'})`)
+        await avisarTime(textoTravado(processados, ultimoErroLote), teaserTravado(processados), { chaveDedupe: chaveTravado(agora), janelaMs: 3_600_000 })
+      }
     }
   }
 
@@ -279,9 +328,22 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   // O resumo do dia sai na última rodada, se ela não pausou (pausa já avisou). Reaproveita a
   // entrega medida acima: refazer a ida à Evo aqui comeria o fim dos 300 s.
+  // ⚠️ O resumo é conforto: os lotes JÁ saíram e foram marcados. Se ele falhar (banco, Evo) não pode
+  // devolver 500 nem disparar o "quebrou" — por isso o try/catch próprio, que só registra. E só
+  // começa com folga (≥ 40 s do teto de 240 s): sem folga o watchdog da rota o cortaria no meio;
+  // o vigia das 17h do dia seguinte cobre o buraco.
   if (ehUltimaRodada(agora)) {
-    const resumo = await resumoDoDia(agora, entrega)
-    await avisarTime(textoResumoDia(resumo), teaserResumo(resumo))
+    const sobraMs = TETO_TEMPO_MS - (Date.now() - inicio)
+    if (!cabeResumo(sobraMs)) {
+      console.warn(`[disparo-diario] resumo do dia pulado: só ${Math.round(sobraMs / 1000)}s de folga no teto da rodada`)
+    } else {
+      try {
+        const resumo = await resumoDoDia(agora, entrega)
+        await avisarTime(textoResumoDia(resumo), teaserResumo(resumo))
+      } catch (err) {
+        console.error('[disparo-diario] resumo do dia falhou (lotes já enviados, rodada segue ok):', err instanceof Error ? err.message : err)
+      }
+    }
   }
 
   return montar({ enviados, falhas, cortado })

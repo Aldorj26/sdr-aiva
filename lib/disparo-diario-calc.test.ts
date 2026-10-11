@@ -2,6 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
+  chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
+  JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -373,4 +375,76 @@ test('chaveQuebrou: uma por hora BRT; textoQuebrou traz rota, hora, erro e o vig
   assert.match(t, /sdr_mensagens: timeout/)
   assert.match(t, /vigia das 17h/)
   assert.ok(textoQuebrou('e'.repeat(5000), SEG_10H).length < 1000)
+})
+
+// ── rodada final de revisão (11/10 noite): lembrete de pausa, resumo com folga, alerta de travamento ──
+
+test('chaveDaPausa: amarra o aviso à pausa (pausado_em); janela de 30 dias', () => {
+  assert.equal(chaveDaPausa('2026-10-19T13:07:00.000Z'), 'disparo_pausa:2026-10-19T13:07:00.000Z')
+  assert.notEqual(chaveDaPausa('2026-10-19T13:07:00.000Z'), chaveDaPausa('2026-10-20T13:07:00.000Z'))
+  assert.equal(JANELA_PAUSA_MS, 30 * 24 * 3_600_000)
+})
+
+test('ehPausaAutomatica: só o motivo da própria rodada; "pausado por …" (WhatsApp) e vazio não', () => {
+  assert.equal(ehPausaAutomatica('3 de 25 entregues (12%) — piso é 30%.'), true)
+  assert.equal(ehPausaAutomatica('31 de 40 entregues (78%) no dia, MAS os 10 envios mais recentes: NENHUM entregue.'), true)
+  assert.equal(ehPausaAutomatica('pausado por 5547996085000 pelo WhatsApp'), false)
+  assert.equal(ehPausaAutomatica(null), false)
+  assert.equal(ehPausaAutomatica(''), false)
+})
+
+const PAUSA_AUTO = { motivo: '3 de 25 entregues (12%) — piso é 30%.', pausado_em: '2026-10-12T14:32:00Z' }
+
+test('textoPausaLembrete: diz que SEGUE pausado, desde quando, o motivo, a fatura e /retomar', () => {
+  const t = textoPausaLembrete(PAUSA_AUTO)
+  for (const trecho of ['PAUSADO', '12/10', '11:32', '12%', 'fatura', '/retomar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  assert.ok(!t.includes('null') && !t.includes('undefined'), t)
+  assert.ok(!textoPausaLembrete({ motivo: null, pausado_em: null }).includes('null'))
+})
+
+test('teaserPausaLembrete: uma linha <= 160, cita desde quando e o diagnóstico, fecha com /retomar', () => {
+  const t = teaserPausaLembrete(PAUSA_AUTO)
+  uma(t)
+  assert.match(t, /12\/10/)
+  assert.match(t, /12%/)
+  assert.ok(t.endsWith('responda /retomar'), t)
+  // motivo gigante e multilinha: continua uma linha, o fim (a ação) nunca é cortado
+  const longo = teaserPausaLembrete({ motivo: 'linha 1\nlinha 2\t' + 'z'.repeat(400), pausado_em: '2026-10-12T14:32:00Z' })
+  uma(longo)
+  assert.ok(longo.endsWith('responda /retomar'), longo)
+  uma(teaserPausaLembrete({ motivo: null, pausado_em: null }))
+})
+
+test('cabeResumo: o resumo das 18h47 só começa com >= 40 s sobrando do teto de 240 s', () => {
+  assert.equal(MIN_RESTANTE_RESUMO_MS, 40_000)
+  assert.equal(cabeResumo(40_000), true)
+  assert.equal(cabeResumo(39_999), false)
+  assert.equal(cabeResumo(-5_000), false)
+  assert.equal(cabeResumo(TETO_TEMPO_MS), true)
+})
+
+test('lotesTravados: só quando NENHUM lead chegou ao envio (tudo PENDENTE) — falha, duplicado ou enviado desmentem', () => {
+  assert.equal(lotesTravados({ processados: 10, enviados: 0, falhas: 0, duplicados: 0 }), true)
+  assert.equal(lotesTravados({ processados: 0, enviados: 0, falhas: 0, duplicados: 0 }), false) // nada processado (cortado/sem fila)
+  assert.equal(lotesTravados({ processados: 10, enviados: 1, falhas: 0, duplicados: 0 }), false)
+  assert.equal(lotesTravados({ processados: 10, enviados: 0, falhas: 3, duplicados: 0 }), false) // ERRO por lead: o send-initial rodou
+  assert.equal(lotesTravados({ processados: 10, enviados: 0, falhas: 0, duplicados: 2 }), false) // DUPLICADO: o send-initial respondeu
+})
+
+test('chaveTravado: uma por hora BRT (disparo_travado:<dia>T<HH>)', () => {
+  assert.equal(chaveTravado(Date.parse('2026-10-19T13:07:00Z')), 'disparo_travado:2026-10-19T10')
+  assert.equal(chaveTravado(Date.parse('2026-10-19T13:47:00Z')), 'disparo_travado:2026-10-19T10')
+  assert.equal(chaveTravado(Date.parse('2026-10-19T14:07:00Z')), 'disparo_travado:2026-10-19T11')
+  assert.equal(chaveTravado(Date.parse('2026-10-20T02:30:00Z')), 'disparo_travado:2026-10-19T23')
+})
+
+test('textoTravado / teaserTravado: quantos ficaram, o erro cortado, e que a próxima rodada tenta de novo', () => {
+  const t = textoTravado(10, 'send-initial HTTP 504')
+  for (const trecho of ['10', 'send-initial HTTP 504', 'PENDENTE', 'próxima rodada']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  assert.ok(textoTravado(10, 'e'.repeat(5000)).length < 1000)
+  assert.ok(!textoTravado(3, null).includes('null'))
+  const tz = teaserTravado(10)
+  uma(tz)
+  assert.match(tz, /travad/i)
+  assert.match(tz, /10/)
 })
