@@ -164,6 +164,13 @@ export function ehPausaAutomatica(motivo: string | null): boolean {
   return !!motivo && !motivo.startsWith('pausado por')
 }
 
+/** Prefixo do motivo da pausa do breaker (`pausar('send-initial falhou <n>/<m>: <1º erro>')`). */
+export const PREFIXO_PAUSA_ENVIO = 'send-initial falhou'
+/** Pausa causada pelo envio (Evo/send-initial) em vez da entrega da Meta: o lembrete muda o conselho. */
+export function ehPausaPorEnvio(motivo: string | null): boolean {
+  return !!motivo && motivo.startsWith(PREFIXO_PAUSA_ENVIO)
+}
+
 /** A última rodada do dia manda o resumo. ⚠️ Acoplado ao minuto do cron em vercel.json
  *  (`7,27,47 11-21 * * 1-5` = 8h07…18h47 BRT): são 3 rodadas na hora das 18h, e só a das
  *  18h47 (minuto ≥ 40) é a última. Mudar os minutos do cron exige mudar este corte. */
@@ -211,7 +218,7 @@ export function teaserPausa(entrega: Entrega, jaSaiuHoje: number): string {
  *  Mesmo desenho do teaser da pausa, mas com o "desde quando" (a pausa pode ter horas) no lugar do
  *  "saíram N de 500"; a ação ("responda /retomar") nunca é cortada, o diagnóstico sim, em último caso. */
 export function teaserPausaLembrete(e: { motivo: string | null; pausado_em: string | null }): string {
-  const fim = ' — confira a fatura da Meta e responda /retomar'
+  const fim = ehPausaPorEnvio(e.motivo) ? ' — confira o Evo e responda /retomar' : ' — confira a fatura da Meta e responda /retomar'
   const ini = `🛑 disparo AIVA segue pausado desde ${quandoBrt(e.pausado_em)}: `
   const diag = semPontoFinal(umaLinha(e.motivo ?? 'motivo não registrado'))
   return `${ini}${cortar(diag, LIMITE_TEASER - ini.length - fim.length)}${fim}`
@@ -253,9 +260,13 @@ export function textoPausaLembrete(e: { motivo: string | null; pausado_em: strin
   return [
     '🛑 Disparo AIVA: continua PAUSADO',
     `Desde ${quandoBrt(e.pausado_em)}: ${e.motivo ?? 'motivo não registrado'}`,
-    'Pausa automática pela entrega da Meta. Repito o aviso porque o primeiro pode não ter chegado.',
+    ehPausaPorEnvio(e.motivo)
+      ? 'Pausa automática: o envio (send-initial / Evo) falhou. Repito o aviso porque o primeiro pode não ter chegado.'
+      : 'Pausa automática pela entrega da Meta. Repito o aviso porque o primeiro pode não ter chegado.',
     '',
-    'Primeiro: confira a fatura da Meta (foi isso em 21/09).',
+    ...(ehPausaPorEnvio(e.motivo)
+      ? ['Primeiro: confira o Evo (chave, instância, fora do ar) e o deploy do send-initial.']
+      : ['Primeiro: confira a fatura da Meta (foi isso em 21/09).']),
     'Depois, responda /retomar aqui.',
   ].join('\n')
 }
@@ -294,6 +305,42 @@ export function textoTravado(n: number, erro: string | null): string {
 
 export function teaserTravado(n: number): string {
   return `🚨 disparo AIVA travado: ${n} lead(s) sem resposta do envio, nenhum saiu nesta rodada`
+}
+
+/** Breaker do lote: o `send-initial` cria o lead ANTES de mandar o template, e quando o Evo erra
+ *  rápido (5xx, 401 depois de rotação de chave, ou 200 com corpo de erro — que o envio lê como
+ *  `numero_sem_whatsapp`) cada lead falha em ~1 s e uma só rodada queimaria o orçamento do dia inteiro
+ *  marcando tudo como ERRO. `pifou` = nenhum `ok` E (3+ erros que NÃO são `bloqueado_*`, OU o lote
+ *  inteiro é `numero_sem_whatsapp`, que num lote real de 5 é bloqueio e não azar). `bloqueado_*` é
+ *  "já está na base": prova de que o send-initial respondeu direito, nunca conta como falha. */
+export function lotePifou(resultados: ResultadoEnvio[]): { pifou: boolean; n: number; erro: string | null } {
+  const comErro = resultados.filter((r) => !r.ok && !(r.erro ?? '').startsWith('bloqueado_'))
+  const erro = comErro.length ? (comErro[0].erro ?? 'erro sem detalhe') : null
+  const algumOk = resultados.some((r) => r.ok)
+  const todosSemWhatsapp = resultados.length > 0 && resultados.every((r) => !r.ok && r.erro === 'numero_sem_whatsapp')
+  const pifou = !algumOk && (comErro.length >= 3 || todosSemWhatsapp)
+  return { pifou, n: comErro.length, erro }
+}
+
+/** Chave de dedupe do alerta do breaker: UMA por hora BRT (`disparo_pifou:<YYYY-MM-DD>T<HH>`). */
+export function chavePifou(agoraMs: number): string {
+  return `disparo_pifou:${diaBrt(agoraMs)}T${String(relogioBrt(agoraMs).hora).padStart(2, '0')}`
+}
+
+/** `n` = leads do lote que falharam; `erro` = o primeiro erro (cortado em 300). */
+export function textoPifou(n: number, erro: string | null): string {
+  return [
+    '🛑 Disparo AIVA PAUSADO: o envio falhou no lote inteiro',
+    `${n} lead(s) do lote falharam no send-initial e NENHUM saiu. Primeiro erro: ${erro ? cortar(umaLinha(erro), 300) : 'sem detalhe'}`,
+    'Os leads do lote voltaram para PENDENTE (nada foi queimado) e o disparo ficou pausado até alguém destravar.',
+    '',
+    'Primeiro: confira o Evo (chave, instância, fora do ar) e o deploy do send-initial.',
+    'Depois, responda /retomar aqui. Este aviso sai no máximo 1× por hora.',
+  ].join('\n')
+}
+
+export function teaserPifou(n: number): string {
+  return `🛑 disparo AIVA pausado: envio falhou em ${n} lead(s) do lote, nenhum saiu — confira o Evo e responda /retomar`
 }
 
 /** "12/10 às 11:32" em Brasília. Via Intl (nunca `TZ=`). Vazio/ilegível → "data desconhecida". */

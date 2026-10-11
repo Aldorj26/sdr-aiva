@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
+  lotePifou, chavePifou, textoPifou, teaserPifou,
   JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
@@ -447,4 +448,65 @@ test('textoTravado / teaserTravado: quantos ficaram, o erro cortado, e que a pr�
   uma(tz)
   assert.match(tz, /travad/i)
   assert.match(tz, /10/)
+})
+
+// ── C1: breaker quando o send-initial falha POR LEAD (Evo 5xx/401/200-com-erro) ──────────────────
+const ok = (t: string) => ({ telefone: t, ok: true })
+const er = (t: string, erro: string) => ({ telefone: t, ok: false, erro })
+
+test('lotePifou: 3+ erros que não são bloqueado_* e nenhum ok → pifou, com n e o 1º erro', () => {
+  const r = lotePifou([er('1', 'Evo 503'), er('2', 'Evo 503'), er('3', 'fetch failed'), er('4', 'Evo 503'), er('5', 'Evo 503')])
+  assert.deepEqual(r, { pifou: true, n: 5, erro: 'Evo 503' })
+  assert.equal(lotePifou([er('1', 'x'), er('2', 'y'), er('3', 'z')]).pifou, true) // exatamente 3
+})
+
+test('lotePifou: qualquer ok → NÃO pifou (falha isolada é normal)', () => {
+  assert.equal(lotePifou([ok('1'), er('2', 'Evo 503'), er('3', 'Evo 503'), er('4', 'Evo 503'), er('5', 'Evo 503')]).pifou, false)
+})
+
+test('lotePifou: só bloqueado_* (já está na base) → NÃO pifou, mesmo sem nenhum ok', () => {
+  const r = lotePifou([er('1', 'bloqueado_inicio'), er('2', 'bloqueado_interessado'), er('3', 'bloqueado_inicio'), er('4', 'bloqueado_inicio'), er('5', 'bloqueado_inicio')])
+  assert.equal(r.pifou, false)
+  // bloqueado_* não conta para os 3: 2 erros reais + 3 bloqueados → não pifou
+  assert.equal(lotePifou([er('1', 'Evo 503'), er('2', 'Evo 503'), er('3', 'bloqueado_inicio'), er('4', 'bloqueado_inicio'), er('5', 'bloqueado_inicio')]).pifou, false)
+})
+
+test('lotePifou: só 2 erros (lote pequeno) → NÃO pifou; lote vazio → NÃO pifou', () => {
+  assert.equal(lotePifou([er('1', 'Evo 503'), er('2', 'Evo 503')]).pifou, false)
+  assert.deepEqual(lotePifou([]), { pifou: false, n: 0, erro: null })
+})
+
+test('lotePifou: 100% numero_sem_whatsapp → pifou (Evo devolvendo 200 com erro parece "sem WhatsApp"), mesmo com <3', () => {
+  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'numero_sem_whatsapp'), er('3', 'numero_sem_whatsapp'), er('4', 'numero_sem_whatsapp'), er('5', 'numero_sem_whatsapp')]).pifou, true)
+  assert.deepEqual(lotePifou([er('1', 'numero_sem_whatsapp')]), { pifou: true, n: 1, erro: 'numero_sem_whatsapp' })
+  // misturado com outro erro não é "100% sem whatsapp": segue a regra dos 3
+  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'numero_sem_whatsapp')]).pifou, true)
+  assert.equal(lotePifou([er('1', 'numero_sem_whatsapp'), er('2', 'bloqueado_inicio')]).pifou, false)
+})
+
+test('chavePifou: uma por hora BRT (disparo_pifou:<dia>T<HH>)', () => {
+  assert.equal(chavePifou(Date.parse('2026-10-19T13:07:00Z')), 'disparo_pifou:2026-10-19T10')
+  assert.equal(chavePifou(Date.parse('2026-10-19T13:47:00Z')), 'disparo_pifou:2026-10-19T10')
+  assert.equal(chavePifou(Date.parse('2026-10-20T02:30:00Z')), 'disparo_pifou:2026-10-19T23')
+})
+
+test('textoPifou / teaserPifou: n, o 1º erro cortado, pausa, PENDENTE, /retomar; teaser em uma linha', () => {
+  const t = textoPifou(5, 'Evo 503')
+  for (const trecho of ['5', 'Evo 503', 'PAUSADO', 'PENDENTE', '/retomar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  assert.ok(textoPifou(5, 'e'.repeat(5000)).length < 1100)
+  assert.ok(!textoPifou(5, null).includes('null'))
+  const tz = teaserPifou(5)
+  uma(tz)
+  assert.match(tz, /5/)
+  assert.match(tz, /pausad/i)
+  assert.ok(tz.endsWith('responda /retomar'), tz)
+})
+
+test('lembrete de uma pausa por falha do send-initial NÃO manda olhar a fatura da Meta', () => {
+  const e = { motivo: 'send-initial falhou 5/5: Evo 503', pausado_em: '2026-10-12T14:32:00Z' }
+  const t = textoPausaLembrete(e)
+  assert.ok(!/fatura/i.test(t) && /Evo/.test(t) && t.includes('/retomar'), t)
+  const tz = teaserPausaLembrete(e)
+  uma(tz)
+  assert.ok(!/fatura/i.test(tz) && tz.endsWith('responda /retomar'), tz)
 })

@@ -21,6 +21,7 @@ import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
   decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
+  lotePifou, chavePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
@@ -242,12 +243,12 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   const entrega = await medirEntrega(agora, estado.retomado_em)
   const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega, fatiaOcupada })
 
-  const montar = (extra: { enviados?: number; falhas?: number; cortado?: boolean } = {}): ResultadoRodada => {
+  const montar = (extra: { enviados?: number; falhas?: number; cortado?: boolean; motivo?: string } = {}): ResultadoRodada => {
     const enviados = extra.enviados ?? 0
     return {
       ok: true,
       acao: decisao.acao,
-      motivo: decisao.acao === 'disparar' ? null : decisao.motivo,
+      motivo: extra.motivo ?? (decisao.acao === 'disparar' ? null : decisao.motivo),
       enviados, falhas: extra.falhas ?? 0,
       saiu_hoje: jaSaiuHoje + enviados,
       restante: Math.max(0, TETO_DIA - jaSaiuHoje - enviados),
@@ -271,6 +272,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   let enviados = 0
   let falhas = 0
   let cortado = false
+  let pifou = false // breaker: lote inteiro falhou por lead → pausa, alerta e a rodada para (C1)
   if (decisao.acao === 'disparar') {
     const quantidade = Math.min(decisao.quantidade, opts.qtd == null ? Infinity : Math.max(0, opts.qtd))
     if (quantidade > 0) {
@@ -293,9 +295,14 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
         const lote = fila.slice(i, i + LOTE)
         const { resultados, erro: erroLote } = await enviarLote(lote, Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs))
         if (erroLote) ultimoErroLote = erroLote
-        const marcas = marcarResultados(lote, resultados)
+        // Breaker (C1): lote em que NENHUM lead saiu e os erros são do envio (Evo 5xx/401/200-com-erro),
+        // não de cada número. Falha transitória não pode queimar a fila: o que era ERRO volta a PENDENTE
+        // (com o 1º erro no `detalhe`); só o `bloqueado_*` (já está na base) segue DUPLICADO.
+        const quebra = lotePifou(resultados)
+        const marcas = marcarResultados(lote, resultados).map((m) =>
+          quebra.pifou && m.status === 'ERRO' ? { ...m, status: 'PENDENTE' as const, detalhe: quebra.erro } : m)
         for (const m of marcas) {
-          if (m.status === 'PENDENTE') continue // fica na fila; a próxima rodada reprocessa
+          if (m.status === 'PENDENTE' && m.detalhe == null) continue // sem resposta: fica na fila, a próxima rodada reprocessa
           const { error: erroMarca } = await supabaseAdmin.from('sdr_fila_disparo')
             .update(m.status === 'DISPARADO'
               ? { status: 'DISPARADO', disparado_em: new Date().toISOString() }
@@ -305,9 +312,18 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
           if (erroMarca) console.error(`[disparo-diario] não marcou ${m.id}: ${erroMarca.message}`)
           if (m.status === 'DISPARADO') enviados++
           else if (m.status === 'DUPLICADO') duplicados++ // já está na base: não é falha
-          else falhas++
+          else if (m.status === 'ERRO') falhas++
         }
         processados += marcas.length
+        if (quebra.pifou) {
+          pifou = true
+          cortado = true
+          const motivoPausa = `${PREFIXO_PAUSA_ENVIO} ${quebra.n}/${lote.length}: ${(quebra.erro ?? 'sem detalhe').replace(/\s+/g, ' ').slice(0, 200)}`
+          console.error(`[disparo-diario] BREAKER: ${motivoPausa} — pausando`)
+          await pausar(motivoPausa) // idempotente
+          await avisarTime(textoPifou(quebra.n, quebra.erro), teaserPifou(quebra.n), { chaveDedupe: chavePifou(agora), janelaMs: 3_600_000 })
+          break
+        }
       }
       // lote que ficou PENDENTE (estouro/HTTP) sem ter sido cortado pelo tempo: não é erro, a próxima rodada continua
       const pendentes = processados - enviados - falhas - duplicados
@@ -317,7 +333,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
       // Lotes tentados e NENHUM lead chegou ao envio (HTTP 5xx/timeout em todos): a rodada devolve 200
       // com enviados=0, e sem isto o time só descobriria às 17h pelo vigia. Uma vez por hora BRT; a
       // chave só fica presa se um coringa saiu (avisarEquipe), então um alerta perdido tenta de novo.
-      if (lotesTravados({ processados, enviados, falhas, duplicados })) {
+      if (!pifou && lotesTravados({ processados, enviados, falhas, duplicados })) {
         console.error(`[disparo-diario] TRAVADO: ${processados} lead(s) tentados, nenhum chegou ao envio (${ultimoErroLote ?? 'sem erro'})`)
         await avisarTime(textoTravado(processados, ultimoErroLote), teaserTravado(processados), { chaveDedupe: chaveTravado(agora), janelaMs: 3_600_000 })
       }
@@ -332,7 +348,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   // devolver 500 nem disparar o "quebrou" — por isso o try/catch próprio, que só registra. E só
   // começa com folga (≥ 40 s do teto de 240 s): sem folga o watchdog da rota o cortaria no meio;
   // o vigia das 17h do dia seguinte cobre o buraco.
-  if (ehUltimaRodada(agora)) {
+  if (ehUltimaRodada(agora) && !pifou) { // pifou: a rodada acabou de pausar e avisar, o resumo repetiria
     const sobraMs = TETO_TEMPO_MS - (Date.now() - inicio)
     if (!cabeResumo(sobraMs)) {
       console.warn(`[disparo-diario] resumo do dia pulado: só ${Math.round(sobraMs / 1000)}s de folga no teto da rodada`)
@@ -346,5 +362,5 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
     }
   }
 
-  return montar({ enviados, falhas, cortado })
+  return montar({ enviados, falhas, cortado, ...(pifou ? { motivo: 'send_initial_falhou' } : {}) })
 }
