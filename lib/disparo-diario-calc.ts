@@ -112,3 +112,20 @@ export function textoResumoDia(r: Resumo): string {
 export function entregaIndisponivel(): Entrega {
   return { estado: 'sem_dados', taxa: null, amostra: 0, entregues: 0, motivo: 'Evo indisponível — entrega não medida' }
 }
+
+/** O que o `send-initial` devolve por telefone. */
+export type ResultadoEnvio = { telefone: string; ok: boolean; erro?: string }
+export type Marca = { id: string; status: 'DISPARADO' | 'ERRO' | 'PENDENTE'; detalhe: string | null }
+
+/** Cruza o lote enviado com a resposta do `send-initial` e diz como marcar a fila.
+ *  Lead SEM linha na resposta (lote que estourou o tempo, HTTP 5xx, timeout) fica
+ *  PENDENTE de propósito: a próxima rodada reprocessa. Se na verdade a mensagem
+ *  saiu, o `send-initial` recusa o lead já existente — duplicata não passa. */
+export function marcarResultados(lote: Array<{ id: string; telefone: string }>, resultados: ResultadoEnvio[]): Marca[] {
+  return lote.map((l): Marca => {
+    const r = resultados.find(x => x.telefone === l.telefone)
+    if (!r) return { id: l.id, status: 'PENDENTE', detalhe: null }
+    if (r.ok) return { id: l.id, status: 'DISPARADO', detalhe: null }
+    return { id: l.id, status: 'ERRO', detalhe: r.erro ?? 'erro sem detalhe' }
+  })
+}

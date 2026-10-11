@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -118,4 +118,27 @@ test('textoResumoDia traz saiu, restante, fila e a taxa do dia', () => {
   for (const trecho of ['480', '20', '3300', '87%']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
   const semMedida = textoResumoDia({ ...r, entrega: entregaIndisponivel() })
   assert.ok(!semMedida.includes('null') && !semMedida.includes('NaN'), semMedida)
+})
+
+test('marcarResultados: resultado ok → DISPARADO; ok=false → ERRO com detalhe', () => {
+  const lote = [{ id: 'a', telefone: '5511911111111' }, { id: 'b', telefone: '5511922222222' }]
+  const r = marcarResultados(lote, [
+    { telefone: '5511911111111', ok: true },
+    { telefone: '5511922222222', ok: false, erro: 'numero_sem_whatsapp' },
+  ])
+  assert.deepEqual(r, [
+    { id: 'a', status: 'DISPARADO', detalhe: null },
+    { id: 'b', status: 'ERRO', detalhe: 'numero_sem_whatsapp' },
+  ])
+})
+
+test('marcarResultados: lead sem linha em resultados fica PENDENTE (lote que estourou)', () => {
+  const lote = [{ id: 'a', telefone: '5511911111111' }, { id: 'b', telefone: '5511922222222' }]
+  const r = marcarResultados(lote, [{ telefone: '5511911111111', ok: true }])
+  assert.deepEqual(r, [
+    { id: 'a', status: 'DISPARADO', detalhe: null },
+    { id: 'b', status: 'PENDENTE', detalhe: null },
+  ])
+  // lote inteiro sem resposta (HTTP 5xx / timeout): ninguém é marcado, a próxima rodada reprocessa
+  assert.ok(marcarResultados(lote, []).every(x => x.status === 'PENDENTE'))
 })
