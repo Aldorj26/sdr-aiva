@@ -10,6 +10,8 @@ import {
 const SEG_10H = Date.parse('2026-10-12T13:00:00Z')
 const SEG_7H = Date.parse('2026-10-12T10:00:00Z')
 const SEG_19H = Date.parse('2026-10-12T22:00:00Z')
+const SEG_8H00 = Date.parse('2026-10-12T11:00:00Z')
+const SEG_18H59 = Date.parse('2026-10-12T21:59:00Z')
 const TER_10H = Date.parse('2026-10-13T13:00:00Z')
 const SAB_10H = Date.parse('2026-10-10T13:00:00Z')
 const DOM_10H = Date.parse('2026-10-11T13:00:00Z')
@@ -35,6 +37,11 @@ test('dia útil dentro da janela, nada enviado → dispara o teto do dia', () =>
 test('fora da janela (7h BRT e 19h BRT) → nada', () => {
   assert.deepEqual(decidirRodada({ ...base(), agoraMs: SEG_7H }), { acao: 'nada', motivo: 'fora_da_janela' })
   assert.deepEqual(decidirRodada({ ...base(), agoraMs: SEG_19H }), { acao: 'nada', motivo: 'fora_da_janela' })
+})
+
+test('bordas da janela: 8h00 BRT (inclusive) e 18h59 BRT disparam', () => {
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: SEG_8H00 }), { acao: 'disparar', quantidade: 500 })
+  assert.deepEqual(decidirRodada({ ...base(), agoraMs: SEG_18H59 }), { acao: 'disparar', quantidade: 500 })
 })
 
 test('sábado e domingo → nada', () => {
