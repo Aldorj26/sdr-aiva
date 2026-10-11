@@ -190,24 +190,24 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
   // rodada real que vem depois) e por isso não enxerga duplicidade: passa fatiaOcupada=false.
   const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
 
-  // FASE 1 — guardas baratas (fim de semana, feriado, janela, pausado, fatia ocupada): decidem só
-  // com o relógio, a pausa e o lock. Se pegar, a rodada para AQUI: sem contar o dia, sem fila, sem
-  // medir a Evo (~20 s) e SEM resumo do dia (nem às 18h47: duplicata ou feriado mandaria um
-  // "Saíram 0 de 500" que parece dia quebrado). Por isso, nestes casos os contadores do JSON vêm
-  // ZERADOS DE PROPÓSITO (saiu_hoje, restante, fila_pendente, entrega) e o `motivo` é que explica.
+  // Guardas baratas (fim de semana, feriado, janela, pausado, fatia ocupada): decidem só com o
+  // relógio, a pausa e o lock. Se pegar, a rodada NÃO mede a Evo (~20 s) e NÃO manda resumo do dia
+  // (nem às 18h47: duplicata ou feriado mandaria um "Saíram 0 de 500" que parece dia quebrado),
+  // mas as contagens são REAIS (duas consultas ao Supabase, custo nulo) para o vigia das 17h
+  // enxergar uma pausa que atravessa dias: fila cheia + zero envios continua alarmando.
   const barata = guardaBarata({ agoraMs: agora, pausado: estado.pausado, fatiaOcupada })
+  const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
   if (barata) {
     console.log(`[disparo-diario] nada:${barata} enviados=0 falhas=0`)
     const e = entregaIndisponivel()
     return {
       ok: true, acao: 'nada', motivo: barata, enviados: 0, falhas: 0,
-      saiu_hoje: 0, restante: 0, fila_pendente: 0,
+      saiu_hoje: jaSaiuHoje, restante: Math.max(0, TETO_DIA - jaSaiuHoje), fila_pendente: filaPendente,
       entrega: { estado: e.estado, taxa: e.taxa, amostra: e.amostra }, cortado_por_tempo: false,
     }
   }
 
-  // FASE 2 — só agora conta, mede e decide com todas as guardas (a função pura continua completa).
-  const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
+  // Só agora mede a entrega e decide com todas as guardas (a função pura continua completa).
   const entrega = await medirEntrega(agora, estado.retomado_em)
   const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega, fatiaOcupada })
 
