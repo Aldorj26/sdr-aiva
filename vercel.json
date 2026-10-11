@@ -79,6 +79,10 @@
     {
       "path": "/api/sdr/disparo-diario",
       "schedule": "7,27,47 11-21 * * 1-5"
+    },
+    {
+      "path": "/api/sdr/comunicado-forms",
+      "schedule": "17,37,57 13-18 13 10 *"
     }
   ]
 }
