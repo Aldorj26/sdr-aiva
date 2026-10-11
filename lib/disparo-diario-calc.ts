@@ -163,6 +163,59 @@ export function textoResumoDia(r: Resumo): string {
   ].join('\n')
 }
 
+// --- Teasers: o {{2}} do HSM 48 ("Olá {{1}}, {{2}}") ---------------------------------------------
+// O texto longo (textoPausa/textoResumoDia/textoQuebrou) vai por texto livre e a Meta o descarta
+// fora da janela de 24 h; o teaser vai pelo coringa, que atravessa a janela. Regra: UMA linha,
+// sem quebra de linha nem tab (a Meta rejeita em variável), <= 160 caracteres.
+
+const LIMITE_TEASER = 160
+const umaLinha = (s: string): string => s.replace(/\s+/g, ' ').trim()
+const semPontoFinal = (s: string): string => s.replace(/[.\s]+$/, '')
+/** Corta em `max` caracteres (a reticência conta). */
+const cortar = (s: string, max: number): string => (s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1)).trimEnd()}…`)
+
+/** Pausa: o diagnóstico (taxa ou "parou agora") é o miolo; o fim ("responda /retomar") é a única
+ *  coisa que o operador precisa fazer, então nunca é cortado. O "saíram N de 500" só entra se couber
+ *  (o texto longo já traz), e o diagnóstico só é cortado em último caso (motivos reais ~85 chars). */
+export function teaserPausa(entrega: Entrega, jaSaiuHoje: number): string {
+  const fim = ' — confira a fatura da Meta e responda /retomar'
+  const diag = semPontoFinal(umaLinha(diagnosticoDaPausa(entrega)))
+  const comSaida = `🛑 disparo AIVA pausado (saíram ${jaSaiuHoje} de ${TETO_DIA}): ${diag}${fim}`
+  if (comSaida.length <= LIMITE_TEASER) return comSaida
+  const ini = '🛑 disparo AIVA pausado: '
+  return `${ini}${cortar(diag, LIMITE_TEASER - ini.length - fim.length)}${fim}`
+}
+
+export function teaserResumo(r: Resumo): string {
+  return `📊 disparo AIVA: saíram ${r.saiuHoje} de ${TETO_DIA}, fila ${r.filaPendente}${r.pausado ? ' (PAUSADO)' : ''}`
+}
+
+/** Rodada que LANÇOU. O motivo é mensagem de erro (pode ter quebra de linha e stack): colapsa e corta em 120. */
+export function teaserQuebrou(motivo: string): string {
+  return `🚨 disparo AIVA quebrou: ${cortar(umaLinha(motivo), 120)}`
+}
+
+/** Chave de dedupe do alerta "rodada quebrou": UMA por hora BRT (`disparo_quebrou:<YYYY-MM-DD>T<HH>`).
+ *  Rota que falha a cada 20 min avisa uma vez por hora, não três. */
+export function chaveQuebrou(agoraMs: number): string {
+  return `disparo_quebrou:${diaBrt(agoraMs)}T${String(relogioBrt(agoraMs).hora).padStart(2, '0')}`
+}
+
+/** A versão LONGA do alerta de rodada quebrada (texto livre; o teaser vai pelo coringa).
+ *  O erro cru entra cortado em 500 caracteres: mensagem de banco/rede pode vir enorme. */
+export function textoQuebrou(msg: string, agoraMs: number): string {
+  const { hora, minuto } = relogioBrt(agoraMs)
+  const hhmm = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`
+  return [
+    '🚨 Disparo AIVA: a rodada QUEBROU',
+    `Rota: /api/sdr/disparo-diario · ${diaBrt(agoraMs)} ${hhmm} (Brasília)`,
+    `Erro: ${cortar(msg.trim(), 500)}`,
+    '',
+    'Nada foi enviado nesta rodada; a próxima tenta de novo sozinha. Se o erro se repetir, o lote do dia não fecha.',
+    'Este aviso sai no máximo 1× por hora. O vigia das 17h também vai cobrar.',
+  ].join('\n')
+}
+
 /** "12/10 às 11:32" em Brasília. Via Intl (nunca `TZ=`). Vazio/ilegível → "data desconhecida". */
 function quandoBrt(iso: string | null): string {
   const ms = iso ? Date.parse(iso) : NaN

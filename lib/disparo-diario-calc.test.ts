@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -311,4 +311,66 @@ test('guardaBarata: devolve o primeiro motivo barato, ou null num dia útil norm
   // ordem: tudo ligado ao mesmo tempo em feriado → feriado; em dia útil → pausado antes de fatia ocupada
   assert.equal(guardaBarata({ agoraMs: Date.parse('2026-11-02T10:00:00Z'), pausado: true, fatiaOcupada: true }), 'feriado')
   assert.equal(guardaBarata({ ...b, pausado: true, fatiaOcupada: true }), 'pausado')
+})
+
+// --- Teasers do HSM 48 ({{2}}): UMA linha, sem quebra de linha, <= 160 chars ---
+
+const PARADO_AGORA: Entrega = { estado: 'alerta', taxa: 0.78, amostra: 40, entregues: 31, motivo: '31 de 40 entregues (78%) no dia, MAS os 10 envios mais recentes: NENHUM entregue' }
+const uma = (t: string) => assert.ok(!/[\r\n\t]/.test(t) && t.length <= 160, `não é uma linha de até 160: ${JSON.stringify(t)} (${t.length})`)
+
+test('teaserPausa: uma linha, sem \n, cita a taxa e manda responder /retomar', () => {
+  const t = teaserPausa(ALERTA, 120)
+  uma(t)
+  assert.match(t, /12%/)
+  assert.match(t, /pausad/i)
+  assert.ok(t.endsWith('responda /retomar'), t)
+  // "parou agora": cita o motivo (não o piso) e também fecha com /retomar
+  const t2 = teaserPausa(PARADO_AGORA, 300)
+  uma(t2)
+  assert.match(t2, /NENHUM entregue/)
+  assert.ok(t2.endsWith('responda /retomar'), t2)
+})
+
+test('teaserResumo: uma linha com saiu/restante', () => {
+  const r: Resumo = { saiuHoje: 480, restante: 20, filaPendente: 3300, pausado: false, entrega: OK }
+  const t = teaserResumo(r)
+  uma(t)
+  assert.match(t, /saíram 480 de 500/)
+  assert.match(t, /fila 3300/)
+  assert.match(teaserResumo({ ...r, pausado: true }), /PAUSADO/)
+})
+
+test('teaserQuebrou: uma linha com o motivo truncado em 120 chars', () => {
+  const curto = teaserQuebrou('sdr_mensagens: timeout')
+  uma(curto)
+  assert.equal(curto, '🚨 disparo AIVA quebrou: sdr_mensagens: timeout')
+  const longo = teaserQuebrou('x'.repeat(500))
+  uma(longo)
+  assert.equal(longo.replace('🚨 disparo AIVA quebrou: ', '').length, 120)
+  assert.ok(longo.endsWith('…'))
+})
+
+test('teasers nunca contêm \n mesmo com motivo multilinha', () => {
+  const sujo: Entrega = { ...ALERTA, motivo: '3 de 25\nentregues\r\n(12%)\tmuito\n\nruim' }
+  for (const t of [
+    teaserQuebrou('linha 1\nlinha 2\r\n\tlinha 3\n\n' + 'y'.repeat(300)),
+    teaserPausa(sujo, 10),
+    teaserPausa({ ...PARADO_AGORA, motivo: 'z'.repeat(400) }, 10),
+    teaserResumo({ saiuHoje: 1, restante: 499, filaPendente: 9, pausado: false, entrega: OK }),
+  ]) uma(t)
+})
+
+test('chaveQuebrou: uma por hora BRT; textoQuebrou traz rota, hora, erro e o vigia', () => {
+  // 13:07Z = 10:07 BRT; 13:47Z = 10:47 BRT (mesma hora); 14:07Z = 11:07 BRT
+  assert.equal(chaveQuebrou(Date.parse('2026-10-19T13:07:00Z')), 'disparo_quebrou:2026-10-19T10')
+  assert.equal(chaveQuebrou(Date.parse('2026-10-19T13:47:00Z')), 'disparo_quebrou:2026-10-19T10')
+  assert.equal(chaveQuebrou(Date.parse('2026-10-19T14:07:00Z')), 'disparo_quebrou:2026-10-19T11')
+  // 02:30Z do dia 20 ainda é 23:30 BRT do dia 19
+  assert.equal(chaveQuebrou(Date.parse('2026-10-20T02:30:00Z')), 'disparo_quebrou:2026-10-19T23')
+  const t = textoQuebrou('sdr_mensagens: timeout', Date.parse('2026-10-19T13:07:00Z'))
+  assert.match(t, /\/api\/sdr\/disparo-diario/)
+  assert.match(t, /2026-10-19 10:07/)
+  assert.match(t, /sdr_mensagens: timeout/)
+  assert.match(t, /vigia das 17h/)
+  assert.ok(textoQuebrou('e'.repeat(5000), SEG_10H).length < 1000)
 })

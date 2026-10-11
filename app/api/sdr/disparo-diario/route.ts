@@ -15,6 +15,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { flag } from '@/lib/req-flags'
 import { rodada } from '@/lib/disparo-diario'
+import { avisarEquipe } from '@/lib/alerta-equipe'
+import { chaveQuebrou, textoQuebrou, teaserQuebrou } from '@/lib/disparo-diario-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,6 +38,12 @@ async function executar(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[disparo-diario] rodada falhou:', msg)
+    // Alerta imediato (HSM 48 + texto), no máx. 1×/hora BRT. Rodada MANUAL com ?dry não alerta: quem
+    // chamou já está olhando o 500. `avisarEquipe` nunca lança — o 500 abaixo sai de qualquer jeito.
+    if (!dry) {
+      const agora = Date.now()
+      await avisarEquipe(textoQuebrou(msg, agora), teaserQuebrou(msg), { chaveDedupe: chaveQuebrou(agora), janelaMs: 3_600_000 })
+    }
     return NextResponse.json({ ok: false, erro: msg }, { status: 500 })
   }
 }

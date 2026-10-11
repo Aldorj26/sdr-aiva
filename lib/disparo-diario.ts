@@ -16,11 +16,11 @@
  * bloqueio da Meta e não pode nem pausar nem matar a rodada.
  */
 import { supabaseAdmin } from './supabase'
-import { alertHuman } from './evotalks'
+import { avisarEquipe } from './alerta-equipe'
 import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
-  decidirRodada, guardaBarata, chaveDaFatia, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
+  decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -126,16 +126,11 @@ export async function resumoDoDia(agora = Date.now(), entrega?: Entrega): Promis
   }
 }
 
-/** Aldo e Nei, cada envio no seu try/catch: um número fora do ar não bloqueia o outro. */
-async function avisarTime(texto: string): Promise<void> {
-  for (const tel of [process.env.ALDO_WHATSAPP, process.env.NEI_WHATSAPP].filter(Boolean) as string[]) {
-    try {
-      const r = await alertHuman(tel, texto)
-      if (!r.ok) console.error(`[disparo-diario] aviso não entregue a ${tel}: ${r.error}`)
-    } catch (err) {
-      console.error(`[disparo-diario] aviso falhou para ${tel}:`, err)
-    }
-  }
+/** Pausa e resumo saem por DOIS caminhos (ver lib/alerta-equipe): o texto longo livre e o teaser
+ *  pelo coringa HSM 48, que atravessa a janela de 24 h. Aldo e Nei em paralelo, 20 s cada. */
+async function avisarTime(texto: string, teaser: string): Promise<void> {
+  const { enviados, falhas } = await avisarEquipe(texto, teaser)
+  if (falhas) console.error(`[disparo-diario] aviso à equipe: ${enviados} entregue(s), ${falhas} falha(s)`)
 }
 
 type LinhaFila = { id: string; nome: string; telefone: string; cidade: string | null }
@@ -230,7 +225,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   if (decisao.acao === 'pausar') {
     await pausar(decisao.motivo)
-    await avisarTime(textoPausa(entrega, jaSaiuHoje))
+    await avisarTime(textoPausa(entrega, jaSaiuHoje), teaserPausa(entrega, jaSaiuHoje))
     console.log(`[disparo-diario] PAUSADO: ${decisao.motivo}`)
     return montar()
   }
@@ -284,7 +279,10 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   // O resumo do dia sai na última rodada, se ela não pausou (pausa já avisou). Reaproveita a
   // entrega medida acima: refazer a ida à Evo aqui comeria o fim dos 300 s.
-  if (ehUltimaRodada(agora)) await avisarTime(textoResumoDia(await resumoDoDia(agora, entrega)))
+  if (ehUltimaRodada(agora)) {
+    const resumo = await resumoDoDia(agora, entrega)
+    await avisarTime(textoResumoDia(resumo), teaserResumo(resumo))
+  }
 
   return montar({ enviados, falhas, cortado })
 }
