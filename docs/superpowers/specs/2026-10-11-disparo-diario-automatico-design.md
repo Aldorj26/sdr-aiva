@@ -270,3 +270,81 @@ já cobra rota que não agiu.
 a taxa varia muito por segmento de lista (Manaus 86%, outras praças 43%) e um
 piso de 50% daria alarme falso. Ainda assim é o risco mais caro do desenho, e é
 por isso que o destrave é um comando de uma palavra no celular, não um deploy.
+
+---
+
+## Adendo de 11/10 (noite) — decisões do Aldo depois da revisão final da AIVA
+
+A AIVA está em produção, pausada, desde 11/10. A revisão final do branch apontou
+seis Important; três foram corrigidos no mesmo dia, três ficaram para antes da
+viagem. O Aldo decidiu sobre cada um e liberou a Parcelex inteira.
+
+### 1. Alerta por template coringa (resolve I-4)
+
+Alerta de pausa, resumo das 18h47 e o alerta novo de "rodada quebrou" saem **pelo
+template coringa de cada empresa**, além do texto livre: AIVA = HSM 48
+(`AIVA_REATIVACAO_TEMPLATE_ID`, `Olá {{1}}, {{2}}`), Parcelex = template 83
+(`REABRIDOR`, `[nome, frase]`). Template passa pela Meta fora da janela de 24h;
+texto livre fora da janela é descartado sem erro. Variável de template não aceita
+`\n`: a versão HSM é UMA linha ("teaser"), o detalhe vai no texto livre logo
+atrás (chega se a janela estiver aberta). A Parcelex já tem exatamente esse
+mecanismo em `lib/equipe.ts` (`avisarEquipe(numeros, detalhe, teaser)`); a AIVA
+ganha o equivalente.
+
+### 2. Feriados (resolve I-5)
+
+"Dia útil" passa a excluir feriado nacional. Conjunto fixo `FERIADOS` em
+`lib/business-time.ts` de cada repo, consultado por `isDiaUtil()` (que o
+`send-initial` já usa) e por uma guarda nova `feriado` em `decidirRodada`:
+2026-10-12, **2026-11-02**, 2026-11-15, 2026-11-20, 2026-12-25, 2027-01-01.
+Decisão do Aldo: 02/11 não dispara.
+
+### 3. Lock de fatia (resolve I-6)
+
+Antes de disparar, a rodada **insere** a chave `disparo:<YYYY-MM-DD>T<HH>:<fatia
+de 20 min>` em `sdr_avisos_chave` (AIVA) / `parcelex_avisos_chave` (Parcelex,
+criada igual). Conflito na inserção = outra rodada já é dona da fatia → `nada`,
+motivo `fatia_ocupada`. Cobre entrega dupla do cron pela Vercel e chamada manual
+concorrente. O script manual continua existindo e continua **proibido** com o
+cron armado — o lock protege a rota, não o script.
+
+### 4. "Se pifar, me avisa" (pedido do Aldo; absorve o timeout do alertHuman)
+
+- A rota embrulha a rodada: exceção → alerta **imediato** "🚨 disparo AIVA
+  quebrou: <motivo>" pelo coringa para Aldo e Nei (dedupe 1/hora pela chave
+  `disparo_quebrou:<hora>`), e devolve 500 (o vigia das 17h continua cobrando).
+- Envio de alerta: os dois destinatários em paralelo (`Promise.allSettled`), cada
+  um com `Promise.race` de 20 s. Alerta pendurado nunca derruba a rodada nem
+  bloqueia o outro número. O estado de pausa é gravado ANTES do alerta.
+
+### 5. Parcelex — o que a implementação da AIVA ensinou
+
+A AIVA vira **implementação de referência**: `lib/disparo-diario-calc.ts`,
+`lib/disparo-diario.ts`, `app/api/sdr/disparo-diario/route.ts`, os comandos em
+`lib/admin-commands.ts`. A Parcelex espelha, com estas diferenças medidas no
+código dela:
+
+| | AIVA | Parcelex |
+|---|---|---|
+| fila | `sdr_fila_disparo`, status `PENDENTE/DISPARADO/ERRO/DUPLICADO` | `parcelex_prospeccao`, status **minúsculo** `pendente/disparado/erro` + `duplicado` (novo); tem `prioridade` (1 primeiro) e `lead_id` |
+| rótulo do D+0 | `aiva_campanha` | **`parcelex_d1b`** (copy atual) **e** `parcelex_d1` (histórico) — contar os dois |
+| lote | 5 | **20** (a rota manda um lead por vez, ~5 s; 20 ≈ 100 s) |
+| cron | `7,27,47 11-21` (33 rodadas) | **`17,47 11-21 * * 1-5`** (22 rodadas, 30 min) — a ~40/rodada o teto de 500 fecha à tarde; múltiplos de 5 estão ocupados (`5-59/10`, `*/10`, `*/20`, `*/30`) |
+| antes de disparar | — | **`reconciliar()`** (molde em `scripts/prospeccao-onda.mjs:78`): pendente cujo telefone já existe em `patricia_leads` dos últimos 7 dias vira `disparado` + `lead_id` |
+| recibo de entrega | `lib/entrega-meta*.ts` | **não existe** — copiar o calc (puro, testado) e escrever o IO sobre `patricia_leads`/`patricia_mensagens` |
+| alerta à equipe | `alertHuman` + HSM 48 (novo) | `avisarEquipe` já faz texto-ou-teaser-HSM |
+| comandos admin | `lib/admin-commands.ts` | **não existe** — desvio no topo do `POST` do webhook (depois do `x-internal-secret`): número da equipe + texto começando com `/` → comando, nunca vai para a Patricia |
+| `?dry` | `lib/req-flags` | **não existe** — portar |
+| estado | `sdr_disparo_estado` | `parcelex_disparo_estado`, mesmo DDL, RLS ligada |
+| lock | `sdr_avisos_chave` (existe: `chave, ultimo_aviso, criado_em`) | `parcelex_avisos_chave`, criada igual |
+
+O `send-initial` da Parcelex já devolve `resultados[{telefone, ok, erro}]` com
+`bloqueado_*` e `numero_sem_whatsapp`, e já barra fim de semana — mesmo
+contrato da AIVA.
+
+### Ordem e gate
+
+1. AIVA: feriados + lock, depois alertas por coringa + "quebrou" (antes de 30/10).
+2. Parcelex inteira, **deployada pausada** como a AIVA, com o mesmo roteiro de
+   `/disparo → /retomar → /retomar → /pausar → /pausar → /retomar` com o Aldo
+   presente. A Parcelex só é destravada depois de a AIVA fechar um dia inteiro.
