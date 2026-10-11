@@ -20,7 +20,7 @@ import { alertHuman } from './evotalks'
 import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
+  decidirRodada, textoPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -36,13 +36,13 @@ const TIMEOUT_LOTE_MAX_MS = 120_000
  *  queimaria os 300 s da função sem enviar nada. */
 const TIMEOUT_ENTREGA_MS = 60_000
 
-export type Estado = { pausado: boolean; motivo: string | null; pausado_em: string | null }
+export type Estado = { pausado: boolean; motivo: string | null; pausado_em: string | null; retomado_em: string | null }
 
 export async function lerEstado(): Promise<Estado> {
   const { data, error } = await supabaseAdmin
-    .from('sdr_disparo_estado').select('pausado, motivo, pausado_em').eq('id', 1).maybeSingle()
+    .from('sdr_disparo_estado').select('pausado, motivo, pausado_em, retomado_em').eq('id', 1).maybeSingle()
   if (error) throw new Error(`sdr_disparo_estado: ${error.message}`)
-  return { pausado: data?.pausado ?? false, motivo: data?.motivo ?? null, pausado_em: data?.pausado_em ?? null }
+  return { pausado: data?.pausado ?? false, motivo: data?.motivo ?? null, pausado_em: data?.pausado_em ?? null, retomado_em: data?.retomado_em ?? null }
 }
 
 /** Idempotente: se já está pausado, não mexe em `pausado_em` nem no motivo
@@ -80,8 +80,10 @@ async function contarFilaPendente(): Promise<number> {
   return count ?? 0
 }
 
-/** Evo fora do ar OU pendurado (timeout de 60 s) vira `sem_dados` — nunca derruba nem pausa a rodada. */
-async function medirEntrega(): Promise<Entrega> {
+/** Evo fora do ar OU pendurado (timeout de 60 s) vira `sem_dados` — nunca derruba nem pausa a rodada.
+ *  `retomadoEm`: depois de um /retomar de HOJE a amostra começa nele (ver `inicioEfetivoDaAmostra`),
+ *  senão a rodada re-mede os envios que causaram a pausa e re-pausa na hora. */
+async function medirEntrega(agora: number, retomadoEm: string | null): Promise<Entrega> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<Entrega>((resolve) => {
     timer = setTimeout(() => {
@@ -89,7 +91,7 @@ async function medirEntrega(): Promise<Entrega> {
       resolve(entregaIndisponivel())
     }, TIMEOUT_ENTREGA_MS)
   })
-  const medir = conferirEntregaHoje().then(({ estado, taxa, amostra, entregues, motivo }): Entrega => ({ estado, taxa, amostra, entregues, motivo }))
+  const medir = conferirEntregaHoje(new Date(agora), inicioEfetivoDaAmostra(agora, retomadoEm)).then(({ estado, taxa, amostra, entregues, motivo }): Entrega => ({ estado, taxa, amostra, entregues, motivo }))
   try {
     return await Promise.race([medir, timeout])
   } catch (err) {
@@ -103,8 +105,10 @@ async function medirEntrega(): Promise<Entrega> {
 /** A foto do dia. `entrega` opcional: a rodada já mediu no começo e não repete a
  *  ida à Evo (~20 s) no fim, quando o relógio da função já está apertado. */
 export async function resumoDoDia(agora = Date.now(), entrega?: Entrega): Promise<Resumo> {
+  const estadoP = lerEstado()
   const [estado, saiuHoje, filaPendente, entregaDia] = await Promise.all([
-    lerEstado(), contarSaiuHoje(agora), contarFilaPendente(), entrega ?? medirEntrega(),
+    estadoP, contarSaiuHoje(agora), contarFilaPendente(),
+    entrega ?? estadoP.then((e) => medirEntrega(agora, e.retomado_em)),
   ])
   return {
     saiuHoje, restante: Math.max(0, TETO_DIA - saiuHoje), filaPendente, pausado: estado.pausado, entrega: entregaDia,
@@ -172,7 +176,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   const estado = await lerEstado()
   const [jaSaiuHoje, filaPendente] = await Promise.all([contarSaiuHoje(agora), contarFilaPendente()])
-  const entrega = await medirEntrega()
+  const entrega = await medirEntrega(agora, estado.retomado_em)
   const decisao = decidirRodada({ agoraMs: agora, pausado: estado.pausado, jaSaiuHoje, filaPendente, entrega })
 
   const montar = (extra: { enviados?: number; falhas?: number; cortado?: boolean } = {}): ResultadoRodada => {

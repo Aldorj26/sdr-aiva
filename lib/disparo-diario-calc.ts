@@ -69,12 +69,33 @@ export function decidirRodada(e: {
   // sem_dados NÃO bloqueia: de manhã não há envio do dia pra medir, e Evo fora
   // do ar não é prova de bloqueio da Meta. Só o alerta (taxa abaixo do piso) pausa.
   if (e.entrega.estado === 'alerta') {
-    return { acao: 'pausar', motivo: `Entrega em ${pct(e.entrega.taxa ?? 0)} (${e.entrega.entregues} de ${e.entrega.amostra} confirmados) — piso é ${pct(PISO_TAXA)}.` }
+    return { acao: 'pausar', motivo: diagnosticoDaPausa(e.entrega) }
   }
   const orcamento = TETO_DIA - e.jaSaiuHoje
   if (orcamento <= 0) return { acao: 'nada', motivo: 'orcamento_gasto' }
   if (e.filaPendente <= 0) return { acao: 'nada', motivo: 'fila_vazia' }
   return { acao: 'disparar', quantidade: Math.min(orcamento, e.filaPendente) }
+}
+
+/** A linha de diagnóstico da pausa — FONTE ÚNICA do `motivo` gravado em `sdr_disparo_estado`
+ *  e do texto do alerta. Parte de `entrega.motivo`, que já diz qual dos dois gatilhos disparou:
+ *  "3 de 25 entregues (12%)" (dia abaixo do piso) ou "31 de 40 entregues (78%) no dia, MAS os 10
+ *  envios mais recentes: NENHUM entregue" (parou agora). O piso só entra quando o DIA está
+ *  abaixo dele; "78% — piso é 30%" parecia bug e convidava a um /retomar reflexo. */
+export function diagnosticoDaPausa(entrega: Entrega): string {
+  const abaixoDoPiso = entrega.taxa != null && entrega.taxa < PISO_TAXA
+  return abaixoDoPiso ? `${entrega.motivo} — piso é ${pct(PISO_TAXA)}.` : `${entrega.motivo}.`
+}
+
+/** Começo da amostra de entrega: o MAIOR entre a meia-noite BRT de hoje e o `/retomar` de hoje.
+ *  Sem isso, depois do /retomar a rodada seguinte mede as MESMAS mensagens da manhã (nenhum D+0
+ *  novo saiu durante a pausa), dá alerta de novo e re-pausa em 20 min — com o operador já tendo
+ *  pago a fatura. Retomada de dia anterior ou ilegível não encurta nada. Devolve ISO UTC. */
+export function inicioEfetivoDaAmostra(agoraMs: number, retomadoEm: string | null): string {
+  const brt = new Date(agoraMs - 3 * 3_600_000)
+  const inicioDia = Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate()) + 3 * 3_600_000
+  const retomadoMs = retomadoEm ? Date.parse(retomadoEm) : NaN
+  return new Date(Number.isFinite(retomadoMs) && retomadoMs > inicioDia ? retomadoMs : inicioDia).toISOString()
 }
 
 /** O aviso que sai na hora, pra Aldo e Nei, quando a rodada pausa.
@@ -83,7 +104,7 @@ export function decidirRodada(e: {
 export function textoPausa(entrega: Entrega, jaSaiuHoje: number): string {
   return [
     '🛑 Disparo AIVA pausado',
-    `Entrega em ${pct(entrega.taxa ?? 0)} (${entrega.entregues} de ${entrega.amostra} confirmados) — piso é ${pct(PISO_TAXA)}.`,
+    `Entrega: ${diagnosticoDaPausa(entrega)}`,
     `Saíram ${jaSaiuHoje} de ${TETO_DIA} hoje. Não vou disparar mais até alguém destravar.`,
     '',
     'Primeiro: confira a fatura da Meta (foi isso em 21/09).',

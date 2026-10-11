@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado,
+  decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
 } from './disparo-diario-calc.ts'
@@ -97,6 +97,47 @@ test('ordem das guardas: fim de semana > janela > pausado > alerta > orçamento 
 test('textoPausa cita a taxa, quanto saiu, a fatura da Meta e /retomar', () => {
   const t = textoPausa(ALERTA, 180)
   for (const trecho of ['12%', '180', 'fatura', '/retomar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+})
+
+// alerta de "parou agora": o dia está BEM (78%) mas os últimos envios não entregaram nada
+const ALERTA_PAROU: Entrega = { estado: 'alerta', taxa: 0.78, amostra: 40, entregues: 31, motivo: '31 de 40 entregues (78%) no dia, MAS os 10 mais recentes: NENHUM entregue' }
+
+test('textoPausa no "parou agora": usa o motivo da medição e NÃO apresenta 78% como abaixo do piso', () => {
+  const t = textoPausa(ALERTA_PAROU, 180)
+  assert.ok(t.includes(ALERTA_PAROU.motivo), `faltou o motivo em: ${t}`)
+  assert.ok(!/78%.*piso/i.test(t), `78% aparece como abaixo do piso: ${t}`)
+  for (const trecho of ['180', 'fatura', '/retomar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+})
+
+test('textoPausa na queda do dia: o motivo traz a taxa e o piso de 30% aparece', () => {
+  const t = textoPausa(ALERTA, 180)
+  assert.ok(t.includes(ALERTA.motivo) && /piso/.test(t), t)
+})
+
+test('decidirRodada: o motivo da pausa vem de entrega.motivo (não repete "Entrega em 78%... piso")', () => {
+  const d = decidirRodada({ ...base(), entrega: ALERTA_PAROU })
+  assert.equal(d.acao, 'pausar')
+  assert.ok(d.acao === 'pausar' && d.motivo.includes('NENHUM entregue'), 'motivo deve trazer o diagnóstico real')
+  assert.ok(d.acao === 'pausar' && !/78%.*piso/i.test(d.motivo), `78% como abaixo do piso: ${d.acao === 'pausar' && d.motivo}`)
+})
+
+// 2026-10-12 10h BRT = SEG_10H; meia-noite BRT desse dia = 03:00Z
+const DIA_INICIO = '2026-10-12T03:00:00.000Z'
+test('inicioEfetivoDaAmostra: sem retomada → começo do dia BRT', () => {
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, null), DIA_INICIO)
+})
+
+test('inicioEfetivoDaAmostra: retomada de ONTEM ou ilegível não encurta a amostra', () => {
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-11T20:00:00.000Z'), DIA_INICIO)
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, 'lixo'), DIA_INICIO)
+})
+
+test('inicioEfetivoDaAmostra: retomada de HOJE vira o começo da amostra (max com o início do dia)', () => {
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-12T12:15:00.000Z'), '2026-10-12T12:15:00.000Z')
+})
+
+test('inicioEfetivoDaAmostra: 21h BRT de ontem (00h UTC de hoje) ainda é ontem no Brasil', () => {
+  assert.equal(inicioEfetivoDaAmostra(SEG_10H, '2026-10-12T01:00:00.000Z'), DIA_INICIO)
 })
 
 test('entregaIndisponivel devolve sem_dados — Evo fora não é bloqueio da Meta', () => {

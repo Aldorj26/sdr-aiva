@@ -33,8 +33,13 @@ export type Resultado = Veredito & {
   exemplos: string[]
 }
 
-export async function conferirEntregaHoje(agora = new Date()): Promise<Resultado> {
-  const de = inicioDoDiaBrt(agora)
+/** `desde` (opcional) encurta a amostra: só vale se for POSTERIOR ao começo do dia. O disparo
+ *  diário passa o `/retomar` de hoje — sem isso, depois de retomar, a rodada seguinte re-mede os
+ *  mesmos envios que causaram a pausa e pausa de novo. Quem não passa nada (o vigia) mede o dia todo. */
+export async function conferirEntregaHoje(agora = new Date(), desde?: string | Date | null): Promise<Resultado> {
+  const inicioDia = inicioDoDiaBrt(agora)
+  const desdeMs = desde ? new Date(desde).getTime() : NaN
+  const de = Number.isFinite(desdeMs) && desdeMs > Date.parse(inicioDia) ? new Date(desdeMs).toISOString() : inicioDia
   const ate = new Date(agora.getTime() - CARENCIA_MS).toISOString()
 
   // templates que saíram hoje e já passaram da carência
