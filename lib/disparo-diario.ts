@@ -307,7 +307,7 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
             .update(m.status === 'DISPARADO'
               ? { status: 'DISPARADO', disparado_em: new Date().toISOString() }
               : { status: m.status, detalhe: m.detalhe })
-            .eq('id', m.id)
+            .eq('id', m.id).eq('status', 'PENDENTE') // guarda: nunca sobrescreve linha que alguém tirou da fila durante a rodada
           // a mensagem JÁ saiu; falhar em marcar só reaparece como duplicata (barrada pelo send-initial)
           if (erroMarca) console.error(`[disparo-diario] não marcou ${m.id}: ${erroMarca.message}`)
           if (m.status === 'DISPARADO') enviados++
