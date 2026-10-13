@@ -92,7 +92,7 @@ export default async function ComissoesPage({
 }) {
   const sp = await searchParams
   const tab: Aba = sp.tab === 'ume' ? 'ume' : 'aiva'
-  const origemUme = sp.origem === 'fcdl' ? 'fcdl' : 'carteira'
+  const origemUme = sp.origem === 'fcdl' ? 'fcdl' : sp.origem === 'retroativo' ? 'retroativo' : 'carteira'
 
   const { data: metasTodas } = await supabaseAdmin
     .from('ume_comissoes_meta')
@@ -138,7 +138,7 @@ export default async function ComissoesPage({
     l.relatorio ? ((l.relatorio as LinhaComissao & { origem?: string }).origem ?? 'carteira') : null
   const abaDe = (l: LinhaConferencia): Aba => {
     if (l.relatorio) {
-      if (origemDe(l) === 'fcdl') return 'ume'
+      if (origemDe(l) === 'fcdl' || origemDe(l) === 'retroativo') return 'ume'
       return AIVA_GRUPOS.has(l.relatorio.grupo ?? '') ? 'aiva' : 'ume'
     }
     return (tagsPorOpp.get(l.opp!.id) ?? []).includes(TAG_IDS.AIVA) ? 'aiva' : 'ume'
@@ -176,7 +176,7 @@ export default async function ComissoesPage({
 
   // Totais da visão ativa (linhas do relatório da aba/origem) + NF do mês
   const linhasAba = linhasMes.filter((l) => {
-    if (tab === 'ume') return l.origem === origemUme && (l.origem === 'fcdl' || !AIVA_GRUPOS.has(l.grupo ?? ''))
+    if (tab === 'ume') return l.origem === origemUme && (l.origem !== 'carteira' || !AIVA_GRUPOS.has(l.grupo ?? ''))
     return l.origem === 'carteira' && AIVA_GRUPOS.has(l.grupo ?? '')
   })
   const tot = {
@@ -194,7 +194,7 @@ export default async function ComissoesPage({
   if (mesAnterior) {
     const { data: antDb } = await supabaseAdmin.from('ume_comissoes').select('origem, grupo, comissao').eq('mes', mesAnterior)
     const antAba = ((antDb ?? []) as { origem: string; grupo: string | null; comissao: number | null }[]).filter((l) => {
-      if (tab === 'ume') return l.origem === origemUme && (l.origem === 'fcdl' || !AIVA_GRUPOS.has(l.grupo ?? ''))
+      if (tab === 'ume') return l.origem === origemUme && (l.origem !== 'carteira' || !AIVA_GRUPOS.has(l.grupo ?? ''))
       return l.origem === 'carteira' && AIVA_GRUPOS.has(l.grupo ?? '')
     })
     const antTotal = antAba.reduce((s, l) => s + (l.comissao ?? 0), 0)
@@ -266,13 +266,13 @@ export default async function ComissoesPage({
         ))}
         {tab === 'ume' && (
           <div style={{ display: 'flex', gap: '0.3rem', marginLeft: '0.5rem' }}>
-            {(['carteira', 'fcdl'] as const).map((o) => (
+            {(['carteira', 'fcdl', 'retroativo'] as const).map((o) => (
               <Link key={o} href={qs({ origem: o, estado: undefined })} style={{
                 padding: '0.35rem 0.7rem', borderRadius: 6, textDecoration: 'none', fontSize: '0.78rem',
                 border: `1px solid ${origemUme === o ? 'var(--accent)' : 'var(--border)'}`,
                 color: origemUme === o ? 'var(--accent)' : 'var(--text-muted)', fontWeight: origemUme === o ? 700 : 400,
                 background: 'var(--bg-elev)',
-              }}>{o === 'carteira' ? 'Carteira' : 'FCDL'}</Link>
+              }}>{o === 'carteira' ? 'Carteira' : o === 'fcdl' ? 'FCDL' : 'Retroativo'}</Link>
             ))}
           </div>
         )}

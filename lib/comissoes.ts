@@ -23,7 +23,9 @@ export const AIVA_GRUPOS = new Set([
   'VOCE_PONTO_COM',
 ])
 
-export type OrigemComissao = 'carteira' | 'fcdl'
+/** `retroativo` = comissão de varejos que a UME não vinha considerando (Gerisson, 13/10/2026), paga em NF
+ *  separada; entra no painel na aba UME com o próprio seletor, sem se misturar ao total da carteira do mês. */
+export type OrigemComissao = 'carteira' | 'fcdl' | 'retroativo'
 
 export interface LinhaComissao {
   retailer_id: number | null
