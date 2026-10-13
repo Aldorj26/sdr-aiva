@@ -5,6 +5,7 @@ import { AIVA_GRUPOS, conferir, type LinhaComissao, type LinhaConferencia, type 
 import { casaBusca } from '@/lib/text'
 import ImportarForm from './ImportarForm'
 import GravarRidButton from './GravarRidButton'
+import FiltroColuna from './FiltroColuna'
 import ClickableRow from '../_components/ClickableRow'
 import LeadDrawer from '../_components/LeadDrawer'
 import Copiavel from '@/app/_components/Copiavel'
@@ -88,7 +89,7 @@ function Card({ label, value, sub, cor, href, ativo }: { label: string; value: s
 export default async function ComissoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; tab?: string; origem?: string; estado?: string; q?: string }>
+  searchParams: Promise<{ mes?: string; tab?: string; origem?: string; estado?: string; q?: string; rid?: string; cnpj?: string; grupo?: string; contratos?: string; orig?: string; mdr?: string; com?: string; portal?: string }>
 }) {
   const sp = await searchParams
   const tab: Aba = sp.tab === 'ume' ? 'ume' : 'aiva'
@@ -166,6 +167,19 @@ export default async function ComissoesPage({
     )
   }
 
+  // Filtros por coluna (Aldo 13/10/2026) — linha de selects embaixo do cabeçalho (FiltroColuna.tsx)
+  const gruposAba = [...new Set(rows.map((l) => l.relatorio?.grupo ?? '').filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const temValor = (v: number | null | undefined) => (v ?? 0) > 0
+  const porValor = (filtro: string | undefined, v: number | null | undefined) => !filtro || (filtro === 'com' ? temValor(v) : !temValor(v))
+  if (sp.rid) rows = rows.filter((l) => (sp.rid === 'com') === (l.umeRid != null && String(l.umeRid) !== ''))
+  if (sp.cnpj) rows = rows.filter((l) => (sp.cnpj === 'com') === !!l.cnpj)
+  if (sp.grupo) rows = rows.filter((l) => (sp.grupo === '__sem__' ? !l.relatorio?.grupo : l.relatorio?.grupo === sp.grupo))
+  rows = rows.filter((l) => porValor(sp.contratos, l.relatorio?.contratos) && porValor(sp.orig, l.relatorio?.originacao) && porValor(sp.mdr, l.relatorio?.mdr) && porValor(sp.com, l.relatorio?.comissao))
+  if (sp.portal) rows = rows.filter((l) => sp.portal === 'com_venda' ? temValor(l.desempenho?.vendas) : sp.portal === 'sem_venda' ? !!l.desempenho && !temValor(l.desempenho?.vendas) : !l.desempenho)
+  const filtrosColuna = ['rid', 'cnpj', 'grupo', 'contratos', 'orig', 'mdr', 'com', 'portal'] as const
+  const temFiltroColuna = filtrosColuna.some((k) => sp[k])
+  const VALOR = [{ valor: 'com', rotulo: 'Com valor' }, { valor: 'sem', rotulo: 'Zero / vazio' }]
+
   // ordena: divergências primeiro, depois por comissão desc, depois nome
   rows = [...rows].sort((a, b) => {
     if (a.divergencia !== b.divergencia) return a.divergencia ? -1 : 1
@@ -217,7 +231,7 @@ export default async function ComissoesPage({
 
   const qs = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams()
-    const base: Record<string, string | undefined> = { mes, tab, origem: tab === 'ume' ? origemUme : undefined, estado: sp.estado, q: sp.q, ...extra }
+    const base: Record<string, string | undefined> = { mes, tab, origem: tab === 'ume' ? origemUme : undefined, estado: sp.estado, q: sp.q, rid: sp.rid, cnpj: sp.cnpj, grupo: sp.grupo, contratos: sp.contratos, orig: sp.orig, mdr: sp.mdr, com: sp.com, portal: sp.portal, ...extra }
     for (const [k, v] of Object.entries(base)) if (v) p.set(k, v)
     return `/comissoes?${p.toString()}`
   }
@@ -323,9 +337,15 @@ export default async function ComissoesPage({
         <input type="hidden" name="tab" value={tab} />
         {tab === 'ume' && <input type="hidden" name="origem" value={origemUme} />}
         {sp.estado && <input type="hidden" name="estado" value={sp.estado} />}
+        {filtrosColuna.map((k) => sp[k] ? <input key={k} type="hidden" name={k} value={sp[k]} /> : null)}
         <input name="q" defaultValue={sp.q ?? ''} placeholder="Loja, CNPJ, Retailer ID, grupo, telefone…"
           style={{ padding: '0.45rem 0.7rem', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)', color: 'var(--text)', minWidth: 300 }} />
         <button type="submit" style={{ padding: '0.45rem 0.9rem', borderRadius: 6, border: '1px solid var(--accent)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>Buscar</button>
+        {temFiltroColuna && (
+          <Link href={qs(Object.fromEntries(filtrosColuna.map((k) => [k, undefined])))} style={{ alignSelf: 'center', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+            ✕ limpar filtros das colunas ({rows.length} lojas)
+          </Link>
+        )}
       </form>
 
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -343,6 +363,19 @@ export default async function ComissoesPage({
               <th style={{ ...thFixo, textAlign: 'right' }}>Comissão</th>
               {tab === 'aiva' && <th style={thFixo}>Portal AIVA</th>}
               <th style={thFixo}>Ações</th>
+            </tr>
+            <tr>
+              <th style={{ ...thFixo, top: 30 }}></th>
+              <th style={{ ...thFixo, top: 30 }}></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="rid" opcoes={[{ valor: 'com', rotulo: 'Com ID' }, { valor: 'sem', rotulo: 'Sem ID' }]} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="cnpj" opcoes={[{ valor: 'com', rotulo: 'Com CNPJ' }, { valor: 'sem', rotulo: 'Sem CNPJ' }]} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="grupo" opcoes={[{ valor: '__sem__', rotulo: 'Sem grupo' }, ...gruposAba.map((g) => ({ valor: g, rotulo: g }))]} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="contratos" opcoes={VALOR} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="orig" opcoes={VALOR} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="mdr" opcoes={VALOR} /></th>
+              <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="com" opcoes={VALOR} /></th>
+              {tab === 'aiva' && <th style={{ ...thFixo, top: 30 }}><FiltroColuna param="portal" opcoes={[{ valor: 'com_venda', rotulo: 'Vendeu no portal' }, { valor: 'sem_venda', rotulo: 'Sem venda no portal' }, { valor: 'sem_dado', rotulo: 'Sem dado do portal' }]} /></th>}
+              <th style={{ ...thFixo, top: 30 }}></th>
             </tr>
           </thead>
           <tbody>
