@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { blocoPromptCampanha } from '@/lib/campanha-ativacao-calc'
+import { emailDoMotivo, ehMotivoPainel, abrirTicketPainel, mensagemLojista, type ResultadoTicket } from '@/lib/painel-financeiro'
 import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta } from '@/lib/desistencia'
 import {
   getLeadByTelefone,
@@ -2776,6 +2777,76 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error(`[REENVIO_SENHA] falhou para ${lead.telefone}:`, err)
       // deixa acionar_humano como veio: se o reenvio quebrou, o time precisa saber
+    }
+  }
+
+  // ─── PAINEL FINANCEIRO POR TICKET (Mauricio 13/10/2026: "sempre por aqui agora") ───
+  // A VictorIA pede o Gmail e devolve motivo "abrir_painel_financeiro: <email>". Aqui o sistema abre o ticket na API
+  // pública da AIVA (um por loja criada do lead) e manda a confirmação com o número. lib/painel-financeiro.ts
+  // (`npm run test:painel`). Travas (revisor 13/10): motivo vem do MODELO e vira ação real na AIVA — exige loja criada,
+  // RID, assunto de painel na janela e o e-mail escrito pelo lojista; não repete ticket do mesmo e-mail; pedido que
+  // não dá pra abrir NUNCA morre calado (a fala "vou abrir o pedido" já saiu).
+  if (ehMotivoPainel(resposta.motivo_humano)) {
+    const avisarTime = async (texto: string) => {
+      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+        try { await alertHuman(tel, texto) } catch (e) { console.error('[PAINEL_FIN] aviso ao time falhou:', e) }
+      }
+    }
+    const leadIdP = lead.id, telP = lead.telefone
+    const escalarParaTime = async (porque: string) => {
+      resposta.acionar_humano = true
+      await supabaseAdmin.from('sdr_leads').update({ acionar_humano: true }).eq('id', leadIdP)
+      console.warn(`[PAINEL_FIN] ${telP}: ${porque}`)
+    }
+    try {
+      const emailPainel = emailDoMotivo(resposta.motivo_humano)
+      const { data: ultimasP } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', lead.id).order('enviado_em', { ascending: false }).limit(4)
+      const janelaP = [conteudo, conteudoEfetivo, ...(ultimasP ?? []).map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
+      const falasDele = [conteudo, conteudoEfetivo, ...(ultimasP ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
+      const assuntoPainel = /painel|repasse|financeiro|receber|recebimento|gmail|e-?mail/.test(janelaP)
+      const ticketsAntes = [...(lead.observacoes ?? '').matchAll(/\[PAINEL_FIN_TICKET:([^|\]]+)\|([^|\]]+)\|/g)]
+      const jaAberto = emailPainel ? ticketsAntes.find((m) => m[2] === emailPainel) ?? null : null
+      if (!['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
+        await escalarParaTime(`motivo de painel com a loja ainda não criada (${lead.status})`)
+      } else if (!emailPainel || !falasDele.includes(emailPainel)) {
+        await escalarParaTime(`e-mail do motivo ilegível ou não escrito pelo lojista (${resposta.motivo_humano})`)
+      } else if (!assuntoPainel) {
+        await escalarParaTime('motivo de painel fora de contexto')
+        await avisarTime(`💳 *PAINEL FINANCEIRO — pedido fora de contexto, NÃO abri ticket* — ${lead.nome} (${lead.telefone})\nMotivo: ${resposta.motivo_humano}\nConfere a conversa.`)
+      } else if (jaAberto) {
+        const aviso = mensagemLojista({ tipo: 'ja_existe', numero: Number(String(jaAberto[1]).match(/#(\d+)/)?.[1]) || null }, emailPainel)!
+        try { await sendText(lead.telefone, aviso, lead.evotalks_chat_id); await saveMensagem(lead.id, 'out', aviso) } catch (e) { console.error('[PAINEL_FIN] aviso ao lojista falhou:', e) }
+      } else {
+        const { data: regsP } = await supabaseAdmin.from('sdr_registros_cnpj').select('rid').eq('lead_id', lead.id).not('rid', 'is', null)
+        const ridsP = [...new Set((regsP ?? []).map((r) => String(r.rid)).filter(Boolean))]
+        const resultados: Array<{ rid: string; r: ResultadoTicket }> = []
+        for (const rid of ridsP) resultados.push({ rid, r: await abrirTicketPainel(rid, emailPainel, `${lead.nome} (${lead.telefone})`) })
+        const ordem = ['criado', 'ja_existe', 'email_nao_google', 'nao_elegivel', 'falha']
+        const melhor: ResultadoTicket = resultados.length
+          ? resultados.map((x) => x.r).sort((a, b) => ordem.indexOf(a.tipo) - ordem.indexOf(b.tipo))[0]
+          : { tipo: 'nao_elegivel', erro: 'nenhum RID no registro desta loja' }
+        const aviso = mensagemLojista(melhor, emailPainel)
+        if (aviso) {
+          try { await sendText(lead.telefone, aviso, lead.evotalks_chat_id); await saveMensagem(lead.id, 'out', aviso) } catch (e) { console.error('[PAINEL_FIN] aviso ao lojista falhou:', e) }
+        }
+        const numeros = resultados.filter((x) => x.r.tipo === 'criado' || x.r.tipo === 'ja_existe').map((x) => `#${(x.r as { numero: number | null }).numero ?? '?'} (RID ${x.rid})`)
+        const pendentes = resultados.filter((x) => x.r.tipo === 'nao_elegivel' || x.r.tipo === 'falha')
+        const precisaTime = (!resultados.length) || (melhor.tipo !== 'email_nao_google' && pendentes.length > 0)
+        if (numeros.length) {
+          const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: `${(fresco?.observacoes ?? '').trim()} [PAINEL_FIN_TICKET:${numeros.join(',')}|${emailPainel}|${new Date().toISOString()}]`.trim() }).eq('id', lead.id)
+        }
+        // ⚠️ não derruba escalada aberta (ex.: repasse atrasado): só põe na fila, nunca tira
+        if (precisaTime) await escalarParaTime(`ticket não abriu: ${pendentes.map((x) => `RID ${x.rid} ${'erro' in x.r ? x.r.erro : x.r.tipo}`).join('; ') || 'sem RID'}`)
+        // nota informativa só quando abriu; quando precisa do time, o alerta 🔔 de acionamento já sai (sem duplicar)
+        if (melhor.tipo === 'criado') {
+          await avisarTime(`💳 *PAINEL FINANCEIRO — ticket aberto na AIVA* — ${lead.nome} (${lead.telefone})\nE-mail: ${emailPainel}\n${resultados.map((x) => `• RID ${x.rid}: ${x.r.tipo}${'numero' in x.r && x.r.numero ? ` #${x.r.numero}` : ''}${'erro' in x.r ? ` — ${x.r.erro}` : ''}`).join('\n')}${pendentes.length ? '\n⚠️ Algum RID não abriu — está na fila de Atendimento.' : '\nResolvido pelo sistema (só informação).'}`)
+        }
+        console.log(`[PAINEL_FIN] ${lead.telefone}: ${melhor.tipo} ${numeros.join(',')}`)
+      }
+    } catch (err) {
+      console.error(`[PAINEL_FIN] falhou para ${lead.telefone}:`, err)
+      try { await escalarParaTime('erro no bloco do painel') } catch { /* segue */ }
     }
   }
 

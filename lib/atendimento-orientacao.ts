@@ -36,6 +36,7 @@ const EXATOS: Record<string, Orientacao> = {
   loja_ativa_sem_vendas: { situacao: 'Lojista desanimado ou reclamando de vendas fracas', acao: 'Ligar pra entender — é risco de a loja parar.' },
   duvida_campanha_boas_vindas: { situacao: 'Lojista com dúvida sobre a campanha de boas-vindas da AIVA (prêmio das 4 primeiras semanas)', acao: 'Responder a dúvida; se for pagamento ou exceção, confirmar com o Mauricio/AIVA.' },
   biometria_em_analise_aiva: { situacao: 'Lojista enviou a biometria e ela segue em análise na AIVA há mais de 1 dia útil', acao: 'Cobrar a análise da selfie com a AIVA (Mauricio/Edu ou ticket).' },
+  abrir_painel_financeiro: { situacao: 'Lojista pediu acesso ao painel financeiro e o ticket não abriu sozinho na AIVA', acao: 'Abrir o ticket de painel financeiro no portal da AIVA com o e-mail que ele passou.' },
   loja_quer_parar: { situacao: 'Loja já criada na AIVA disse que vai parar de usar', acao: 'Ligar hoje pra entender o motivo — dá pra salvar antes de a loja esfriar.' },
   desanimo_reprovacao_inicial: { situacao: 'Lojista desanimado porque os primeiros clientes foram reprovados', acao: 'Ligar e explicar que a aprovação varia por CPF; reforçar consultar todo cliente.' },
   interesse_parcelex: { situacao: 'Lojista quer a Parcelex (segunda financeira)', acao: 'Encaminhar pro fluxo da Parcelex.' },
@@ -63,7 +64,7 @@ const EXATOS: Record<string, Orientacao> = {
 const FAMILIAS: Array<{ re: RegExp; o: Orientacao }> = [
   { re: /cliente_final/, o: { situacao: 'Problema com um cliente final da loja', acao: `Abrir com ${AIVA}; o lojista está com o cliente esperando.` } },
   { re: /inativ|bloquead|suspens/, o: { situacao: 'Loja inativada ou bloqueada na AIVA', acao: `Abrir com ${AIVA} pra saber o motivo e dar retorno ao lojista.` } },
-  { re: /repasse|pagamento|recebimento/, o: { situacao: 'Problema ou dúvida sobre repasse', acao: 'Mandar o formulário de repasses (ou o do painel financeiro) e acompanhar.' } },
+  { re: /repasse|pagamento|recebimento/, o: { situacao: 'Problema ou dúvida sobre repasse', acao: 'Mandar o formulário de repasses (o painel financeiro é por ticket — pedir o Gmail) e acompanhar.' } },
   { re: /vinculo_societario|validacao_socio|cpf_nao/, o: { situacao: 'O cadastro da AIVA não reconhece o sócio/CPF', acao: `Abrir com ${AIVA} com o CNPJ e o CPF do sócio.` } },
   { re: /biometria/, o: { situacao: 'Problema na biometria (reconhecimento facial)', acao: `Ligar e tentar junto pelo celular; se não abrir, abrir com ${AIVA}.` } },
   { re: /onboarding|caf|tela_(branca|travada)|recaptcha|formulario/, o: { situacao: 'Erro ou travamento no cadastro da AIVA', acao: `Ver o print na conversa e abrir com ${AIVA}.` } },
