@@ -195,6 +195,16 @@ export function calcularEspelho(e: Entrada): Resultado {
       }
     }
 
+    // 1b) loja antiga cujo CNPJ não está nos onboardings da API, mas o RID do registro consulta/vende
+    //     (Fone Express, 13/10/2026): só a filial nova aparecia na API, em dados_varejo, e o card de uma
+    //     loja operando voltou de 51 pra 50 e passou a levar cobrança de formulário.
+    if (!melhor || melhor.para !== ETAPA.VENDENDO) {
+      const regOp = regs.find((r) => r.rid != null && String(r.rid) !== '' && e.vendeu.has(String(r.rid)))
+      if (regOp) {
+        melhor = { para: ETAPA.VENDENDO, onb: { cnpj: String(regOp.cnpj), stage: 'cadastro_finalizado', retailer_id: String(regOp.rid) } }
+      }
+    }
+
     const oppId = lead.evotalks_opportunity_id != null ? Number(lead.evotalks_opportunity_id) : NaN
     const opp = Number.isFinite(oppId) && oppId > 0 ? oppId : null
 

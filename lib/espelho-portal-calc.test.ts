@@ -258,3 +258,20 @@ test('loja que OPERA com outro CNPJ reprovado: card não é movido pra 95, mas e
   assert.equal(r.reprovados.length, 0, 'loja que opera NUNCA é jogada pra 95 sozinha')
   assert.deepEqual(r.conferir.map((c) => c.cnpj), ['11111111000191'])
 })
+
+test('loja antiga fora da API que consulta pelo RID do registro não regride por causa da filial nova (Fone Express, 13/10/2026)', () => {
+  // matriz 5167 opera mas não está nos onboardings; só a filial nova aparece, em dados_varejo
+  const entrada = {
+    onboardings: [onb({ cnpj: '68182669000185', stage: 'dados_varejo', board_column: 'dados_varejo' })],
+    vendeu: new Set(['5167']),
+    registros: [
+      { id: 1, cnpj: '65870629000138', lead_id: 'a', status: 'ativa', rid: '5167' },
+      { id: 2, cnpj: '68182669000185', lead_id: 'a', status: 'pre_cadastro_enviado', rid: null },
+    ],
+  }
+  const em51 = calcularEspelho(base({ ...entrada, leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')], stageAtual: new Map([[100, 51]]) }))
+  assert.equal(em51.movimentos.length, 0)
+  // quem já foi levado pra 50 pelo defeito volta pra 51
+  const em50 = calcularEspelho(base({ ...entrada, leads: [lead('a', 100, 'EM_ANALISE_AIVA')], stageAtual: new Map([[100, 50]]) }))
+  assert.deepEqual({ para: em50.movimentos[0]?.para, via: em50.movimentos[0]?.via }, { para: 51, via: [70] })
+})
