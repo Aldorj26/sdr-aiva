@@ -33,11 +33,11 @@ export const PISO_TAXA = 0.3
 
 /** Amostra separada dos envios mais RECENTES, pra pegar apagão que começa no meio
  *  do dia sem poluir a taxa do dia. Abaixo deste tamanho ela não opina. */
-export const MIN_AMOSTRA_RECENTE = 8
+export const MIN_AMOSTRA_RECENTE = 20
 
 /** Recibo só chega segundos depois, mas template mandado agora ainda pode estar
- *  em trânsito. Ignora os últimos 15 min pra não contar pendente como falha. */
-export const CARENCIA_MS = 15 * 60_000
+ *  em trânsito. Ignora os últimos 20 min pra não contar pendente como falha. */
+export const CARENCIA_MS = 20 * 60_000
 
 export type Veredito =
   | { estado: 'sem_dados'; amostra: number; entregues: number; taxa: null; motivo: string }

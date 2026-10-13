@@ -99,13 +99,13 @@ test('lista fraca NÃO vira alarme — 64% a 83% é dia normal em segmento ruim'
 })
 
 test('apagão que começa agora: dia bom, recentes zerados → alerta', () => {
-  const v = avaliarEntrega(30, 25, { amostra: 10, entregues: 0 })
+  const v = avaliarEntrega(30, 25, { amostra: 20, entregues: 0 })
   assert.equal(v.estado, 'alerta')
   assert.match(v.motivo, /mais recentes: NENHUM entregue/)
   // amostra recente pequena demais não opina (senão vira alarme por acaso)
-  assert.equal(avaliarEntrega(30, 25, { amostra: 7, entregues: 0 }).estado, 'ok')
+  assert.equal(avaliarEntrega(30, 25, { amostra: 19, entregues: 0 }).estado, 'ok')
   // recentes com pelo menos 1 entregue = está saindo, não é apagão
-  assert.equal(avaliarEntrega(30, 25, { amostra: 10, entregues: 1 }).estado, 'ok')
+  assert.equal(avaliarEntrega(30, 25, { amostra: 20, entregues: 1 }).estado, 'ok')
 })
 
 test('sem bloco de recentes, o comportamento é o de antes', () => {

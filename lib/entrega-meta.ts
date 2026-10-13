@@ -70,7 +70,7 @@ export async function conferirEntregaHoje(agora = new Date(), desde?: string | D
   //   · RECENTES - só os últimos envios, responde "parou agora?"
   const passo = Math.max(1, Math.ceil(enviados / TAMANHO_AMOSTRA))
   const alvos = leadsUnicos.filter((_, i) => i % passo === 0).slice(0, TAMANHO_AMOSTRA)
-  const alvosRecentes = leadsUnicos.slice(-10).filter((id) => !alvos.includes(id))
+  const alvosRecentes = leadsUnicos.slice(-20).filter((id) => !alvos.includes(id))
 
   // contadores separados: "sem chat", "Evo falhou" e "template não achado" são
   // problemas diferentes, e misturá-los esconderia justamente o defeito do chat velho
