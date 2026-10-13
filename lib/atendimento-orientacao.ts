@@ -68,7 +68,7 @@ const FAMILIAS: Array<{ re: RegExp; o: Orientacao }> = [
   { re: /vinculo_societario|validacao_socio|cpf_nao/, o: { situacao: 'O cadastro da AIVA não reconhece o sócio/CPF', acao: `Abrir com ${AIVA} com o CNPJ e o CPF do sócio.` } },
   { re: /biometria/, o: { situacao: 'Problema na biometria (reconhecimento facial)', acao: `Ligar e tentar junto pelo celular; se não abrir, abrir com ${AIVA}.` } },
   { re: /onboarding|caf|tela_(branca|travada)|recaptcha|formulario/, o: { situacao: 'Erro ou travamento no cadastro da AIVA', acao: `Ver o print na conversa e abrir com ${AIVA}.` } },
-  { re: /filial|loja_nova|cnpj_adicional/, o: { situacao: 'Assunto de filial / segundo CNPJ', acao: 'Conferir o CNPJ da filial em Registros AIVA e orientar o formulário de filial.' } },
+  { re: /filial|loja_nova|cnpj_adicional/, o: { situacao: 'Assunto de filial / segundo CNPJ', acao: 'Conferir se o ticket de filial abriu (seção 🎫 Chamados abertos na AIVA); se não abriu, abrir pelo portal da AIVA.' } },
   { re: /colaborador|operador|vendedor|funcionario/, o: { situacao: 'Assunto de acesso/dados da equipe da loja', acao: 'Conferir os dados na conversa e lançar no formulário de Login de operadores (Registros AIVA → Lançar manual).' } },
   { re: /cnpj/, o: { situacao: 'Problema com o CNPJ do lojista', acao: 'Conferir o CNPJ na Receita e falar com o lojista.' } },
   { re: /login|senha|acesso/, o: { situacao: 'Problema de login / acesso à plataforma', acao: 'Conferir se a senha foi enviada; se foi e não entra, mandar o link de atualização cadastral.' } },

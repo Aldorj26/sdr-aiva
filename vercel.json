@@ -83,6 +83,10 @@
     {
       "path": "/api/sdr/comunicado-forms",
       "schedule": "17,37,57 13-18 13 10 *"
+    },
+    {
+      "path": "/api/sdr/tickets-aiva",
+      "schedule": "13 11-22 * * *"
     }
   ]
 }

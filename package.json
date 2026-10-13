@@ -17,6 +17,7 @@
     "test:desistencia": "node --test lib/desistencia.test.ts",
     "test:campanha": "node --test lib/campanha-ativacao-calc.test.ts",
     "test:painel": "node --test lib/painel-financeiro.test.ts",
+    "test:tickets": "node --test lib/tickets-aiva.test.ts",
     "test:reconhecimento": "node --test lib/reconhecimento.test.ts",
     "test:odres": "node --test lib/odres-liberacao-calc.test.ts",
     "test:retomada": "node --test lib/retomada-interessado-calc.test.ts",

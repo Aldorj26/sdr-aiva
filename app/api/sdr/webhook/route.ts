@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { blocoPromptCampanha } from '@/lib/campanha-ativacao-calc'
+import { ABERTOS, lerTicketsDoLead, ehMotivoTicket, lerMotivoRepasse, lerMotivoFilial, abrirTicketRepasse, abrirTicketFilial, mensagemRepasse, mensagemFilial, gravarTicketNoLead, fmtCnpj, blocoPromptTickets } from '@/lib/tickets-aiva'
 import { emailDoMotivo, ehMotivoPainel, abrirTicketPainel, mensagemLojista, type ResultadoTicket } from '@/lib/painel-financeiro'
 import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta } from '@/lib/desistencia'
 import {
@@ -1319,7 +1320,7 @@ export async function POST(req: NextRequest) {
         desempenhoLoja,
         (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
         // + campanha de boas-vindas (placar gravado pela /campanha-ativacao — lib/campanha-ativacao-calc.ts)
-        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null].filter(Boolean).join('\n\n') || null,
+        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null, blocoPromptTickets(lead.observacoes)].filter(Boolean).join('\n\n') || null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -1961,7 +1962,12 @@ export async function POST(req: NextRequest) {
           // Consulta nova da Receita substitui a antiga (se houver)
           !(cnpjInfoNovo && m.startsWith('[CNPJ_RECEITA:')),
       )
-    const partes: string[] = [...marcadores]
+    // [TICKET_AIVA] é escrito pelo cron tickets-aiva a qualquer hora: vale o que está no banco AGORA,
+    // senão um turno longo devolve o status antigo e o ticket resolvido fica "aberto" pra sempre.
+    const { data: obsAgora } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+    const partes: string[] = obsAgora
+      ? [...marcadores.filter((m) => !m.startsWith('[TICKET_AIVA:')), ...((obsAgora.observacoes ?? '').match(/\[TICKET_AIVA:[^\]]+\]/g) ?? [])]
+      : [...marcadores]
     if (cnpjInfoNovo) partes.push(cnpjInfoMarker(cnpjInfoNovo))
     // Lojista recusou passar faturamento/venda parcelada (regra 2026-08-20).
     // O marcador faz o cron de cobrança parar de pedir esses campos por HSM —
@@ -2834,7 +2840,9 @@ export async function POST(req: NextRequest) {
         const precisaTime = (!resultados.length) || (melhor.tipo !== 'email_nao_google' && pendentes.length > 0)
         if (numeros.length) {
           const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
-          await supabaseAdmin.from('sdr_leads').update({ observacoes: `${(fresco?.observacoes ?? '').trim()} [PAINEL_FIN_TICKET:${numeros.join(',')}|${emailPainel}|${new Date().toISOString()}]`.trim() }).eq('id', lead.id)
+          let obsP = `${(fresco?.observacoes ?? '').trim()} [PAINEL_FIN_TICKET:${numeros.join(',')}|${emailPainel}|${new Date().toISOString()}]`.trim()
+          for (const x of resultados) if ((x.r.tipo === 'criado' || x.r.tipo === 'ja_existe') && x.r.numero && !lerTicketsDoLead(obsP).has(x.r.numero)) obsP = gravarTicketNoLead(obsP, { number: x.r.numero, type: 'Acesso ao Painel Financeiro', status: 'aberto', msgsAiva: 0 })
+          await supabaseAdmin.from('sdr_leads').update({ observacoes: obsP }).eq('id', lead.id)
         }
         // ⚠️ não derruba escalada aberta (ex.: repasse atrasado): só põe na fila, nunca tira
         if (precisaTime) await escalarParaTime(`ticket não abriu: ${pendentes.map((x) => `RID ${x.rid} ${'erro' in x.r ? x.r.erro : x.r.tipo}`).join('; ') || 'sem RID'}`)
@@ -2847,6 +2855,102 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error(`[PAINEL_FIN] falhou para ${lead.telefone}:`, err)
       try { await escalarParaTime('erro no bloco do painel') } catch { /* segue */ }
+    }
+  }
+
+  // ─── REPASSE E FILIAL POR TICKET (Mauricio 13/10/2026; Aldo: "sempre pelo ticket") ───
+  // Motivos "abrir_ticket_repasse: vendas=…| obs=…" e "abrir_ticket_filial: cnpj=…| numero=…" (lib/tickets-aiva.ts).
+  // Mesmas travas do painel financeiro: loja criada, RID, assunto na janela, dados escritos pelo lojista, sem repetir,
+  // e pedido que não abre vai pra fila (a fala "vou abrir" já saiu).
+  if (ehMotivoTicket(resposta.motivo_humano)) {
+    const leadIdT = lead.id, telT = lead.telefone, nomeT = lead.nome, chatT = lead.evotalks_chat_id, obsAntesT = lead.observacoes ?? ''
+    const avisarTimeT = async (texto: string) => {
+      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+        try { await alertHuman(tel, texto) } catch (e) { console.error('[TICKET_AIVA] aviso ao time falhou:', e) }
+      }
+    }
+    const escalarT = async (porque: string) => {
+      resposta.acionar_humano = true
+      await supabaseAdmin.from('sdr_leads').update({ acionar_humano: true }).eq('id', leadIdT)
+      console.warn(`[TICKET_AIVA] ${telT}: ${porque}`)
+    }
+    const falarComLojista = async (texto: string) => {
+      try { await sendText(telT, texto, chatT); await saveMensagem(leadIdT, 'out', texto) } catch (e) { console.error('[TICKET_AIVA] aviso ao lojista falhou:', e) }
+    }
+    try {
+      const ehRepasse = String(resposta.motivo_humano).trim().toLowerCase().startsWith('abrir_ticket_repasse')
+      const { data: ultimasT } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', leadIdT).order('enviado_em', { ascending: false }).limit(6)
+      const janelaT = [conteudo, conteudoEfetivo, ...(ultimasT ?? []).map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
+      const falasDeleT = [conteudo, conteudoEfetivo, ...(ultimasT ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ')
+      const digitosDele = falasDeleT.replace(/\D/g, '')
+      const assuntoOk = ehRepasse ? /repasse|pagamento|caiu|venda|valor|receb|contrato/.test(janelaT) : /filial|loja nova|outra loja|nova loja|cnpj|abri/.test(janelaT)
+      const { data: regsT } = await supabaseAdmin.from('sdr_registros_cnpj').select('rid, tipo').eq('lead_id', leadIdT).not('rid', 'is', null)
+      const ridMatriz = String((regsT ?? []).find((r) => r.tipo === 'matriz')?.rid ?? (regsT ?? [])[0]?.rid ?? '')
+      if (!['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
+        await escalarT(`ticket pedido com a loja ainda não criada (${lead.status})`)
+      } else if (!assuntoOk) {
+        await escalarT('motivo de ticket fora de contexto')
+        await avisarTimeT(`🎫 *TICKET AIVA — pedido fora de contexto, NÃO abri* — ${nomeT} (${telT})\nMotivo: ${resposta.motivo_humano}\nConfere a conversa.`)
+      } else if (!ridMatriz) {
+        await escalarT('sem RID no registro desta loja')
+        await falarComLojista(ehRepasse ? mensagemRepasse({ tipo: 'nao_elegivel', erro: 'sem RID' }) : mensagemFilial({ tipo: 'nao_elegivel', erro: 'sem RID' }, ''))
+      } else if (ehRepasse) {
+        const ped = lerMotivoRepasse(resposta.motivo_humano)
+        // só vale venda que o LOJISTA escreveu (o modelo não pode inventar número de contrato)
+        const vendasDele = (ped?.vendas ?? []).filter((v) => {
+          const d = v.numero.replace(/\D/g, '')
+          return (d.length >= 3 && digitosDele.includes(d)) || falasDeleT.includes(v.numero)
+        })
+        if (!ped || (!vendasDele.length && !ped.observacoes)) {
+          await escalarT(`motivo de repasse sem venda nem observação legível (${resposta.motivo_humano})`)
+        } else {
+          const chave = (vendasDele.map((v) => v.numero).sort().join(',') || ped.observacoes.slice(0, 40)).replace(/[|\]]/g, ' ')
+          const marcaPrev = obsAntesT.split('[TICKET_REQ:repasse:').slice(1).filter((x) => x.startsWith(`${chave}|`)).pop()
+          const nPrev = marcaPrev ? Number(marcaPrev.slice(chave.length + 1).match(/^#(\d+)/)?.[1]) || null : null
+          const stPrev = nPrev ? lerTicketsDoLead(obsAntesT).get(nPrev)?.status : undefined
+          // pedido igual só é "o mesmo" enquanto o ticket dele estiver aberto (resolvido/fechado → abre outro)
+          if (marcaPrev && (!stPrev || ABERTOS.includes(stPrev))) {
+            await falarComLojista(mensagemRepasse({ tipo: 'ja_existe', numero: nPrev }))
+          } else {
+            const a = await abrirTicketRepasse(ridMatriz, { vendas: vendasDele, observacoes: ped.observacoes })
+            await falarComLojista(mensagemRepasse(a))
+            if (a.tipo === 'criado' || a.tipo === 'ja_existe') {
+              const { data: fr } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadIdT).maybeSingle()
+              let obsT = `${(fr?.observacoes ?? '').trim()} [TICKET_REQ:repasse:${chave}|#${a.numero ?? '?'}|${new Date().toISOString()}]`.trim()
+              if (a.numero && !lerTicketsDoLead(obsT).has(a.numero)) obsT = gravarTicketNoLead(obsT, { number: a.numero, type: 'Problemas com repasse', status: 'aberto', msgsAiva: 0 })
+              await supabaseAdmin.from('sdr_leads').update({ observacoes: obsT }).eq('id', leadIdT)
+              if (a.tipo === 'criado') await avisarTimeT(`🎫 *REPASSE — ticket aberto na AIVA* (nº ${a.numero}) — ${nomeT} (${telT})\nRID ${ridMatriz} · vendas: ${vendasDele.map((v) => `${v.numero}${v.valor ? ` (R$ ${v.valor})` : ''}`).join(', ') || '—'}\nObs: ${ped.observacoes || '—'}\nO sistema avisa o lojista quando a AIVA resolver.`)
+            } else {
+              await escalarT(`ticket de repasse não abriu: ${a.erro}`)
+            }
+          }
+        }
+      } else {
+        const ped = lerMotivoFilial(resposta.motivo_humano)
+        if (!ped || !digitosDele.includes(ped.cnpj) || !falasDeleT.includes(ped.numero)) {
+          await escalarT(`motivo de filial ilegível ou com dado que o lojista não escreveu (${resposta.motivo_humano})`)
+        } else {
+          const a = await abrirTicketFilial(ridMatriz, ped)
+          await falarComLojista(mensagemFilial(a, ped.cnpj))
+          if (a.tipo === 'criado' || a.tipo === 'ja_existe') {
+            if (a.numero) {
+              const { data: fr } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadIdT).maybeSingle()
+              if (!lerTicketsDoLead(fr?.observacoes).has(a.numero)) await supabaseAdmin.from('sdr_leads').update({ observacoes: gravarTicketNoLead(fr?.observacoes, { number: a.numero, type: 'Cadastro de filial', status: 'aberto', msgsAiva: 0 }) }).eq('id', leadIdT)
+            }
+            if (a.tipo === 'criado') await avisarTimeT(`🎫 *FILIAL — ticket aberto na AIVA* (nº ${a.numero}) — ${nomeT} (${telT})\nMatriz RID ${ridMatriz} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}${ped.complemento ? ` ${ped.complemento}` : ''}\nO sistema avisa o lojista quando a AIVA concluir.`)
+          } else if (a.tipo === 'recusado' && /endere|cep/i.test(a.erro)) {
+            await escalarT(`filial pediu endereço completo — ${a.erro}`)
+            await avisarTimeT(`🏪 *FILIAL — a AIVA pediu o endereço completo, ticket NÃO abriu* — ${nomeT} (${telT})
+Matriz RID ${ridMatriz} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}
+A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIVA com o endereço que ele mandar.`)
+          } else {
+            await escalarT(`ticket de filial não abriu: ${a.erro}`)
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[TICKET_AIVA] falhou para ${telT}:`, err)
+      try { await escalarT('erro no bloco de ticket') } catch { /* segue */ }
     }
   }
 
@@ -3328,8 +3432,8 @@ export async function POST(req: NextRequest) {
             linhasAlerta.join('\n') +
             (novos.length > 0
               ? `\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
-                `\n📮 Desde 01/10 a VictorIA manda pro lojista o form oficial de credenciamento de filial (https://forms.gle/AyWzxY2bqktyz61v6) — é ELE quem preenche; a linha da planilha fica como registro.` +
-                `\nSe for LOJA NOVA: só acompanhar — o lojista preenche o form (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
+                `\n📮 Desde 13/10 a VictorIA pede o número do endereço e o sistema abre o ticket de filial na AIVA (o formulário foi desativado); a linha da planilha fica como registro.` +
+                `\nSe for LOJA NOVA: só acompanhar — o ticket abre quando ele mandar o número do endereço; NÃO mandar a linha da planilha à AIVA (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
                 `\nSe for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.`
               : '') +
             (filiaisLancadas.length

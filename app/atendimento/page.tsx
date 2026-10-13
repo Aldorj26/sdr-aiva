@@ -11,6 +11,7 @@ import { CATALOGO, TIPOS, avisoVelho, type TipoAviso } from '@/lib/avisos-painel
 import { orientar, resumirFala, haQuanto } from '@/lib/atendimento-orientacao'
 import AbrirFormLink from '@/app/registros/AbrirFormLink'
 import { linkFormPreenchido, formatarCnpj } from '@/lib/pre-cadastro-form'
+import { listarTicketsAbertos, STATUS_ROTULO, type TicketApi } from '@/lib/tickets-aiva'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
@@ -424,6 +425,27 @@ async function buscarLeads(q: string): Promise<LeadBusca[]> {
   return (data ?? []) as LeadBusca[]
 }
 
+// 🎫 Chamados abertos na AIVA (API de tickets, 13/10/2026): o que está com o CS da AIVA e em que pé.
+async function getChamadosAiva(): Promise<Array<TicketApi & { leadId: string | null; loja: string; telefone: string | null }>> {
+  try {
+    const ts = await listarTicketsAbertos()
+    const rids = [...new Set(ts.map((t) => String(t.retailer_id ?? '')).filter(Boolean))]
+    const { data: regs } = rids.length ? await supabaseAdmin.from('sdr_registros_cnpj').select('rid, lead_id').in('rid', rids) : { data: [] as Array<{ rid: string; lead_id: string | null }> }
+    const leadPorRid = new Map((regs ?? []).filter((r) => r.lead_id).map((r) => [String(r.rid), r.lead_id as string]))
+    const ids = [...new Set(leadPorRid.values())]
+    const { data: leads } = ids.length ? await supabaseAdmin.from('sdr_leads').select('id, nome, telefone').in('id', ids) : { data: [] as Array<{ id: string; nome: string; telefone: string }> }
+    const L = new Map((leads ?? []).map((l) => [l.id, l]))
+    return ts.map((t) => {
+      const lid = leadPorRid.get(String(t.retailer_id ?? '')) ?? null
+      const l = lid ? L.get(lid) : undefined
+      return { ...t, leadId: lid, loja: l?.nome ?? `RID ${t.retailer_id ?? '?'}`, telefone: l?.telefone ?? null }
+    }).sort((a, b) => (a.status === 'aguardando_parceiro' ? -1 : 0) - (b.status === 'aguardando_parceiro' ? -1 : 0) || a.created_at.localeCompare(b.created_at))
+  } catch (e) {
+    console.error('[atendimento] tickets da AIVA indisponíveis:', e)
+    return []
+  }
+}
+
 function CardResumo({ id, label, value, color }: { id: string; label: string; value: number; color?: string }) {
   return (
     <a href={`#${id}`} style={{ display: 'block', textDecoration: 'none', padding: '0.7rem 0.9rem', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elev)', minWidth: 140 }}>
@@ -576,7 +598,8 @@ function OutrosLeads({ leads }: { leads: LeadBusca[] }) {
 
 export default async function AtendimentoPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const q = ((await searchParams).q ?? '').trim().slice(0, 80)
-  const { grupos, chamados, cs, avisos, falas, registros, outros } = await getDados(q)
+  const [{ grupos, chamados, cs, avisos, falas, registros, outros }, chamadosAivaTodos] = await Promise.all([getDados(q), getChamadosAiva()])
+  const chamadosAiva = q ? chamadosAivaTodos.filter((t) => [t.loja, t.telefone, t.cnpj, String(t.number), t.retailer_id].some((c) => String(c ?? '').toLowerCase().includes(q.toLowerCase()))) : chamadosAivaTodos
   const totalAvisos = avisos.reduce((t, g) => t + g.linhas.length, 0)
   const achados = totalAvisos + grupos.acao.length + cs.length + chamados.length + grupos.sem_motivo.length + registros.pendentes.length + registros.naoChegou.length + outros.length
 
@@ -619,6 +642,35 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               <TabelaLimitada linhas={g.linhas} falas={falas} tudo={!!q} />
             </div>
           ))}
+        </section>
+      )}
+
+      {chamadosAiva.length > 0 && (
+        <section id="tickets-aiva" style={{ marginBottom: '1.7rem', scrollMarginTop: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.02rem' }}>🎫 Chamados abertos na AIVA <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({chamadosAiva.length})</span></h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>tickets com o CS da AIVA — "aguardando a nossa resposta" vem primeiro: responder pelo portal da AIVA. O lojista é avisado sozinho quando resolve.</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={th}>Ticket</th><th style={th}>Tipo</th><th style={th}>Loja</th><th style={th}>Status</th><th style={th}>Aberto há</th><th style={th}>Última atualização</th></tr></thead>
+              <tbody>
+                {chamadosAiva.map((t) => {
+                  const cel = (
+                    <>
+                      <td style={{ ...td, fontWeight: 600 }}>nº {t.number}</td>
+                      <td style={{ ...td, fontSize: '0.8rem' }}>{t.type}</td>
+                      <td style={{ ...td, minWidth: 160 }}><b>{t.loja}</b>{t.telefone ? <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}><Copiavel valor={t.telefone} /></div> : null}</td>
+                      <td style={{ ...td, fontSize: '0.8rem', color: t.status === 'aguardando_parceiro' ? 'var(--red)' : 'var(--text)' , fontWeight: t.status === 'aguardando_parceiro' ? 700 : 400 }}>{STATUS_ROTULO[t.status] ?? t.status}</td>
+                      <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.78rem' }}><b>{haQuanto(t.created_at)}</b></td>
+                      <td style={{ ...td, whiteSpace: 'nowrap', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtQuando(t.updated_at)}</td>
+                    </>
+                  )
+                  return t.leadId ? <ClickableRow key={t.id} leadId={t.leadId}>{cel}</ClickableRow> : <tr key={t.id}>{cel}</tr>
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
