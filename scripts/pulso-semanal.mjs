@@ -126,7 +126,10 @@ for (const r of snapW) {
   const vendasAnt = antPorCnpj.get(r.cnpj)
   const seg = segmenta(r, vendasAnt)
   const nome = primeiroNome(lead.nome)
-  const loja = sanitize(r.loja ?? r.nome_varejo ?? lead.nome)
+  // o portal devolve o slug "nome-CNPJ" (ex.: gigantes-celular-canoas-66010072000128) —
+  // nesse caso o nome do lead é o nome de loja legível (achado 13/10/2026)
+  const lojaPortal = sanitize(r.loja ?? r.nome_varejo)
+  const loja = !lojaPortal || /\d{14}/.test(lojaPortal) ? sanitize(lead.nome) : lojaPortal
   const corpo = seg === 'A' ? textoA(nome, loja)
     : seg === 'B' ? textoB(nome, loja, r.aprovados)
     : seg === 'C' ? textoC(nome, loja, r.vendas, vendasAnt ?? 0)
