@@ -5,6 +5,10 @@ import { buildBriefingPipeline } from '@/lib/pipeline-briefing'
 import { formatarRelatorioIncompletos } from '@/lib/cadastro-recebido'
 import { callClaudeWithRetry } from '@/lib/claude'
 import { lerEstado, pausar, retomar, resumoDoDia } from '@/lib/disparo-diario'
+import { textoComandoDesconhecido } from '@/lib/comando-sugestao'
+
+/** Pra sugerir o comando certo quando o admin erra a digitação ("/retonar" → "/retomar"). */
+const COMANDOS_CONHECIDOS = ['/status', '/followup', '/lead', '/disparar', '/reprocessar', '/dados', '/incompletos', '/pipeline', '/resumo', '/funil', '/disparo', '/pausar', '/retomar', '/help', '/ajuda']
 import { textoStatusDisparo, textoPausadoAgora, textoJaPausado, textoRetomado } from '@/lib/disparo-diario-calc'
 
 // Números autorizados como admin
@@ -79,7 +83,7 @@ export async function handleCommand(telefone: string, text: string): Promise<str
       case '/ajuda':
         return cmdHelp()
       default:
-        return `Comando desconhecido: ${cmd}\n\nDigite /ajuda pra ver os comandos disponíveis.`
+        return textoComandoDesconhecido(cmd, COMANDOS_CONHECIDOS)
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
