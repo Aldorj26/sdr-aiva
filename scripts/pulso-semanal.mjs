@@ -67,6 +67,17 @@ for (const l of leads) {
     if (!porCnpj.has(c)) porCnpj.set(c, l)
   }
 }
+// CNPJ registrado em sdr_registros_cnpj (filial, vínculo pelo telefone do portal) que não
+// aparece nas observações do lead — sem isso a loja caía em "sem lead casado" (13/10/2026)
+const porId = new Map(leads.map((l) => [l.id, l]))
+for (let de = 0; ; de += 1000) {
+  const { data: regs } = await sb.from('sdr_registros_cnpj').select('cnpj,lead_id').not('lead_id', 'is', null).range(de, de + 999)
+  for (const r of regs ?? []) {
+    const c = String(r.cnpj ?? '').replace(/\D/g, '')
+    if (c.length === 14 && !porCnpj.has(c) && porId.has(r.lead_id)) porCnpj.set(c, porId.get(r.lead_id))
+  }
+  if (!regs || regs.length < 1000) break
+}
 
 const sanitize = (v) => String(v ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim()
 const primeiroNome = (n) => {
