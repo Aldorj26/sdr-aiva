@@ -155,12 +155,12 @@ test('entregaIndisponivel devolve sem_dados — Evo fora não é bloqueio da Met
   assert.deepEqual(decidirRodada({ ...base(), entrega: e }), { acao: 'disparar', quantidade: 500 })
 })
 
-test('ehUltimaRodada: só a rodada das 18h47 BRT (cron 7,27,47) — 18h27 e 18h37 não, nem 17h47 e 8h47', () => {
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:47:00Z')), true)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:27:00Z')), false)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:37:00Z')), false)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T20:47:00Z')), false)
-  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T11:47:00Z')), false)
+test('ehUltimaRodada: só a rodada das 18h57 BRT (cron a cada 5 min) — 18h47 e 18h52 não, nem 17h57 e 8h57', () => {
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:57:00Z')), true)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:47:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T21:52:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T20:57:00Z')), false)
+  assert.equal(ehUltimaRodada(Date.parse('2026-10-12T11:57:00Z')), false)
 })
 
 test('textoResumoDia traz saiu, restante, fila e a taxa do dia', () => {
@@ -284,14 +284,15 @@ test('ehFeriado usa o dia civil BRT: 2026-11-02T02:30:00Z ainda é 01/11', () =>
   assert.deepEqual([...FERIADOS].sort(), ['2026-10-12', '2026-11-02', '2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01'])
 })
 
-test('chaveDaFatia: 11:07Z e 11:19Z → mesma fatia 0; 11:27Z → fatia 1; 21:47Z → disparo:2026-10-13T18:2', () => {
+test('chaveDaFatia (5 min): 11:07Z e 11:09Z → mesma fatia 1; 11:12Z → fatia 2; 21:57Z → disparo:2026-10-13T18:11', () => {
   const k07 = chaveDaFatia(Date.parse('2026-10-13T11:07:00Z'))
-  assert.equal(k07, 'disparo:2026-10-13T08:0')
-  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:19:00Z')), k07)
-  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:27:00Z')), 'disparo:2026-10-13T08:1')
-  assert.equal(chaveDaFatia(Date.parse('2026-10-13T21:47:00Z')), 'disparo:2026-10-13T18:2')
+  assert.equal(k07, 'disparo:2026-10-13T08:1')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:09:00Z')), k07)
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:12:00Z')), 'disparo:2026-10-13T08:2')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T11:02:00Z')), 'disparo:2026-10-13T08:0')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-13T21:57:00Z')), 'disparo:2026-10-13T18:11')
   // dia BRT, não UTC: 02:07Z de 14/10 ainda é 13/10 às 23h BRT
-  assert.equal(chaveDaFatia(Date.parse('2026-10-14T02:07:00Z')), 'disparo:2026-10-13T23:0')
+  assert.equal(chaveDaFatia(Date.parse('2026-10-14T02:07:00Z')), 'disparo:2026-10-13T23:1')
 })
 
 test('fatiaOcupada → nada, motivo fatia_ocupada, antes do orçamento', () => {

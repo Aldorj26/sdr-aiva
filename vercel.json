@@ -78,7 +78,7 @@
     },
     {
       "path": "/api/sdr/disparo-diario",
-      "schedule": "7,27,47 11-21 * * 1-5"
+      "schedule": "2,7,12,17,22,27,32,37,42,47,52,57 11-21 * * 1-5"
     },
     {
       "path": "/api/sdr/comunicado-forms",

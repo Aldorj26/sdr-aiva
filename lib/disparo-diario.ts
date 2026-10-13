@@ -87,7 +87,7 @@ async function contarFilaPendente(): Promise<number> {
   return count ?? 0
 }
 
-/** Reserva a fatia de 20 min desta rodada em `sdr_avisos_chave` (PK `chave`): o `insert` simples
+/** Reserva a fatia de 5 min desta rodada em `sdr_avisos_chave` (PK `chave`): o `insert` simples
  *  falha com 23505 se outra rodada da mesma fatia já passou. `true` = ocupada. Qualquer outro
  *  erro LANÇA: sem saber se a fatia é nossa, mandar às cegas é o duplicado que o lock evita. */
 async function fatiaJaOcupada(agora: number): Promise<boolean> {

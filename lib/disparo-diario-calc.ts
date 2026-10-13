@@ -66,12 +66,13 @@ function relogioBrt(ms: number): { hora: number; minuto: number; diaSemana: stri
 }
 
 /** Chave do lock de fatia: `disparo:<YYYY-MM-DD>T<HH>:<fatia>` com dia e hora em BRT e
- *  `fatia = floor(minuto / 20)`. O cron roda em :07/:27/:47 (uma rodada por fatia de 20 min:
- *  :07 e :19 → 0, :27 → 1, :47 → 2); duas rodadas na mesma fatia geram a MESMA chave.
+ *  `fatia = floor(minuto / 5)`. O cron roda a cada 5 min em :02/:07/:12…:57 (uma rodada por
+ *  fatia de 5 min: :07 e :09 → 1, :12 → 2, :57 → 11); duas rodadas na mesma fatia geram a MESMA
+ *  chave. Ritmo de 13/10 (Aldo): rodadas de 4 min encostadas, como o script local fazia.
  *  ⚠️ Acoplado ao cron de vercel.json, como `ehUltimaRodada`. */
 export function chaveDaFatia(agoraMs: number): string {
   const { hora, minuto } = relogioBrt(agoraMs)
-  return `disparo:${diaBrt(agoraMs)}T${String(hora).padStart(2, '0')}:${Math.floor(minuto / 20)}`
+  return `disparo:${diaBrt(agoraMs)}T${String(hora).padStart(2, '0')}:${Math.floor(minuto / 5)}`
 }
 
 /** As cinco guardas BARATAS, na ordem: fim de semana → feriado → janela → pausado → fatia ocupada.
@@ -99,7 +100,7 @@ export function decidirRodada(e: {
   jaSaiuHoje: number
   filaPendente: number
   entrega: Entrega
-  /** Outra rodada já reservou esta fatia de 20 min (ver `chaveDaFatia`). Omitido = livre. */
+  /** Outra rodada já reservou esta fatia de 5 min (ver `chaveDaFatia`). Omitido = livre. */
   fatiaOcupada?: boolean
 }): Decisao {
   const barata = guardaBarata(e)
@@ -172,11 +173,11 @@ export function ehPausaPorEnvio(motivo: string | null): boolean {
 }
 
 /** A última rodada do dia manda o resumo. ⚠️ Acoplado ao minuto do cron em vercel.json
- *  (`7,27,47 11-21 * * 1-5` = 8h07…18h47 BRT): são 3 rodadas na hora das 18h, e só a das
- *  18h47 (minuto ≥ 40) é a última. Mudar os minutos do cron exige mudar este corte. */
+ *  (`2,7,12,…,57 11-21 * * 1-5` = 8h02…18h57 BRT, a cada 5 min): são 12 rodadas na hora das 18h,
+ *  e só a das 18h57 (minuto ≥ 55) é a última. Mudar os minutos do cron exige mudar este corte. */
 export function ehUltimaRodada(agoraMs: number): boolean {
   const { hora, minuto } = relogioBrt(agoraMs)
-  return hora === JANELA.ate - 1 && minuto >= 40
+  return hora === JANELA.ate - 1 && minuto >= 55
 }
 
 export function textoResumoDia(r: Resumo): string {
