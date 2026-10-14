@@ -12,6 +12,8 @@
  * fluxo segue normal — a consulta NUNCA pode travar o webhook.
  */
 
+import { mapearCnpjWs } from '@/lib/cnpj-ws-calc'
+
 export interface CNPJInfo {
   cnpj: string
   razaoSocial: string | null
@@ -101,7 +103,8 @@ async function consultarCNPJInterno(
       // 400 = a API também recusou o número (formato/DV). 404 = não existe na base.
       // Só 5xx/timeout/rate-limit contam como problema nosso e liberam o lead.
       ref.status = res.status === 400 ? 'invalido' : res.status === 404 ? 'nao_encontrado' : 'indisponivel'
-      return null
+      // 400/404 são decisão, não instabilidade: não têm segunda fonte.
+      return ref.status === 'indisponivel' ? await consultarCnpjWs(cnpj) : null
     }
     const data = (await res.json()) as Record<string, unknown>
 
@@ -169,6 +172,37 @@ async function consultarCNPJInterno(
     }
   } catch (err) {
     console.log(`[CNPJ] Falha na consulta de ${cnpj}:`, err instanceof Error ? err.message : err)
+    // timeout ou erro de rede: ref.status segue 'indisponivel' — vale o plano B
+    return await consultarCnpjWs(cnpj)
+  }
+}
+
+/**
+ * Plano B quando a BrasilAPI está fora (caso DB Tecnologia, 14/10/2026: ela
+ * devolveu 500 "status code 503" e a pré-aprovação saiu sem conferência).
+ * Mesma fonte que já completava o endereço, agora servindo o cartão inteiro.
+ * Best-effort: o rate público é baixo (~3 req/min), e como só roda depois de
+ * uma falha o volume é pequeno; se ele também recusar, fica o fail-open de
+ * sempre — o alerta pro Nei e pro Aldo.
+ */
+async function consultarCnpjWs(cnpj: string): Promise<CNPJInfo | null> {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 6000)
+    const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`, {
+      signal: controller.signal,
+      headers: { accept: 'application/json', 'user-agent': 'sdr-aiva/1.0' },
+    })
+    clearTimeout(timer)
+    if (!res.ok) {
+      console.log(`[CNPJ] cnpj.ws ${res.status} pra ${cnpj} — segue indisponível`)
+      return null
+    }
+    const info = mapearCnpjWs(cnpj, await res.json())
+    if (info) console.log(`[CNPJ] Consulta via cnpj.ws (BrasilAPI indisponível) pra ${cnpj}`)
+    return info
+  } catch (err) {
+    console.log(`[CNPJ] cnpj.ws também falhou pra ${cnpj}:`, err instanceof Error ? err.message : err)
     return null
   }
 }

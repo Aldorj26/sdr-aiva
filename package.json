@@ -10,6 +10,7 @@
     "test:portal": "node --test lib/portal-aiva-derivar.test.ts",
     "test:espelho": "node --test lib/espelho-portal-calc.test.ts lib/vinculo-portal-calc.test.ts",
     "test:cobranca": "node --test lib/cobranca-formulario-calc.test.ts",
+    "test:cnpj": "node --test lib/cnpj-ws-calc.test.ts",
     "test:biometria": "node --test lib/biometria-calc.test.ts",
     "test:turmas": "node --test lib/turmas-treinamento-calc.test.ts",
     "test:senha": "node --test lib/senha-pendente-calc.test.ts",
