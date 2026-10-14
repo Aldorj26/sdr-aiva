@@ -18,8 +18,9 @@ interface DiarioRow {
   custo_usd: number
 }
 
+// 62 dias: os gráficos mostram 30, mas o mês anterior inteiro precisa estar na mão pra comparar
 async function getDiario(): Promise<DiarioRow[]> {
-  const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const desde = new Date(Date.now() - 62 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10)
   const { data } = await supabaseAdmin
@@ -28,6 +29,31 @@ async function getDiario(): Promise<DiarioRow[]> {
     .gte('dia', desde)
     .order('dia', { ascending: true })
   return (data ?? []) as DiarioRow[]
+}
+
+interface ContextoRow { dia: string; contexto: string; chamadas: number; tokens_totais: number; custo_usd: number }
+
+async function getPorContexto(desde: string): Promise<ContextoRow[]> {
+  const { data } = await supabaseAdmin
+    .from('sdr_token_usage_contexto_diario')
+    .select('*')
+    .gte('dia', desde)
+  return (data ?? []) as ContextoRow[]
+}
+
+// nome que o Aldo/Nei reconhecem; contexto novo sem entrada aparece com o código mesmo
+const ROTULO_CONTEXTO: Record<string, string> = {
+  processarMensagem: 'VictorIA — conversa com lojistas',
+  'assistente-analista': 'VictorIA Analista (chat do painel)',
+  'admin-chat': 'Comandos do WhatsApp (Aldo/Nei)',
+  gerarMioloRetomada: 'Texto da retomada',
+  resumoChamado: 'Resumo de chamado',
+  extrairNomeRealDoHistorico: 'Nome real do lojista',
+}
+
+/** YYYY-MM-DD em Brasília (a view agrupa o dia em America/Sao_Paulo) */
+function hojeBrt(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 }
 
 function fmtNum(n: number): string {
@@ -48,7 +74,35 @@ function fmtDiaCurto(iso: string): string {
 }
 
 export default async function TokensPage() {
-  const diario = await getDiario()
+  const tudo = await getDiario()
+  const hoje = hojeBrt()
+  const corte30 = new Date(Date.parse(`${hoje}T12:00:00Z`) - 29 * 86_400_000).toISOString().slice(0, 10)
+  const diario = tudo.filter((d) => d.dia >= corte30)
+  const porContextoDias = await getPorContexto(corte30)
+
+  // ─── mês atual × anterior ───
+  const custoDe = (f: (d: DiarioRow) => boolean) => tudo.filter(f).reduce((s, d) => s + Number(d.custo_usd), 0)
+  const mesAtual = hoje.slice(0, 7)
+  const [ano, mes] = mesAtual.split('-').map(Number)
+  const mesAnt = mes === 1 ? `${ano - 1}-12` : `${ano}-${String(mes - 1).padStart(2, '0')}`
+  const diaDoMes = Number(hoje.slice(8, 10))
+  const diasNoMes = new Date(Date.UTC(ano, mes, 0)).getUTCDate()
+  const custoMes = custoDe((d) => d.dia.startsWith(mesAtual))
+  const custoMesAnt = custoDe((d) => d.dia.startsWith(mesAnt))
+  const projecao = diaDoMes > 0 ? (custoMes / diaDoMes) * diasNoMes : 0
+  const ontem = new Date(Date.parse(`${hoje}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+  const linhaHoje = tudo.find((d) => d.dia === hoje)
+  const linhaOntem = tudo.find((d) => d.dia === ontem)
+  const temMesAntInteiro = tudo.some((d) => d.dia <= `${mesAnt}-01`)
+
+  // ─── por uso (30 dias) ───
+  const agreg = new Map<string, { chamadas: number; custo: number }>()
+  for (const r of porContextoDias) {
+    const a = agreg.get(r.contexto) ?? { chamadas: 0, custo: 0 }
+    a.chamadas += Number(r.chamadas); a.custo += Number(r.custo_usd)
+    agreg.set(r.contexto, a)
+  }
+  const porUso = [...agreg.entries()].map(([ctx, a]) => ({ ctx, ...a })).sort((x, y) => y.custo - x.custo)
 
   const custoTotal = diario.reduce((s, d) => s + Number(d.custo_usd), 0)
   const tokensTotais = diario.reduce((s, d) => s + Number(d.tokens_totais), 0)
@@ -100,7 +154,7 @@ export default async function TokensPage() {
           <h1 style={{ margin: 0 }}>Consumo de tokens</h1>
         </div>
         <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-          Uso e custo da API Anthropic · últimos 30 dias · câmbio estimado US$ 1 ≈ R$ {USD_BRL.toFixed(2)}
+          Uso e custo da API Anthropic (VictorIA, Analista e rotinas) · câmbio estimado US$ 1 ≈ R$ {USD_BRL.toFixed(2)}
         </p>
       </header>
 
@@ -125,8 +179,33 @@ export default async function TokensPage() {
         </div>
       ) : (
         <>
+          {/* ─── Mês ───────────────────────────────────────────────────── */}
+          <h2>Este mês</h2>
+          <div className="cards-grid">
+            <Kpi
+              label={`Gasto em ${mesAtual.slice(5)}/${mesAtual.slice(0, 4)} até hoje`}
+              value={fmtUsd(custoMes)}
+              hint={`≈ ${fmtBrl(custoMes * USD_BRL)} · ${diaDoMes} de ${diasNoMes} dias`}
+            />
+            <Kpi
+              label="Projeção do mês"
+              value={fmtUsd(projecao)}
+              hint={`≈ ${fmtBrl(projecao * USD_BRL)} no ritmo atual`}
+            />
+            <Kpi
+              label="Mês anterior"
+              value={fmtUsd(custoMesAnt)}
+              hint={temMesAntInteiro ? `≈ ${fmtBrl(custoMesAnt * USD_BRL)}` : 'registro incompleto no período'}
+            />
+            <Kpi
+              label="Hoje"
+              value={fmtUsd(Number(linhaHoje?.custo_usd ?? 0))}
+              hint={`${fmtNum(Number(linhaHoje?.chamadas ?? 0))} chamadas · ontem ${fmtUsd(Number(linhaOntem?.custo_usd ?? 0))}`}
+            />
+          </div>
+
           {/* ─── KPIs ──────────────────────────────────────────────────── */}
-          <h2>Resumo</h2>
+          <h2>Últimos 30 dias</h2>
           <div className="cards-grid">
             <Kpi
               label="Custo total"
@@ -153,6 +232,33 @@ export default async function TokensPage() {
           {/* ─── Gráfico ───────────────────────────────────────────────── */}
           <h2>Custo por dia</h2>
           <TokenChart data={chartData} />
+
+          {/* ─── Por uso ───────────────────────────────────────────────── */}
+          <h2>Onde o dinheiro vai (30 dias)</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="tbl" style={{ minWidth: 520 }}>
+              <thead>
+                <tr>
+                  <th>Uso</th>
+                  <th style={{ textAlign: 'right' }}>Chamadas</th>
+                  <th style={{ textAlign: 'right' }}>Custo</th>
+                  <th style={{ textAlign: 'right' }}>% do total</th>
+                  <th style={{ textAlign: 'right' }}>Por chamada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porUso.map((u) => (
+                  <tr key={u.ctx}>
+                    <td style={{ fontWeight: 600 }}>{ROTULO_CONTEXTO[u.ctx] ?? u.ctx}</td>
+                    <td style={{ textAlign: 'right' }}>{fmtNum(u.chamadas)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>{fmtUsd(u.custo)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-dim)' }}>{custoTotal > 0 ? `${((u.custo / custoTotal) * 100).toFixed(1)}%` : '—'}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-dim)' }}>{u.chamadas > 0 ? fmtUsd(u.custo / u.chamadas) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* ─── Composição ────────────────────────────────────────────── */}
           <h2>Composição dos tokens</h2>
@@ -236,7 +342,7 @@ export default async function TokensPage() {
       )}
 
       <p style={{ marginTop: '3rem', color: 'var(--text-muted)', fontSize: '0.72rem', textAlign: 'center' }}>
-        Dados da tabela sdr_token_usage · atualizados ao recarregar
+        Dados da tabela sdr_token_usage · atualizados ao recarregar · custo calculado pela tabela de preços em lib/claude.ts (a fatura da Anthropic é a referência final)
       </p>
     </main>
   )

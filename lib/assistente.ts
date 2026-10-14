@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { getClient } from '@/lib/claude'
+import { getClient, logTokenUsage } from '@/lib/claude'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASSISTENTE_SYSTEM_PROMPT } from '@/prompts/assistente'
 import { getPipeOpportunities, getOpportunity, STAGE_TO_STATUS, PIPELINE_AIVA } from '@/lib/evotalks'
@@ -287,6 +287,8 @@ export async function responderAssistente(
       tools: TOOLS,
       messages,
     })
+    // cada volta do loop de ferramentas é uma chamada paga — entra no /metricas/tokens
+    await logTokenUsage(MODEL, 'assistente-analista', resp.usage)
 
     if (resp.stop_reason !== 'tool_use') {
       const texto = resp.content

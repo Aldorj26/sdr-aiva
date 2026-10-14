@@ -134,7 +134,7 @@ function calcCustoUsd(model: string, usage: Anthropic.Usage): number {
  * fire-and-forget pode ser morto antes de completar quando a função encerra.
  * Nunca lança erro: em falha só loga e segue (não bloqueia a resposta ao lead).
  */
-async function logTokenUsage(
+export async function logTokenUsage(
   model: string,
   contexto: string,
   usage: Anthropic.Usage,
