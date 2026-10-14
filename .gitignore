@@ -12,3 +12,7 @@ CLAUDE.md
 !.claude/settings.json
 !.claude/agents/
 .tmp/
+
+# backups do CLAUDE.md (tem chaves)
+CLAUDE.md.bak*
+CLAUDE.md.*.bak
