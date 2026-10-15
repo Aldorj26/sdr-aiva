@@ -21,6 +21,7 @@
  *   - Destino ≥ Treinar passa POR 70 (a automação do Evo manda o HSM 69 com o
  *     link do treinamento); nunca passa por 50 quando o destino é além (o HSM
  *     34 pede pra preencher um formulário que já foi preenchido).
+ *   - primeira_venda (coluna da AIVA)                        → 51 Vendendo
  *   - Lead com vários CNPJs: vale o mais avançado.
  *   - not_approved sem nenhum outro CNPJ aprovado → REPROVADO: card vai pra 95
  *     "Loja Descartada pela Aiva" (etapa criada pelo Aldo 16/09), lead trava em
@@ -119,10 +120,24 @@ export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4
  *  agendado volta pra Cadastro finalizado 4h depois da turma). Fora delas o espelho só avança. */
 export const BLOCO_AIVA = new Set<number>([50, 96, 97, 70, 98, 71, 99])
 /** Coluna da AIVA → etapa do Evo. not_approved e pre_cadastro ficam fora (reprovação tem trilha própria;
- *  pré-cadastro é o nosso Cadastro Recebido, que anda pelo /registros). */
+ *  pré-cadastro é o nosso Cadastro Recebido, que anda pelo /registros).
+ *  `primeira_venda` entrou em 15/10/2026 (auditoria): o portal tinha 104 lojas nessa coluna e o mapa não a
+ *  conhecia, então `etapaDesejada` devolvia null e a loja congelava onde estava. Ficava escondido porque a
+ *  regra de venda/consulta (`vendeu`) manda o card pra 51 antes — mas ela depende de `retailer_performance`,
+ *  que pode atrasar. A coluna é a mesma 51 (loja operando). */
 export const COLUNA_PARA_ETAPA: Record<string, number> = {
   dados_varejo: 50, biometria_pendente: 96, biometria_aprovada: 97,
   cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71, primeiro_acesso: 99,
+  primeira_venda: 51,
+}
+/** Colunas que DE PROPÓSITO não viram etapa (não são lacuna de mapeamento). */
+export const COLUNA_SEM_ETAPA = new Set(['not_approved', 'pre_cadastro'])
+/** Coluna que o portal mandou e que ninguém aqui conhece — nem mapeada, nem excluída de propósito.
+ *  Serve pro espelho AVISAR em vez de congelar a loja em silêncio (a lacuna de 15/10/2026). */
+export const colunaDesconhecida = (board_column: string | null | undefined): string | null => {
+  const c = String(board_column ?? '').trim()
+  if (!c || c in COLUNA_PARA_ETAPA || COLUNA_SEM_ETAPA.has(c)) return null
+  return c
 }
 const ROTULO_COLUNA: Record<number, string> = {
   50: 'formulário do varejo pendente', 96: 'biometria pendente', 97: 'biometria aprovada — falta a AIVA criar a loja',
@@ -145,7 +160,13 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
   // consulta/venda é nosso (51) e vence a coluna da AIVA
   if (rid && vendeu.has(rid)) return ETAPA.VENDENDO
   // a coluna do quadro da AIVA manda (07/10/2026)
-  if (onb.board_column) return COLUNA_PARA_ETAPA[onb.board_column] ?? null
+  if (onb.board_column) {
+    const daColuna = COLUNA_PARA_ETAPA[onb.board_column]
+    if (daColuna != null) return daColuna
+    // coluna que não vira etapa de propósito (not_approved / pre_cadastro): para aqui, como sempre
+    if (COLUNA_SEM_ETAPA.has(onb.board_column)) return null
+    // coluna NOVA, que ninguém mapeou: cai na dedução pelo stage em vez de congelar o card (15/10/2026)
+  }
   // cadastro antigo sem board_column: dedução pelo stage + biometria (regra de antes)
   if (rid && onb.primeiro_acesso_em) return ETAPA.PRIMEIRO_ACESSO
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { calcularEspelho, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
+import { COLUNA_PARA_ETAPA, COLUNA_SEM_ETAPA, calcularEspelho, colunaDesconhecida, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
 
 const onb = (p: Partial<OnbApi> & { cnpj: string }): OnbApi => ({ stage: 'dados_varejo', pre_cadastro_status: 'approved', retailer_id: null, legal_name: 'LOJA X', ...p })
 const base = (p: Partial<Entrada> = {}): Entrada => ({
@@ -274,4 +274,43 @@ test('loja antiga fora da API que consulta pelo RID do registro não regride por
   // quem já foi levado pra 50 pelo defeito volta pra 51
   const em50 = calcularEspelho(base({ ...entrada, leads: [lead('a', 100, 'EM_ANALISE_AIVA')], stageAtual: new Map([[100, 50]]) }))
   assert.deepEqual({ para: em50.movimentos[0]?.para, via: em50.movimentos[0]?.via }, { para: 51, via: [70] })
+})
+
+// ─── lacuna 1 da auditoria de 15/10/2026: coluna do portal sem mapeamento ──────
+
+test('primeira_venda vira 51 mesmo sem o retailer_performance (auditoria 15/10/2026)', () => {
+  const l = new Set<string>(), v = new Set<string>()   // nenhuma venda conhecida: o sinal do portal é SÓ a coluna
+  // antes de 15/10 isto devolvia null e a loja congelava onde estava
+  assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', board_column: 'primeira_venda', retailer_id: '7' }), l, v), 51)
+  // e o card anda de verdade
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'primeira_venda' })],
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'TREINAR')],
+    stageAtual: new Map([[100, 70]]),
+  }))
+  assert.deepEqual(r.movimentos.map((m) => ({ para: m.para, via: m.via })), [{ para: 51, via: [] }])
+})
+
+test('todas as colunas vistas em produção têm destino (mapeada ou fora de propósito)', () => {
+  // retrato do portal em 15/10/2026 (786 onboardings)
+  const vistas = ['dados_varejo', 'primeiro_acesso', 'primeira_venda', 'pronto_para_operar', 'biometria_pendente',
+    'not_approved', 'cadastro_finalizado', 'pre_cadastro', 'treinamento_agendado']
+  for (const c of vistas) {
+    assert.equal(colunaDesconhecida(c), null, `coluna ${c} sem destino`)
+    assert.ok(c in COLUNA_PARA_ETAPA || COLUNA_SEM_ETAPA.has(c), `coluna ${c} nem mapeada nem excluída`)
+  }
+  assert.equal(colunaDesconhecida('coluna_nova_da_aiva'), 'coluna_nova_da_aiva')
+  assert.equal(colunaDesconhecida(null), null)
+  assert.equal(colunaDesconhecida(''), null)
+})
+
+test('coluna NOVA do portal cai na dedução pelo stage em vez de congelar o card', () => {
+  const l = new Set(['5']), v = new Set<string>()
+  const o = (board_column: string, p: Partial<OnbApi> = {}) => etapaDesejada(onb({ cnpj: '1', stage: 'dados_varejo', board_column, ...p }), l, v)
+  assert.equal(o('coluna_que_ninguem_mapeou'), 50)                                  // stage dados_varejo
+  assert.equal(o('coluna_que_ninguem_mapeou', { stage: 'cadastro_finalizado', retailer_id: '5' }), 71)
+  // as duas colunas que ficam fora DE PROPÓSITO continuam fora (não caem na dedução)
+  assert.equal(o('pre_cadastro', { stage: 'cadastro_finalizado', retailer_id: '5' }), null)
+  assert.equal(o('not_approved', { stage: 'cadastro_finalizado', retailer_id: '5' }), null)
 })

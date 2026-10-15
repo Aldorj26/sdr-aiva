@@ -18,6 +18,21 @@
   no WhatsApp (o que falhou em 14/10). "Disparar agora" destrava a pausa e roda UM lote de 5 na hora
   (`rodada({ qtd: 5, lock: 'manual' })`, trava de fatia com prefixo próprio = anti duplo clique); o cron segue com
   o resto dos 500. Janela 8h–19h em dia útil, teto do dia e pausa automática por entrega continuam valendo.
+- **Três ajustes do espelho de etapas (auditoria 15/10) prontos em COMMIT LOCAL, ainda NÃO em produção** — falta
+  push (`push na main = deploy`) **e o DDL à mão**:
+  1. coluna `primeira_venda` do quadro da AIVA agora mapeada → 51 (eram 104 lojas que o mapa não conhecia; só não
+     apareceu porque a regra de venda/consulta já as levava pra 51 antes). Coluna NOVA que ninguém mapear cai na
+     dedução pelo `stage` em vez de congelar o card, e a rodada acusa em `avisos`/`colunas_desconhecidas`.
+  2. **card que não sai do lugar avisa**: o mesmo movimento (opp+de+para) em 4 rodadas seguidas (≈1 h) manda alerta
+     pro Aldo e pro Nei, uma vez por opp (`sdr_avisos_chave`, chave `espelho_repete:<opp>`, solta quando destrava).
+     Regra em `lib/espelho-repeticao-calc.ts` (`npm run test:repeticao`). Era o buraco do defeito da TeamVL
+     (opp #29936, 70 → 51 recusado pelo Evo com HTTP 200, 24 h invisível).
+  3. **trilha dos movimentos** em `sdr_etapa_log` (data, lead, opp, de, para, via, motivo, ok, erro do Evo) —
+     escrita best-effort: sem a tabela a rodada segue igual (provado no dry: aviso no log, saída idêntica).
+  ⚠️ **Aplicar `docs/sql/2026-10-15-sdr-etapa-log.sql` no SQL Editor do Supabase** — sem a tabela, o item 3 não
+  grava nada e o item 2 nunca avisa (ele conta a repetição pela trilha).
+  Conferido em 15/10 com o dev local contra produção: `?dry=1` = 786 onboardings, **1 movimento** (TeamVL),
+  **14 em conferir**, **0 reprovados** — a mesma leitura de antes.
 - `send-initial` **sem autenticação** (pré-existente) e **grava o lead antes de enviar o template** — Aldo decidiu
   NÃO mexer agora.
 - Hook de fim de sessão **não faz mais push** (só commit local). Push na `main` = deploy em produção.
@@ -43,10 +58,13 @@
 2. Escolher o método de execução do plano da pré-aprovação e rodar.
 3. Apagar de vez a tarefa agendada `importar-base-aiva-diaria` (já desabilitada).
 4. Depois da viagem: auth no `send-initial` + desfazer lead quando o template falha (nos dois repos).
+5. Espelho de etapas: aplicar o DDL de `sdr_etapa_log`, dar push dos três ajustes e, na rodada seguinte, conferir
+   se a TeamVL (opp #29936) aparece em `repetidos` — é o primeiro teste de fogo do aviso de card travado.
 
 ## Como retomar rápido
 
-`npm run test:disparo` · `npm run test:cnpj` · `npx tsc --noEmit -p tsconfig.json` ·
+`npm run test:disparo` · `npm run test:cnpj` · `npm run test:espelho` · `npm run test:repeticao` ·
+`npx tsc --noEmit -p tsconfig.json` ·
 estado do disparo: `select * from sdr_disparo_estado` (uma linha, id=1) · envios do dia: `sdr_mensagens` com
 `template_hsm='aiva_campanha'` · fila: `sdr_fila_disparo` status `PENDENTE` ·
 logs: Vercel → sdr-aiva → `/api/sdr/disparo-diario` e `[CNPJ]`. Histórico: `docs/HISTORICO-OPERACAO-AIVA.md`.

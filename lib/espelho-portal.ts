@@ -23,9 +23,11 @@ import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/
 import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
+  calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
+import { detectarRepeticao, linhaRepetido, PREFIXO_CHAVE, type LinhaLog } from '@/lib/espelho-repeticao-calc'
+import { avisarEquipe } from '@/lib/alerta-equipe'
 
 const PIPELINE_AIVA = 15
 /** Teto por rodada: cada movimento dispara automação + HSM do lado do Evo. */
@@ -35,6 +37,8 @@ const TETO_MOVIMENTOS = 30
  *  HSM, texto ou alerta. Depois dela, só com ?silencioso. Entrada na 51 nunca é silenciosa (cria a conta MRR). */
 const VIRADA_SILENCIOSA_ATE = '2026-10-07T21:00:00Z'
 const TETO_MS = 200_000
+/** Quanto da trilha a regra de repetição olha. 4 h cobre com folga as 4 rodadas (15 min cada) do limite. */
+const JANELA_TRILHA_MS = 4 * 3_600_000
 export const MARCADOR_ESPELHO = 'ESPELHO_PORTAL'
 /** CNPJ com situação real ruim na Receita (inapta/baixada/suspensa) segundo a AIVA. */
 export const MARCADOR_CNPJ_IRREGULAR = 'CNPJ_IRREGULAR_AIVA'
@@ -159,6 +163,45 @@ async function desmarcar(leadId: string, marcador: string): Promise<boolean> {
   return !error
 }
 
+/** Trilha de cada movimento (docs/sql/2026-10-15-sdr-etapa-log.sql) — lacuna 3 da auditoria de 15/10/2026.
+ *  BEST-EFFORT de propósito: antes disso o movimento só existia no `console.log` da Vercel, mas a trilha
+ *  não vale derrubar uma rodada que já moveu cards. Falha só vira log de erro. */
+async function gravarEtapaLog(linhas: Array<Movimento & { ok: boolean; erro?: string }>): Promise<void> {
+  if (!linhas.length) return
+  try {
+    const { error } = await supabaseAdmin.from('sdr_etapa_log').insert(
+      linhas.map((m) => ({
+        lead_id: m.lead_id, nome: m.nome, opp: m.opp, de: m.de, para: m.para,
+        via: m.via.length ? m.via : null, motivo: m.motivo, ok: m.ok, erro: m.erro ?? null,
+      })),
+    )
+    if (error) throw new Error(error.message)
+  } catch (e) {
+    console.error('[espelho-portal] trilha sdr_etapa_log não gravada (a rodada segue):', String(e).slice(0, 200))
+  }
+}
+
+/** Movimentos recentes das opps desta rodada, pra regra de repetição. Falha de leitura devolve trilha
+ *  vazia: sem histórico ninguém é acusado de travado (melhor calar que avisar errado). */
+async function historicoEtapas(opps: number[]): Promise<LinhaLog[]> {
+  if (!opps.length) return []
+  const desde = new Date(Date.now() - JANELA_TRILHA_MS).toISOString()
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('sdr_etapa_log')
+      .select('opp,de,para,criado_em')
+      .in('opp', opps)
+      .gte('criado_em', desde)
+      .order('criado_em', { ascending: false })
+      .limit(1000)
+    if (error) throw new Error(error.message)
+    return (data ?? []) as LinhaLog[]
+  } catch (e) {
+    console.error('[espelho-portal] trilha sdr_etapa_log não lida (repetição não avaliada):', String(e).slice(0, 200))
+    return []
+  }
+}
+
 export type SaidaEspelho = {
   ok: boolean
   dry: boolean
@@ -179,6 +222,10 @@ export type SaidaEspelho = {
   onboarding_aberto: { dados_varejo: number; biometria: number; aguardando_aiva: number; marcados: number; limpos: number }
   /** leads com pré-cadastro marcado como enviado há 24h+ que não chegou ao portal (no dry: os que seriam) */
   pre_cadastro_nao_chegou: string[]
+  /** mesmo movimento (opp+de+para) repetido em 4 rodadas seguidas = card travado (no dry: os que avisariam) */
+  repetidos: string[]
+  /** coluna do quadro da AIVA que ninguém mapeou — a loja cai na dedução pelo stage, mas o mapa precisa crescer */
+  colunas_desconhecidas: string[]
 }
 
 export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean } = {}): Promise<SaidaEspelho> {
@@ -259,7 +306,21 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
-    pre_cadastro_nao_chegou: [],
+    pre_cadastro_nao_chegou: [], repetidos: [], colunas_desconhecidas: [],
+  }
+
+  // coluna nova no quadro da AIVA: `etapaDesejada` cai na dedução pelo stage em vez de congelar o card,
+  // mas o mapa COLUNA_PARA_ETAPA precisa crescer — então a rodada acusa (lacuna 1, 15/10/2026).
+  {
+    const novas = new Map<string, number>()
+    for (const o of onboardings) {
+      const c = colunaDesconhecida(o.board_column)
+      if (c) novas.set(c, (novas.get(c) ?? 0) + 1)
+    }
+    for (const [c, n] of novas) {
+      saida.colunas_desconhecidas.push(`${c} (${n})`)
+      avisos.push(`coluna "${c}" do quadro da AIVA não está em COLUNA_PARA_ETAPA (${n} loja(s)) — mapear em lib/espelho-portal-calc.ts`)
+    }
   }
 
   // Etapa do onboarding por lead. dados_varejo vence biometria quando o lojista tem
@@ -301,8 +362,18 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       else saida.onboarding_aberto.biometria++
     }
   }
+  // trilha das opps desta rodada: alimenta a regra de "mesmo movimento repetido" (lacuna 2, 15/10/2026).
+  // Lida ANTES de mover/gravar, então nunca inclui a rodada de agora — `contarRodadas` já a conta.
+  const trilha = await historicoEtapas([...new Set(r.movimentos.map((m) => m.opp))])
+
   if (dry) {
     saida.movidos = r.movimentos
+    {
+      // preview do aviso de card travado: sem gravar chave e sem enviar nada
+      const { data: chaves } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').like('chave', `${PREFIXO_CHAVE}%`)
+      const rep = detectarRepeticao({ movimentos: r.movimentos, historico: trilha, chavesExistentes: (chaves ?? []).map((c) => c.chave) })
+      saida.repetidos = rep.repetidos.map((x) => `${linhaRepetido(x)}${x.jaAvisado ? ' · já avisado' : ''}`)
+    }
     {
       const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
       for (const l of leads) if (travados.has(l.id)) saida.pre_cadastro_nao_chegou.push(`${l.nome} (${porLead.get(l.id)!.cnpjs.join(', ')})`)
@@ -368,6 +439,42 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     }
   }
   saida.sobraram = r.movimentos.length - i
+
+  // 5b) trilha dos movimentos tentados nesta rodada (best-effort) e aviso de card travado.
+  //     O defeito de 15/10 (opp #29936, 70 → 51 recusado pelo Evo com HTTP 200) ficou mais de 24 h
+  //     invisível porque o espelho repetia o movimento em silêncio. Agora o mesmo movimento em 4
+  //     rodadas seguidas (≈1 h) avisa Aldo e Nei UMA vez por opp; a chave em sdr_avisos_chave é solta
+  //     quando o movimento para de se repetir, pro próximo travamento voltar a avisar.
+  const tentados = saida.movidos.slice()
+  await gravarEtapaLog(tentados.map((m) => ({ ...m, ok: !m.erro, erro: m.erro })))
+  try {
+    const { data: chaves } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').like('chave', `${PREFIXO_CHAVE}%`)
+    const rep = detectarRepeticao({ movimentos: tentados, historico: trilha, chavesExistentes: (chaves ?? []).map((c) => c.chave) })
+    saida.repetidos = rep.repetidos.map((x) => `${linhaRepetido(x)}${x.jaAvisado ? ' · já avisado' : ''}`)
+    for (const x of rep.novos) {
+      await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: x.chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+    }
+    if (rep.mortas.length) await supabaseAdmin.from('sdr_avisos_chave').delete().in('chave', rep.mortas)
+    if (rep.novos.length) {
+      const detalhe = [
+        '🔁 *Espelho do portal: card que não sai do lugar*',
+        '',
+        ...rep.novos.map(linhaRepetido),
+        '',
+        'O espelho manda o mesmo movimento a cada 15 min e o card não anda — quase sempre o Evo recusa a troca de etapa (ou a automação devolve o card).',
+        'Conferir a etapa no funil 15 na mão; a trilha de cada tentativa está em sdr_etapa_log (coluna `erro`).',
+      ].join('\n')
+      const r1 = rep.novos[0]
+      const teaser = rep.novos.length === 1
+        ? `Card travado: opp #${r1.opp} (${r1.nome}) não sai da etapa ${r1.de} há ${r1.rodadas} rodadas`
+        : `${rep.novos.length} cards travados no espelho do portal (ex.: opp #${r1.opp}, etapa ${r1.de})`
+      const env = await avisarEquipe(detalhe, teaser)
+      if (!env.enviados) avisos.push(`aviso de card travado não entregue (${rep.novos.length} opp(s))`)
+    }
+  } catch (e) {
+    // conferência interna: nunca derruba a rodada
+    avisos.push(`repetição de movimento não avaliada: ${String(e).slice(0, 120)}`)
+  }
 
   // 6) reprovados pela AIVA → card pra 95 "Loja Descartada pela Aiva" + lead travado
   //    (NAO_QUALIFICADO; o webhook 4c avisa se ele voltar a falar). Aviso ao Nei/Aldo
