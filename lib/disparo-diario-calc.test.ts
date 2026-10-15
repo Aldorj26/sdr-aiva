@@ -4,7 +4,7 @@ import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   lotePifou, textoPifou, teaserPifou,
-  textoBotaoDisparo, PREFIXO_LOCK_MANUAL, MOTIVO_PAUSA_PAINEL,
+  textoBotaoDisparo, PREFIXO_LOCK_MANUAL, MOTIVO_PAUSA_PAINEL, lockEhDoProprioClique, JANELA_LOCK_PROPRIO_MS,
   JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
@@ -565,4 +565,22 @@ test('textoBotaoDisparo: a rodada pausou no meio do clique (entrega abaixo do pi
 
 test('textoBotaoDisparo: lote tentado e nenhuma saiu', () => {
   assert.match(textoBotaoDisparo({ acao: 'disparar', motivo: null, enviados: 0, falhas: 5, saiuHoje: 10 }, false), /Nenhuma saiu agora \(5 falhas\)\. O cron tenta de novo/)
+})
+
+test('lockEhDoProprioClique: chave de segundos atrás é do próprio clique; a de um toque anterior não', () => {
+  const agora = Date.parse('2026-10-15T16:35:10.000Z')
+  const iso = (deltaMs: number) => new Date(agora - deltaMs).toISOString()
+  // gravada no mesmo instante da pergunta (o caso de 15/10) e dentro da folga
+  assert.equal(lockEhDoProprioClique(iso(0), agora), true)
+  assert.equal(lockEhDoProprioClique(iso(JANELA_LOCK_PROPRIO_MS - 1), agora), true)
+  // toque anterior de gente: a resposta do primeiro já tinha voltado (~60 s) → segue barrado
+  assert.equal(lockEhDoProprioClique(iso(JANELA_LOCK_PROPRIO_MS + 1), agora), false)
+  assert.equal(lockEhDoProprioClique(iso(60_000), agora), false)
+  // relógio do banco 1 s adiantado ainda conta como nossa; 2 s não
+  assert.equal(lockEhDoProprioClique(iso(-1_000), agora), true)
+  assert.equal(lockEhDoProprioClique(iso(-2_000), agora), false)
+  // sem data legível, o conservador é recusar
+  assert.equal(lockEhDoProprioClique(null, agora), false)
+  assert.equal(lockEhDoProprioClique(undefined, agora), false)
+  assert.equal(lockEhDoProprioClique('ontem', agora), false)
 })

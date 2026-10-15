@@ -23,7 +23,7 @@ import {
   decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
   lotePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
-  PREFIXO_LOCK_CRON, PREFIXO_LOCK_MANUAL,
+  PREFIXO_LOCK_CRON, PREFIXO_LOCK_MANUAL, lockEhDoProprioClique,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -92,10 +92,25 @@ async function contarFilaPendente(): Promise<number> {
  *  falha com 23505 se outra rodada da mesma fatia já passou. `true` = ocupada. Qualquer outro
  *  erro LANÇA: sem saber se a fatia é nossa, mandar às cegas é o duplicado que o lock evita. */
 async function fatiaJaOcupada(agora: number, prefixo: string = PREFIXO_LOCK_CRON): Promise<boolean> {
+  const chave = chaveDaFatia(agora, prefixo)
   const { error } = await supabaseAdmin.from('sdr_avisos_chave')
-    .insert({ chave: chaveDaFatia(agora, prefixo), ultimo_aviso: new Date().toISOString() })
+    .insert({ chave, ultimo_aviso: new Date().toISOString() })
   if (!error) return false
-  if (error.code === '23505') return true
+  if (error.code === '23505') {
+    // Clique do painel: a chave pode ser do PRÓPRIO clique. Em 15/10/2026 o primeiro clique em
+    // produção gravou a chave e recebeu 23505 por ela no mesmo centésimo de segundo (duas gravações
+    // concorrentes, uma única requisição no log) e devolveu "já saiu um lote" sem mandar nada. Chave
+    // de segundos atrás só pode ser nossa — gente só toca de novo depois da resposta, ~60 s depois.
+    // O cron NÃO entra aqui: lá duas rodadas na mesma fatia são justamente o que a trava evita.
+    if (prefixo === PREFIXO_LOCK_MANUAL) {
+      const { data } = await supabaseAdmin.from('sdr_avisos_chave').select('ultimo_aviso').eq('chave', chave).maybeSingle()
+      if (lockEhDoProprioClique(data?.ultimo_aviso, Date.now())) {
+        console.warn(`[disparo-diario] trava ${chave} é do próprio clique (${data?.ultimo_aviso}) — seguindo`)
+        return false
+      }
+    }
+    return true
+  }
   throw new Error(`sdr_avisos_chave: ${error.message}`)
 }
 

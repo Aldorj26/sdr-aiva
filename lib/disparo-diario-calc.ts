@@ -430,6 +430,24 @@ export function marcarResultados(lote: Array<{ id: string; telefone: string }>, 
   })
 }
 
+/** Folga em que uma chave de trava MANUAL recém-gravada só pode ser do próprio clique que está
+ *  perguntando. Veio de 15/10/2026: o primeiro clique em produção gravou a chave da fatia e ao mesmo
+ *  tempo recebeu 23505 por ela (duas gravações no mesmo centésimo de segundo, uma só requisição no
+ *  log) — e respondeu "já saiu um lote" sem ter mandado nada. Um segundo toque de gente nunca cai
+ *  aqui: o botão fica travado enquanto a requisição corre, e a rodada leva ~60 s. */
+export const JANELA_LOCK_PROPRIO_MS = 10_000
+
+/** A chave da trava manual que o banco acusou como duplicada é do PRÓPRIO clique em curso?
+ *  `ultimoAviso` ausente ou ilegível = não dá pra afirmar que é nossa → trata como de outro clique
+ *  (o conservador aqui é recusar). Tolera 1 s de relógio adiantado entre o banco e a função. */
+export function lockEhDoProprioClique(ultimoAviso: string | null | undefined, agoraMs: number): boolean {
+  if (!ultimoAviso) return false
+  const t = Date.parse(ultimoAviso)
+  if (Number.isNaN(t)) return false
+  const idade = agoraMs - t
+  return idade >= -1_000 && idade <= JANELA_LOCK_PROPRIO_MS
+}
+
 /** Motivo gravado em `sdr_disparo_estado` quando a pausa vem do botão da página `/disparos`.
  *  ⚠️ COMEÇA com "pausado por" de propósito: é assim que `ehPausaAutomatica` sabe que foi gente
  *  (igual ao `/pausar` do WhatsApp) e as rodadas seguintes não ficam repetindo aviso — quem pausou sabe. */
