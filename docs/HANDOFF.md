@@ -3,35 +3,48 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
-## Estado de produção (14/10/2026)
+## Estado de produção (15/10/2026)
 
 - **Disparo D+0 na nuvem ligado** desde 13/10 (`/api/sdr/disparo-diario`, cron a cada 5 min, 8h02–18h57 BRT, teto 500).
-  13/10 fechou com ~370 (pausa falsa das 11:07 até 15:52 — corrigida: amostra de recentes 20, carência 20 min).
   Comandos pelo WhatsApp da VictorIA: `/disparo`, `/pausar`, `/retomar`.
-- `send-initial` **sem autenticação** (pré-existente) e **grava o lead antes de enviar o template** (loja fica em INICIO
-  sem D+0 se o Evo falhar) — Aldo decidiu NÃO mexer agora (escopo da viagem é só o disparo).
+- ⚠️ **14/10 o disparo ficou pausado o dia todo.** Pausa automática às 08h32 (entrega 6 de 22 = 27%, piso 30%); o
+  Aldo tentou `/retomar` duas vezes e o corretor do celular trocou por "/retornar" — o comando nunca chegou.
+  Enquanto pausado o cron roda e não envia nada. **Conferir o estado antes de qualquer análise de volume.**
+- **Consulta de CNPJ com segunda fonte** desde 15/10 (commit `6e0a7a9`, deploy READY): BrasilAPI 5xx/timeout/rate
+  limit cai no `publica.cnpj.ws` e ainda confere idade (≥1 ano) e situação ATIVA. O alerta "PRÉ-APROVAÇÃO SEM
+  CONFERIR O CNPJ" só sai quando as DUAS fontes falham. 400/404 seguem bloqueando (decisão, não instabilidade).
+- `send-initial` **sem autenticação** (pré-existente) e **grava o lead antes de enviar o template** — Aldo decidiu
+  NÃO mexer agora.
 - Hook de fim de sessão **não faz mais push** (só commit local). Push na `main` = deploy em produção.
-- Comissões UME: retroativo do Gerisson (R$ 1.843,12, abr–set) importado como origem `retroativo` (painel → UME →
-  Retroativo); 7 lojas pagas sem registro cadastradas em `sdr_registros_cnpj` (origem `conciliacao-ume-2026-10`).
 
 ## Em aberto (quem decide)
 
-- **Aldo:** responder o Gerisson (4 pontos: valor 1.843,02 × 1.843,12; linhas ocultas 5476/5681; Kero Celular jul;
-  Maricell 4712) + pedir a lista de varejos Track na base da UME + origem de Rauenne (6443) e Adricell (4782) +
-  Fone Express (cadastro manual pedido em 03/09). Texto pronto na conversa de 13/10.
+- **Aldo — página `/disparos` no painel:** desenho apresentado em 15/10 e aguardando OK. Estado do disparo
+  (ativo/pausado, saíram X de 500, fila, entrega) + botões Pausar/Retomar, para destravar pelo navegador do celular
+  sem depender do WhatsApp. Sem botão "disparar agora" (a `rodada()` respeita janela e lock de 5 min). Nada escrito.
+- **Aldo — plano da pré-aprovação pela AIVA** (`docs/superpowers/plans/2026-10-14-pre-aprovacao-aiva.md`, já na
+  `main`): falta escolher o método de execução. Recomendado **subagent-driven** (a Task 4 remove a trava atual do
+  funil e as Tasks 1–3 são a substituição dela). Não começar antes da escolha.
+- **Aldo — ✓ "Enviado" no `/registros`:** desenho curto apresentado; sub-decisão aberta entre coluna nova
+  `form_aberto_em` (recomendado, exige `ALTER TABLE` na mão) e reusar `origem='abriu-form'` com `enviado=false`.
+- **Nei:** reenviar na mão 6 pré-cadastros no `/registros` (Connect Shop, Minas Celulares, RM Celulares, JR IMPORTS,
+  Peninha Celulares, Solucion Cell; Fra cell ainda não fez 24h) + enviar o pré-cadastro da **DB Tecnologia**
+  (55.817.303/0001-93 — conferido na mão em 14/10: aberta 05/07/2024, Ativa, CNAE 4752-1/00, liberada).
 - **Nei:** lista "Para o Nei" em `docs/Conciliacao-AIVA-Gerson-2026-10-13-v3.xlsx` (col. K = próximo passo).
-  WM …0228 (contrato por e-mail), Maricell L2 (form de filial), Dany …0158 (retomar em 27/10, `[PAUSA_ATE]`).
-- **Viagem 30/10–15/11:** Aldo/Nei respondem o briefing das 5h todo dia útil (mantém a janela de 24h dos alertas em
-  texto; o coringa 48 chega mesmo sem janela).
+- **Aldo:** responder o Gerisson (4 pontos: valor 1.843,02 × 1.843,12; linhas ocultas 5476/5681; Kero Celular jul;
+  Maricell 4712) + lista de varejos Track na base da UME + origem de Rauenne (6443) e Adricell (4782).
+- **Viagem 30/10–15/11:** Aldo/Nei respondem o briefing das 5h todo dia útil (mantém a janela de 24h dos alertas).
 
 ## Próximos passos sugeridos
 
-1. Acompanhar 2 dias de disparo a 5 min (entrega, pausas, resumo das 18h57) antes de qualquer outro ajuste.
-2. Quando o Gerisson mandar as linhas de 5476/5681: completar `ume_comissoes` (origem `retroativo`) pra fechar 1.843,12.
-3. Depois da viagem: auth no `send-initial` + desfazer lead quando o template falha (nos dois repos).
+1. Implementar a `/disparos` assim que o Aldo aprovar — é o que evita outro dia parado como o 14/10.
+2. Escolher o método de execução do plano da pré-aprovação e rodar.
+3. Apagar de vez a tarefa agendada `importar-base-aiva-diaria` (já desabilitada).
+4. Depois da viagem: auth no `send-initial` + desfazer lead quando o template falha (nos dois repos).
 
 ## Como retomar rápido
 
-`npm run test:disparo` · `npx tsc --noEmit -p tsconfig.json` · estado do disparo: `select * from sdr_disparo_estado` ·
-envios do dia: `sdr_mensagens` com `template_hsm='aiva_campanha'` · logs: Vercel → sdr-aiva → `/api/sdr/disparo-diario`.
-Histórico completo: `docs/HISTORICO-OPERACAO-AIVA.md`.
+`npm run test:disparo` · `npm run test:cnpj` · `npx tsc --noEmit -p tsconfig.json` ·
+estado do disparo: `select * from sdr_disparo_estado` (uma linha, id=1) · envios do dia: `sdr_mensagens` com
+`template_hsm='aiva_campanha'` · fila: `sdr_fila_disparo` status `PENDENTE` ·
+logs: Vercel → sdr-aiva → `/api/sdr/disparo-diario` e `[CNPJ]`. Histórico: `docs/HISTORICO-OPERACAO-AIVA.md`.
