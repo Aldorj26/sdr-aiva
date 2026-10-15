@@ -2,6 +2,8 @@ const BASE_URL = process.env.EVO_TALKS_BASE_URL!
 const QUEUE_ID = Number(process.env.EVO_TALKS_QUEUE_ID!)
 const QUEUE_API_KEY = process.env.EVO_TALKS_QUEUE_API_KEY!
 
+import { erroDaRespostaEvo } from './evo-resposta-calc'
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export interface OpenChatResult {
@@ -59,9 +61,17 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<voi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ queueId: QUEUE_ID, apiKey: QUEUE_API_KEY, ...body }),
   })
+  const corpo = await res.text()
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Evo Talks ${path} → ${res.status}: ${text}`)
+    throw new Error(`Evo Talks ${path} → ${res.status}: ${corpo}`)
+  }
+  // ⚠️ HTTP 200 NÃO é sucesso no Evo: ele responde 200 com o erro no corpo. Até 15/10/2026 isto
+  // passava batido e o `changeOpportunityStage` recusado virava sucesso de mentira — o espelho
+  // repetia `opp #29936 70 → 51 · TeamVL` a cada 15 min sem o card jamais sair da etapa 70.
+  // A regra é conservadora (lib/evo-resposta-calc): só lança quando o corpo DIZ que falhou.
+  const erro = erroDaRespostaEvo(corpo)
+  if (erro) {
+    throw new Error(`Evo Talks ${path} → 200 mas recusou: ${erro}`)
   }
 }
 
