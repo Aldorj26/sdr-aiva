@@ -13,15 +13,17 @@
 - **Consulta de CNPJ com segunda fonte** desde 15/10 (commit `6e0a7a9`, deploy READY): BrasilAPI 5xx/timeout/rate
   limit cai no `publica.cnpj.ws` e ainda confere idade (≥1 ano) e situação ATIVA. O alerta "PRÉ-APROVAÇÃO SEM
   CONFERIR O CNPJ" só sai quando as DUAS fontes falham. 400/404 seguem bloqueando (decisão, não instabilidade).
+- **Página `/disparos` no painel** (15/10, Aldo aprovou): estado ativo/pausado com motivo, saíram X de 500, fila, e
+  os botões **Disparar agora** / Pausar / Retomar — feita pro navegador do celular, pra não depender do `/retomar`
+  no WhatsApp (o que falhou em 14/10). "Disparar agora" destrava a pausa e roda UM lote de 5 na hora
+  (`rodada({ qtd: 5, lock: 'manual' })`, trava de fatia com prefixo próprio = anti duplo clique); o cron segue com
+  o resto dos 500. Janela 8h–19h em dia útil, teto do dia e pausa automática por entrega continuam valendo.
 - `send-initial` **sem autenticação** (pré-existente) e **grava o lead antes de enviar o template** — Aldo decidiu
   NÃO mexer agora.
 - Hook de fim de sessão **não faz mais push** (só commit local). Push na `main` = deploy em produção.
 
 ## Em aberto (quem decide)
 
-- **Aldo — página `/disparos` no painel:** desenho apresentado em 15/10 e aguardando OK. Estado do disparo
-  (ativo/pausado, saíram X de 500, fila, entrega) + botões Pausar/Retomar, para destravar pelo navegador do celular
-  sem depender do WhatsApp. Sem botão "disparar agora" (a `rodada()` respeita janela e lock de 5 min). Nada escrito.
 - **Aldo — plano da pré-aprovação pela AIVA** (`docs/superpowers/plans/2026-10-14-pre-aprovacao-aiva.md`, já na
   `main`): falta escolher o método de execução. Recomendado **subagent-driven** (a Task 4 remove a trava atual do
   funil e as Tasks 1–3 são a substituição dela). Não começar antes da escolha.

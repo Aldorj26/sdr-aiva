@@ -23,6 +23,7 @@ import {
   decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
   lotePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
+  PREFIXO_LOCK_CRON, PREFIXO_LOCK_MANUAL,
   TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
@@ -90,9 +91,9 @@ async function contarFilaPendente(): Promise<number> {
 /** Reserva a fatia de 5 min desta rodada em `sdr_avisos_chave` (PK `chave`): o `insert` simples
  *  falha com 23505 se outra rodada da mesma fatia já passou. `true` = ocupada. Qualquer outro
  *  erro LANÇA: sem saber se a fatia é nossa, mandar às cegas é o duplicado que o lock evita. */
-async function fatiaJaOcupada(agora: number): Promise<boolean> {
+async function fatiaJaOcupada(agora: number, prefixo: string = PREFIXO_LOCK_CRON): Promise<boolean> {
   const { error } = await supabaseAdmin.from('sdr_avisos_chave')
-    .insert({ chave: chaveDaFatia(agora), ultimo_aviso: new Date().toISOString() })
+    .insert({ chave: chaveDaFatia(agora, prefixo), ultimo_aviso: new Date().toISOString() })
   if (!error) return false
   if (error.code === '23505') return true
   throw new Error(`sdr_avisos_chave: ${error.message}`)
@@ -118,6 +119,14 @@ async function medirEntrega(agora: number, retomadoEm: string | null): Promise<E
   } finally {
     clearTimeout(timer)
   }
+}
+
+/** A foto BARATA pro painel: só banco (estado da pausa + duas contagens), SEM medir a entrega na Evo
+ *  (~20 s, com timeout de 60 s). A página `/disparos` abre no celular e precisa ser instantânea; o
+ *  diagnóstico da entrega, quando existe, já está no `motivo` da pausa. */
+export async function fotoRapida(agora = Date.now()): Promise<{ estado: Estado; saiuHoje: number; restante: number; filaPendente: number }> {
+  const [estado, saiuHoje, filaPendente] = await Promise.all([lerEstado(), contarSaiuHoje(agora), contarFilaPendente()])
+  return { estado, saiuHoje, restante: Math.max(0, TETO_DIA - saiuHoje), filaPendente }
 }
 
 /** A foto do dia. `entrega` opcional: a rodada já mediu no começo e não repete a
@@ -204,7 +213,7 @@ export type ResultadoRodada = {
 /** Uma rodada: lê estado → conta o dia e a fila → mede a entrega → decide → executa.
  *  `dry` passa pela MESMA decisão e não envia nem grava nada (dry que diverge mente).
  *  `qtd` limita a rodada manual, nunca acima do que a decisão permite (o restante do dia). */
-export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?: number } = {}): Promise<ResultadoRodada> {
+export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?: number; lock?: 'cron' | 'manual' } = {}): Promise<ResultadoRodada> {
   const agora = opts.agora ?? Date.now()
   const inicio = Date.now()
 
@@ -236,7 +245,10 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   // Lock de fatia. `?dry` NUNCA reserva a chave (um ensaio não pode bloquear a rodada real que vem
   // depois) e por isso não enxerga duplicidade.
-  const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora)
+  // `lock: 'manual'` (botão da `/disparos`) reserva a fatia num prefixo próprio: o clique não é barrado
+  // pela rodada do cron nem a barra — mas dois cliques na mesma fatia de 5 min caem na mesma chave.
+  const prefixoLock = opts.lock === 'manual' ? PREFIXO_LOCK_MANUAL : PREFIXO_LOCK_CRON
+  const fatiaOcupada = opts.dry ? false : await fatiaJaOcupada(agora, prefixoLock)
   if (fatiaOcupada) return devolverNada('fatia_ocupada')
 
   // Só agora mede a entrega e decide com todas as guardas (a função pura continua completa).

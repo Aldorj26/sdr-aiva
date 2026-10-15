@@ -38,6 +38,7 @@ const SECTIONS: NavSection[] = [
   {
     label: 'Disparos',
     items: [
+      { label: 'Disparo diário', href: '/disparos', icon: '🚀' },
       { label: 'Nova campanha', href: '/campanha', icon: '➕' },
       { label: 'Campanhas', href: '/campanhas', icon: '🗂️' },
     ],

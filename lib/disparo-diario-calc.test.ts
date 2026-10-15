@@ -4,6 +4,7 @@ import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   lotePifou, textoPifou, teaserPifou,
+  textoBotaoDisparo, PREFIXO_LOCK_MANUAL, MOTIVO_PAUSA_PAINEL,
   JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
   type Entrega, type Resumo,
@@ -518,4 +519,50 @@ test('lembrete de uma pausa por falha do send-initial NÃO manda olhar a fatura 
   const tz = teaserPausaLembrete(e)
   uma(tz)
   assert.ok(!/fatura/i.test(tz) && tz.endsWith('responda /retomar'), tz)
+})
+
+// --- botão "Disparar agora" da página /disparos (15/10/2026) ---
+
+test('chaveDaFatia: a trava do botão tem prefixo próprio — não colide com a do cron, mas dois cliques na mesma fatia sim', () => {
+  const cron = chaveDaFatia(Date.parse('2026-10-15T14:07:00Z'))
+  const manual = chaveDaFatia(Date.parse('2026-10-15T14:07:00Z'), PREFIXO_LOCK_MANUAL)
+  assert.notEqual(manual, cron)
+  assert.equal(manual, 'disparo-manual:2026-10-15T11:1')
+  // segundo toque 2 min depois: MESMA chave (anti duplo clique no celular)
+  assert.equal(chaveDaFatia(Date.parse('2026-10-15T14:09:00Z'), PREFIXO_LOCK_MANUAL), manual)
+  // 5 min depois: chave nova, pode mandar outro lote
+  assert.notEqual(chaveDaFatia(Date.parse('2026-10-15T14:12:00Z'), PREFIXO_LOCK_MANUAL), manual)
+})
+
+test('MOTIVO_PAUSA_PAINEL não é pausa automática (não fica repetindo aviso no WhatsApp)', () => {
+  assert.equal(ehPausaAutomatica(MOTIVO_PAUSA_PAINEL), false)
+})
+
+test('textoBotaoDisparo: lote que saiu, com e sem destravar a pausa', () => {
+  const r = { acao: 'disparar' as const, motivo: null, enviados: 5, falhas: 0, saiuHoje: 125 }
+  assert.equal(textoBotaoDisparo(r, false), '5 lojas saíram agora — 125 de 500 no dia. O cron segue com o resto até as 19h.')
+  assert.match(textoBotaoDisparo(r, true), /^Pausa destravada\. 5 lojas saíram agora/)
+  assert.match(textoBotaoDisparo({ ...r, enviados: 1 }, false), /^1 loja saíram agora/)
+  assert.match(textoBotaoDisparo({ ...r, falhas: 2 }, false), /2 falhas\./)
+})
+
+test('textoBotaoDisparo: cada motivo de "nada" vira frase de gente', () => {
+  const base = { acao: 'nada' as const, enviados: 0, falhas: 0, saiuHoje: 500 }
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'fora_da_janela' }, false), /de 8h às 19h/)
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'fim_de_semana' }, false), /segunda a sexta/)
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'feriado' }, false), /Feriado/)
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'orcamento_gasto' }, false), /Teto do dia batido: as 500/)
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'fila_vazia' }, false), /fila está vazia/)
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'fatia_ocupada' }, false), /últimos 5 minutos/)
+  // motivo novo que ninguém mapeou não pode virar tela em branco
+  assert.match(textoBotaoDisparo({ ...base, motivo: 'motivo_novo' }, false), /motivo_novo/)
+})
+
+test('textoBotaoDisparo: a rodada pausou no meio do clique (entrega abaixo do piso)', () => {
+  const t = textoBotaoDisparo({ acao: 'pausar', motivo: 'entrega 20% abaixo do piso', enviados: 0, falhas: 0, saiuHoje: 22 }, true)
+  assert.match(t, /^Pausa destravada\. O robô pausou o disparo agora: entrega 20% abaixo do piso\.$/)
+})
+
+test('textoBotaoDisparo: lote tentado e nenhuma saiu', () => {
+  assert.match(textoBotaoDisparo({ acao: 'disparar', motivo: null, enviados: 0, falhas: 5, saiuHoje: 10 }, false), /Nenhuma saiu agora \(5 falhas\)\. O cron tenta de novo/)
 })

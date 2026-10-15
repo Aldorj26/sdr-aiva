@@ -65,14 +65,21 @@ function relogioBrt(ms: number): { hora: number; minuto: number; diaSemana: stri
   return { hora: Number(pega('hour')), minuto: Number(pega('minute')), diaSemana: pega('weekday') }
 }
 
+/** Prefixos das chaves de lock (`sdr_avisos_chave`). O botão "Disparar agora" da página
+ *  `/disparos` usa um prefixo PRÓPRIO: a fatia do cron e a do clique são chaves diferentes, então o
+ *  clique não espera o cron nem é barrado por ele — mas dois cliques na mesma fatia de 5 min caem na
+ *  MESMA chave e o segundo não manda nada (anti duplo clique no celular). */
+export const PREFIXO_LOCK_CRON = 'disparo'
+export const PREFIXO_LOCK_MANUAL = 'disparo-manual'
+
 /** Chave do lock de fatia: `disparo:<YYYY-MM-DD>T<HH>:<fatia>` com dia e hora em BRT e
  *  `fatia = floor(minuto / 5)`. O cron roda a cada 5 min em :02/:07/:12…:57 (uma rodada por
  *  fatia de 5 min: :07 e :09 → 1, :12 → 2, :57 → 11); duas rodadas na mesma fatia geram a MESMA
  *  chave. Ritmo de 13/10 (Aldo): rodadas de 4 min encostadas, como o script local fazia.
  *  ⚠️ Acoplado ao cron de vercel.json, como `ehUltimaRodada`. */
-export function chaveDaFatia(agoraMs: number): string {
+export function chaveDaFatia(agoraMs: number, prefixo: string = PREFIXO_LOCK_CRON): string {
   const { hora, minuto } = relogioBrt(agoraMs)
-  return `disparo:${diaBrt(agoraMs)}T${String(hora).padStart(2, '0')}:${Math.floor(minuto / 5)}`
+  return `${prefixo}:${diaBrt(agoraMs)}T${String(hora).padStart(2, '0')}:${Math.floor(minuto / 5)}`
 }
 
 /** As cinco guardas BARATAS, na ordem: fim de semana → feriado → janela → pausado → fatia ocupada.
@@ -159,7 +166,8 @@ export function chaveDaPausa(pausadoEm: string): string {
 }
 
 /** Pausa da própria rodada (entrega abaixo do piso) × pausa de gente (`/pausar` grava
- *  "pausado por <telefone> pelo WhatsApp"). Só a automática ganha lembrete: quem pausou na mão sabe.
+ *  "pausado por <telefone> pelo WhatsApp"; o botão da `/disparos` grava `MOTIVO_PAUSA_PAINEL`, com o
+ *  mesmo prefixo). Só a automática ganha lembrete: quem pausou na mão sabe.
  *  Motivo ausente = linha antiga, origem desconhecida → não insiste. */
 export function ehPausaAutomatica(motivo: string | null): boolean {
   return !!motivo && !motivo.startsWith('pausado por')
@@ -420,4 +428,39 @@ export function marcarResultados(lote: Array<{ id: string; telefone: string }>, 
     if (r.erro?.startsWith('bloqueado_')) return { id: l.id, status: 'DUPLICADO', detalhe: r.erro }
     return { id: l.id, status: 'ERRO', detalhe: r.erro ?? 'erro sem detalhe' }
   })
+}
+
+/** Motivo gravado em `sdr_disparo_estado` quando a pausa vem do botão da página `/disparos`.
+ *  ⚠️ COMEÇA com "pausado por" de propósito: é assim que `ehPausaAutomatica` sabe que foi gente
+ *  (igual ao `/pausar` do WhatsApp) e as rodadas seguintes não ficam repetindo aviso — quem pausou sabe. */
+export const MOTIVO_PAUSA_PAINEL = 'pausado por alguém no painel (/disparos)'
+
+/** A frase que a página `/disparos` mostra depois de um clique. PURA: recebe o resultado achatado da
+ *  rodada (os mesmos campos de `ResultadoRodada`) e devolve o que o Aldo lê no celular.
+ *  `destravou` = o clique tirou o disparo de uma pausa (o caso do dia 14/10). */
+export function textoBotaoDisparo(
+  r: { acao: Decisao['acao']; motivo: string | null; enviados: number; falhas: number; saiuHoje: number },
+  destravou: boolean
+): string {
+  const prefixo = destravou ? 'Pausa destravada. ' : ''
+  if (r.acao === 'pausar') {
+    return `${prefixo}O robô pausou o disparo agora: ${r.motivo ?? 'entrega abaixo do piso'}.`
+  }
+  if (r.acao === 'nada') {
+    const porque: Record<string, string> = {
+      fim_de_semana: 'Fim de semana — o disparo só roda de segunda a sexta.',
+      feriado: 'Feriado — o disparo não roda hoje.',
+      fora_da_janela: `Fora da janela: o disparo roda de ${JANELA.de}h às ${JANELA.ate}h (BRT). Nada foi enviado.`,
+      pausado: 'O disparo está pausado — toque em Retomar primeiro.',
+      fatia_ocupada: 'Já saiu um lote nos últimos 5 minutos. O cron segue de onde parou.',
+      orcamento_gasto: `Teto do dia batido: as ${TETO_DIA} já saíram.`,
+      fila_vazia: 'A fila está vazia — não há loja nova pra enviar.',
+    }
+    return prefixo + (porque[r.motivo ?? ''] ?? `Nada foi enviado (${r.motivo ?? 'sem motivo'}).`)
+  }
+  if (r.enviados === 0) {
+    return `${prefixo}Nenhuma saiu agora${r.falhas ? ` (${r.falhas} falha${r.falhas > 1 ? 's' : ''})` : ''}. O cron tenta de novo em até 5 min.`
+  }
+  const falhas = r.falhas ? ` ${r.falhas} falha${r.falhas > 1 ? 's' : ''}.` : ''
+  return `${prefixo}${r.enviados} loja${r.enviados > 1 ? 's' : ''} saíram agora — ${r.saiuHoje} de ${TETO_DIA} no dia.${falhas} O cron segue com o resto até as ${JANELA.ate}h.`
 }
