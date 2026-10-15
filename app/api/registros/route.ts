@@ -33,10 +33,22 @@ export async function POST(req: NextRequest) {
     .eq('id', body.id)
     .maybeSingle()
 
-  const { error } = await supabaseAdmin
+  // `enviado_em` é a hora do CLIQUE, e é dela que o passo 11 do espelho conta as 24h do aviso
+  // "pré-cadastro não chegou à AIVA" (15/10/2026). Antes a conta saía de `criado_em`, a captura do
+  // CNPJ: CNPJ de uma semana atrás clicado hoje disparava o aviso na primeira rodada, dizendo
+  // "marcado há mais de 24h". Só carimba na transição não → sim; desmarcar limpa.
+  // A coluna pode ainda não existir (docs/sql/2026-10-15-pre-cadastro-enviado-em.sql): nesse caso
+  // grava sem ela, porque marcar o CNPJ não pode falhar por causa do carimbo.
+  const virou = body.enviado && !antes?.enviado
+  const patch = { enviado: body.enviado, origem }
+  let { error } = await supabaseAdmin
     .from('sdr_registros_cnpj')
-    .update({ enviado: body.enviado, origem })
+    .update(virou ? { ...patch, enviado_em: new Date().toISOString() } : body.enviado ? patch : { ...patch, enviado_em: null })
     .eq('id', body.id)
+  if (error && (error.code === '42703' || /enviado_em/.test(error.message))) {
+    console.warn('[registros] sdr_registros_cnpj sem a coluna enviado_em — aplicar docs/sql/2026-10-15-pre-cadastro-enviado-em.sql')
+    ;({ error } = await supabaseAdmin.from('sdr_registros_cnpj').update(patch).eq('id', body.id))
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   // Status por loja (regra 01/09): marcar "enviado" promove informada →
   // pre_cadastro_enviado; desmarcar volta. NUNCA mexe em quem já está 'ativa'

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { COLUNA_PARA_ETAPA, COLUNA_SEM_ETAPA, calcularEspelho, colunaDesconhecida, etapaDesejada, situacaoOnb, type Entrada, type OnbApi } from './espelho-portal-calc.ts'
+import { COLUNA_PARA_ETAPA, COLUNA_SEM_ETAPA, calcularEspelho, colunaDesconhecida, etapaDesejada, preCadastroNaoChegou, situacaoOnb, type Entrada, type OnbApi, type RegistroCnpj } from './espelho-portal-calc.ts'
 
 const onb = (p: Partial<OnbApi> & { cnpj: string }): OnbApi => ({ stage: 'dados_varejo', pre_cadastro_status: 'approved', retailer_id: null, legal_name: 'LOJA X', ...p })
 const base = (p: Partial<Entrada> = {}): Entrada => ({
@@ -314,3 +314,63 @@ test('coluna NOVA do portal cai na dedução pelo stage em vez de congelar o car
   assert.equal(o('pre_cadastro', { stage: 'cadastro_finalizado', retailer_id: '5' }), null)
   assert.equal(o('not_approved', { stage: 'cadastro_finalizado', retailer_id: '5' }), null)
 })
+
+// ── passo 11: pré-cadastro marcado como enviado que não chegou ao portal ──────────────
+// A regra morava solta em lib/espelho-portal.ts (IO) e não tinha teste nenhum; veio pra cá
+// em 15/10/2026 junto com a correção do relógio (enviado_em, não criado_em).
+{
+  const AGORA = Date.parse('2026-10-15T20:00:00Z')
+  const h = (n: number) => new Date(AGORA - n * 3_600_000).toISOString()
+  const reg = (p: Partial<RegistroCnpj> = {}): RegistroCnpj =>
+    ({ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado', ...p })
+  const leadA = (status = 'CADASTRO_RECEBIDO') => [lead('a', 1, status)]
+  const travados = (registros: RegistroCnpj[], onboardings: OnbApi[] = [], leads = leadA()) =>
+    preCadastroNaoChegou(onboardings, registros, leads, AGORA).travados
+
+  test('pré-cadastro não chegou: o relógio é o clique (enviado_em), não a captura do CNPJ', () => {
+    // o furo de 15/10: CNPJ capturado há 8 dias e clicado agora disparava na primeira rodada
+    assert.equal(travados([reg({ criado_em: h(192), enviado_em: h(1) })]).size, 0)
+    // clicado há 25h: aí sim o formulário não foi
+    assert.equal(travados([reg({ criado_em: h(192), enviado_em: h(25) })]).size, 1)
+    // exatamente 24h já conta
+    assert.equal(travados([reg({ criado_em: h(192), enviado_em: h(24) })]).size, 1)
+  })
+
+  test('pré-cadastro não chegou: sem enviado_em (linha antiga) o relógio cai em criado_em', () => {
+    assert.equal(travados([reg({ criado_em: h(25) })]).size, 1)
+    assert.equal(travados([reg({ criado_em: h(2) })]).size, 0)
+    assert.equal(travados([reg({ criado_em: h(25), enviado_em: null })]).size, 1)
+    // sem data nenhuma não dá pra afirmar nada: não trava
+    assert.equal(travados([reg()]).size, 0)
+  })
+
+  test('pré-cadastro não chegou: CNPJ no portal, outra etapa ou não marcado não travam', () => {
+    const velho = reg({ criado_em: h(48), enviado_em: h(48) })
+    // apareceu no portal → chegou
+    assert.equal(travados([velho], [onb({ cnpj: '11111111000191' })]).size, 0)
+    // basta UM CNPJ do lead no portal pra inocentar o lead inteiro
+    assert.equal(travados(
+      [velho, reg({ id: 2, cnpj: '22222222000191', criado_em: h(48), enviado_em: h(48) })],
+      [onb({ cnpj: '22222222000191' })],
+    ).size, 0)
+    // etapa que a regra não cobre
+    assert.equal(travados([velho], [], leadA('EM_ANALISE_AIVA')).size, 0)
+    assert.equal(travados([velho], [], leadA('LOJA_FINALIZADA_E_VENDENDO')).size, 0)
+    // vale também na pré-aprovação
+    assert.equal(travados([velho], [], leadA('PRE_APROVACAO')).size, 1)
+    // registro ainda não marcado como enviado
+    assert.equal(travados([reg({ criado_em: h(48), enviado_em: h(48), status: 'informada' })]).size, 0)
+    // registro sem lead
+    assert.equal(travados([reg({ lead_id: null, criado_em: h(48), enviado_em: h(48) })]).size, 0)
+  })
+
+  test('pré-cadastro não chegou: com vários CNPJs vale o mais antigo e todos entram no detalhe', () => {
+    const { porLead, travados: t } = preCadastroNaoChegou([], [
+      reg({ id: 1, cnpj: '11111111000191', enviado_em: h(30) }),
+      reg({ id: 2, cnpj: '22222222000191', enviado_em: h(2) }),
+    ], leadA(), AGORA)
+    assert.equal(t.has('a'), true)
+    assert.deepEqual(porLead.get('a')!.cnpjs, ['11111111000191', '22222222000191'])
+    assert.equal(porLead.get('a')!.maisAntigo, Date.parse(h(30)))
+  })
+}

@@ -20,10 +20,11 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
-import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
+import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
   calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
+  preCadastroNaoChegou, PRE_CAD_HORAS, type PreCadastroEstado,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 import { detectarRepeticao, linhaRepetido, PREFIXO_CHAVE, type LinhaLog } from '@/lib/espelho-repeticao-calc'
@@ -37,6 +38,11 @@ const TETO_MOVIMENTOS = 30
  *  HSM, texto ou alerta. Depois dela, só com ?silencioso. Entrada na 51 nunca é silenciosa (cria a conta MRR). */
 const VIRADA_SILENCIOSA_ATE = '2026-10-07T21:00:00Z'
 const TETO_MS = 200_000
+/** Soneca do "Resolvido" no aviso de pré-cadastro que não chegou (15/10/2026). Quem clica está
+ *  dizendo "reenviei", e o reenvio aparece no portal na importação seguinte da AIVA (de hora em
+ *  hora). Passadas 6h ainda travado, o reenvio não resolveu e o aviso volta — antes ele sumia
+ *  para sempre e a VictorIA seguia dizendo ao lojista que o nosso time estava finalizando. */
+const SILENCIO_PRE_CAD_MS = 6 * 3_600_000
 /** Quanto da trilha a regra de repetição olha. 4 h cobre com folga as 4 rodadas (15 min cada) do limite. */
 const JANELA_TRILHA_MS = 4 * 3_600_000
 export const MARCADOR_ESPELHO = 'ESPELHO_PORTAL'
@@ -87,40 +93,34 @@ async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<
   }
 }
 
-/** Pré-cadastro marcado como enviado há 24h+ e que não chegou ao portal (passo 11 — ver comentário lá). */
-function preCadastroNaoChegou(onboardings: OnbApi[], registros: RegistroCnpj[], leads: LeadEspelho[]) {
-  const LIMITE_MS = 24 * 3_600_000
-  const agoraMs = Date.now()
-  const noPortal = new Set(onboardings.map((o) => soDigitos(o.cnpj)))
-  const leadPorId = new Map(leads.map((l) => [l.id, l]))
-  const porLead = new Map<string, { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }>()
-  for (const reg of registros) {
-    if (!reg.lead_id) continue
-    const lead = leadPorId.get(reg.lead_id)
-    if (!lead || !['PRE_APROVACAO', 'CADASTRO_RECEBIDO'].includes(String(lead.status))) continue
-    const c = soDigitos(reg.cnpj)
-    const x = porLead.get(reg.lead_id) ?? { algumNoPortal: false, maisAntigo: Infinity, cnpjs: [] }
-    if (noPortal.has(c)) x.algumNoPortal = true
-    else if (reg.status === 'pre_cadastro_enviado') {
-      const t = Date.parse(String(reg.criado_em ?? ''))
-      if (Number.isFinite(t)) { x.maisAntigo = Math.min(x.maisAntigo, t); x.cnpjs.push(c) }
-    }
-    porLead.set(reg.lead_id, x)
-  }
-  const travados = new Set<string>()
-  for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
-  return { porLead, travados }
-}
+/** Colunas do registro. `enviado_em` entrou em 15/10/2026 (docs/sql/2026-10-15-pre-cadastro-enviado-em.sql):
+ *  enquanto o SQL não for aplicado, pedi-la derruba o SELECT inteiro — e com ele a rodada do espelho, que
+ *  move card. Por isso o primeiro erro de coluna faz a rodada cair pro conjunto antigo (o relógio do passo 11
+ *  volta pro `criado_em`, que é o que já acontecia antes). Depois do SQL aplicado, nunca mais cai aqui. */
+const COLS_REGISTRO = 'id,cnpj,lead_id,status,rid,criado_em,enviado_em'
+const COLS_REGISTRO_ANTIGO = 'id,cnpj,lead_id,status,rid,criado_em'
 
 async function registrosComLead(): Promise<RegistroCnpj[]> {
   const out: RegistroCnpj[] = []
+  let cols = COLS_REGISTRO
   for (let de = 0; ; de += 1000) {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('sdr_registros_cnpj')
-      .select('id,cnpj,lead_id,status,rid,criado_em')
+      .select(cols)
       .not('lead_id', 'is', null)
       .order('id', { ascending: true })
       .range(de, de + 999)
+    // 42703 = undefined_column no Postgres; o PostgREST também devolve a coluna no texto do erro
+    if (error && cols === COLS_REGISTRO && (error.code === '42703' || /enviado_em/.test(error.message))) {
+      cols = COLS_REGISTRO_ANTIGO
+      console.warn('[espelho] sdr_registros_cnpj sem a coluna enviado_em — rodada usando criado_em (aplicar docs/sql/2026-10-15-pre-cadastro-enviado-em.sql)')
+      ;({ data, error } = await supabaseAdmin
+        .from('sdr_registros_cnpj')
+        .select(cols)
+        .not('lead_id', 'is', null)
+        .order('id', { ascending: true })
+        .range(de, de + 999))
+    }
     if (error) throw new Error(`sdr_registros_cnpj: ${error.message}`)
     out.push(...((data ?? []) as unknown as RegistroCnpj[]))
     if (!data || data.length < 1000) break
@@ -644,26 +644,49 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   //     Celulares, 02→06/10). Medido em 06/10: 106 de 111 pré-cadastros aparecem no portal com
   //     mediana de 1h30 e máximo de 30h — passou de 24h sem aparecer, o formulário não foi.
   //     Vale só pra PRE_APROVACAO/CADASTRO_RECEBIDO e só quando NENHUM CNPJ do lead está no portal.
+  //     O relógio das 24h corre do CLIQUE (`enviado_em`), não da captura do CNPJ — ver marcadoEmMs.
+  //     ⚠️ O marcador do lead e o aviso do painel são COISAS SEPARADAS (15/10/2026). O marcador é a
+  //     verdade que a VictorIA conta ao lojista ("a pendência é nossa") e só sai quando o CNPJ aparece
+  //     no portal; o aviso é a fila do Nei, e o "Resolvido" dele é só uma soneca. Por isso o aviso é
+  //     reaberto enquanto a loja segue travada, em vez de depender da transição do marcador: antes,
+  //     um Resolvido manual com o lead ainda marcado calava o caso para sempre.
   const novosPreCad: string[] = []
   {
     const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
+    const candidatos: Array<{ lead: LeadEspelho; x: PreCadastroEstado }> = []
     for (const lead of leads) {
       const tem = (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:')
       const deve = travados.has(lead.id)
       if (deve) saida.pre_cadastro_nao_chegou.push(`${lead.nome} (${porLead.get(lead.id)!.cnpjs.join(', ')})`)
-      if (dry || deve === tem) continue
+      if (dry) continue
       try {
         if (deve) {
           const x = porLead.get(lead.id)!
-          await marcar(lead.id, 'PRE_CAD_NAO_CHEGOU', new Date(x.maisAntigo).toISOString())
-          await registrarAvisos('pre_cadastro_nao_chegou', [{ leadId: lead.id, loja: lead.nome, status: String(lead.status), detalhe: `CNPJ ${x.cnpjs.join(', ')} · marcado em ${new Date(x.maisAntigo).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` }])
-          novosPreCad.push(`• ${lead.nome} — CNPJ ${x.cnpjs.join(', ')}`)
-        } else {
+          if (!tem) await marcar(lead.id, 'PRE_CAD_NAO_CHEGOU', new Date(x.maisAntigo).toISOString())
+          candidatos.push({ lead, x })
+        } else if (tem) {
           await desmarcar(lead.id, 'PRE_CAD_NAO_CHEGOU')
           await resolverAvisos('pre_cadastro_nao_chegou', [lead.id], 'auto: o CNPJ apareceu no portal (ou o lead saiu da etapa)')
         }
       } catch (e) {
         avisos.push(`pré-cadastro não chegou (${lead.nome}): ${String(e).slice(0, 100)}`)
+      }
+    }
+    // quem está travado e não está em silêncio (aviso aberto, ou Resolvido há menos de 6h) entra
+    // na fila do painel e no digest — inclusive de novo, se a soneca venceu e nada andou
+    if (candidatos.length) {
+      try {
+        const silencio = await leadsEmSilencio('pre_cadastro_nao_chegou', candidatos.map((c) => c.lead.id), SILENCIO_PRE_CAD_MS)
+        const avisar = candidatos.filter((c) => !silencio.has(c.lead.id))
+        if (avisar.length) {
+          await registrarAvisos('pre_cadastro_nao_chegou', avisar.map(({ lead, x }) => ({
+            leadId: lead.id, loja: lead.nome, status: String(lead.status),
+            detalhe: `CNPJ ${x.cnpjs.join(', ')} · marcado em ${new Date(x.maisAntigo).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+          })))
+          for (const { lead, x } of avisar) novosPreCad.push(`• ${lead.nome} — CNPJ ${x.cnpjs.join(', ')}`)
+        }
+      } catch (e) {
+        avisos.push(`avisos de pré-cadastro não chegado: ${String(e).slice(0, 100)}`)
       }
     }
   }
@@ -672,7 +695,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   if (novosPreCad.length) {
     blocos.push(
       `📮 *Pré-cadastro não chegou à AIVA* (${novosPreCad.length})\n${novosPreCad.join('\n')}\n\n` +
-      'Marcado como enviado em Registros AIVA há mais de 24h e o CNPJ não aparece no portal — o formulário não foi enviado. ' +
+      `Marcado como enviado em Registros AIVA há mais de ${PRE_CAD_HORAS}h e o CNPJ não aparece no portal — o formulário não foi enviado. ` +
       'Reenviar pelo Registros AIVA; o card anda sozinho depois.\n📌 Também está no topo do Atendimento.',
     )
   }

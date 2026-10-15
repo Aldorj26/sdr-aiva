@@ -54,7 +54,15 @@ export type OnbApi = {
   /** Primeiro acesso do lojista à ferramenta (Karol/AIVA, 07/10/2026). null = nunca entrou. */
   primeiro_acesso_em?: string | null
 }
-export type RegistroCnpj = { id: string | number; cnpj: string | number; lead_id: string | null; status: string | null; rid?: string | number | null; criado_em?: string | null }
+export type RegistroCnpj = {
+  id: string | number; cnpj: string | number; lead_id: string | null; status: string | null
+  rid?: string | number | null
+  /** Criação da LINHA: quando o CNPJ foi capturado do lojista. NÃO é a hora do clique em "Abrir form". */
+  criado_em?: string | null
+  /** Clique em "Abrir form" (/api/registros, enviado false→true). Vazio nas linhas anteriores a 15/10/2026
+   *  e nas que nasceram já marcadas (vínculo pelo telefone, fase 3) — aí o relógio cai em criado_em. */
+  enviado_em?: string | null
+}
 export type LeadEspelho = {
   id: string
   nome: string | null
@@ -320,3 +328,64 @@ export function situacaoOnb(stage: string, bio: string | null | undefined): OnbS
   return 'biometria'
 }
 
+
+/** Estado de um lead no passo "pré-cadastro que não chegou" (passo 11 do espelho). */
+export type PreCadastroEstado = { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }
+
+/** Horas sem aparecer no portal que caracterizam "o formulário não foi enviado".
+ *  Medido em 06/10/2026: 106 de 111 pré-cadastros aparecem no portal com mediana de
+ *  1h30 e máximo de 30h. 24h é também o prazo que a própria AIVA dá. */
+export const PRE_CAD_HORAS = 24
+
+/** Quando o relógio das 24h começa a correr para este registro.
+ *
+ * ⚠️ É `enviado_em` (o clique em "Abrir form"), NÃO `criado_em` (a criação da linha, isto é,
+ * quando o CNPJ foi capturado do lojista) — corrigido em 15/10/2026. Com `criado_em`, um CNPJ
+ * registrado há uma semana e só clicado hoje disparava o aviso na PRIMEIRA rodada do espelho,
+ * com o painel afirmando "marcado como enviado há mais de 24h", o que era falso.
+ * `criado_em` continua como fallback das linhas anteriores à coluna e das que já nascem
+ * marcadas (vínculo pelo telefone, conclusão da fase 3): nessas, as duas datas coincidem na
+ * prática, porque a marcação acontece no mesmo instante da criação. */
+export function marcadoEmMs(reg: RegistroCnpj): number | null {
+  for (const v of [reg.enviado_em, reg.criado_em]) {
+    const t = Date.parse(String(v ?? ''))
+    if (Number.isFinite(t)) return t
+  }
+  return null
+}
+
+/**
+ * Pré-cadastro marcado como enviado há 24h+ que não chegou ao portal da AIVA (passo 11).
+ *
+ * O "Abrir form" do /registros marca o CNPJ como enviado no CLIQUE; se o formulário não chega a
+ * ser enviado, o lead fica parado em Cadastro Recebido sem ninguém saber — e a VictorIA dizia que
+ * "dependia da análise da AIVA" (Minas Celulares, 02→06/10/2026). Vale só pra PRE_APROVACAO /
+ * CADASTRO_RECEBIDO e só quando NENHUM CNPJ do lead está no portal.
+ */
+export function preCadastroNaoChegou(
+  onboardings: OnbApi[],
+  registros: RegistroCnpj[],
+  leads: LeadEspelho[],
+  agoraMs: number = Date.now(),
+) {
+  const LIMITE_MS = PRE_CAD_HORAS * 3_600_000
+  const noPortal = new Set(onboardings.map((o) => soDigitos(o.cnpj)))
+  const leadPorId = new Map(leads.map((l) => [l.id, l]))
+  const porLead = new Map<string, PreCadastroEstado>()
+  for (const reg of registros) {
+    if (!reg.lead_id) continue
+    const lead = leadPorId.get(reg.lead_id)
+    if (!lead || !['PRE_APROVACAO', 'CADASTRO_RECEBIDO'].includes(String(lead.status))) continue
+    const c = soDigitos(reg.cnpj)
+    const x = porLead.get(reg.lead_id) ?? { algumNoPortal: false, maisAntigo: Infinity, cnpjs: [] }
+    if (noPortal.has(c)) x.algumNoPortal = true
+    else if (reg.status === 'pre_cadastro_enviado') {
+      const t = marcadoEmMs(reg)
+      if (t != null) { x.maisAntigo = Math.min(x.maisAntigo, t); x.cnpjs.push(c) }
+    }
+    porLead.set(reg.lead_id, x)
+  }
+  const travados = new Set<string>()
+  for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
+  return { porLead, travados }
+}
