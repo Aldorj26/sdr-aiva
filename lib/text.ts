@@ -171,7 +171,24 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], sen
 }
 
 /**
- * Mensagem enviada logo após o template HSM 20 "Complete o Cadastro" (stage 49),
+ * Miolo ({{2}}) do HSM 48 coringa para a entrada no stage 49 — "loja pré-aprovada".
+ *
+ * 16/10/2026 (Aldo): até aqui o stage 49 disparava o template 29 ("[AIVA] Loja Pré-Aprovada"),
+ * cujo corpo aprovado na Meta diz "Para finalizar seu cadastro, preciso de mais alguns dados
+ * rapidinho. Posso seguir?". Com o fim da FASE 3 isso virou mentira: não pedimos mais dado
+ * nenhum. Corpo de template aprovado não é editável, então a saída foi trocar pelo coringa 48,
+ * em que o texto vem na variável e fica do nosso lado.
+ *
+ * ⚠️ UMA linha, sem 
+ e sem link: a Meta rejeita quebra de linha em variável de template.
+ * O corpo do 48 já abre com "Oi {nome}, tudo bem?" e fecha com "É só responder essa mensagem.",
+ * então o miolo não sauda nem se despede.
+ */
+export const PRE_APROVADA_MIOLO =
+  'Sua loja foi pré-aprovada pela AIVA! 🎉 Agora você não precisa fazer nada: o link do cadastro da AIVA chega aqui por mensagem, e é nele que você preenche os dados da loja. Qualquer dúvida até lá, é só me chamar.'
+
+/**
+ * Mensagem de reforço do stage 49, reenviada pelo webhook quando a janela de 24h reabre
  * orientando o lojista sobre os 5 dados complementares que a VictorIA vai
  * coletar na sequência (Fase 3).
  *

@@ -9,7 +9,7 @@ import { changeStageSeAvanco, STAGES } from '@/lib/evotalks'
  *
  * Desde 17/09/2026 (Aldo) marcar o CNPJ MATRIZ como enviado também AVANÇA o card
  * no Evo pra "Cadastro Recebido" (49) — antes o Nei lançava o CNPJ aqui e depois
- * tinha que ir no Evo arrastar o card na mão. Quem faz o resto (HSM 20, alerta, início da
+ * tinha que ir no Evo arrastar o card na mão. Quem faz o resto (HSM, alerta, início da
  * Fase 3) é a automação do Evo + o handler de /api/sdr/opportunity-stage, como
  * sempre: esta rota só move.
  */
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   // Pré-cadastro lançado → card pra Cadastro Recebido (49).
   // `changeStageSeAvanco` só AVANÇA: card já em 49+ (ou em Bot/93/94/95, que
   // estão fora da progressão linear) fica onde está. Desmarcar NÃO traz o card
-  // de volta — a etapa é do time, e o HSM 20 já saiu.
+  // de volta — a etapa é do time, e o HSM de loja pré-aprovada já saiu.
   //
   // Só a MATRIZ move (17/09): o card só está em Pré Aprovação quando existe
   // exatamente um registro, o da matriz — os CNPJs das filiais só nascem na

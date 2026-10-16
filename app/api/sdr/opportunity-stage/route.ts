@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
+import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, PRE_APROVADA_MIOLO } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 import { proximasTurmas, resumoDias, rotulo } from '@/lib/turmas-treinamento'
 
@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
   //
   // Fluxo: operador/Eduardo aprovou a pré-análise e move manualmente o card de
   // Pré Aprovação (54) → Cadastro Recebido (49). Isso reabre a janela WhatsApp
-  // via HSM template 20.
+  // via HSM coringa 48 com o texto de loja pré-aprovada.
   //
   // 16/10/2026 (Aldo): a FASE 3 acabou. Mover pro 49 É, sozinho, o cadastro completo — não há
   // mais nada a coletar deste lado, porque quem pede o resto é a AIVA, no formulário do varejo.
@@ -338,7 +338,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       // Idempotência: se o lead já passou da Fase 3 (CADASTRO_RECEBIDO/EM_ANALISE_AIVA/
-      // TREINAMENTO), NÃO re-dispara o HSM 20 nem volta o status pra INTERESSADO.
+      // TREINAMENTO), NÃO re-dispara o HSM nem volta o status pra INTERESSADO.
       // Bug que isso resolve: Nei moveu o card no Evo Talks → CRM trigger disparou
       // stage 49 de novo → re-enviou HSM "Complete o Cadastro" duplicado pro lead
       // que já completou tudo.
@@ -354,26 +354,25 @@ export async function POST(req: NextRequest) {
 
       const nomeSocio = normalizaNome(forms['da6ddf70']) || normalizaNome(lead?.nome ?? null) || 'Lojista'
 
-      // Template HSM "Complete o Cadastro" (id 20)
-      // {{1}} = nome do sócio
-      // {{2}} = texto (usa valor padrão do Evo Talks)
-      const templateId = Number(process.env.AIVA_COMPLETE_CADASTRO_TEMPLATE_ID ?? 0)
+      // HSM 48 coringa, com o texto na variável {{2}} (lib/text.ts, PRE_APROVADA_MIOLO).
+      // 16/10/2026 (Aldo): antes era o template 29 ("[AIVA] Loja Pré-Aprovada"), cujo corpo
+      // aprovado na Meta diz "preciso de mais alguns dados rapidinho. Posso seguir?" — com o
+      // fim da FASE 3 isso virou mentira, e corpo aprovado não é editável. O coringa resolve
+      // sem passar por aprovação nova e deixa o texto do nosso lado.
+      // {{1}} = nome do sócio  ·  {{2}} = PRE_APROVADA_MIOLO
+      const templateId = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
       if (!templateId) {
-        console.warn(`AIVA_COMPLETE_CADASTRO_TEMPLATE_ID não configurado — template Complete o Cadastro não enviado (opp #${opportunityId})`)
+        console.warn(`AIVA_REATIVACAO_TEMPLATE_ID não configurado — aviso de loja pré-aprovada não enviado (opp #${opportunityId})`)
         return NextResponse.json({
           ok: false,
-          erro: 'template_complete_cadastro_nao_configurado',
+          erro: 'template_coringa_nao_configurado',
         })
       }
 
-      const textoPadrao = 'sua loja foi pré-aprovada pela AIVA! 🎉'
-      const tplResult49 = await sendTemplate(telefone, templateId, [nomeSocio, textoPadrao])
-
-      // Texto livre listando os 5 dados que ainda faltam — orienta o lojista
-      // pro que vem na Fase 3 (VictorIA vai perguntar um por um).
-      const avisoComplementoMsg = buildAvisoColetandoComplementoMsg(nomeSocio)
+      // O coringa carrega a mensagem inteira: nada de texto livre em seguida, que diria
+      // a mesma coisa duas vezes na mesma janela.
+      const tplResult49 = await sendTemplate(telefone, templateId, [nomeSocio, PRE_APROVADA_MIOLO])
       const chatId49 = tplResult49.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
-      await sendTextsAfterTemplate(telefone, [avisoComplementoMsg], chatId49)
 
       // Muda status do lead pra INTERESSADO (se o lead existir no Supabase)
       if (lead?.id) {
@@ -396,13 +395,9 @@ export async function POST(req: NextRequest) {
           {
             lead_id: lead.id,
             direcao: 'out',
-            conteudo: `[Template Complete o Cadastro enviado — ${nomeSocio}]`,
-            template_hsm: 'aiva_complete_cadastro',
-          },
-          {
-            lead_id: lead.id,
-            direcao: 'out',
-            conteudo: avisoComplementoMsg,
+            conteudo: `Oi ${nomeSocio}, tudo bem?
+${PRE_APROVADA_MIOLO}`,
+            template_hsm: 'aiva_loja_pre_aprovada',
           },
         ])
 
@@ -456,7 +451,7 @@ export async function POST(req: NextRequest) {
       try {
         const msg =
           `🟢 *${lead?.nome ?? nomeSocio}* (${telefone}) movido pra Cadastro Recebido.\n` +
-          `HSM 20 disparado — cadastro completo, nada a coletar: quem pede o resto é a AIVA, no formulário do varejo.` +
+          `HSM de loja pré-aprovada disparado — cadastro completo, nada a coletar: quem pede o resto é a AIVA, no formulário do varejo.` +
           (jaLancado
             ? `\n\n📝 Pré-cadastro do CNPJ ${cnpjMatriz49} já foi lançado por você no painel — foi ele que trouxe o card pra cá. Nada a fazer.`
             : cnpjMatriz49
