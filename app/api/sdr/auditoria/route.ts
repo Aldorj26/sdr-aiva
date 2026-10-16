@@ -157,7 +157,24 @@ export async function POST(req: NextRequest) {
     )
     .order('data_ultimo_contato', { ascending: true })
 
+  // 16/10/2026 (Aldo): com o fim da FASE 3, CADASTRO_RECEBIDO virou estado de ESPERA — a
+  // VictorIA diz ao lojista que não precisa fazer nada, então ele para de falar e o
+  // data_ultimo_contato envelhece sozinho. Sem este filtro, TODO lead do stage 49 vira
+  // "zona morta" 6h depois, pra sempre, e o alerta do Nei vira ruído. O que importa aqui
+  // é outra coisa: o pré-cadastro ainda NÃO foi lançado. Quem já foi lançado está
+  // esperando a AIVA, não a gente.
+  const idsCadastro = (leadsZonaMorta ?? []).filter((l) => l.status === 'CADASTRO_RECEBIDO').map((l) => l.id)
+  const jaLancados = new Set<string>()
+  if (idsCadastro.length) {
+    const { data: regs } = await supabaseAdmin
+      .from('sdr_registros_cnpj')
+      .select('lead_id, enviado')
+      .in('lead_id', idsCadastro)
+    for (const r of regs ?? []) if (r.enviado && r.lead_id) jaLancados.add(r.lead_id as string)
+  }
+
   for (const lead of leadsZonaMorta ?? []) {
+    if (lead.status === 'CADASTRO_RECEBIDO' && jaLancados.has(lead.id)) continue
     const msParado = Date.now() - new Date(lead.data_ultimo_contato).getTime()
     const horasParado = Math.floor(msParado / (1000 * 60 * 60))
     discrepancias.push({
@@ -193,7 +210,7 @@ export async function POST(req: NextRequest) {
       if (cnt.lead_formulario_sem_opp) linhas.push(`- ${cnt.lead_formulario_sem_opp} leads CADASTRO_RECEBIDO sem opp`)
       if (cnt.opp_orfa) linhas.push(`- ${cnt.opp_orfa} opps no CRM sem lead correspondente`)
       if (cnt.zona_morta_aguardando) linhas.push(`- ${cnt.zona_morta_aguardando} leads em PRE_APROVACAO há mais de 48h (Eduardo não agiu)`)
-      if (cnt.zona_morta_cadastro) linhas.push(`- ${cnt.zona_morta_cadastro} leads com CADASTRO_RECEBIDO há mais de 6h (Nei não moveu pro CRM)`)
+      if (cnt.zona_morta_cadastro) linhas.push(`- ${cnt.zona_morta_cadastro} leads em CADASTRO_RECEBIDO há mais de 6h sem o pré-cadastro lançado`)
       const texto = linhas.join('\n')
       if (aldoNumber) {
         const r = await alertHuman(aldoNumber, texto)

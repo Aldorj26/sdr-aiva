@@ -29,13 +29,13 @@ export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: s
   },
   cadastro_recebido: {
     titulo: '🧩 Cadastro Recebido com dado faltando',
-    oque: '3 cobranças automáticas e ainda faltam dados',
+    oque: '3 cobranças automáticas e ainda falta um dos 4 dados básicos (nome e telefone do sócio, nome da loja, CNPJ) — raro desde 16/10/2026, porque sem eles o lead nem chega aqui',
     acao: 'Pegar o que falta direto com o lojista.',
     ordem: 2,
   },
   fase3_destravada: {
     titulo: '🔓 Cadastro completo que não fechou sozinho',
-    oque: 'o lead já deu todos os dados, mas parou de falar antes de a conclusão rodar',
+    oque: 'o lead já deu os 4 dados, mas parou de falar antes de a conclusão rodar — é a rede de segurança do corte de campos de 16/10/2026',
     acao: 'Lançar o CNPJ em Registros AIVA.',
     ordem: 3,
   },
