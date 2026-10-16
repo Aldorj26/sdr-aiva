@@ -23,7 +23,7 @@ import {
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
   getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
-  statusFromOpp, emFase3,
+  statusFromOpp,
   MARCADOR_FASE3,
 } from '@/lib/evotalks'
 import type { DadosColetados } from '@/lib/claude'
@@ -642,19 +642,16 @@ export async function POST(req: NextRequest) {
   // contexto passam a usar a fase certa. Fail-open: se o Evo falhar ou a etapa
   // não for do funil AIVA, mantém o status do Supabase.
   //
-  // A FASE 3 sai da MESMA consulta. O stage 49 com cadastro incompleto vira
-  // status INTERESSADO — igual ao da Fase 1 —, então o status sozinho não diz
-  // se o lead já foi aprovado. Perguntar isso ao Evo aqui (e não ao marcador
-  // em observacoes) mantém a fonte da verdade única e dispensa esperar o sync.
-  // O marcador continua sendo o fallback pro caso do Evo estar fora do ar.
-  let leadEmFase3 = (lead.observacoes ?? '').includes(MARCADOR_FASE3)
+  // 16/10/2026: a FASE 3 acabou, e com ela a ambiguidade do stage 49 — ele agora
+  // mapeia direto pra CADASTRO_RECEBIDO em statusFromOpp. Quem estava preso em
+  // INTERESSADO esperando e-mail passa a CADASTRO_RECEBIDO na primeira mensagem
+  // que mandar (ou no próximo sync), que é o destravamento que o Aldo pediu.
   if (lead.evotalks_opportunity_id && lead.produto === 'AIVA') {
     try {
       const oppAtual = (await getOpportunity(Number(lead.evotalks_opportunity_id))) as {
         fkStage?: number
         formsdata?: Record<string, string | null> | null
       }
-      leadEmFase3 = emFase3(oppAtual)
       const statusEvo = statusFromOpp(oppAtual)
       const descarteManual = lead.status === 'DESCARTADO' && (lead.observacoes ?? '').includes('[DESCARTADO_MANUAL')
       if (statusEvo && statusEvo !== lead.status && !descarteManual) {
@@ -1298,11 +1295,9 @@ export async function POST(req: NextRequest) {
       }
     }
     try {
-      // leadEmFase3 vem do Evo (item 4b), com o marcador em observacoes como
-      // fallback — o status sozinho não distingue Fase 1 de Fase 3.
       const instrucaoTurno = [lead.instrucao_silvia, instrucaoPedirPrint].filter((s) => s && String(s).trim()).join('\n\n') || null
       resposta = await processarMensagem(
-        conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, leadEmFase3,
+        conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, undefined,
         // cliente Track já ativo na AIVA (lote importado do portal 16/09): a FASE 4
         // normal cobraria formulário e mandaria link de onboarding pra quem já vende
         (lead.observacoes ?? '').includes('[IMPORTADO_PORTAL:'),
@@ -2391,18 +2386,17 @@ export async function POST(req: NextRequest) {
         if (!dadosMergedF3.telefone_socio?.toString().trim()) {
           dadosMergedF3.telefone_socio = lead.telefone
         }
+        // 16/10/2026 (Aldo): email_socio, numero_lojas e cnpjs_adicionais SAÍRAM com o fim da
+        // FASE 3 — quem pede esses dados agora é a AIVA, no formulário do varejo. Deixar os três
+        // aqui seria pior do que inócuo: eles nunca mais seriam preenchidos, então TODO lead do
+        // stage 49 cairia no ramo de bloqueio abaixo — status revertido pra INTERESSADO, HubSpot
+        // e alerta de cadastro completo nunca disparando, e alerta falso de card travado no 3º
+        // turno. Mesma lista de lib/cadastro-recebido.ts.
         const camposObrigatorios: Record<string, { fieldId: string; dadosKey: string }> = {
           nome_socio:              { fieldId: 'da6ddf70', dadosKey: 'nome_socio' },
-          email_socio:             { fieldId: 'dafa40f0', dadosKey: 'email_socio' },
           telefone:                { fieldId: 'db8569f0', dadosKey: 'telefone_socio' },
           nome_varejo:             { fieldId: 'dcacfa00', dadosKey: 'nome_varejo' },
           cnpj_matriz:             { fieldId: 'dd2ab580', dadosKey: 'cnpj_matriz' },
-          numero_lojas:            { fieldId: 'df6f9c70', dadosKey: 'numero_lojas' },
-          // 16/09/2026 (Aldo): faturamento_anual, valor_boleto_mensal, regiao_varejo,
-          // localizacao_lojas e possui_outra_financeira SAÍRAM da coleta. Se
-          // continuassem aqui, o cadastro nunca fecharia — o lead ficaria em loop
-          // na Fase 3 esperando um dado que ninguém mais pede.
-          cnpjs_adicionais:        { fieldId: 'e0f66380', dadosKey: 'cnpjs_adicionais' },
         }
         // Valor resolvido: Evo Talks formsdata OU Supabase (o que tiver preenchido)
         const valorF3 = (c: { fieldId: string; dadosKey: string }): string =>

@@ -35,7 +35,12 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 /** Os mesmos campos que o webhook exige hoje (camposObrigatorios, pós-corte 16/09). */
-const OBRIGATORIOS = ['nome_socio', 'email_socio', 'telefone_socio', 'nome_varejo', 'cnpj_matriz', 'numero_lojas'] as const
+// 16/10/2026 (Aldo): a FASE 3 acabou e a lista caiu pros 4 campos que a Track usa.
+// Este cron continua sendo a rede de segurança do corte — é ele que varre quem já satisfaz
+// os obrigatórios de HOJE e parou de falar antes da conclusão rodar, cria o registro do CNPJ
+// e põe o caso na frente do Nei. Foi assim no corte de 16/09 (12 → 7 campos, 6 leads presos de
+// 20 a 57 dias) e é assim agora, com quem esperava só e-mail ou nº de lojas.
+const OBRIGATORIOS = ['nome_socio', 'telefone_socio', 'nome_varejo', 'cnpj_matriz'] as const
 /** Status em que ainda faz sentido concluir. Pós-cadastro já passou disso. */
 const ATIVOS = ['INTERESSADO', 'AGUARDANDO', 'CADASTRO_RECEBIDO', 'PRE_APROVACAO']
 const MARCADOR = 'FASE3_DESTRAVADA'

@@ -1178,68 +1178,40 @@ export const STAGE_TO_STATUS: Record<number, string> = {
   95: 'NAO_QUALIFICADO',
 }
 
-// Campos da Fase 3 obrigatórios pra considerar o cadastro "recebido" de verdade.
-// (cnpjs_adicionais é OPCIONAL — alinhado com CAMPOS_OBRIGATORIOS de lib/cadastro-recebido.)
-// 16/09/2026 (Aldo): faturamento_anual, valor_boleto_mensal e localizacao_lojas saíram
-// da coleta — sobrou o e-mail do sócio. Os campos seguem no formulário (histórico), só
-// não são mais pedidos nem exigidos.
-const FASE3_OBRIGATORIOS = ['email_socio'] as const
-
-function campoPreenchido(v: string | null | undefined): boolean {
-  return !!v && String(v).trim() !== '' && String(v).trim().toLowerCase() !== 'null'
-}
-
-/** True quando o dado obrigatório da Fase 3 (e-mail do sócio) está preenchido no formulário. */
-export function fase3Completa(forms: Record<string, string | null> | null | undefined): boolean {
-  const f = forms ?? {}
-  return FASE3_OBRIGATORIOS.every((k) => campoPreenchido(f[FORM_FIELD_MAP[k]]))
-}
+// 16/10/2026 (Aldo): a FASE 3 ACABOU. A VictorIA coletava e-mail do sócio (e CNPJs adicionais)
+// depois da aprovação, e logo em seguida o formulário do varejo, no portal da AIVA, pedia os
+// mesmos dados de novo — o lojista passava tudo duas vezes. Agora o stage 49 significa, sozinho,
+// cadastro completo: quem pede o resto é a AIVA, no formulário dela. Por isso `fase3Completa`,
+// `FASE3_OBRIGATORIOS` e `emFase3` saíram daqui, junto com a trava que segurava o 49 em
+// INTERESSADO. O MARCADOR_FASE3 continua existindo só pra ser LIMPO dos leads que ficaram com
+// ele gravado (ver sync-from-evo).
 
 /**
  * Status CORRETO a partir da oportunidade do Evo.
  *
- * O stage 49 "Cadastro Recebido" é AMBÍGUO: o operador move o card pra cá pra
- * DISPARAR a coleta da Fase 3 (loja pré-aprovada) — nesse momento o cadastro
- * ainda NÃO está completo. Mapear stage 49 → CADASTRO_RECEBIDO cegamente fazia
- * a VictorIA dizer "seu cadastro está completo" assim que o lead respondia,
- * mesmo com os 4 dados da Fase 3 ainda vazios (bug Smartmania/Loja Claro).
- *
- * Regra: stage 49 só é CADASTRO_RECEBIDO quando a Fase 3 está completa; enquanto
- * faltar dado, o lead permanece INTERESSADO (Fase 3 em andamento → VictorIA segue
- * coletando, sem falsa conclusão).
+ * Até 15/10/2026 o stage 49 era AMBÍGUO: o operador movia o card pra cá pra disparar
+ * a coleta da Fase 3, e o cadastro ainda não estava completo. Com o fim da Fase 3
+ * (Aldo, 16/10/2026) a ambiguidade acabou: mover pro 49 É o cadastro completo, porque
+ * não há mais nada pra coletar deste lado — o resto quem pede é a AIVA, no formulário
+ * do varejo. O mapa de etapas resolve sozinho, sem trava.
  */
 export function statusFromOpp(
   opp: { fkStage?: number; formsdata?: Record<string, string | null> | null } | null | undefined,
 ): string | null {
   const stage = Number(opp?.fkStage)
-  const mapped = STAGE_TO_STATUS[stage] ?? null
-  if (mapped === 'CADASTRO_RECEBIDO' && !fase3Completa(opp?.formsdata)) {
-    return 'INTERESSADO'
-  }
-  return mapped
+  return STAGE_TO_STATUS[stage] ?? null
 }
 
-/** Stage do Evo que dispara a coleta da Fase 3 ("Cadastro Recebido"). */
+/** Stage "Cadastro Recebido". Desde 16/10/2026 ele já significa cadastro completo. */
 export const STAGE_FASE3 = 49
 
 /**
- * Marcador durável em sdr_leads.observacoes que diz "este lead está na FASE 3".
+ * Marcador durável em sdr_leads.observacoes que dizia "este lead está na FASE 3".
  *
- * Existe porque `statusFromOpp` colapsa stage 49 + Fase 3 incompleta em
- * INTERESSADO — o mesmo status da Fase 1. Isso é correto pro FUNIL (o lead não
- * completou o cadastro), mas apaga a informação de que ele JÁ FOI APROVADO.
- * Sem esse marcador o `buildFaseInstrucao` trata todo INTERESSADO como Fase 1 e
- * a VictorIA volta a falar em "pré-aprovação" com quem já passou dela
- * (bug Titech/5511969589066, 6 dias preso — 21 leads no mesmo estado em 18/08).
+ * A Fase 3 acabou em 16/10/2026 e nada mais o grava. Ele continua exportado para que
+ * o sync-from-evo possa LIMPAR os leads que ficaram com ele gravado da jornada antiga.
  */
 export const MARCADOR_FASE3 = '[FASE3_DESDE:'
-
-/** True quando a oportunidade está no stage 49 com a Fase 3 ainda incompleta. */
-export function emFase3(
-  opp: { fkStage?: number; formsdata?: Record<string, string | null> | null } | null | undefined,
-): boolean {
-  return Number(opp?.fkStage) === STAGE_FASE3 && !fase3Completa(opp?.formsdata)
-}
 
 /**
  * Consulta a etapa ATUAL da oportunidade no Evo e devolve o status mapeado.

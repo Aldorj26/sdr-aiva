@@ -180,12 +180,15 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], sen
  */
 export function buildAvisoColetandoComplementoMsg(nomeContato: string | null): string {
   const saudacao = nomeContato ? `${nomeContato}, ` : ''
+  // 16/10/2026 (Aldo): esta mensagem pedia e-mail do sócio e CNPJs adicionais — os dois dados
+  // da antiga FASE 3, que ACABOU. Ela saía no mesmo instante em que o card entrava no 49, e a
+  // VictorIA, já proibida de pedir esses dados, respondia "seu cadastro está completo" a quem
+  // tinha acabado de receber o pedido. Agora ela só avisa que não há nada a fazer deste lado.
   return (
     `${saudacao}sua loja foi *pré-aprovada* pela AIVA! 🎉\n\n` +
-    `Pra avançar pra próxima etapa, falta pouca coisa:\n\n` +
-    `📧 Email do sócio\n` +
-    `🏢 Outros CNPJs (matriz/filial), se tiver\n\n` +
-    `É rapidinho — me responde por aqui que eu já encaminho. 😊`
+    `Não precisa fazer nada agora: o link do cadastro da AIVA chega aqui por mensagem, ` +
+    `e é lá que você preenche os dados da loja.\n\n` +
+    `Qualquer dúvida até lá, é só me chamar por aqui. 😊`
   )
 }
 

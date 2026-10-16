@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
-import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, MARCADOR_FASE3, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
+import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendToGoogleSheets, sendTemplate, sendText, STAGES, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
@@ -311,11 +311,12 @@ export async function POST(req: NextRequest) {
   //
   // Fluxo: operador/Eduardo aprovou a pré-análise e move manualmente o card de
   // Pré Aprovação (54) → Cadastro Recebido (49). Isso reabre a janela WhatsApp
-  // via HSM template 20 e muda o status do lead pra INTERESSADO, pra
-  // VictorIA retomar a conversa e coletar os 5 dados restantes.
+  // via HSM template 20.
   //
-  // OBS: o HubSpot NÃO é mais disparado aqui — agora é disparado só quando a
-  // VictorIA completa a Fase 3 (12 dados) no /api/sdr/webhook.
+  // 16/10/2026 (Aldo): a FASE 3 acabou. Mover pro 49 É, sozinho, o cadastro completo — não há
+  // mais nada a coletar deste lado, porque quem pede o resto é a AIVA, no formulário do varejo.
+  // Por isso o status aqui vira CADASTRO_RECEBIDO direto (antes voltava pra INTERESSADO, o que
+  // deixava o lead indistinguível de um de Fase 1 e o entregava aos crons de retomada).
   if (stageNum === STAGES.CADASTRO_RECEBIDO) {
     try {
       const opp = await getOpportunity(Number(opportunityId))
@@ -376,21 +377,15 @@ export async function POST(req: NextRequest) {
 
       // Muda status do lead pra INTERESSADO (se o lead existir no Supabase)
       if (lead?.id) {
-        // O status volta pra INTERESSADO (o cadastro ainda não está completo),
-        // mas isso o torna indistinguível de um lead de Fase 1. O marcador
-        // preserva a informação de que ele JÁ FOI APROVADO — é o que faz a
-        // VictorIA parar de reoferecer "pré-aprovação" a quem já passou dela.
-        const obsAtual = lead.observacoes ?? ''
-        const obsComFase3 = obsAtual.includes(MARCADOR_FASE3)
-          ? obsAtual
-          : `${obsAtual} ${MARCADOR_FASE3}${new Date().toISOString()}]`.trim()
+        // Sem MARCADOR_FASE3: ele existia só pra distinguir "INTERESSADO de Fase 1" de
+        // "INTERESSADO já aprovado". Com o status indo direto pra CADASTRO_RECEBIDO não há
+        // mais ambiguidade, e o sync-from-evo limpa o marcador de quem ficou com ele gravado.
 
         await supabaseAdmin
           .from('sdr_leads')
           .update({
-            status: 'INTERESSADO',
+            status: 'CADASTRO_RECEBIDO',
             data_ultimo_contato: new Date().toISOString(),
-            observacoes: obsComFase3,
             // Operador moveu o card = atendimento feito → limpa a flag de
             // "aguardando humano" (senão o lead fica eterno na fila do Nei)
             acionar_humano: false,
@@ -457,11 +452,11 @@ export async function POST(req: NextRequest) {
       } catch { /* alerta é secundário: na dúvida, manda o texto padrão */ }
 
       // Alerta Aldo + Nei de que a oportunidade foi aprovada internamente e
-      // a VictorIA vai começar a Fase 3 (coleta dos 5 dados complementares).
+      // o cadastro já está completo — nada a coletar (a Fase 3 acabou em 16/10/2026).
       try {
         const msg =
           `🟢 *${lead?.nome ?? nomeSocio}* (${telefone}) movido pra Cadastro Recebido.\n` +
-          `HSM 20 disparado — VictorIA vai coletar o e-mail do sócio (e os CNPJs adicionais, se 2+ lojas).` +
+          `HSM 20 disparado — cadastro completo, nada a coletar: quem pede o resto é a AIVA, no formulário do varejo.` +
           (jaLancado
             ? `\n\n📝 Pré-cadastro do CNPJ ${cnpjMatriz49} já foi lançado por você no painel — foi ele que trouxe o card pra cá. Nada a fazer.`
             : cnpjMatriz49
