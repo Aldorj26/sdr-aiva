@@ -15,17 +15,21 @@ import { fetchOpps } from '@/lib/pipeline-briefing'
 
 const STAGE_CADASTRO_RECEBIDO = 49
 
-// 6 dados obrigatórios pra completar o cadastro (cnpjs_adicionais é opcional).
+// 4 dados obrigatórios pra completar o cadastro.
 // 16/09/2026 (Aldo): saíram região, outra financeira, faturamento anual, valor de
 // boleto e localização das lojas — a AIVA não usa na análise e a coleta afastava o
 // lojista. Os campos continuam existindo no formulário do CRM, só não são cobrados.
+// 16/10/2026 (Aldo): saíram TAMBÉM nº de lojas e e-mail do sócio. O formulário do
+// varejo, no portal da AIVA, pede os mesmos dados de novo — o lojista estava
+// passando tudo duas vezes. Ficam só os 4 que a Track usa de fato: o CNPJ (é ele
+// que roda na Receita e barra loja com menos de 1 ano), o nome e o telefone do
+// sócio (é quem a cobrança procura) e o nome da loja (título do card). O e-mail
+// agora é a AIVA que coleta no formulário dela e é por lá que ela dispara.
 const CAMPOS_OBRIGATORIOS: Array<[string, string]> = [
   ['nome_socio', 'nome do sócio'],
   ['telefone_socio', 'telefone do sócio'],
   ['nome_varejo', 'nome da loja'],
   ['cnpj_matriz', 'CNPJ'],
-  ['numero_lojas', 'nº de lojas'],
-  ['email_socio', 'email do sócio'],
 ]
 
 function parseDados(obs: string | null): Record<string, string> {

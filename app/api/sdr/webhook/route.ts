@@ -2220,7 +2220,12 @@ export async function POST(req: NextRequest) {
       const cadJaAlertado = (lead.observacoes ?? '').includes('[CAD_ALERTADO]')
       const cadEntrouPeloModelo = resposta.novo_status === 'CADASTRO_RECEBIDO'
 
-      // FASE 1 completa (7 dados) → move pra Pré Aprovação + envia Google Sheets
+      // FASE 1 completa → move pra Pré Aprovação + envia Google Sheets.
+      // 16/10/2026 (Aldo): nº de lojas saiu da checagem — o formulário do varejo, no portal
+      // da AIVA, pede os mesmos dados de novo, e a Track não usa esse número pra nada. Ficam
+      // os 4 que importam: nome e telefone do sócio (quem a cobrança procura), nome da loja
+      // (título do card) e CNPJ — o único que é trava de verdade, porque roda na Receita e
+      // barra loja com menos de 1 ano.
       // Só dispara na TRANSIÇÃO (lead estava em outro status antes). Se já estava
       // PRE_APROVACAO e só mandou uma msg espontânea, não re-executa.
       if (resposta.novo_status === 'PRE_APROVACAO' && lead.status !== 'PRE_APROVACAO') {
@@ -2240,7 +2245,6 @@ export async function POST(req: NextRequest) {
           telefone:                { fieldId: 'db8569f0', dadosKey: 'telefone_socio' },
           nome_varejo:             { fieldId: 'dcacfa00', dadosKey: 'nome_varejo' },
           cnpj_matriz:             { fieldId: 'dd2ab580', dadosKey: 'cnpj_matriz' },
-          numero_lojas:            { fieldId: 'df6f9c70', dadosKey: 'numero_lojas' },
         }
         const dadosMergedCheck: Record<string, string | undefined> = {
           ...dadosAcumulados,
@@ -2276,7 +2280,6 @@ export async function POST(req: NextRequest) {
             nome_socio: 'Ah, só faltou um dado pra eu fechar: qual o nome do responsável pela loja (o sócio)?',
             cnpj_matriz: 'Ah, só faltou um dado pra eu fechar: qual o CNPJ da loja? (são 14 números)',
             nome_varejo: 'Ah, só faltou um dado pra eu fechar: qual o nome da loja?',
-            numero_lojas: 'Ah, só faltou um dado pra eu fechar: quantas lojas vocês têm?',
             telefone: 'Ah, só faltou um dado pra eu fechar: qual o telefone do responsável? (pode ser este mesmo)',
           }
           const perguntaFaltante = PERGUNTA_FALTANTE[faltantesFase1[0]]
