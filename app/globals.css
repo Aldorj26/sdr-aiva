@@ -423,9 +423,15 @@ h2 {
     overflow-x: hidden;
   }
 
+  /* PWA no iPhone (Aldo 17/10/2026): com viewport-fit=cover a página ocupa a tela inteira,
+     então o notch come a barra de cima e o indicador de gesto come o rodapé. O env() vale 0
+     no navegador normal e em Android — não muda nada fora do iPhone instalado. */
   .app-main {
     margin-left: 0;
-    padding-top: 52px; /* altura da mobile-topbar */
+    padding-top: calc(52px + env(safe-area-inset-top));
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   .mobile-topbar {
@@ -436,8 +442,9 @@ h2 {
     top: 0;
     left: 0;
     right: 0;
-    height: 52px;
+    height: calc(52px + env(safe-area-inset-top));
     padding: 0 0.75rem;
+    padding-top: env(safe-area-inset-top);
     background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
     z-index: 60;

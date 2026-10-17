@@ -3,6 +3,7 @@ import './globals.css'
 import Sidebar from './_components/Sidebar'
 import AssistenteWidget from './_components/AssistenteWidget'
 import RegistrarSW from './_components/RegistrarSW'
+import SplashIOS from './_components/SplashIOS'
 
 export const metadata: Metadata = {
   title: 'SDR Agent AIVA',
@@ -33,6 +34,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
+      <head>
+        <SplashIOS />
+      </head>
       <body>
         <div className="app-shell">
           <Sidebar />
