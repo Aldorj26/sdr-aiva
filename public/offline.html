@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sem conexão — SDR AIVA</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+    padding: 24px; background: #f5f6f8; color: #242450;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  .cartao {
+    background: #fff; border-radius: 16px; padding: 32px 24px; max-width: 420px; width: 100%;
+    text-align: center; border: 1px solid #e5e7eb;
+  }
+  img { width: 64px; height: 64px; border-radius: 12px; }
+  h1 { font-size: 1.25rem; margin: 16px 0 8px; font-weight: 600; }
+  p { margin: 0 0 20px; color: #5f5e5a; line-height: 1.6; font-size: 0.95rem; }
+  button {
+    background: #f97316; color: #fff; border: 0; border-radius: 10px;
+    padding: 12px 24px; font-size: 1rem; font-weight: 500; cursor: pointer; width: 100%;
+  }
+  button:active { background: #ea6a0c; }
+</style>
+</head>
+<body>
+  <div class="cartao">
+    <img src="/icon-192.png" alt="">
+    <h1>Sem conexão</h1>
+    <p>O painel precisa de internet — os números vêm do Evo e do portal da AIVA na hora, então não
+       guardamos cópia pra não mostrar dado velho.</p>
+    <button onclick="location.reload()">Tentar de novo</button>
+  </div>
+</body>
+</html>
