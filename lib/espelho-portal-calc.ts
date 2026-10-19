@@ -170,6 +170,10 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
   // a coluna do quadro da AIVA manda (07/10/2026)
   if (onb.board_column) {
     const daColuna = COLUNA_PARA_ETAPA[onb.board_column]
+    // 19/10/2026 (Aldo, caso ARPF tech/Abner): a AIVA criou a loja (retailer_id) e deixou o card em
+    // "Biometria aprovada" — a coluna atrasa em relação ao fato. Loja criada É cadastro finalizado:
+    // RID preenchido com a coluna ainda antes de 70 (50/96/97) vale 70, e o treinamento sai.
+    if (daColuna != null && rid && ORDEM[daColuna] < ORDEM[ETAPA.TREINAR]) return ETAPA.TREINAR
     if (daColuna != null) return daColuna
     // coluna que não vira etapa de propósito (not_approved / pre_cadastro): para aqui, como sempre
     if (COLUNA_SEM_ETAPA.has(onb.board_column)) return null
