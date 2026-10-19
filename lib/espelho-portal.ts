@@ -18,7 +18,7 @@
  * Spec: docs/superpowers/specs/2026-09-16-espelho-portal-evo-design.md
  */
 import { supabaseAdmin } from '@/lib/supabase'
-import { changeOpportunityStage, getPipeOpportunities, sendText } from '@/lib/evotalks'
+import { changeOpportunityStage, getOpportunity, getPipeOpportunities, sendText } from '@/lib/evotalks'
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
 import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
@@ -424,10 +424,14 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       const etapas = silencioso ? [m.para] : [...m.via, m.para]
       if (silencioso && m.para !== ETAPA.VENDENDO) await marcar(m.lead_id, 'MOVE_SILENCIOSO', `${m.para}:${new Date().toISOString()}`)
       for (const etapa of etapas) {
-        await changeOpportunityStage(m.opp, etapa)
+        const corpo = await changeOpportunityStage(m.opp, etapa)
         // a automação do Evo + nosso handler rodam do outro lado; um respiro evita
         // dois webhooks do mesmo card se atropelando
         await new Promise((res) => setTimeout(res, 800))
+        // 19/10/2026: o 200 do Evo não prova nada — 14 cards ficaram com ok=true na trilha e nunca
+        // saíram do lugar (`{"result":false}`). A prova é a etapa relida; o corpo vai pro `erro`.
+        const relida = Number((await getOpportunity(m.opp)).fkStage)
+        if (relida !== etapa) throw new Error(`Evo respondeu 200 mas a opp ficou na etapa ${relida} (corpo: ${corpo.slice(0, 80)})`)
       }
       await marcar(m.lead_id, MARCADOR_ESPELHO, `${m.para}:${new Date().toISOString()}`)
       console.log(`[espelho-portal] opp #${m.opp} ${m.de} → ${m.para}${m.via.length ? ` (via ${m.via.join(',')})` : ''} · ${m.nome} · ${m.motivo}`)

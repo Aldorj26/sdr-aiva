@@ -18,6 +18,9 @@ test('corpo que DECLARA falha vira mensagem', () => {
 test('falha sem mensagem legível cai no corpo aparado', () => {
   assert.equal(erroDaRespostaEvo('{"success":false}'), '{"success":false}')
   assert.equal(erroDaRespostaEvo('{"error":true}'), '{"error":true}')
+  // a recusa real do /int/changeOpportunityStage (replay de 19/10/2026, opp #41530 54 → 50)
+  assert.equal(erroDaRespostaEvo('{"result":false}'), '{"result":false}')
+  assert.equal(erroDaRespostaEvo('{"result":"false"}'), '{"result":"false"}')
 })
 
 test('sucesso em todas as formas que a API devolve — nada vira erro', () => {
@@ -27,6 +30,7 @@ test('sucesso em todas as formas que a API devolve — nada vira erro', () => {
   assert.equal(erroDaRespostaEvo('OK'), null)                         // texto solto
   assert.equal(erroDaRespostaEvo('[{"id":1}]'), null)                 // lista (getPipeOpportunities)
   assert.equal(erroDaRespostaEvo('{"success":true}'), null)
+  assert.equal(erroDaRespostaEvo('{"result":true}'), null)
   assert.equal(erroDaRespostaEvo('{"id":29936,"fkStage":51}'), null)  // objeto sem campo de estado
   assert.equal(erroDaRespostaEvo('{"status":"ok"}'), null)
   assert.equal(erroDaRespostaEvo('{"error":null}'), null)

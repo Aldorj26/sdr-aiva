@@ -39,6 +39,9 @@ export function erroDaRespostaEvo(corpo: string): string | null {
   const declaraFalha =
     o.success === false || o.success === 'false' ||
     o.ok === false || o.ok === 'false' ||
+    // 19/10/2026: `/int/changeOpportunityStage` recusa com `{"result":false}` — 16 bytes, HTTP 200.
+    // Foi o que travou 14 cards (54 → 50, 47 → 50, 70 → 51) com ok=true na trilha.
+    o.result === false || o.result === 'false' ||
     SINAL_DE_ERRO.has(String(o.status ?? '').toLowerCase()) ||
     SINAL_DE_ERRO.has(String(o.result ?? '').toLowerCase()) ||
     (o.error !== undefined && o.error !== null && o.error !== false && o.error !== '' && o.error !== 0)

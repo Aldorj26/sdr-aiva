@@ -54,8 +54,9 @@ async function post<T>(path: string, body: Record<string, unknown>): Promise<T> 
 
 /**
  * POST sem parse de JSON na resposta (para endpoints que retornam vazio ou texto).
+ * Devolve o corpo cru: quem precisa provar o efeito (espelho) guarda ele na trilha.
  */
-async function postRaw(path: string, body: Record<string, unknown>): Promise<void> {
+async function postRaw(path: string, body: Record<string, unknown>): Promise<string> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -73,6 +74,7 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<voi
   if (erro) {
     throw new Error(`Evo Talks ${path} → 200 mas recusou: ${erro}`)
   }
+  return corpo
 }
 
 // ─── Funções principais ───────────────────────────────────────────────────────
@@ -948,8 +950,8 @@ export async function updateOpportunityTitle(
 export async function changeOpportunityStage(
   opportunityId: number,
   destStageId: number
-): Promise<void> {
-  await postRaw('/int/changeOpportunityStage', {
+): Promise<string> {
+  return postRaw('/int/changeOpportunityStage', {
     id: opportunityId,
     destStageId,
   })
