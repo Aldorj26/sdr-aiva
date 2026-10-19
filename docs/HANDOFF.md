@@ -47,8 +47,10 @@
   orientação do Nei ainda mandando link; ramo morto de `biometria_negada` removido; texto de privacidade corrigido.
 - Conferido que nenhuma das 12 correções da curadoria que entram no prompt fala de biometria ou selfie.
 - **Etapa 50 x `dados_varejo`, medido ao vivo** (`docs/Etapa50-x-dados_varejo-2026-10-19.xlsx`, 8 abas, só leitura).
-  A tela do portal mostra **202** porque filtra os **últimos 30 dias**; a API devolve **473 CNPJs** em
-  `dados_varejo` (202 + 271 mais antigos) = **403 cards distintos**, contra **334** na etapa 50 do Evo. Ou seja:
+  ⚠️ **A tela do portal tem filtro de período** (Aldo, 19/10): com "Últimos 30 dias" ela mostra **202**; com
+  **"Todo o período" mostra 446**. A API devolve **473** em `dados_varejo` — os 27 de diferença são exatamente os
+  que têm **`unblinded_at` preenchido** (único campo que separa 473 em 446+27); o que a tela faz com eles é
+  pergunta pro Mauricio. Esses 473 são **403 cards distintos**, contra **334** na etapa 50 do Evo. Ou seja:
   **o portal tem mais formulário pendente do que o Evo mostra.** Dos 334 cards na 50, 157 estão fora da janela de
   30 dias (invisíveis na tela), 6 não têm onboarding; dos 473 CNPJs, 72 têm card fora da 50 (33 em **51 Vendendo**
   — matriz vendendo com filial pendente), 56 não têm lead nosso (razão social vazia, lotes de 28/08, 31/08 e 04/09)
