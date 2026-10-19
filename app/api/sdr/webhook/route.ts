@@ -376,10 +376,15 @@ export async function POST(req: NextRequest) {
   // 'sem_conteudo' abaixo e era DESCARTADO — documentos de aprovação (RG,
   // certificado MEI, extrato bancário) se perdiam. Agora salva um marcador com
   // o fileId e o mimeType, e o painel mostra um link de download.
-  if (!conteudo.trim() && fileId && fileId > 0) {
+  // 19/10/2026: antes isto exigia legenda VAZIA. Arquivo COM legenda ("é esse aqui" + PDF) chegava
+  // só como a legenda, sem sinal nenhum de que veio anexo — e a VictorIA respondia "não recebi
+  // nada". Mesmo erro que a imagem com legenda tinha até 08/09. Agora o marcador é ANEXADO à
+  // legenda quando ela existe, como já é feito com [LEAD_ENVIOU_IMAGEM].
+  if (fileId && fileId > 0 && !isImage) {
     // Formato: [LEAD_ENVIOU_ARQUIVO:<id>:<mime>:<nome>] — o nome vai por último
     // (pode conter ':') e o painel mostra link + nome, estilo painel Parcelex.
-    conteudo = `[LEAD_ENVIOU_ARQUIVO:${fileId}:${mimeType || 'application/octet-stream'}:${fileName}]`
+    const marcadorArquivo = `[LEAD_ENVIOU_ARQUIVO:${fileId}:${mimeType || 'application/octet-stream'}:${fileName}]`
+    conteudo = conteudo.trim() ? `${conteudo.trim()} ${marcadorArquivo}` : marcadorArquivo
     console.log(`Arquivo recebido — fileId: ${fileId}, mimeType: ${mimeType}, nome: ${fileName}`)
   }
 
@@ -1109,7 +1114,12 @@ export async function POST(req: NextRequest) {
       // travaAparelho fica FORA: desbloqueio é só Live Chat — não há time nosso
       // pra ver print, e pedir "assim o time vê" reabriria o caso Center Celulares.
       const naoAbre = /n[ãa]o (?:abre|abriu|carrega|carregou)/i.test(txt)
-      const relatouErro = !bloqueioLimite && !senhaUsuarioSms && !configCatalogo && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
+      // `biometria_negada` fica FORA (19/10/2026): ali o bloco "BIOMETRIA REPROVADA" manda ⛔ NÃO
+      // pedir print e pedir foto do documento. O gatilho realista — "não consigo, o link não abre" —
+      // caía direto aqui e mandava pedir print "ANTES de qualquer orientação", o oposto do bloco.
+      // Mesma leitura de [ONB_ETAPA] que o chamador do Claude faz mais abaixo.
+      const bioNegada = /\[ONB_ETAPA:biometria_negada/.test(lead.observacoes ?? '')
+      const relatouErro = !bloqueioLimite && !senhaUsuarioSms && !configCatalogo && !bioNegada && (erroForte || naoChega || financeiro || reclamacaoAprovacao || (naoConsigo && contextoPortal) || (naoAbre && contextoPortal))
       const temPrintRecente = !!imagemPraClaude || historico.slice(-10).some((m) => m.direcao === 'in' && /\[LEAD_ENVIOU_IMAGEM/.test(m.conteudo))
       if (relatouErro && !temPrintRecente) {
         instrucaoPedirPrint =

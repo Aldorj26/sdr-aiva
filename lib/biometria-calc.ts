@@ -45,6 +45,13 @@ export function miolo(toque: number, url: string): string {
  * espera o Mauricio (AIVA) dizer se o link reabre depois da negativa: se precisar de link novo,
  * ligar como está mandaria link morto.
  */
+// ⚠️ 19/10/2026: a regra da CONVERSA mudou (Aldo) — na biometria reprovada a VictorIA não manda
+// mais refazer pelo link: pede um documento com foto e uma selfie na própria conversa, e o time
+// encaminha à AIVA (ver o bloco "BIOMETRIA REPROVADA PELA AIVA" em lib/claude.ts). Os textos
+// automáticos abaixo ficaram para trás: ainda mandam o link. ⛔ NÃO ligue esta flag sem reescrever
+// `mioloNegada` pra pedir as duas fotos — ligada como está, o robô diria uma coisa e a VictorIA
+// outra na mesma conversa. Em compensação, a dúvida que segurava a flag (o link reabre depois da
+// negativa?) deixou de importar: o caminho novo não usa link.
 export const ENVIO_NEGADA_ATIVO = false
 export const MAX_TOQUES_NEGADA = 2
 export const DIAS_REFORCO_NEGADA = 2

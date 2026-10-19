@@ -16,6 +16,15 @@
  * O que FICA (base legal: legítimo interesse pra honrar o opt-out): só o
  * TELEFONE, como lista de bloqueio — sem ele o lead voltaria a ser disparado
  * na próxima varredura. Nome, e-mail, CNPJ, sócio, conversa: tudo some.
+ *
+ * ⚠️ O QUE ISTO **NÃO** APAGA — a MÍDIA. As fotos moram no file store da Evo Talks; em
+ * `sdr_mensagens` fica só o marcador com o `fileId`, e apagar a linha não apaga o arquivo lá.
+ * Até 19/10/2026 isso valia só pra print de tela. Desde então a VictorIA PEDE foto de RG/CNH e
+ * selfie quando a AIVA reprova a biometria (ver o bloco "BIOMETRIA REPROVADA PELA AIVA" em
+ * lib/claude.ts): é documento de identificação e rosto, por desenho do fluxo. Num pedido de
+ * exclusão, alguém precisa apagar essas mídias na Evo **na mão** — o aviso ao Aldo/Nei abaixo é o
+ * único ponto em que isso é lembrado. A orientação do motivo `biometria_docs_recebidos` já manda
+ * apagar depois de encaminhar à AIVA; quando isso tiver sido feito, não sobra nada aqui.
  */
 import { supabaseAdmin } from '@/lib/supabase'
 import { removeOpportunity } from '@/lib/evotalks'
