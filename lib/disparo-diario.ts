@@ -20,11 +20,12 @@ import { avisarEquipe } from './alerta-equipe'
 import { conferirEntregaHoje } from './entrega-meta'
 import { diaBrt } from './retomada-interessado-calc'
 import {
-  decidirRodada, guardaBarata, chaveDaFatia, textoPausa, teaserPausa, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
+  decidirRodada, guardaBarata, chaveDaFatia, inicioEfetivoDaAmostra, ehUltimaRodada, textoResumoDia, teaserResumo, entregaIndisponivel, marcarResultados,
   lotePifou, textoPifou, teaserPifou, PREFIXO_PAUSA_ENVIO,
+  chaveEntregaFraca, textoEntregaFraca, teaserEntregaFraca,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   PREFIXO_LOCK_CRON, PREFIXO_LOCK_MANUAL, lockEhDoProprioClique,
-  TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, JANELA_PAUSA_MS,
+  TETO_DIA, ROTULO, TETO_TEMPO_MS, LOTE, PARALELO, JANELA_PAUSA_MS,
   type Entrega, type Resumo, type Decisao, type ResultadoEnvio,
 } from './disparo-diario-calc'
 
@@ -287,19 +288,18 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
 
   if (opts.dry) return montar()
 
-  if (decisao.acao === 'pausar') {
-    const pausadoEm = await pausar(decisao.motivo)
-    // Chave amarrada a ESTA pausa: se nenhum coringa chegar, as rodadas seguintes repetem o aviso
-    // (`lembrarPausaAutomatica`) até um chegar; depois disso a chave segura e a pausa fica calada.
-    await avisarTime(textoPausa(entrega, jaSaiuHoje), teaserPausa(entrega, jaSaiuHoje), { chaveDedupe: chaveDaPausa(pausadoEm), janelaMs: JANELA_PAUSA_MS })
-    console.log(`[disparo-diario] PAUSADO: ${decisao.motivo}`)
-    return montar()
+  // Entrega abaixo do piso: AVISA e SEGUE (ver `decidirRodada`). 1 aviso por hora BRT; a rodada
+  // continua para os lotes logo abaixo. Nunca lança — aviso é conforto, o disparo é o trabalho.
+  // (`acao: 'pausar'` só existe no tipo pra pausa MANUAL; `decidirRodada` não devolve mais esse caso)
+  if (decisao.acao !== 'pausar' && decisao.alertaEntrega) {
+    console.warn(`[disparo-diario] entrega abaixo do piso (segue disparando): ${decisao.alertaEntrega}`)
+    await avisarTime(textoEntregaFraca(entrega, jaSaiuHoje), teaserEntregaFraca(entrega, jaSaiuHoje), { chaveDedupe: chaveEntregaFraca(agora), janelaMs: 3_600_000 })
   }
 
   let enviados = 0
   let falhas = 0
   let cortado = false
-  let pifou = false // breaker: lote inteiro falhou por lead → pausa, alerta e a rodada para (C1)
+  let pifou = false // breaker: lote inteiro falhou por lead → alerta e a rodada para (C1); não pausa
   if (decisao.acao === 'disparar') {
     const quantidade = Math.min(decisao.quantidade, opts.qtd == null ? Infinity : Math.max(0, opts.qtd))
     if (quantidade > 0) {
@@ -316,43 +316,58 @@ export async function rodada(opts: { dry?: boolean; qtd?: number | null; agora?:
       let processados = 0
       let duplicados = 0
       let ultimoErroLote: string | null = null
-      for (let i = 0; i < fila.length; i += LOTE) {
+      // ONDAS de `PARALELO` lotes ao mesmo tempo. Cada `enviarLote` é um POST próprio ao
+      // `send-initial`, logo cada um roda na SUA invocação da Vercel: o paralelismo é entre
+      // invocações, e o `send-initial` seguiu intocado. Uma onda leva o mesmo tempo de um lote
+      // (~75 s) e entrega 3×. As marcações continuam em série, depois da onda inteira voltar.
+      const POR_ONDA = LOTE * PARALELO
+      for (let i = 0; i < fila.length; i += POR_ONDA) {
         const restanteMs = TETO_TEMPO_MS - (Date.now() - inicio)
         if (restanteMs < MIN_RESTANTE_LOTE_MS) { cortado = true; break }
-        const lote = fila.slice(i, i + LOTE)
-        const { resultados, erro: erroLote } = await enviarLote(lote, Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs))
-        if (erroLote) ultimoErroLote = erroLote
-        // Breaker (C1): lote em que NENHUM lead saiu e os erros são do envio (Evo 5xx/401/200-com-erro),
-        // não de cada número. Falha transitória não pode queimar a fila: o que era ERRO volta a PENDENTE
-        // (com o 1º erro no `detalhe`); só o `bloqueado_*` (já está na base) segue DUPLICADO.
-        const quebra = lotePifou(resultados)
-        const marcas = marcarResultados(lote, resultados).map((m) =>
-          quebra.pifou && m.status === 'ERRO' ? { ...m, status: 'PENDENTE' as const, detalhe: quebra.erro } : m)
-        for (const m of marcas) {
-          if (m.status === 'PENDENTE' && m.detalhe == null) continue // sem resposta: fica na fila, a próxima rodada reprocessa
-          const { error: erroMarca } = await supabaseAdmin.from('sdr_fila_disparo')
-            .update(m.status === 'DISPARADO'
-              ? { status: 'DISPARADO', disparado_em: new Date().toISOString() }
-              : { status: m.status, detalhe: m.detalhe })
-            .eq('id', m.id).eq('status', 'PENDENTE') // guarda: nunca sobrescreve linha que alguém tirou da fila durante a rodada
-          // a mensagem JÁ saiu; falhar em marcar só reaparece como duplicata (barrada pelo send-initial)
-          if (erroMarca) console.error(`[disparo-diario] não marcou ${m.id}: ${erroMarca.message}`)
-          if (m.status === 'DISPARADO') enviados++
-          else if (m.status === 'DUPLICADO') duplicados++ // já está na base: não é falha
-          else if (m.status === 'ERRO') falhas++
+        const lotes: LinhaFila[][] = []
+        for (let j = 0; j < POR_ONDA; j += LOTE) {
+          const lote = fila.slice(i + j, i + j + LOTE)
+          if (lote.length) lotes.push(lote)
         }
-        processados += marcas.length
-        if (quebra.pifou) {
-          pifou = true
-          cortado = true
-          const motivoPausa = `${PREFIXO_PAUSA_ENVIO} ${quebra.n}/${lote.length}: ${(quebra.erro ?? 'sem detalhe').replace(/\s+/g, ' ').slice(0, 200)}`
-          console.error(`[disparo-diario] BREAKER: ${motivoPausa} — pausando`)
-          // Mesma chave da pausa (`chaveDaPausa`): o aviso é UM só, tentado de novo pelo lembrete das rodadas
-          // seguintes até um coringa chegar, e depois cala (não duplica com o lembrete).
-          const pausadoEm = await pausar(motivoPausa) // idempotente
-          await avisarTime(textoPifou(quebra.n, quebra.erro), teaserPifou(quebra.n), { chaveDedupe: chaveDaPausa(pausadoEm), janelaMs: JANELA_PAUSA_MS })
-          break
+        const timeout = Math.min(TIMEOUT_LOTE_MAX_MS, restanteMs)
+        const respostas = await Promise.all(lotes.map((lote) => enviarLote(lote, timeout)))
+        for (let k = 0; k < lotes.length; k++) {
+          const lote = lotes[k]
+          const { resultados, erro: erroLote } = respostas[k]
+          if (erroLote) ultimoErroLote = erroLote
+          // Breaker (C1): lote em que NENHUM lead saiu e os erros são do envio (Evo 5xx/401/200-com-erro),
+          // não de cada número. Falha transitória não pode queimar a fila: o que era ERRO volta a PENDENTE
+          // (com o 1º erro no `detalhe`); só o `bloqueado_*` (já está na base) segue DUPLICADO.
+          const quebra = lotePifou(resultados)
+          const marcas = marcarResultados(lote, resultados).map((m) =>
+            quebra.pifou && m.status === 'ERRO' ? { ...m, status: 'PENDENTE' as const, detalhe: quebra.erro } : m)
+          for (const m of marcas) {
+            if (m.status === 'PENDENTE' && m.detalhe == null) continue // sem resposta: fica na fila, a próxima rodada reprocessa
+            const { error: erroMarca } = await supabaseAdmin.from('sdr_fila_disparo')
+              .update(m.status === 'DISPARADO'
+                ? { status: 'DISPARADO', disparado_em: new Date().toISOString() }
+                : { status: m.status, detalhe: m.detalhe })
+              .eq('id', m.id).eq('status', 'PENDENTE') // guarda: nunca sobrescreve linha que alguém tirou da fila durante a rodada
+            // a mensagem JÁ saiu; falhar em marcar só reaparece como duplicata (barrada pelo send-initial)
+            if (erroMarca) console.error(`[disparo-diario] não marcou ${m.id}: ${erroMarca.message}`)
+            if (m.status === 'DISPARADO') enviados++
+            else if (m.status === 'DUPLICADO') duplicados++ // já está na base: não é falha
+            else if (m.status === 'ERRO') falhas++
+          }
+          processados += marcas.length
+          // Envio quebrado: AVISA e a rodada para aqui (não adianta insistir nos 240 s), mas NÃO
+          // pausa o dia — Aldo 19/10. Os leads voltaram pra PENDENTE, então a próxima rodada
+          // tenta de novo sozinha; 1 aviso por hora BRT, como o "travado".
+          if (quebra.pifou) {
+            pifou = true
+            cortado = true
+            const diag = `${PREFIXO_PAUSA_ENVIO} ${quebra.n}/${lote.length}: ${(quebra.erro ?? 'sem detalhe').replace(/\s+/g, ' ').slice(0, 200)}`
+            console.error(`[disparo-diario] BREAKER: ${diag} — rodada encerrada (sem pausar o dia)`)
+            await avisarTime(textoPifou(quebra.n, quebra.erro), teaserPifou(quebra.n), { chaveDedupe: chaveTravado(agora), janelaMs: 3_600_000 })
+            break
+          }
         }
+        if (pifou) break
       }
       // lote que ficou PENDENTE (estouro/HTTP) sem ter sido cortado pelo tempo: não é erro, a próxima rodada continua
       const pendentes = processados - enviados - falhas - duplicados

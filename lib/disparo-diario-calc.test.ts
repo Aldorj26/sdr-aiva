@@ -4,6 +4,7 @@ import {
   decidirRodada, textoPausa, ehUltimaRodada, textoResumoDia, entregaIndisponivel, marcarResultados, textoStatusDisparo, textoRetomado, textoPausadoAgora, textoJaPausado, inicioEfetivoDaAmostra, chaveDaFatia, guardaBarata, teaserPausa, teaserResumo, teaserQuebrou, chaveQuebrou, textoQuebrou,
   chaveDaPausa, ehPausaAutomatica, textoPausaLembrete, teaserPausaLembrete, cabeResumo, lotesTravados, chaveTravado, textoTravado, teaserTravado,
   lotePifou, textoPifou, teaserPifou,
+  chaveEntregaFraca, textoEntregaFraca, teaserEntregaFraca, diagnosticoDaPausa,
   textoBotaoDisparo, PREFIXO_LOCK_MANUAL, MOTIVO_PAUSA_PAINEL, lockEhDoProprioClique, JANELA_LOCK_PROPRIO_MS,
   JANELA_PAUSA_MS, MIN_RESTANTE_RESUMO_MS,
   TETO_DIA, ROTULO, JANELA, TETO_TEMPO_MS, LOTE,
@@ -78,10 +79,25 @@ test('fila menor que o orçamento → dispara o tamanho da fila', () => {
   assert.deepEqual(decidirRodada({ ...base(), filaPendente: 12, jaSaiuHoje: 200 }), { acao: 'disparar', quantidade: 12 })
 })
 
-test('entrega em alerta → pausar, com a taxa no motivo', () => {
+// Aldo 19/10/2026: entrega baixa AVISA, não para. A amostra recomeça no /retomar e fica com um
+// pedaço só da fila (que vem ordenada, logo da mesma região): em 19/10 o dia morreu com 126 de 500
+// por três pausas cujas janelas tinham 21–23 lojas, num dia em que a manhã entregou 50%.
+test('entrega em alerta → DISPARA assim mesmo, com o diagnóstico em alertaEntrega', () => {
   const d = decidirRodada({ ...base(), entrega: ALERTA })
-  assert.equal(d.acao, 'pausar')
-  assert.ok(d.acao === 'pausar' && d.motivo.includes('12%'), 'motivo deve citar a taxa')
+  assert.equal(d.acao, 'disparar')
+  assert.equal(d.quantidade, 500)
+  assert.ok(d.alertaEntrega?.includes('12%'), 'alertaEntrega deve citar a taxa')
+})
+
+test('entrega em alerta com orçamento gasto → nada, mas o alerta sai do mesmo jeito', () => {
+  const d = decidirRodada({ ...base(), entrega: ALERTA, jaSaiuHoje: 500 })
+  assert.equal(d.acao, 'nada')
+  assert.ok(d.alertaEntrega?.includes('12%'))
+})
+
+test('entrega ok → sem alertaEntrega (a chave nem existe)', () => {
+  const d = decidirRodada(base())
+  assert.ok(d.acao !== 'pausar' && !('alertaEntrega' in d), JSON.stringify(d))
 })
 
 test('entrega sem_dados → DISPARA (regressão: de manhã não há o que medir)', () => {
@@ -89,17 +105,19 @@ test('entrega sem_dados → DISPARA (regressão: de manhã não há o que medir)
   assert.deepEqual(decidirRodada({ ...base(), entrega: semDados }), { acao: 'disparar', quantidade: 500 })
 })
 
-test('ordem das guardas: fim de semana > feriado > janela > pausado > fatia ocupada > alerta > orçamento > fila', () => {
+test('ordem das guardas: fim de semana > feriado > janela > pausado > fatia ocupada > orçamento > fila', () => {
   const pior = { ...base(), pausado: true, fatiaOcupada: true, entrega: ALERTA, jaSaiuHoje: 500, filaPendente: 0 }
   assert.deepEqual(decidirRodada({ ...pior, agoraMs: SAB_10H }), { acao: 'nada', motivo: 'fim_de_semana' })
   // feriado em dia de semana vence janela e todo o resto (02/11 é segunda; 07h BRT também é fora da janela)
   assert.deepEqual(decidirRodada({ ...pior, agoraMs: Date.parse('2026-11-02T10:00:00Z') }), { acao: 'nada', motivo: 'feriado' })
   assert.deepEqual(decidirRodada({ ...pior, agoraMs: SEG_7H }), { acao: 'nada', motivo: 'fora_da_janela' })
   assert.deepEqual(decidirRodada(pior), { acao: 'nada', motivo: 'pausado' })
-  // fatia ocupada vence alerta/orçamento/fila (e não repete o alerta de pausa)
+  // fatia ocupada vence orçamento/fila — e nem carrega alertaEntrega: rodada que não vai fazer
+  // nada também não avisa (quem avisa é a rodada que está disparando)
   assert.deepEqual(decidirRodada({ ...pior, pausado: false }), { acao: 'nada', motivo: 'fatia_ocupada' })
-  // já pausado não repete o alerta; despausado com alerta pausa antes de olhar o orçamento
-  assert.equal(decidirRodada({ ...pior, pausado: false, fatiaOcupada: false }).acao, 'pausar')
+  // sem pausa nem fatia: o alerta não barra mais, o orçamento gasto é que decide
+  assert.deepEqual(decidirRodada({ ...pior, pausado: false, fatiaOcupada: false }),
+    { acao: 'nada', motivo: 'orcamento_gasto', alertaEntrega: diagnosticoDaPausa(ALERTA) })
   assert.deepEqual(decidirRodada({ ...pior, pausado: false, fatiaOcupada: false, entrega: OK }), { acao: 'nada', motivo: 'orcamento_gasto' })
 })
 
@@ -123,11 +141,12 @@ test('textoPausa na queda do dia: o motivo traz a taxa e o piso de 30% aparece',
   assert.ok(t.includes(ALERTA.motivo) && /piso/.test(t), t)
 })
 
-test('decidirRodada: o motivo da pausa vem de entrega.motivo (não repete "Entrega em 78%... piso")', () => {
+test('decidirRodada: o alerta vem de entrega.motivo (não repete "Entrega em 78%... piso")', () => {
   const d = decidirRodada({ ...base(), entrega: ALERTA_PAROU })
-  assert.equal(d.acao, 'pausar')
-  assert.ok(d.acao === 'pausar' && d.motivo.includes('NENHUM entregue'), 'motivo deve trazer o diagnóstico real')
-  assert.ok(d.acao === 'pausar' && !/78%.*piso/i.test(d.motivo), `78% como abaixo do piso: ${d.acao === 'pausar' && d.motivo}`)
+  assert.equal(d.acao, 'disparar')
+  const alerta = d.alertaEntrega ?? ''
+  assert.ok(alerta.includes('NENHUM entregue'), 'alerta deve trazer o diagnóstico real')
+  assert.ok(!/78%.*piso/i.test(alerta), `78% como abaixo do piso: ${alerta}`)
 })
 
 // 2026-10-19 10h BRT = SEG_10H; meia-noite BRT desse dia = 03:00Z
@@ -500,16 +519,38 @@ test('lotePifou: numero_sem_whatsapp não entra na regra dos 3 erros (só na reg
   assert.equal(lotePifou([er('1', 'Evo 503'), er('2', 'Evo 503'), er('3', 'Evo 503'), er('4', 'numero_sem_whatsapp')]).pifou, true)
 })
 
-test('textoPifou / teaserPifou: n, o 1º erro cortado, pausa, PENDENTE, /retomar; teaser em uma linha', () => {
+// Desde 19/10 o disjuntor de envio também não pausa o dia: encerra a rodada, avisa, e a próxima
+// tenta de novo (os leads voltaram pra PENDENTE, então nada se perde).
+test('textoPifou / teaserPifou: n, o 1º erro cortado, PENDENTE, sem pausar; teaser em uma linha', () => {
   const t = textoPifou(5, 'Evo 503')
-  for (const trecho of ['5', 'Evo 503', 'PAUSADO', 'PENDENTE', '/retomar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  for (const trecho of ['5', 'Evo 503', 'PENDENTE', 'próxima']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  assert.ok(!/PAUSADO/.test(t), `não pode anunciar pausa: ${t}`)
   assert.ok(textoPifou(5, 'e'.repeat(5000)).length < 1100)
   assert.ok(!textoPifou(5, null).includes('null'))
   const tz = teaserPifou(5)
   uma(tz)
   assert.match(tz, /5/)
-  assert.match(tz, /pausad/i)
-  assert.ok(tz.endsWith('responda /retomar'), tz)
+  assert.ok(!/pausad/i.test(tz), tz)
+})
+
+test('textoEntregaFraca / teaserEntregaFraca: diz que NÃO parou, cita a taxa, a fatura e /pausar', () => {
+  const t = textoEntregaFraca(ALERTA, 180)
+  for (const trecho of ['12%', '180', 'NÃO parou', 'fatura', '/pausar']) assert.ok(t.includes(trecho), `faltou "${trecho}" em: ${t}`)
+  assert.ok(!/\/retomar/.test(t), `não há o que retomar: ${t}`)
+  const tz = teaserEntregaFraca(ALERTA, 180)
+  uma(tz)
+  assert.ok(tz.endsWith('/pausar'), tz)
+  // diagnóstico enorme não pode empurrar a ação pra fora do limite do coringa
+  uma(teaserEntregaFraca({ ...ALERTA, motivo: 'm'.repeat(600) }, 180))
+  assert.ok(teaserEntregaFraca({ ...ALERTA, motivo: 'm'.repeat(600) }, 180).endsWith('/pausar'))
+})
+
+test('chaveEntregaFraca: uma por hora BRT', () => {
+  const h10 = Date.parse('2026-10-19T13:05:00Z')
+  const h10b = Date.parse('2026-10-19T13:55:00Z')
+  const h11 = Date.parse('2026-10-19T14:05:00Z')
+  assert.equal(chaveEntregaFraca(h10), chaveEntregaFraca(h10b))
+  assert.notEqual(chaveEntregaFraca(h10), chaveEntregaFraca(h11))
 })
 
 test('lembrete de uma pausa por falha do send-initial NÃO manda olhar a fatura da Meta', () => {

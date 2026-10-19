@@ -23,6 +23,15 @@ export const JANELA = { de: 8, ate: 19 }
 /** A função morre em 300s; parar aos 240s deixa folga pra gravar o log. */
 export const TETO_TEMPO_MS = 240_000
 export const LOTE = 5
+/** Lotes de 5 disparados AO MESMO TEMPO (Aldo 19/10/2026: "preciso dos 500 na manhã, sempre").
+ *
+ *  Cada lote é um POST separado ao `send-initial`, então cada um roda na sua própria invocação da
+ *  Vercel — o paralelismo é entre invocações, não dentro do laço de leads, e por isso o
+ *  `send-initial` não precisou mudar. Em série dava 5 leads/~75 s → ~10 por rodada de 5 min → teto
+ *  de 120/h, e 500 não cabia na manhã (o script local que isto substituiu em 11/10 fazia 225/h).
+ *  Com 3: 15 leads por onda, ~30 por rodada, ~360/h → os 500 saem em ~1h25.
+ *  ⚠️ Mexer aqui mexe no ritmo que a Meta vê. Subir além disto só com o Aldo olhando a entrega. */
+export const PARALELO = 3
 /** O resumo das 18h47 faz 3 consultas ao banco + avisarEquipe (até ~35 s): só começa com folga. */
 export const MIN_RESTANTE_RESUMO_MS = 40_000
 /** O aviso da pausa automática segura a chave por 30 dias: a chave carrega o `pausado_em`, então uma
@@ -39,9 +48,9 @@ export type Entrega = {
 }
 
 export type Decisao =
-  | { acao: 'disparar'; quantidade: number }
+  | { acao: 'disparar'; quantidade: number; alertaEntrega?: string }
   | { acao: 'pausar'; motivo: string }
-  | { acao: 'nada'; motivo: MotivoBarato | 'orcamento_gasto' | 'fila_vazia' }
+  | { acao: 'nada'; motivo: MotivoBarato | 'orcamento_gasto' | 'fila_vazia'; alertaEntrega?: string }
 
 /** Os motivos de `nada` que se decidem SEM consultar nada além do relógio, da pausa e do lock. */
 export type MotivoBarato = 'fim_de_semana' | 'feriado' | 'fora_da_janela' | 'pausado' | 'fatia_ocupada'
@@ -112,15 +121,24 @@ export function decidirRodada(e: {
 }): Decisao {
   const barata = guardaBarata(e)
   if (barata) return { acao: 'nada', motivo: barata }
-  // sem_dados NÃO bloqueia: de manhã não há envio do dia pra medir, e Evo fora
-  // do ar não é prova de bloqueio da Meta. Só o alerta (taxa abaixo do piso) pausa.
-  if (e.entrega.estado === 'alerta') {
-    return { acao: 'pausar', motivo: diagnosticoDaPausa(e.entrega) }
-  }
+  // ENTREGA BAIXA AVISA, NÃO PARA (Aldo 19/10/2026: "se tiver algum ruído, não pausar os disparos").
+  //
+  // Até aqui isto devolvia `pausar`, e o dia morria: em 19/10 pausou às 08:32, 09:02 e 10:43 e só
+  // 126 dos 500 saíram. A medição que pausou às 10:43 era de 23 lojas — a amostra recomeça no
+  // /retomar e fica com um pedaço só da fila, que vem ordenada, logo da MESMA região; região com
+  // muito número fora do WhatsApp derruba a janela inteira. Medido no mesmo dia: a manhã entregou
+  // 50%, dentro dos 49–62% de 14, 15 e 16/10. O piso de 30% não separa "apagão" de "pedaço ruim".
+  //
+  // ⚠️ O que isto CUSTA: o apagão de 21/09 (fatura recusada, 415 envios no vazio por 24 h) deixa de
+  // ser contido sozinho. A proteção que sobra é o aviso — coringa 48 + texto pra Aldo e Nei, 1×/hora
+  // — e o `/pausar` na mão. Quem recebe o aviso tem que olhar a fatura da Meta.
+  // Espalhado só quando existe: sem alerta a decisão tem exatamente a forma de antes (os testes
+  // comparam o objeto inteiro, e `alertaEntrega: undefined` não é o mesmo que ausente).
+  const alerta = e.entrega.estado === 'alerta' ? { alertaEntrega: diagnosticoDaPausa(e.entrega) } : {}
   const orcamento = TETO_DIA - e.jaSaiuHoje
-  if (orcamento <= 0) return { acao: 'nada', motivo: 'orcamento_gasto' }
-  if (e.filaPendente <= 0) return { acao: 'nada', motivo: 'fila_vazia' }
-  return { acao: 'disparar', quantidade: Math.min(orcamento, e.filaPendente) }
+  if (orcamento <= 0) return { acao: 'nada', motivo: 'orcamento_gasto', ...alerta }
+  if (e.filaPendente <= 0) return { acao: 'nada', motivo: 'fila_vazia', ...alerta }
+  return { acao: 'disparar', quantidade: Math.min(orcamento, e.filaPendente), ...alerta }
 }
 
 /** A linha de diagnóstico da pausa — FONTE ÚNICA do `motivo` gravado em `sdr_disparo_estado`
@@ -163,6 +181,38 @@ export function textoPausa(entrega: Entrega, jaSaiuHoje: number): string {
  *  menos um coringa (HSM 48) saiu, a pausa reavisa a cada rodada até um chegar e depois cala. */
 export function chaveDaPausa(pausadoEm: string): string {
   return `disparo_pausa:${pausadoEm}`
+}
+
+/** Chave de dedupe do aviso de entrega baixa: UMA por hora BRT. O disparo NÃO para mais por isso
+ *  (ver `decidirRodada`), então sem a chave seriam 12 avisos por hora — e aviso repetido é aviso
+ *  ignorado, que é o oposto do que este alerta existe pra fazer. */
+export function chaveEntregaFraca(agoraMs: number): string {
+  return `disparo_entrega_fraca:${diaBrt(agoraMs)}T${String(relogioBrt(agoraMs).hora).padStart(2, '0')}`
+}
+
+/** O aviso de entrega abaixo do piso — agora SEM pausa. Diz o que está acontecendo, o que já foi
+ *  feito (nada: o disparo segue) e o que fazer se for apagão de verdade (`/pausar`). A fatura da
+ *  Meta vem primeiro DE PROPÓSITO: em 21/09 a investigação levou horas olhando qualidade, status e
+ *  modelos (tudo verde) enquanto a causa era cobrança recusada. */
+export function textoEntregaFraca(entrega: Entrega, jaSaiuHoje: number): string {
+  return [
+    '⚠️ Disparo AIVA: entrega abaixo do piso',
+    `Entrega: ${diagnosticoDaPausa(entrega)}`,
+    `Saíram ${jaSaiuHoje} de ${TETO_DIA} hoje. **O disparo NÃO parou** — segue até os ${TETO_DIA}.`,
+    '',
+    'Amostra pequena cai sozinha quando a fila pega uma região com muito número fora do WhatsApp.',
+    'Se for apagão de verdade (vários avisos seguidos, ninguém respondendo): confira a fatura da Meta',
+    '(foi isso em 21/09) e responda /pausar aqui pra parar na hora.',
+  ].join('\n')
+}
+
+export function teaserEntregaFraca(entrega: Entrega, jaSaiuHoje: number): string {
+  const fim = ' — disparo SEGUE; se for apagão, /pausar'
+  const diag = semPontoFinal(umaLinha(diagnosticoDaPausa(entrega)))
+  const comSaida = `⚠️ entrega AIVA baixa (saíram ${jaSaiuHoje} de ${TETO_DIA}): ${diag}${fim}`
+  if (comSaida.length <= LIMITE_TEASER) return comSaida
+  const ini = '⚠️ entrega AIVA baixa: '
+  return `${ini}${cortar(diag, LIMITE_TEASER - ini.length - fim.length)}${fim}`
 }
 
 /** Pausa da própria rodada (entrega abaixo do piso) × pausa de gente (`/pausar` grava
@@ -338,17 +388,17 @@ export function lotePifou(resultados: ResultadoEnvio[]): { pifou: boolean; n: nu
 /** `n` = leads do lote que falharam; `erro` = o primeiro erro (cortado em 300). */
 export function textoPifou(n: number, erro: string | null): string {
   return [
-    '🛑 Disparo AIVA PAUSADO: o envio falhou no lote inteiro',
+    '⚠️ Disparo AIVA: o envio falhou no lote inteiro',
     `${n} lead(s) do lote falharam no send-initial e NENHUM saiu. Primeiro erro: ${erro ? cortar(umaLinha(erro), 300) : 'sem detalhe'}`,
-    'Os leads do lote voltaram para PENDENTE (nada foi queimado) e o disparo ficou pausado até alguém destravar.',
+    'Os leads voltaram para PENDENTE (nada foi queimado). Esta rodada parou aqui; a próxima tenta de novo sozinha.',
     '',
-    'Primeiro: confira o Evo (chave, instância, fora do ar) e o deploy do send-initial.',
-    'Depois, responda /retomar aqui.',
+    'Confira o Evo (chave, instância, fora do ar) e o deploy do send-initial.',
+    'Se continuar falhando rodada após rodada, responda /pausar.',
   ].join('\n')
 }
 
 export function teaserPifou(n: number): string {
-  return `🛑 disparo AIVA pausado: envio falhou em ${n} lead(s) do lote, nenhum saiu — confira o Evo e responda /retomar`
+  return `⚠️ disparo AIVA: envio falhou em ${n} lead(s) do lote, nenhum saiu — confira o Evo; a próxima rodada tenta de novo`
 }
 
 /** "12/10 às 11:32" em Brasília. Via Intl (nunca `TZ=`). Vazio/ilegível → "data desconhecida". */
