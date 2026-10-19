@@ -2402,38 +2402,15 @@ export async function POST(req: NextRequest) {
         const valorF3 = (c: { fieldId: string; dadosKey: string }): string =>
           (forms[c.fieldId]?.toString().trim() || dadosMergedF3[c.dadosKey]?.toString().trim() || '')
 
-        // Loja ÚNICA → não existe CNPJ adicional. Marca "não possui" AUTOMATICAMENTE
-        // (cnpjs_adicionais só faz sentido com 2+ CNPJs) pra não travar a conclusão.
-        const numLojasRaw = valorF3(camposObrigatorios.numero_lojas).toLowerCase()
-        const ehLojaUnica = parseInt(numLojasRaw.replace(/\D/g, ''), 10) === 1
-          || /\b(uma|[úu]nica|so uma|s[óo] uma)\b/.test(numLojasRaw)
-        if (ehLojaUnica && !valorF3(camposObrigatorios.cnpjs_adicionais)) {
-          dadosMergedF3.cnpjs_adicionais = 'não possui'
-          // Espelha em dados_coletados → dadosAlerta/planilha Atendimentos saem
-          // com "não possui" em vez de vazio (bug SpeedCell 2026-07-28).
-          resposta.dados_coletados = { ...((resposta.dados_coletados as Record<string, string | null>) ?? {}), cnpjs_adicionais: 'não possui' }
-          console.log(`[webhook] loja única → cnpjs_adicionais = "não possui" automaticamente — opp #${oppId}`)
-        }
-
-        let faltantes = Object.entries(camposObrigatorios)
+        // 19/10/2026: aqui existiam dois auto-preenchimentos de `cnpjs_adicionais` (loja única e
+        // resposta negativa do lead). Os dois liam `camposObrigatorios.numero_lojas` e
+        // `.cnpjs_adicionais`, que SAÍRAM da lista em 16/10 com o fim da Fase 3 — o acesso devolvia
+        // `undefined`, e `valorF3(undefined)` quebrava este bloco inteiro com TypeError, levando
+        // junto o HubSpot, o complemento da planilha AIVA APROVAÇÃO e o marcador [CAD_ALERTADO].
+        // Nada a reconstruir: os dois campos não são mais coletados nem cobrados.
+        const faltantes = Object.entries(camposObrigatorios)
           .filter(([, c]) => !valorF3(c))
           .map(([label]) => label)
-
-        // Rede de segurança — cnpjs_adicionais é OBRIGATÓRIO, mas quando o lead
-        // responde à pergunta com uma negativa clara ("só esse", "não tenho",
-        // "nenhum"...) essa É a resposta → grava "não possui". Só aplica quando
-        // é o ÚNICO campo faltando, pra não mascarar outros buracos. Backup do
-        // prompt (bug recorrente: VictorIA marcava CADASTRO_RECEBIDO sem registrar
-        // o "não possui" e o HubSpot travava à toa).
-        const NEG_CNPJ = /(s[óo]\s+(es[ts]e|essa)|apenas\s+es[ts]e|somente\s+es[ts]e|[ée]\s+es[ts]e\s+mesmo|es[ts]e\s+mesmo|n[ãa]o\s+(tenho|possuo|h[áa]|tem)|nenhum|sem\s+outro)/i
-        if (faltantes.length === 1 && faltantes[0] === 'cnpjs_adicionais' && NEG_CNPJ.test(conteudo ?? '')) {
-          dadosMergedF3.cnpjs_adicionais = 'não possui'
-          resposta.dados_coletados = { ...((resposta.dados_coletados as Record<string, string | null>) ?? {}), cnpjs_adicionais: 'não possui' }
-          console.log(`[webhook] cnpjs_adicionais auto-preenchido "não possui" (resposta negativa do lead) — opp #${oppId}`)
-          faltantes = Object.entries(camposObrigatorios)
-            .filter(([, c]) => !valorF3(c))
-            .map(([label]) => label)
-        }
 
         if (faltantes.length > 0 && !cadEntrouPeloModelo) {
           // Entrou pela detecção por dados mas a validação completa (12 campos) ainda
@@ -2490,17 +2467,21 @@ export async function POST(req: NextRequest) {
           const valorLegado = (fieldId: string, dadosKey: string) => valorF3({ fieldId, dadosKey })
           const dados12 = {
             nome_socio:              valorF3(camposObrigatorios.nome_socio),
-            email_socio:             valorF3(camposObrigatorios.email_socio),
+            // email_socio, numero_lojas e cnpjs_adicionais saíram de `camposObrigatorios` em 16/10
+            // junto com a Fase 3, mas continuaram sendo lidos de lá até 19/10 — `undefined.fieldId`,
+            // TypeError, e o pacote inteiro (HubSpot + planilha) morria aqui. São legados como os
+            // outros cinco: entram quando EXISTEM (lead antigo), vazios quando não.
+            email_socio:             valorLegado('dafa40f0', 'email_socio'),
             telefone:                valorF3(camposObrigatorios.telefone),
             nome_varejo:             valorF3(camposObrigatorios.nome_varejo),
             cnpj_matriz:             valorF3(camposObrigatorios.cnpj_matriz),
             faturamento_anual:       valorLegado('ddb960f0', 'faturamento_anual'),
             valor_boleto_mensal:     valorLegado('de2cbc30', 'valor_boleto_mensal'),
             regiao_varejo:           valorLegado('dede58f0', 'regiao_varejo'),
-            numero_lojas:            valorF3(camposObrigatorios.numero_lojas),
+            numero_lojas:            valorLegado('df6f9c70', 'numero_lojas'),
             localizacao_lojas:       valorLegado('e0099280', 'localizacao_lojas'),
             possui_outra_financeira: valorLegado('e07d62f0', 'possui_outra_financeira'),
-            cnpjs_adicionais:        valorF3(camposObrigatorios.cnpjs_adicionais),
+            cnpjs_adicionais:        valorLegado('e0f66380', 'cnpjs_adicionais'),
           }
 
           // Sincroniza o Evo Talks com os 12 campos antes de avançar — garante
