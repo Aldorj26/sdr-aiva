@@ -417,70 +417,11 @@ export async function downloadAudio(fileId: number): Promise<{ buffer: Buffer; m
   return { buffer: Buffer.from(arrayBuffer), mimeType }
 }
 
-/**
- * Envia dados de qualificação para o formulário HubSpot da UME/AIVA.
- */
-export async function sendToHubSpot(data: {
-  nome_socio?: string | null
-  email_socio?: string | null
-  telefone?: string | null
-  nome_varejo?: string | null
-  cnpj_matriz?: string | null
-  faturamento_anual?: string | null
-  valor_boleto_mensal?: string | null
-  regiao_varejo?: string | null
-  numero_lojas?: string | null
-  localizacao_lojas?: string | null
-  possui_outra_financeira?: string | null
-  cnpjs_adicionais?: string | null
-}): Promise<void> {
-  const portalId = process.env.HUBSPOT_PORTAL_ID
-  const formGuid = process.env.HUBSPOT_FORM_GUID
-  if (!portalId || !formGuid) {
-    console.warn('HubSpot form não configurado')
-    return
-  }
-
-  // Separar nome e sobrenome
-  const nomeCompleto = data.nome_socio ?? ''
-  const partes = nomeCompleto.trim().split(/\s+/)
-  const firstName = partes[0] ?? ''
-  const lastName = partes.slice(1).join(' ') ?? ''
-
-  const fields = [
-    { objectTypeId: '0-1', name: 'firstname', value: firstName },
-    { objectTypeId: '0-1', name: 'lastname', value: lastName },
-    { objectTypeId: '0-1', name: 'email', value: data.email_socio ?? '' },
-    { objectTypeId: '0-1', name: 'phone', value: data.telefone ?? '' },
-    { objectTypeId: '0-2', name: 'name', value: data.nome_varejo ?? '' },
-    { objectTypeId: '0-2', name: 'cnpj', value: data.cnpj_matriz ?? '' },
-    { objectTypeId: '0-2', name: 'faturamento_anual_estimado', value: data.faturamento_anual ?? '' },
-    { objectTypeId: '0-2', name: 'venda_no_crediario_mensal', value: data.valor_boleto_mensal ?? '' },
-    { objectTypeId: '0-2', name: 'regiao', value: data.regiao_varejo ?? '' },
-    { objectTypeId: '0-2', name: 'numero_de_lojas', value: data.numero_lojas ?? '' },
-    { objectTypeId: '0-2', name: 'localizacao_das_lojas', value: data.localizacao_lojas ?? '' },
-    { objectTypeId: '0-2', name: 'concorrentes', value: data.possui_outra_financeira ?? '' },
-    { objectTypeId: '0-2', name: 'cnpjs_adicionais', value: data.cnpjs_adicionais ?? '' },
-  ].filter(f => f.value)
-
-  try {
-    const res = await fetch(
-      `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formGuid}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields }),
-      }
-    )
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`HubSpot → ${res.status}: ${text}`)
-    }
-    console.log('HubSpot: formulário enviado com sucesso')
-  } catch (err) {
-    console.error('Erro ao enviar para HubSpot:', err)
-  }
-}
+/* A antiga `sendToHubSpot` (formulário HubSpot da UME/AIVA, via HUBSPOT_PORTAL_ID +
+ * HUBSPOT_FORM_GUID) foi REMOVIDA em 19/10/2026 a pedido do Aldo, junto com a planilha. Era
+ * chamada num ponto só, na conclusão de cadastro do webhook. Os dados do lojista seguem indo
+ * pro formulário da oportunidade no Evo (`updateOpportunityForms`), que é o que o Nei lê.
+ * Não religue sem ele pedir; o histórico está no git. */
 
 /* A antiga `sendToGoogleSheets` (planilha "AIVA APROVAÇÃO", via Apps Script em
  * `GOOGLE_SHEETS_WEBHOOK_URL`) foi REMOVIDA em 19/10/2026 a pedido do Aldo, junto com os quatro

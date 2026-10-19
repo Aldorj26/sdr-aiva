@@ -22,7 +22,7 @@ import {
   createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
-  getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, sendToHubSpot, STAGE_TO_STATUS,
+  getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, STAGE_TO_STATUS,
   statusFromOpp,
   MARCADOR_FASE3,
 } from '@/lib/evotalks'
@@ -2518,14 +2518,11 @@ export async function POST(req: NextRequest) {
           cadastroCompletoConfirmado = true
           resposta.novo_status = 'CADASTRO_RECEBIDO'
 
-          await addOpportunityNote(oppId, `Cadastro completo (12 dados) coletado pela VictorIA. Enviado pro HubSpot.`)
-          console.log(`CRM: Oportunidade #${oppId} → Cadastro Completo → HubSpot`)
-          try {
-            await sendToHubSpot({ ...dados12 })
-          } catch (err) {
-            console.error(`Erro ao enviar pro HubSpot — opp #${oppId}:`, err)
-          }
-
+          // 19/10/2026 (Aldo): o envio pro HubSpot saiu daqui, junto com a planilha. Os dados
+          // seguem indo pro formulário da oportunidade no Evo (`updateOpportunityForms` acima),
+          // que é o que o Nei lê; o HubSpot não era consultado por ninguém no fluxo novo.
+          await addOpportunityNote(oppId, `Cadastro completo coletado pela VictorIA.`)
+          console.log(`CRM: Oportunidade #${oppId} → Cadastro Completo`)
         }
       } else if (resposta.novo_status === 'NAO_QUALIFICADO') {
         await addOpportunityNote(oppId, resposta.motivo_humano === 'ja_cliente_aiva_outro_canal'
