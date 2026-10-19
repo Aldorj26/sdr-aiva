@@ -3,81 +3,88 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
-## Estado de produção (17/10/2026)
+## Estado de produção (19/10/2026)
 
-- **A FASE 3 ACABOU** (deploy de 17/10, 6 commits `36ad9f0`…`fd72ec8` na `main`). A VictorIA coleta **4 campos**
-  (nome e telefone do sócio, nome da loja, CNPJ matriz); e-mail, nº de lojas e CNPJs adicionais saíram — quem pede
-  é a AIVA, no formulário do varejo. **Mover o card pro stage 49 É, sozinho, o cadastro completo**: `statusFromOpp`
-  perdeu a trava que segurava o 49 em INTERESSADO.
-- **Stage 49 usa o coringa 48**, não mais o template 29: o corpo aprovado do 29 dizia "preciso de mais alguns dados
-  rapidinho", que virou mentira. Texto em `lib/text.ts` (`PRE_APROVADA_MIOLO`).
-- Efeito medido no mesmo dia: 20 leads destravados, `[FASE3_DESDE:]` de 20 → 1, `[CAD_BLOQUEIO:]` em 0, nenhum
-  alerta falso de card travado. Espelho saudável no `?dry=1`: 810 onboardings, 742 leads, 1 movimento (TeamVL).
-- **Aviso "pré-cadastro não chegou" consertado** (`25e353d`): as 24h contam do CLIQUE (coluna `enviado_em`, SQL **já
-  aplicado**) e o "✓ Resolvido" virou **soneca de 6h** — antes ele calava o caso para sempre. Provou-se no mesmo
-  dia: a Minas Celulares estava silenciada desde 06/10 e o aviso reabriu sozinho.
-- **Alertas adaptados** (`fd72ec8`): a "zona morta" de CADASTRO_RECEBIDO na auditoria agora ignora quem já teve o
-  pré-cadastro lançado (senão TODO lead do 49 viraria ruído); `retomada-cadastro` **desativada (410)**.
-- Espelho de etapas (`36ad9f0`): `primeira_venda` → 51, aviso de card travado em 4 rodadas, trilha em
-  `sdr_etapa_log` (**tabela já existe**).
-- **Disparo D+0 na nuvem ligado** (cron 5 min, 8h02–18h57 BRT, teto 500). ⚠️ A pausa automática por entrega não
-  expira, só `/retomar` — **confira o estado antes de qualquer análise de volume** (em 14/10 ficou um dia parado).
-  Página `/disparos` no painel tem estado e os botões.
+- **Disparo D+0: entrega baixa AVISA, não pausa mais** (`de61461`). O piso de 30% e o disjuntor de envio continuam
+  medindo, mas só mandam alerta (coringa 48 + texto) pra Aldo e Nei, 1×/hora BRT. **Só `/pausar` ou o botão do
+  painel param o dia.** Decisão do Aldo em 19/10: "preciso dos 500 na manhã, sempre; se tiver ruído, não pausar".
+  ⚠️ Custo aceito: apagão tipo 21/09 (fatura recusada) não se contém sozinho — quem recebe o aviso confere a
+  fatura da Meta.
+- **Ritmo 3× maior**: `PARALELO = 3` em `lib/disparo-diario-calc.ts` — 3 lotes de 5 em paralelo, ~30 envios por
+  rodada (~360/h) contra ~120/h antes. Cada lote já era um POST próprio ao `send-initial`, então o paralelismo é
+  entre invocações da Vercel e o `send-initial` não mudou. Medido em produção: rodadas de 10 → 30 envios.
+- **Planilha "AIVA APROVAÇÃO" e HubSpot saíram do fluxo** (`4419313`, `8713030`). Os 4 pontos de envio e as duas
+  funções foram removidos. Os dados do lojista seguem indo pro formulário da oportunidade no Evo
+  (`updateOpportunityForms`), que é o que o Nei lê. ⏳ **As variáveis `GOOGLE_SHEETS_WEBHOOK_URL`,
+  `HUBSPOT_PORTAL_ID` e `HUBSPOT_FORM_GUID` continuam na Vercel sem nenhum leitor — o Aldo remove.**
+- **Biometria reprovada: a VictorIA coleta documento + selfie** (`06d39a0`). Ela avisa a reprovação e pede **uma
+  foto de cada vez — primeiro o documento com foto do sócio, depois a selfie** (o pipeline entrega só 1 imagem por
+  turno; duas seguidas caem no lock de 60s e a segunda é descartada). Com as duas: `acionar_humano` +
+  `motivo_humano = "biometria_docs_recebidos"`. Não manda mais refazer pelo link.
+  ⚠️ **As fotos ficam na Evo e a exclusão LGPD não as apaga** — a orientação do Nei manda apagar após encaminhar.
+- Cron de biometria negada (`mioloNegada`) **continua desligado** (`ENVIO_NEGADA_ATIVO = false`) e o texto dele
+  ainda manda refazer pelo link. ⛔ Não ligar sem reescrever. A dúvida que o travava (o link reabre?) deixou de
+  importar: o caminho novo não usa link.
+- **Painel é PWA** instalável no iPhone (`7d86b65`, `f546b31`): Safari → Compartilhar → Adicionar à Tela de Início.
+- A FASE 3 acabou em 17/10: 4 campos (nome e telefone do sócio, nome da loja, CNPJ matriz). Stage 49 = cadastro
+  completo, com o coringa 48.
 - `send-initial` **sem autenticação** e grava o lead antes de enviar o template — Aldo decidiu NÃO mexer agora.
 - Hook de fim de sessão não faz push. **Push na `main` = deploy em produção.**
-- **Agendado:** tarefa `aviso-turma-aiva-19-10` dispara seg 19/10 às 9h o aviso da turma de 9h30 para 4 lojistas da
-  whitelist do Mauricio (script `scripts/aviso-turma-whitelist-2026-10-19.mjs`; roda ensaio e só envia se os 4
-  aparecerem). Só roda com o app aberto.
 
-## Feito nesta sessão (17/10)
+## Feito nesta sessão (19/10)
 
-- Fim da Fase 3 ponta a ponta: prompt, `lib/claude.ts`, `lib/evotalks.ts`, webhook, `opportunity-stage`,
-  `sync-from-evo`, `fase3-destravada`, `lib/text.ts`. Revisado pelo `revisor-prompt-victoria` — ele achou 3
-  bloqueadores (mensagem do 49 pedindo e-mail, webhook revertendo o status, handler do 49 gravando INTERESSADO),
-  todos corrigidos antes do commit.
-- Apagada a curadoria `099a44ed` (11/09, marcada "boa") que ensinava a insistir no e-mail.
-- Saneamento: 14 CNPJs lançados em `sdr_registros_cnpj` (12 novos no `/registros`, 2 que já estavam no portal),
-  3 CNPJ BAIXADA → etapa 94, 2 leads reativados (Sofintech, Espaço do Celular), Rosa Outlet Cell descartada,
-  Playcell com registro criado e nome corrigido.
-- Ticket **1075** aberto na AIVA (filial da AppleCel, CNPJ 39.913.084/0002-70, matriz RID 4655).
-- Aviso de turma enviado 4/4 em 16/10 (whitelist anterior) — a Clinica do Celular foi de "aprovada sem cadastro"
-  a Primeiro acesso em ~12h.
+- Investigado "o disparo está lento": **não estava lento, estava pausado** — 3 pausas (08:32, 09:02, 10:43) por
+  entrega abaixo do piso, com 126 de 500 até as 11h. Medindo chat a chat na Evo, a manhã entregou **50%**, dentro
+  dos 49–62% de 14, 15 e 16/10; as janelas que pausaram tinham 21–23 lojas. Era alarme falso. Daí `de61461`.
+- Resultado do dia: **500 atingidos às 13:54** (meia manhã perdida nas pausas; o ritmo novo só entrou ~11:30).
+  Com a manhã inteira, a projeção é ~09:30.
+- `2bd2516`: TypeError no bloco de cadastro completo do webhook, **introduzido por mim em 17/10** — 3 campos saíram
+  de `camposObrigatorios` com o fim da Fase 3 e 5 acessos ficaram para trás; `valorF3(undefined)` derrubava o bloco
+  inteiro (HubSpot, planilha, `[CAD_ALERTADO]`). Alcance limitado: o caminho normal pro 49 é o `/registros`.
+- `06d39a0` passou pelo `revisor-prompt-victoria`, que achou **7 problemas** — todos corrigidos: `lib/claude.ts:344`
+  ainda mandava "REFAZER só a selfie"; contradição dentro do bloco novo sobre recusa; `instrucaoPedirPrint` sem gate
+  de biometria negada; `[LEAD_ENVIOU_ARQUIVO]` só escrito sem legenda (PDF com legenda sumia — e CNH digital é PDF);
+  orientação do Nei ainda mandando link; ramo morto de `biometria_negada` removido; texto de privacidade corrigido.
+- Conferido que nenhuma das 12 correções da curadoria que entram no prompt fala de biometria ou selfie.
 
 ## Em aberto (quem decide)
 
+- **Aldo — Vercel:** remover `GOOGLE_SHEETS_WEBHOOK_URL`, `HUBSPOT_PORTAL_ID`, `HUBSPOT_FORM_GUID` (sem leitor).
+- **Aldo — links da planilha no painel:** `/atendimento` e `/registros` ainda têm "Abrir planilha" (abas
+  Atendimentos e Senhas, preenchidas à mão). Paramos de escrever, não de ler. Se as abas morreram, tirar os links.
+- **Aldo — acompanhar 1–2 dias:** o volume diário segue 500, mas agora concentrado em ~1h30. Se a taxa de resposta
+  cair bem abaixo dos 15–22% de costume, baixar `PARALELO` de 3 para 2.
 - **Aldo × Mauricio — Minas Celulares (60.849.076/0001-18):** pré-cadastro enviado 2× (02/10 e 17/10) e o CNPJ
-  **nunca aparece no portal**, nem por telefone. Outros envios entram normal. Perguntar se o formulário recusa
-  esse CNPJ e se há log do lado deles. O lojista acha que fez a biometria (não fez: nunca houve link).
-- **Aldo — YourCase Avenida (Bruno):** pediu filial 68.700.493/0001-06, mas a **raiz é diferente** da matriz
-  (44.318.197/0001-87, RID 6847) → pela regra do Aldo (17/10) isso é **loja nova**, não filial. A API do parceiro
-  só tem `/filial` e `/repasse` — **não existe endpoint de loja nova**. Definir o caminho com o Mauricio.
-  Ele também está **bloqueado por limite de originação há 10 dias** e já reclamou.
-- **Nei:** GT Cell e Ph Celulares estão em Cadastro Recebido com **CNPJ INAPTA** — deveriam ir pra etapa 94.
-  **AS Imports** não tem CNPJ em lugar nenhum. Os 12 CNPJs novos no `/registros` esperam "Abrir form".
-- **Aldo — plano da pré-aprovação pela AIVA** (`docs/superpowers/plans/2026-10-14-pre-aprovacao-aiva.md`): falta
-  escolher o método de execução (recomendado subagent-driven).
+  **nunca aparece no portal**. Perguntar se o formulário recusa esse CNPJ e se há log do lado deles.
+- **Aldo — YourCase Avenida (Bruno):** filial 68.700.493/0001-06 com **raiz diferente** da matriz → é **loja nova**,
+  e a API do parceiro só tem `/filial` e `/repasse`. Definir o caminho com o Mauricio. Ele também está bloqueado
+  por limite de originação há 10 dias.
+- **Nei:** GT Cell e Ph Celulares em Cadastro Recebido com **CNPJ INAPTA** → etapa 94. **AS Imports** sem CNPJ.
+  12 CNPJs novos no `/registros` esperam "Abrir form".
 - **Aldo:** responder o Gerisson (4 pontos) + lista de varejos Track na base da UME + origem de Rauenne (6443) e
   Adricell (4782). Lista "Para o Nei" em `docs/Conciliacao-AIVA-Gerson-2026-10-13-v3.xlsx` (col. K).
 - **Viagem 30/10–15/11:** Aldo/Nei respondem o briefing das 5h todo dia útil (mantém a janela de 24h).
 
 ## Próximos passos sugeridos
 
-1. **O D+14 da etapa 50** — o gargalo que o Mauricio levantou e que a mudança NÃO resolve: 323 lojas paradas, a
-   maioria há mais de 14 dias, e depois do 4º toque não existe nada. Decidir: nova régua, ligação ou descarte.
-2. **Trava do "prometeu ticket e não abriu"**: a promessa está no texto e a ação no `motivo_humano`; nada confere
-   se batem. Varredura desde 13/10 achou 2 casos (YourCase, AppleCel). Escalar pra fila quando divergir.
-3. **Fio solto:** Senna (31106953000162) e Magazine Sousa (40149506000181) estão em `dados_varejo` no portal e em
-   Cadastro Recebido no CRM; pela ORDEM do espelho (49→50 é avanço) deveriam mover e não movem. Abrir
-   `calcularEspelho`.
-4. Investigar **por que leads chegam a Cadastro Recebido sem CNPJ registrado** — eram 17, o mais antigo de 13/05.
-5. Depois da viagem: auth no `send-initial` + desfazer lead quando o template falha (nos dois repos).
+1. **Medidor de entrega** (card proposto): ele mistura campanha fria (49–62%) com templates da base (~100%) e
+   devolve 72%, 40% ou 17% no mesmo dia conforme a hora. Agora que o alerta é a única proteção, precisa ser exato.
+2. **Marcador `[BIO_DOCS:...]`** (card proposto): sem ele a VictorIA se guia pelo histórico de 30 mensagens e pode
+   repedir documento e selfie de quem já mandou, dias depois.
+3. **O D+14 da etapa 50** — 323 lojas paradas, a maioria há mais de 14 dias, e depois do 4º toque não existe nada.
+4. **Trava do "prometeu ticket e não abriu"**: a promessa está no texto e a ação no `motivo_humano`; nada confere.
+5. **Fio solto:** Senna (31106953000162) e Magazine Sousa (40149506000181) estão em `dados_varejo` no portal e em
+   Cadastro Recebido no CRM; deveriam mover e não movem. Abrir `calcularEspelho`.
+6. Investigar **por que leads chegam a Cadastro Recebido sem CNPJ registrado** — eram 17, o mais antigo de 13/05.
+7. Depois da viagem: auth no `send-initial` + desfazer lead quando o template falha (nos dois repos).
 
 ## Como retomar rápido
 
-`npm run test:espelho` · `test:disparo` · `test:cnpj` · `test:repeticao` · `npx tsc --noEmit -p tsconfig.json`
-Scripts de diagnóstico (só leitura): `scripts/verificar-fim-fase3-2026-10-17.mjs` (destravamento, marcadores,
-bloqueios) · `scripts/leads-sem-lastro-2026-10-17.mjs` (status avançado sem opp/CNPJ) ·
-`scripts/varredura-ticket-prometido-2026-10-17.mjs`.
-Estado do disparo: `select * from sdr_disparo_estado` (id=1) · envios do dia: `sdr_mensagens` com
-`template_hsm='aiva_campanha'` · trilha de etapas: `sdr_etapa_log` · avisos do painel: `sdr_avisos_painel` com
-`resolvido_em is null` · logs: Vercel → sdr-aiva. Histórico: `docs/HISTORICO-OPERACAO-AIVA.md`.
+`npm run test:disparo` · `test:biometria` · `test:espelho` · `test:entrega` · `npx tsc --noEmit -p tsconfig.json`
+⚠️ Mudança de comportamento da VictorIA passa pelo agente `revisor-prompt-victoria` ANTES do commit — em 19/10 ele
+achou 7 problemas que eu não tinha visto.
+Estado do disparo: `select * from sdr_disparo_estado` (id=1). **O teto do dia vem de `sdr_mensagens` com
+`template_hsm='aiva_campanha'`, não da `sdr_fila_disparo`** — em 19/10 a fila mostrava 431 e o orçamento já tinha
+fechado em 501. Rodadas do cron: `sdr_avisos_chave` com chave `disparo:%`.
+Trilha de etapas: `sdr_etapa_log` · avisos do painel: `sdr_avisos_painel` com `resolvido_em is null` · logs:
+Vercel → sdr-aiva. Histórico: `docs/HISTORICO-OPERACAO-AIVA.md`.
