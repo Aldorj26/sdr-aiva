@@ -482,43 +482,12 @@ export async function sendToHubSpot(data: {
   }
 }
 
-/**
- * Envia dados de qualificação para a planilha Google Sheets "AIVA APROVAÇÃO".
- */
-export async function sendToGoogleSheets(data: {
-  nome_socio?: string | null
-  email_socio?: string | null
-  telefone?: string | null
-  nome_varejo?: string | null
-  cnpj_matriz?: string | null
-  faturamento_anual?: string | null
-  valor_boleto_mensal?: string | null
-  regiao_varejo?: string | null
-  numero_lojas?: string | null
-  localizacao_lojas?: string | null
-  possui_outra_financeira?: string | null
-  cnpjs_adicionais?: string | null
-  status?: string
-  opportunity_id?: string
-}): Promise<void> {
-  const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL
-  if (!url) {
-    console.warn('GOOGLE_SHEETS_WEBHOOK_URL não configurada')
-    return
-  }
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      redirect: 'follow',
-    })
-    if (!res.ok) throw new Error(`Google Sheets → ${res.status}`)
-    console.log('Google Sheets: dados enviados com sucesso')
-  } catch (err) {
-    console.error('Erro ao enviar para Google Sheets:', err)
-  }
-}
+/* A antiga `sendToGoogleSheets` (planilha "AIVA APROVAÇÃO", via Apps Script em
+ * `GOOGLE_SHEETS_WEBHOOK_URL`) foi REMOVIDA em 19/10/2026 a pedido do Aldo, junto com os quatro
+ * pontos de envio (webhook ×2, opportunity-stage ×2). Existia pra AIVA ler o que a VictorIA
+ * coletava; com o fim da Fase 3 o pré-cadastro vai direto pro formulário da AIVA pelo /registros,
+ * e 3 dos 12 campos saíram da coleta — a planilha virou linha que ninguém lê. Não religue sem ele
+ * pedir; o histórico está no git. */
 
 /**
  * Envia alerta via WhatsApp para um número (Nei ou Aldo).

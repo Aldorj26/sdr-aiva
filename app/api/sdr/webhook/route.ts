@@ -22,7 +22,7 @@ import {
   createOpportunity, changeOpportunityStage, changeStageSeAvanco, addOpportunityNote, addOpportunityTags, transferirParaFunil19, STAGES, TAG_IDS,
   PIPELINE_SINGLO, SINGLO_STAGES,
   updateOpportunityForms, updateOpportunityTitle, linkChatToOpportunity,
-  getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, sendToGoogleSheets, sendToHubSpot, STAGE_TO_STATUS,
+  getOpportunity, getChatMessages, getPipeOpportunities, PIPELINE_FUNIL19, sendToHubSpot, STAGE_TO_STATUS,
   statusFromOpp,
   MARCADOR_FASE3,
 } from '@/lib/evotalks'
@@ -2301,27 +2301,14 @@ export async function POST(req: NextRequest) {
         await addOpportunityNote(oppId, `Qualificação inicial (7 dados) coletada pela VictorIA via WhatsApp. Aguardando análise AIVA.`)
         console.log(`CRM: Oportunidade #${oppId} → Pré Aprovação (${rPre.moved ? 'movido' : rPre.motivo})`)
 
-        // Envia os 7 dados pra planilha Google Sheets direto daqui.
-        // (o trigger do Evo Talks pro stage 54 está desabilitado)
+        // 19/10/2026 (Aldo): a planilha "AIVA APROVAÇÃO" saiu do fluxo. Ela existia pra AIVA ler os
+        // dados que a VictorIA coletava; desde o fim da Fase 3 o pré-cadastro vai direto pro
+        // formulário da AIVA pelo /registros, então a planilha só acumulava linha que ninguém lê —
+        // e, com 3 dos 12 campos fora da coleta, linha cada vez mais vazia.
+        // O `getOpportunity` continua: o bloco de pré-cadastro logo abaixo lê o CNPJ matriz de
+        // `forms`, com `dadosCompletos` só como reserva.
         const opp = await getOpportunity(oppId)
         const forms = (opp.formsdata ?? {}) as Record<string, string | null>
-        const sheetsData = {
-          nome_socio: forms['da6ddf70'],
-          email_socio: forms['dafa40f0'],
-          telefone: forms['db8569f0'],
-          nome_varejo: forms['dcacfa00'],
-          cnpj_matriz: forms['dd2ab580'],
-          faturamento_anual: forms['ddb960f0'],
-          valor_boleto_mensal: forms['de2cbc30'],
-          regiao_varejo: forms['dede58f0'],
-          numero_lojas: forms['df6f9c70'],
-          localizacao_lojas: forms['e0099280'],
-          possui_outra_financeira: forms['e07d62f0'],
-          cnpjs_adicionais: forms['e0f66380'],
-          status: 'PRE_APROVACAO',
-          opportunity_id: String(oppId),
-        }
-        await sendToGoogleSheets(sheetsData)
 
         // ─── PRÉ-CADASTRO LIBERADO JÁ NA PRÉ-APROVAÇÃO (Aldo 17/09/2026) ────────
         // Antes isto só rodava quando o card chegava na etapa 49 — e quem movia
@@ -2537,19 +2524,6 @@ export async function POST(req: NextRequest) {
             await sendToHubSpot({ ...dados12 })
           } catch (err) {
             console.error(`Erro ao enviar pro HubSpot — opp #${oppId}:`, err)
-          }
-
-          // Complementa planilha AIVA APROVAÇÃO. O Apps Script faz upsert por
-          // opportunity_id: se a linha já existe (criada na Fase 1), só preenche
-          // as células vazias — preserva o que já está lá.
-          try {
-            await sendToGoogleSheets({
-              ...dados12,
-              status: 'CADASTRO_RECEBIDO',
-              opportunity_id: String(oppId),
-            })
-          } catch (err) {
-            console.error(`Erro ao complementar Google Sheets — opp #${oppId}:`, err)
           }
 
         }
