@@ -2611,6 +2611,28 @@ export async function POST(req: NextRequest) {
     } catch (e) { console.error('[SENHA_USUARIO] marcador não gravado:', e) }
   }
 
+  // ─── BIOMETRIA REPROVADA: AS FOTOS CHEGARAM — AVISA O NEI NO WHATSAPP (Aldo 19/10/2026) ───
+  // Até aqui `biometria_docs_recebidos` só acendia a fila do painel (`acionar_humano`), e o
+  // painel ninguém olha de hora em hora. As fotos ficam na Evo e precisam ir pra AIVA e ser
+  // APAGADAS depois — quanto mais tempo paradas, pior (é RG/CNH e rosto). Por isso o aviso sai
+  // pelo WhatsApp do Nei, UMA vez por lead: o marcador evita que cada mensagem seguinte do
+  // lojista reavise (o motivo se repete enquanto a conversa continua).
+  if (resposta.motivo_humano === 'biometria_docs_recebidos' && !(lead.observacoes ?? '').includes('[BIO_DOCS_AVISADO:')) {
+    try {
+      const { data: frescoB } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+      await supabaseAdmin.from('sdr_leads')
+        .update({ observacoes: `${frescoB?.observacoes ?? lead.observacoes ?? ''} [BIO_DOCS_AVISADO:${new Date().toISOString()}]`.trim() })
+        .eq('id', lead.id)
+      const avisoBio =
+        `🪪 *BIOMETRIA — as fotos chegaram*\n\n` +
+        `*${lead.nome}* (${lead.telefone}) mandou na conversa o documento com foto e a selfie do sócio.\n\n` +
+        `Abrir o chat no Evo, baixar as duas, encaminhar pra AIVA refazer a verificação e avisar o lojista quando voltar.\n` +
+        `⚠️ Depois de encaminhar, APAGAR as fotos do Evo — é RG/CNH e rosto.`
+      if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, avisoBio)
+      else console.error('[BIO_DOCS] NEI_WHATSAPP vazio — ninguém foi avisado das fotos')
+    } catch (e) { console.error('[BIO_DOCS] aviso ao Nei falhou:', e) }
+  }
+
   // ─── REENVIO DE SENHA — A VICTORIA RESOLVE, NÃO SÓ AVISA (Aldo/Mauricio 18/09) ───
   // De manhã o pedido do Aldo era: "a VictorIA podia checar se tem o botão Reenviar
   // senha no card e reenviar". Não dava — a API pública só escrevia remover/restaurar.
