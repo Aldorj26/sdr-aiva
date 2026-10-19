@@ -46,6 +46,23 @@
   de biometria negada; `[LEAD_ENVIOU_ARQUIVO]` só escrito sem legenda (PDF com legenda sumia — e CNH digital é PDF);
   orientação do Nei ainda mandando link; ramo morto de `biometria_negada` removido; texto de privacidade corrigido.
 - Conferido que nenhuma das 12 correções da curadoria que entram no prompt fala de biometria ou selfie.
+- **Etapa 50 x `dados_varejo`, medido ao vivo** (`docs/Etapa50-x-dados_varejo-2026-10-19.xlsx`, 8 abas, só leitura).
+  A tela do portal mostra **202** porque filtra os **últimos 30 dias**; a API devolve **473 CNPJs** em
+  `dados_varejo` (202 + 271 mais antigos) = **403 cards distintos**, contra **334** na etapa 50 do Evo. Ou seja:
+  **o portal tem mais formulário pendente do que o Evo mostra.** Dos 334 cards na 50, 157 estão fora da janela de
+  30 dias (invisíveis na tela), 6 não têm onboarding; dos 473 CNPJs, 72 têm card fora da 50 (33 em **51 Vendendo**
+  — matriz vendendo com filial pendente), 56 não têm lead nosso (razão social vazia, lotes de 28/08, 31/08 e 04/09)
+  e 12 têm lead sem card no funil 15.
+- **`sdr_etapa_log` NÃO existia** — o `docs/sql/2026-10-15-sdr-etapa-log.sql` nunca tinha sido aplicado, então a
+  trilha do espelho nunca gravou e a regra de bate-volta (`espelho-repeticao-calc`) ficou cega de 15 a 19/10.
+  Aplicado hoje via MCP do Supabase (11 colunas, 2 índices, RLS ligada e sem policy, como o SQL pedia). Começa a
+  encher na primeira rodada do espelho que mover card.
+- **Mensagem pro Mauricio enviada pelo Aldo** (`docs/Mensagem-Mauricio-dados-varejo-2026-10-19.md`): (1) `created_at`
+  do onboarding não é a data real da pendência — nada antes de 28/08 e 176 das 473 linhas criadas em 28/08 (54),
+  31/08 (41) e 04/09 (81), cheiro de migração; a Teccell (45.949.064/0001-71) espera formulário desde 03/08 e a API
+  diz 31/08; (2) confirmar o filtro de 30 dias da tela; (3) **Minas Celulares (60.849.076/0001-18) não existe nos
+  859 onboardings** — não é filtro; (4) **YourCase Avenida (68.700.493/0001-06) entrou em 13/10 e está em
+  `dados_varejo`** — o pré-cadastro passou, só confirmar que loja nova (e não `/filial`) é o caminho.
 
 ## Em aberto (quem decide)
 
@@ -71,7 +88,9 @@
    devolve 72%, 40% ou 17% no mesmo dia conforme a hora. Agora que o alerta é a única proteção, precisa ser exato.
 2. **Marcador `[BIO_DOCS:...]`** (card proposto): sem ele a VictorIA se guia pelo histórico de 30 mensagens e pode
    repedir documento e selfie de quem já mandou, dias depois.
-3. **O D+14 da etapa 50** — 323 lojas paradas, a maioria há mais de 14 dias, e depois do 4º toque não existe nada.
+3. **O D+14 da etapa 50** — 334 cards parados (19/10), a maioria há mais de 14 dias, e depois do 4º toque não existe
+   nada. ⚠️ O relógio não pode sair do `created_at` do portal (ver achado de 19/10): ele é mais novo que a espera
+   real. Enquanto o Mauricio não responder, medir pela entrada na etapa no Evo.
 4. **Trava do "prometeu ticket e não abriu"**: a promessa está no texto e a ação no `motivo_humano`; nada confere.
 5. **Fio solto:** Senna (31106953000162) e Magazine Sousa (40149506000181) estão em `dados_varejo` no portal e em
    Cadastro Recebido no CRM; deveriam mover e não movem. Abrir `calcularEspelho`.
@@ -86,5 +105,5 @@ achou 7 problemas que eu não tinha visto.
 Estado do disparo: `select * from sdr_disparo_estado` (id=1). **O teto do dia vem de `sdr_mensagens` com
 `template_hsm='aiva_campanha'`, não da `sdr_fila_disparo`** — em 19/10 a fila mostrava 431 e o orçamento já tinha
 fechado em 501. Rodadas do cron: `sdr_avisos_chave` com chave `disparo:%`.
-Trilha de etapas: `sdr_etapa_log` · avisos do painel: `sdr_avisos_painel` com `resolvido_em is null` · logs:
+Trilha de etapas: `sdr_etapa_log` (criada em 19/10; vazia até o espelho mover o primeiro card) · avisos do painel: `sdr_avisos_painel` com `resolvido_em is null` · logs:
 Vercel → sdr-aiva. Histórico: `docs/HISTORICO-OPERACAO-AIVA.md`.
