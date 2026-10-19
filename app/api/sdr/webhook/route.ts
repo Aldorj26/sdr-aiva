@@ -2789,7 +2789,14 @@ export async function POST(req: NextRequest) {
       const emailPainel = emailDoMotivo(resposta.motivo_humano)
       const { data: ultimasP } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', lead.id).order('enviado_em', { ascending: false }).limit(4)
       const janelaP = [conteudo, conteudoEfetivo, ...(ultimasP ?? []).map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
-      const falasDele = [conteudo, conteudoEfetivo, ...(ultimasP ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
+      let falasDele = [conteudo, conteudoEfetivo, ...(ultimasP ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ').toLowerCase()
+      // 19/10/2026 (POTER, RID 6178): o Paulo mandou o Gmail em 03/09 (pro formulário antigo) e a VictorIA o reaproveitou
+      // em 19/10 — a trava só olhava as 4 últimas mensagens, recusou e o ticket prometido não saiu. O e-mail continua
+      // tendo de ser do LOJISTA (mensagem `in`), só que de qualquer data.
+      if (emailPainel && !falasDele.includes(emailPainel)) {
+        const { data: antiga } = await supabaseAdmin.from('sdr_mensagens').select('id').eq('lead_id', lead.id).eq('direcao', 'in').ilike('conteudo', `%${emailPainel}%`).limit(1)
+        if (antiga?.length) falasDele += ` ${emailPainel}`
+      }
       const assuntoPainel = /painel|repasse|financeiro|receber|recebimento|gmail|e-?mail/.test(janelaP)
       const ticketsAntes = [...(lead.observacoes ?? '').matchAll(/\[PAINEL_FIN_TICKET:([^|\]]+)\|([^|\]]+)\|/g)]
       const jaAberto = emailPainel ? ticketsAntes.find((m) => m[2] === emailPainel) ?? null : null
