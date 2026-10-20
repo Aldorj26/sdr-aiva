@@ -517,7 +517,7 @@ export async function POST(
 
     let miolo: string
     try {
-      miolo = await gerarMioloRetomada(mensagens, nomeBase)
+      miolo = await gerarMioloRetomada(mensagens, nomeBase, lead.status)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[lead-action] force-followup gerarMioloRetomada falhou id=${id}: ${msg}`)

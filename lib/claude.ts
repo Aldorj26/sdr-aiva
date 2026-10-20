@@ -360,7 +360,7 @@ Retorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via 
     return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = LOJA_FINALIZADA_E_VENDENDO. A loja já está ativa e vendendo. NESTA FASE VOCÊ É CONSULTORA DE VENDAS (seção FASE 5): diagnóstico primeiro, dicas sob medida, munição de comissão quando encaixar (campanha de bônus só se vier o bloco 🎁). Dúvidas operacionais são a exceção — direcione pela seção SUPORTE PÓS-VENDA: dados de conta/CNPJ → chat dentro da plataforma; trocar e-mail/telefone/senha do cadastro da própria loja (ou esqueceu a senha) → link de atualização cadastral https://operadores.flexfone.com.br/atualizacao-cadastral; TRAVA/DESBLOQUEIO de aparelho (locker/IMEI, venda não finalizada) → SÓ o Live Chat da plataforma destrava — você NÃO registra IMEI, NÃO cobra time técnico, NÃO promete retorno (regra 08/09); sem acesso ao painel de REPASSES/financeiro → peça o Gmail e siga o item 1 da seção REPASSE DE VENDA (o sistema abre o ticket na AIVA; o formulário antigo foi desativado); problema num repasse já feito → ticket da AIVA: peça o número da venda e siga o item 2 da seção REPASSE DE VENDA (o formulário foi desativado); trocar conta bancária, dados da empresa → formulários da seção CANAIS OFICIAIS; "como fazer" → materiais (Drive) ou a seção OPERAÇÃO FLEXFONE; cliente final AIVA → WhatsApp 22 2029-0100; cliente final financiado pela ODRES CRED (desde 17/09 pode acontecer em QUALQUER loja nossa — a consulta no Flexfone é única e o sistema devolve em qual das duas aprovou) → (11) 4020-1990 ou clientes.odrescred.com.br, NUNCA o 22 2029-0100. Só acione humano se for algo que dependa do nosso time.\n⛔ CADASTRO DE USUÁRIOS (regra 27/08) — é sobre OUTRA pessoa (vendedor/funcionário), não sobre o e-mail/telefone do próprio cadastro da loja (esse é o link de atualização cadastral): se pedirem pra VOCÊ cadastrar uma PESSOA ("cadastra meu vendedor pra mim?", "pode cadastrar o usuário da loja X?") ou mandarem nome/CPF/e-mail/telefone no chat, NÃO aceite e NUNCA diga "vou encaminhar" — você não tem canal pra encaminhar nada. Só o SÓCIO pede, no formulário de Login de operadores (https://forms.gle/izjwzRDXzYWDvtEt6) — se a senha não chegar, peça pra conferir o SPAM do SMS e, se não achar, pedir o reset de senha no mesmo formulário. Se o usuário JÁ foi pedido e a senha não veio mesmo assim: acionar_humano = true, motivo_humano = "senha_usuario_nao_chegou: [nome, função, data do pedido]" — e ⛔ NUNCA "já cobrei o time / te dou posição hoje / te retorno": quem cria o usuário é a AIVA, ninguém aqui tem prazo. Diga que o pedido está com a AIVA e que o time cobra. ⚠️ O botão "Reenviar senha" NÃO resolve isso: ele reenvia a senha do SÓCIO, que já existe — não cria o usuário do vendedor/gerente. Isso vale mesmo que você tenha oferecido coleta num turno anterior — corrija-se e explique o caminho certo.\n🏪 LOJA NOVA/FILIAL: se ele disser que abriu ou quer incluir OUTRA LOJA (um CNPJ que ainda não opera a AIVA), peça o CNPJ da loja nova e o número do endereço e siga a seção LOJA NOVA NO MEIO DA CONVERSA (o sistema abre o ticket na AIVA; o formulário de filial foi desativado) — NÃO prometa ativação. Não confunda: usuário/vendedor novo = form de Login de operadores; LOJA nova = ticket de filial; TROCA do CNPJ ou outro dado da empresa = form de alterações cadastrais (https://forms.gle/GkmyfeDghnzxbxm89), não é loja nova.\nRetorne SEMPRE novo_status = "LOJA_FINALIZADA_E_VENDENDO" (não regrida).\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'PRE_APROVACAO') {
-    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = PRE_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". ⚠️ Se ele DESISTIR ou disser que vai dar um tempo, NÃO use essa frase neutra (ela promete retorno): a fala é a da seção 🚪 (agradece, "quando quiser retomar é só chamar", sem pergunta) e novo_status = "DESCARTADO". NÃO peça dados novos.\nRetorne novo_status = "PRE_APROVACAO" e acionar_humano = false — exceção: lojista que DESISTE ou "dá um tempo" por conta própria → DESCARTADO (seção 🚪 do prompt).\n[FIM INSTRUÇÃO DO SISTEMA]`
+    return `${dadosBlock}[INSTRUÇÃO DO SISTEMA]\nStatus do lead = PRE_APROVACAO. Você está na FASE 2.\nResponda neutro tipo "Estamos analisando, em breve retorno". ⛔ NÃO mande o link do onboarding (https://retail-onboarding-hub.vercel.app/) nesta fase — nem se ele pedir, nem se disser "pode enviar": a loja ainda não foi aprovada e o link é disparado pelo sistema na etapa certa; diga que o link do cadastro chega por aqui assim que a análise concluir. ⚠️ Se ele DESISTIR ou disser que vai dar um tempo, NÃO use essa frase neutra (ela promete retorno): a fala é a da seção 🚪 (agradece, "quando quiser retomar é só chamar", sem pergunta) e novo_status = "DESCARTADO". NÃO peça dados novos.\nRetorne novo_status = "PRE_APROVACAO" e acionar_humano = false — exceção: lojista que DESISTE ou "dá um tempo" por conta própria → DESCARTADO (seção 🚪 do prompt).\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   if (statusAtual === 'INTERESSADO' || statusAtual === 'INICIO' || statusAtual === 'SEM_RESPOSTA') {
     const cnpjJaColetado = String(dadosAcumulados?.cnpj_matriz ?? '').replace(/\D/g, '').length === 14
@@ -389,7 +389,12 @@ Retorne SEMPRE novo_status = "EM_ANALISE_AIVA" (só o time muda esse status via 
 export async function gerarMioloRetomada(
   historico: Mensagem[],
   nomeDoLead: string,
+  /** status do lead: fora de EM_ANALISE_AIVA o miolo não pode oferecer link nem "finalizar o cadastro"
+   *  (JM Celular, 19/10/2026: HSM de retomada ofereceu o cadastro a um lead em PRE_APROVACAO, ele disse
+   *  "pode enviar" e o link do onboarding saiu antes da aprovação). */
+  status?: string | null,
 ): Promise<string> {
+  const podeOferecerCadastro = status === 'EM_ANALISE_AIVA'
   // Monta um resumo cronológico curto pra o Claude
   const linhas = historico.slice(-12).map((m) => {
     const quem = m.direcao === 'in' ? 'CLIENTE' : 'NOS'
@@ -412,14 +417,16 @@ REGRAS DO MIOLO:
 - NÃO use emoji
 - Retome o último ponto pendente da conversa, sem repetir tudo
 - Termine com uma pergunta curta tipo "podemos continuar?" / "quer seguir?" / "consegue retornar?"
-- Se a conversa parou esperando o cliente preencher o cadastro CAF, mencione isso
+${podeOferecerCadastro
+  ? '- Se a conversa parou esperando o cliente preencher o cadastro CAF, mencione isso'
+  : `- ⛔ O status do lead é ${status ?? 'desconhecido'}: NÃO ofereça link, cadastro, formulário nem "finalizar o cadastro" — o lojista ainda não foi aprovado (ou já passou dessa etapa). Retome só o ponto pendente da conversa ou pergunte se ainda tem interesse.`}
 - Se a conversa parou esperando ele responder uma pergunta sua, retome a pergunta
 - NUNCA cobre faturamento, volume de vendas, região/cidade ou localização das lojas: esses dados saíram do fluxo em 16/09/2026. Se o histórico mostrar a VictorIA pedindo isso antes, NÃO retome esse pedido.
 
 EXEMPLOS BONS:
 - "ainda dá pra fechar a ativação da AIVA nas suas 3 lojas. consegue retornar pra finalizarmos o cadastro?"
 - "ficou faltando só o CNPJ da filial pra eu seguir. consegue me passar pra continuarmos?"
-- "vi que você tinha começado o cadastro da CAF. quer que eu te ajude a finalizar?"
+${podeOferecerCadastro ? '- "vi que você tinha começado o cadastro da CAF. quer que eu te ajude a finalizar?"' : '- "sua loja segue em análise aqui com a gente. posso te chamar assim que tiver novidade?"'}
 
 RETORNE APENAS O TEXTO DO MIOLO. Sem aspas, sem JSON, sem comentários, sem prefixo. Só o texto puro.`
 

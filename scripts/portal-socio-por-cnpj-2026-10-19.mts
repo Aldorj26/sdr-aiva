@@ -7,6 +7,6 @@ const cnpj = (process.argv[2] ?? '').replace(/\D/g, '')
 if (!cnpj) { console.error('uso: <cnpj>'); process.exit(1) }
 const s = await loginPortal()
 const { data } = await rest<Array<Record<string, unknown>>>(
-  s, `onboardings?select=id,cnpj,legal_name,partner_owner_name,phone_number,stage,retailer_id&or=(cnpj.eq.${cnpj},phone_number.eq.5551992091968,phone_number.like.*51992091968,retailer_id.eq.5063)`,
+  s, `onboardings?select=id,cnpj,legal_name,partner_owner_name,phone_number,stage,retailer_id,biometry_status,pre_cadastro_status,created_at,updated_at&or=(cnpj.eq.${cnpj},cnpj.eq.${cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')})`,
 )
 console.log(JSON.stringify(data, null, 2))
