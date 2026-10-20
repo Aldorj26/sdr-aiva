@@ -5,6 +5,20 @@
 
 ## Estado de produção (20/10/2026)
 
+- **Relatório semanal da loja com link `/r/<token>` (formato do Farm Track da Parcelex; pedido do Aldo 20/10).** O HSM 48 da
+  `/api/sdr/dicas-desempenho` agora termina com "📊 Seu relatório da semana: https://sdr-aiva.vercel.app/r/<token>". A página
+  (HTML cru, sem JS, pública — o token aleatório é a autenticação) mostra o funil do mês (consultas → aprovados → vendas →
+  valor), o que mudou na semana, taxa × média das lojas AIVA, o gargalo (consultar / retomar / aprovar / fechar / crescer),
+  "o que fazer esta semana" (só fatos já aprovados nas dicas e na OBJEÇÃO Nº1) e as datas de cada aprovação/venda. Fonte:
+  `aiva_portal_diario` (retrato acumulado por dia). Código: `lib/relatorio-loja-calc.ts` (puro, 6 testes em
+  `npm run test:desempenho`), `lib/relatorio-loja.ts` (banco + HTML), `app/r/[token]/route.ts`. Tabela nova
+  **`aiva_relatorio_link`** (token estável por lead, `acessos`/`ultimo_acesso`), RLS sem policy, já em produção — DDL em
+  `docs/sql/2026-10-20-aiva-relatorio-link.sql`. Bloco NÚMEROS DA LOJA ganhou a linha "o lojista recebe esse link toda
+  semana; não diga que não vê o relatório, não reenvie". Conferido em `localhost:3012/r/TesteAldoRelatorio20` a 375px com a
+  Fone Express (token de teste ligado a um lead real — apagar quando não servir:
+  `delete from aiva_relatorio_link where token='TesteAldoRelatorio20'`). Link em variável de HSM já saía em outras rotinas
+  (`aiva_comunicado_forms` 293 em 13/10, `aiva_acesso_pendente`), então a regra "sem link" das dicas era nossa, não da Meta.
+  ⏭ Medir junto com o impacto das dicas (~03/11): `acessos` por lead (quem abre), resposta ao HSM antes × depois do link.
 - **Dicas de desempenho: semanal pra TODOS e abordagem investigativa pra parado/sem uso** (commit de 20/10, decisão do
   Aldo). Medição 05–20/10 em `docs/Dicas-desempenho-impacto-2026-10-20.xlsx`: 390 envios/212 lojas, resposta 15,5% no
   1º toque → 6,9% no 2º, **nenhuma loja `sem_uso` (75) ou `parou` (13) vendeu depois do toque**. Agora `intervaloDias`

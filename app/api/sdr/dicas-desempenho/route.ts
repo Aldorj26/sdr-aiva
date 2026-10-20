@@ -9,7 +9,8 @@
  * etapa, depois SEMANAL pra todo segmento (Aldo 20/10/2026 — parado/sem uso era quinzenal); parado e
  * sem uso recebem abordagem investigativa (por que parou? o que travou a 1ª consulta?), não dica de venda.
  * Números: lib/desempenho-loja-calc.ts (semanas fechadas do portal; fecham toda segunda).
- * Entrega: HSM 48 com o texto no {{2}}; rótulo próprio `aiva_dicas_desempenho` pra medir.
+ * Entrega: HSM 48 com o texto no {{2}} + o link /r/<token> do relatório semanal da loja (formato do Farm Track
+ * da Parcelex, 20/10/2026 — lib/relatorio-loja.ts); rótulo próprio `aiva_dicas_desempenho` pra medir.
  *
  * ?dry → mostra o que faria (segmentos, motivos, amostra dos textos) sem enviar nada.
  * ?max=N → limita o lote (rodada manual). ?force → ignora o horário comercial.
@@ -23,6 +24,8 @@ import { flag } from '@/lib/req-flags'
 import { resumir, type LinhaMes, type LinhaSemana, type Segmento } from '@/lib/desempenho-loja-calc'
 import { mesBrt, ultimaSemanaFechada } from '@/lib/desempenho-loja'
 import { decidir, lerMarcadores, remontarObs, textoDica, prioridade, ROTULO, CONVERSA_VIVA_HORAS } from '@/lib/dicas-desempenho-calc'
+import { comLink } from '@/lib/relatorio-loja-calc'
+import { linkDoLead, BASE_RELATORIO } from '@/lib/relatorio-loja'
 import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
 import { cnpjsComPrimeiroAcesso, ROTULO_PRIMEIRO_ACESSO, MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 
@@ -159,7 +162,7 @@ export async function GET(req: NextRequest) {
       em_primeiro_acesso: emPrimeiroAcesso.size, aviso_primeiro_acesso: filaAviso99.length,
       amostra_aviso_primeiro_acesso: filaAviso99.slice(0, 5).map((l) => `${l.nome}: Olá ${nomeDe(l)}, ${MIOLO_PRIMEIRO_ACESSO}`),
       fila: fila.length, fila_por_segmento: porSegFila, nesta_rodada: Math.min(filaAviso99.length + fila.length, max), motivos,
-      amostra: fila.slice(0, 12).map((f) => ({ loja: f.lead.nome, segmento: f.seg, texto: `Olá ${nomeDe(f.lead)}, ${f.texto}` })),
+      amostra: fila.slice(0, 12).map((f) => ({ loja: f.lead.nome, segmento: f.seg, texto: `Olá ${nomeDe(f.lead)}, ${f.lead.status === 'LOJA_FINALIZADA_E_VENDENDO' ? comLink(f.texto, BASE_RELATORIO + '<token>') : f.texto}` })),
     })
   }
 
@@ -185,10 +188,13 @@ export async function GET(req: NextRequest) {
     if (Date.now() - t0 > TETO_MS) { cortadoPorTempo = true; break }
     const nome = nomeDe(f.lead)
     try {
-      await sendTemplate(f.lead.telefone, TEMPLATE_ID, [nome, f.texto])
+      // link estável do relatório da loja (/r/<token>) no fim do texto — só pra loja em LOJA_FINALIZADA_E_VENDENDO:
+      // LOGIN em primeiro acesso não recebe o bloco NÚMEROS DA LOJA no prompt, e a VictorIA não saberia do relatório (revisor 20/10)
+      const texto = f.lead.status === 'LOJA_FINALIZADA_E_VENDENDO' ? comLink(f.texto, await linkDoLead(f.lead.id, [...(cnpjsPorLead.get(f.lead.id) ?? [])])) : f.texto
+      await sendTemplate(f.lead.telefone, TEMPLATE_ID, [nome, texto])
       const agora = new Date()
       await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(f.lead.observacoes, f.count + 1, f.seg, agora), data_ultimo_contato: agora.toISOString() }).eq('id', f.lead.id)
-      await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${f.texto}`, template_hsm: ROTULO })
+      await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${texto}`, template_hsm: ROTULO })
       enviados.push({ loja: f.lead.nome, segmento: f.seg })
     } catch (e) {
       falhas.push({ loja: f.lead.nome, erro: e instanceof Error ? e.message : String(e) })

@@ -1684,3 +1684,15 @@ pergunta; `parou` cita o total de vendas que a loja já fez; seção **2️⃣c 
 primeiro, resposta por causa, compromisso datado de voltar a consultar); LEITURA do bloco NÚMEROS DA LOJA aponta pra ela.
 ⏭ Medir em 2 semanas pelo rótulo `aiva_dicas_desempenho`: resposta por segmento e, principalmente, `sem_uso` que fez a
 primeira consulta e `parou` que voltou a vender (consulta em `aiva_desempenho_semanal` depois de `[DICAS_ULTIMA]`).
+
+### 20/10/2026 — relatório semanal da loja com link (formato do Farm Track da Parcelex)
+
+O Aldo mostrou o relatório que a Patricia manda pras lojas ativas da Parcelex (`/r/<token>`: funil do mês, semana,
+gargalo, dicas, datas) e pediu "algo igual" na AIVA. Mesma mecânica, conteúdo só AIVA: o HSM 48 das dicas ganhou o
+link `https://sdr-aiva.vercel.app/r/<token>` no fim, e a página (`lib/relatorio-loja*.ts`, `app/r/[token]/route.ts`)
+lê `aiva_portal_diario` — que, por ser retrato acumulado por dia, dá a semana (retrato − retrato de 7 dias antes) e a
+data de cada aprovação e venda. Gargalo = consultar (nunca consultou) / retomar (segmento `parou`) / aprovar / fechar /
+crescer, com a média das lojas AIVA no retrato mais recente (≈23% de aprovação, ≈21% de conversão em 19/10). Token
+estável por lead em `aiva_relatorio_link` (RLS sem policy; `acessos` diz quem abre). Regra antiga "HSM sem link" era
+convenção nossa: `aiva_comunicado_forms` (293 em 13/10) e `aiva_acesso_pendente` já levavam link na variável.
+
