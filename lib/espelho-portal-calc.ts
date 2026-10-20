@@ -302,8 +302,12 @@ export function calcularEspelho(e: Entrada): Resultado {
 
     // Pulando Cadastro finalizado (70) pra frente, passa por ela: é a entrada da 70 que manda o treinamento
     // (HSM 69 + kit, uma vez só — o handler não repete). Pra trás nunca passa por nada.
+    // ⛔ Destino Vendendo (51) NÃO passa pela 70 (Aldo 20/10/2026): a loja já consulta/vende, e "sua loja foi
+    // liberada para o treinamento" pra quem opera há semanas é mensagem errada. Caso real: Fone Express,
+    // Eletrocel e Gfourr (out/2026) receberam o HSM 69 ao voltar de 50 pra 51; a loja que vende já é da
+    // rotina de dicas/relatório semanal.
     const via: number[] = []
-    if (ordem(melhor.para) > ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR]) via.push(ETAPA.TREINAR)
+    if (melhor.para !== ETAPA.VENDENDO && ordem(melhor.para) > ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR]) via.push(ETAPA.TREINAR)
     const rid = melhor.onb.retailer_id != null ? String(melhor.onb.retailer_id) : ''
     const motivo =
       melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`

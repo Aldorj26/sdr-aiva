@@ -275,9 +275,10 @@ test('loja antiga fora da API que consulta pelo RID do registro não regride por
   }
   const em51 = calcularEspelho(base({ ...entrada, leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')], stageAtual: new Map([[100, 51]]) }))
   assert.equal(em51.movimentos.length, 0)
-  // quem já foi levado pra 50 pelo defeito volta pra 51
+  // quem já foi levado pra 50 pelo defeito volta pra 51 — SEM passar pela 70: a loja já vende, e a entrada
+  // na 70 mandaria "liberada para o treinamento" (foi o que a Fone Express recebeu em 13/10; Aldo 20/10/2026)
   const em50 = calcularEspelho(base({ ...entrada, leads: [lead('a', 100, 'EM_ANALISE_AIVA')], stageAtual: new Map([[100, 50]]) }))
-  assert.deepEqual({ para: em50.movimentos[0]?.para, via: em50.movimentos[0]?.via }, { para: 51, via: [70] })
+  assert.deepEqual({ para: em50.movimentos[0]?.para, via: em50.movimentos[0]?.via }, { para: 51, via: [] })
 })
 
 // ─── lacuna 1 da auditoria de 15/10/2026: coluna do portal sem mapeamento ──────

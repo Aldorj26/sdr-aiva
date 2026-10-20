@@ -1706,3 +1706,12 @@ venda?" — pergunta que a dica investigativa do `sem_uso` já faz. Uma loja pod
 Desligados o pulso (tarefa aposentada + script aborta sem `--forcar`) e o cron do check; o cron de data fixa do
 `comunicado-forms` (13/10) também saiu. A rotina de dicas continua pulando quem está na campanha de boas-vindas.
 
+### 20/10/2026 — "liberada para o treinamento" chegando em loja que já vende
+
+Print do Aldo: Fone Express (LFV desde 02/09, vendendo) com a mensagem de 13/10 09h16 "Sua loja foi liberada para a
+próxima etapa: o treinamento" citando turmas de 14/10 e 16/10. As datas vinham do portal e estavam certas no dia do
+envio; o defeito é a mensagem ter saído pra uma loja que opera. Caminho: em 13/10 a filial nova (dados_varejo) levou
+o card da matriz pra 50 (defeito já corrigido naquele dia) e a volta 50→51 passava pela 70 por regra — e a entrada na
+70 dispara o HSM 69. O mesmo aconteceu com Eletrocel (13/10) e Gfourr (05/10). Correção: destino 51 não passa mais
+pela 70, e o handler da 70 ignora lead em LOJA_FINALIZADA_E_VENDENDO (antes ainda rebaixava o status pra TREINAR).
+

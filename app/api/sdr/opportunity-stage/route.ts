@@ -657,9 +657,16 @@ ${PRE_APROVADA_MIOLO}`,
       // Busca lead no Supabase
       const { data: lead } = await supabaseAdmin
         .from('sdr_leads')
-        .select('id, nome, observacoes')
+        .select('id, nome, observacoes, status')
         .eq('telefone', telefone)
         .maybeSingle()
+
+      // Loja que JÁ VENDE não recebe "liberada para o treinamento" nem volta pra TREINAR (Aldo 20/10/2026):
+      // o card chegou aqui por reposicionamento (ex.: voltou de 50 pra 51) ou por um 2º card do mesmo
+      // telefone (filial). Caso real: Fone Express, 13/10.
+      if (lead?.status === 'LOJA_FINALIZADA_E_VENDENDO') {
+        return NextResponse.json({ ok: true, ignorado: 'loja_ja_vende', status_mantido: lead.status, telefone })
+      }
 
       const nomeContato = normalizaNome(forms['da6ddf70']) || normalizaNome(lead?.nome ?? null) || 'Lojista'
       // Biometria aprovada e a AIVA ainda não criou a loja (vem pra 70 desde 06/10/2026): não existe senha

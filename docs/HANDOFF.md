@@ -5,6 +5,12 @@
 
 ## Estado de produção (20/10/2026)
 
+- **Loja que já vende não recebe mais o HSM 69 "liberada para o treinamento".** O Aldo viu na Fone Express (vende desde
+  set/2026) a mensagem de 13/10 com turmas 14/10 e 16/10 — as datas estavam certas no dia; o erro era a mensagem existir.
+  Causa: o espelho, ao devolver um card de 50 pra 51, passava pela 70 (`via: [70]`), e a entrada na 70 manda o treinamento.
+  Três lojas em out/2026 (Fone Express, Eletrocel, Gfourr). Agora destino 51 nunca passa pela 70
+  (`lib/espelho-portal-calc.ts`) e o handler da 70 ignora lead em LOJA_FINALIZADA_E_VENDENDO sem mexer no status
+  (`opportunity-stage`). Teste da Fone Express ajustado.
 - **Relatório semanal da loja com link `/r/<token>` (formato do Farm Track da Parcelex; pedido do Aldo 20/10).** O HSM 48 da
   `/api/sdr/dicas-desempenho` agora termina com "📊 Seu relatório da semana: https://sdr-aiva.vercel.app/r/<token>". A página
   (HTML cru, sem JS, pública — o token aleatório é a autenticação) mostra o funil do mês (consultas → aprovados → vendas →
