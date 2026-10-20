@@ -98,9 +98,12 @@ export function resumir(
   return { segmento, semanas, vendas2, aprovados2, vendasTotal, mes, mesAnterior }
 }
 
-/** Quem vende recebe dica toda semana; quem está parado, a cada 15 dias (Aldo 02/10). */
-export function intervaloDias(seg: Segmento): number {
-  return seg === 'parou' || seg === 'sem_uso' ? 14 : 7
+/**
+ * Toque SEMANAL pra todo segmento (Aldo 20/10/2026). Até 19/10 parado/sem uso era quinzenal; em 2 semanas
+ * nenhuma dessas lojas voltou a vender, e o Aldo pediu impacto semanal com abordagem investigativa.
+ */
+export function intervaloDias(_seg: Segmento): number {
+  return 7
 }
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
@@ -111,8 +114,8 @@ const LEITURA: Record<Segmento, string> = {
   vende_firme: 'loja vendendo com constância (4+ vendas nas 2 últimas semanas)',
   vende_pouco: 'loja vende, mas pouco',
   aprova_nao_vende: 'tem cliente APROVADO e não está fechando a venda — o gargalo é conversão no balcão',
-  parou: 'já vendeu antes e parou (nada aprovado nem vendido nas 2 últimas semanas)',
-  sem_uso: 'ainda não registrou venda nenhuma pela AIVA — o número NÃO mostra o que travou: pergunte uma vez o que travou (acesso? treinamento? cliente reprovando?), seção 2️⃣b LOJA QUE NUNCA OPEROU, em vez de mandar dica de venda',
+  parou: 'já vendeu antes e PAROU (nada aprovado nem vendido nas 2 últimas semanas) — o número não diz o motivo: siga a seção 2️⃣c LOJA QUE PAROU (descubra POR QUE parou antes de qualquer dica; reprovação → argumentos da OBJEÇÃO Nº1; meta = voltar a consultar esta semana)',
+  sem_uso: 'ainda não registrou venda nenhuma pela AIVA — o número NÃO mostra o que travou: pergunte uma vez o que travou (acesso? treinamento? cliente reprovando?), seção 2️⃣b LOJA QUE NUNCA OPEROU, em vez de mandar dica de venda; meta = a PRIMEIRA consulta de CPF esta semana',
 }
 
 /** Bloco dinâmico pro prompt (fora do cache). Números do PORTAL da AIVA, por semana fechada. */

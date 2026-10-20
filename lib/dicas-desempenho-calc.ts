@@ -3,9 +3,10 @@
  * Substitui a consultoria-vendas (4 toques fixos, sem número nenhum, resposta caindo de 27% pra 11%).
  *
  * Cadência: 1ª dica 7 dias depois de a loja entrar em LOJA_FINALIZADA_E_VENDENDO
- * ([CONSULTORIA_INICIO], gravado pelo /opportunity-stage); depois SEMANAL pra quem vende ou
- * aprova e QUINZENAL pra quem está parado (intervaloDias do desempenho-loja-calc). Sem fim:
- * a série não "acaba" — quem para de vender continua recebendo, só que a cada 15 dias.
+ * ([CONSULTORIA_INICIO], gravado pelo /opportunity-stage); depois SEMANAL pra todo mundo
+ * (intervaloDias do desempenho-loja-calc — parado/sem uso era quinzenal até 19/10/2026). Sem fim:
+ * a série não "acaba". Parado e sem uso recebem abordagem INVESTIGATIVA (por que parou? o que
+ * travou a 1ª consulta?), não dica de venda (Aldo 20/10/2026).
  * Entrega: HSM 48 ("Olá {{1}}, {{2}}"), {{2}} em UMA linha, sem \n e sem link.
  */
 import { intervaloDias, type Resumo, type Segmento } from './desempenho-loja-calc.ts'
@@ -85,6 +86,8 @@ export function textoDica(r: Resumo, count: number): string {
   const s0 = r.semanas[0]
   const v2 = pl(r.vendas2, 'venda', 'vendas')
   const a2 = pl(r.aprovados2, 'cliente aprovado', 'clientes aprovados')
+  const vt = pl(r.vendasTotal, 'venda', 'vendas')
+  const consultou = (r.mes?.consultas ?? 0) + (r.mesAnterior?.consultas ?? 0) > 0
   const op: Record<Segmento, string[]> = {
     vende_firme: [
       `na semana de ${ddmm(s0.semana)} sua loja fez ${pl(s0.vendas, 'venda', 'vendas')} pela AIVA (${brl(s0.valor_vendas)}) 👏 Dica pra subir o ticket: venda dentro do limite aprovado e complete com capa, película e fone. Quer que eu te passe como a equipe pode oferecer isso?`,
@@ -101,15 +104,25 @@ export function textoDica(r: Resumo, count: number): string {
       `${a2} nas últimas 2 semanas e nenhuma venda: o crédito está saindo, a venda é que não fecha. Dica: mostre o aparelho dentro do limite e pergunte "prefere 9x ou 12x?" em vez de "quer levar?". O que o cliente costuma dizer quando desiste?`,
       `sua loja continua aprovando cliente na AIVA (${a2} nas últimas 2 semanas) — falta fechar. Deixar claro logo no começo que a entrada é de 25% evita a desistência no final. Quer conversar sobre como abordar?`,
     ],
+    // Abordagem INVESTIGATIVA (Aldo 20/10/2026): descobrir POR QUE parou e trazer argumento; se foi
+    // aprovação, o argumento é o da OBJEÇÃO Nº1. Rotação semanal, cada toque testa uma hipótese.
+    // ⚠️ O segmento só olha aprovados e vendas (a tabela semanal não tem consultas). Só afirme "não vi
+    // consulta" quando os meses também não têm consulta; loja que consultou e só reprovou ouve "venda".
     parou: [
-      `faz umas semanas que não vejo venda da sua loja pela AIVA no portal — está tudo certo por aí? Se travou alguma coisa (acesso, sistema, aprovação), me conta que eu te ajudo a destravar.`,
-      `sentimos falta das vendas da sua loja pela AIVA 😊 Dica pra retomar: consulte o CPF de todo cliente que pedir preço, até de quem diz que vai pagar à vista — muitos acabam parcelando. Quer outras ideias?`,
-      `sua loja já vendeu pela AIVA e pode voltar a vender! Se o que travou foi vendedor sem acesso, o cadastro agora é por formulário e eu te mando o link. Como estão as coisas aí?`,
+      `sua loja já fez ${vt} pela AIVA e faz umas semanas que não vejo ${consultou ? 'venda' : 'nem consulta de CPF'} por aqui. O que aconteceu: a aprovação caiu, a equipe mudou, travou o acesso, ou o movimento deu uma baixa? Me conta que eu te ajudo a retomar — é bem mais fácil do que começar do zero.`,
+      `se o que freou as vendas pela AIVA foi cliente reprovando, me conta: a AIVA banca 100% do risco (você recebe certinho, sem calote), por isso é mais criteriosa — e o jeito de contornar é consultar TODO cliente, sem pré-julgar: quem consulta mais, aprova mais. Foi isso que parou aí, ou foi outra coisa?`,
+      `quando uma loja que vendia pela AIVA para, quase sempre é vendedor que saiu e o novo ficou sem login, ou senha que travou. É o seu caso? Vendedor novo o próprio sócio cadastra pelo formulário de Login de operadores (eu te mando o link), e acesso travado tem o canal certo. Me conta o que aconteceu aí.`,
+      `você já provou que sua loja vende no crediário (${vt} pela AIVA). Cada cliente que pergunta "parcela?" e sai sem consulta é venda indo pro concorrente — e a AIVA ainda paga R$ 10 por venda pro vendedor. O que falta pra voltar a consultar essa semana?`,
     ],
+    // Abordagem INVESTIGATIVA (Aldo 20/10/2026): o objetivo é a PRIMEIRA consulta de CPF (ou a primeira
+    // venda, se ela já consultou e só reprovou); cada toque pergunta o que travou e dá um motivo pra consultar.
     sem_uso: [
-      `sua loja já está liberada na AIVA, mas ainda não vi venda pelo portal. Ficou alguma dúvida no primeiro uso? Se quiser, te explico o passo a passo da primeira consulta — é rapidinho.`,
-      `a primeira venda pela AIVA é a que mais demora — depois embala 😊 Dica: escolha hoje 1 cliente que pediu preço e faça a consulta do CPF com ele na hora. Quer que eu te ajude no passo a passo?`,
-      `passando pra saber se está tudo certo com o acesso da loja na AIVA — ainda não vi vendas por aqui. Se o login, a senha ou o cadastro dos vendedores travou, me conta que eu te mostro o caminho.`,
+      consultou
+        ? `sua loja já consultou na AIVA, mas ainda não vi aprovação nem venda por aqui. Os clientes reprovaram? As primeiras reprovações são normais — o lote de clientes não é previsível — e o jeito de virar é volume: consultar todo cliente, sem pré-julgar. Me conta o que aconteceu que eu te mostro o caminho.`
+        : `sua loja já está liberada na AIVA e ainda não vi nenhuma consulta de CPF por aqui. Me conta rapidinho o que travou: o acesso não chegou, a equipe não sabe usar, ou ainda não apareceu cliente pedindo parcelado? Me conta que eu te mostro o caminho.`,
+      `a consulta na AIVA é grátis e leva 2 minutos — e é ela que vira venda (num caso real do treinamento, 185 consultas viraram 52 aprovados e 25 vendas). Topa consultar hoje o próximo cliente que pedir preço? Se travar em alguma tela, me manda o print que eu te guio.`,
+      `ainda sem ${consultou ? 'venda' : 'consulta'} da sua loja na AIVA. Normalmente é uma de três coisas: senha que não chegou, vendedor sem login, ou receio de o cliente reprovar. Qual é a sua? Se for a terceira, fica tranquilo: as primeiras reprovações são normais, o risco é todo da AIVA e consultar não custa nada — é só consultar todo mundo.`,
+      `o cliente que pergunta "parcela?" e ouve "não" compra na loja do lado. Sua loja já tem o crediário liberado — falta ${consultou ? 'a primeira venda' : 'só a primeira consulta'}. O que está faltando: te mostrar o passo a passo, cadastrar vendedor, ou outra coisa? Me fala que eu te mostro o caminho.`,
     ],
   }
   const lista = op[r.segmento]

@@ -3,7 +3,18 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
-## Estado de produção (19/10/2026)
+## Estado de produção (20/10/2026)
+
+- **Dicas de desempenho: semanal pra TODOS e abordagem investigativa pra parado/sem uso** (commit de 20/10, decisão do
+  Aldo). Medição 05–20/10 em `docs/Dicas-desempenho-impacto-2026-10-20.xlsx`: 390 envios/212 lojas, resposta 15,5% no
+  1º toque → 6,9% no 2º, **nenhuma loja `sem_uso` (75) ou `parou` (13) vendeu depois do toque**. Agora `intervaloDias`
+  = 7 pra todo segmento; 4 textos novos por segmento (hipótese + pergunta; `parou` cita as vendas que a loja já fez;
+  só afirma "não vi consulta" se os meses também não têm consulta); seção **2️⃣c LOJA QUE PAROU** na FASE 5 do prompt.
+  Revisor achou 4 pontos (2 ALTA) — todos corrigidos antes do commit. ⏭ Medir em 2 semanas (~03/11): `sem_uso` que
+  consultou e `parou` que voltou a vender depois de `[DICAS_ULTIMA]`.
+- **7 lojas que vendem no portal não têm lead no CRM** (conciliação UME out/2026: KW Avenida 36496440000129, B5 Tech
+  50657879000117, Pixel Games 21170573000133, KW Celulares 33356634000130 + 3 MEIs; 62 vendas em set/out) — nunca
+  recebem dica. Falta telefone/WhatsApp pra criar o lead. **Aldo decide** se pede os contatos ao Gerisson.
 
 - **Disparo D+0: entrega baixa AVISA, não pausa mais** (`de61461`). O piso de 30% e o disjuntor de envio continuam
   medindo, mas só mandam alerta (coringa 48 + texto) pra Aldo e Nei, 1×/hora BRT. **Só `/pausar` ou o botão do

@@ -1661,3 +1661,26 @@ VALUES ('Teste', '5511999998888', 'São Paulo', 'INTERESSADO', 1);
 válido e ATIVA; os dois estavam registrados). Registro -08 apagado, -07 virou a matriz, `cnpj_matriz` corrigido e
 `[CNPJ_PORTAL_INVALIDO]` removido (marcador `[CNPJ_CORRIGIDO:…]`). ⚠️ O cadastro -08 continua existindo no portal da AIVA
 (só a AIVA remove) e a filial 13222874000135 segue INAPTA — por isso o lead continua com `[CNPJ_IRREGULAR_AIVA:inapta]`.
+
+---
+
+## Dicas de desempenho: impacto medido e virada para abordagem investigativa (Aldo 20/10/2026)
+
+**Medição de 05 a 20/10** (`docs/Dicas-desempenho-impacto-2026-10-20.xlsx`): 390 envios para 212 lojas (193 das 250 em
+LFV; as 57 restantes estavam na campanha de boas-vindas, há <7 dias na etapa, em conversa viva ou opt-out). Resposta em
+48h: **15,5% no 1º toque, 6,9% no 2º** (consultoria antiga: 27% → 11%). Por segmento (lojas que responderam alguma vez):
+vende_firme 41% · vende_pouco 36% · parou 31% · aprova_nao_vende 25% · sem_uso 15%. **Efeito em venda: nenhuma loja
+`sem_uso` (75) ou `parou` (13) vendeu depois do toque**; 1 de 59 `aprova_nao_vende` vendeu. Vendas semanais das lojas
+tocadas caíram 122 → 107 → 79 → 54 (semanas de 21/09 a 12/10) — tendência que já vinha antes da rotina, não causada por
+ela, mas a rotina não a conteve. Das 102 lojas que venderam no portal em set/out, 89 receberam dica; 7 vieram da
+conciliação UME sem lead no CRM (KW Avenida, B5 Tech, Pixel Games, KW Celulares e três MEIs — 62 vendas) e nunca serão
+tocadas enquanto não tiverem lead com WhatsApp.
+
+**Decisão do Aldo (20/10):** "o cara que nunca consultou, estimular a consulta e ver qual é o erro; o que parou, descobrir
+por que parou e trazer argumento (se foi aprovação, convencer a ativar de novo); impacto uma vez por semana".
+Mudanças: `intervaloDias` = 7 para todo segmento (era 14 para parou/sem_uso); 4 textos novos por segmento em
+`lib/dicas-desempenho-calc.ts`, cada um testando uma hipótese (aprovação, equipe/login, acesso, movimento) e terminando com
+pergunta; `parou` cita o total de vendas que a loja já fez; seção **2️⃣c LOJA QUE PAROU** na FASE 5 do prompt (motivo
+primeiro, resposta por causa, compromisso datado de voltar a consultar); LEITURA do bloco NÚMEROS DA LOJA aponta pra ela.
+⏭ Medir em 2 semanas pelo rótulo `aiva_dicas_desempenho`: resposta por segmento e, principalmente, `sem_uso` que fez a
+primeira consulta e `parou` que voltou a vender (consulta em `aiva_desempenho_semanal` depois de `[DICAS_ULTIMA]`).

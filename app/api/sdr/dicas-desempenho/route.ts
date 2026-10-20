@@ -6,7 +6,8 @@
  * ("Primeiro acesso": entrou e não vendeu — Aldo 08/10/2026). Na mesma rodada, quem está em Primeiro acesso
  * e nunca recebeu o aviso da etapa 99 recebe esse aviso (uma vez por loja) no lugar da dica — lib/primeiro-acesso.ts. Cadência e textos em
  * lib/dicas-desempenho-calc.ts (`npm run test:desempenho`): 1ª dica 7 dias após entrar na
- * etapa, depois semanal pra quem vende/aprova e quinzenal pra quem está parado.
+ * etapa, depois SEMANAL pra todo segmento (Aldo 20/10/2026 — parado/sem uso era quinzenal); parado e
+ * sem uso recebem abordagem investigativa (por que parou? o que travou a 1ª consulta?), não dica de venda.
  * Números: lib/desempenho-loja-calc.ts (semanas fechadas do portal; fecham toda segunda).
  * Entrega: HSM 48 com o texto no {{2}}; rótulo próprio `aiva_dicas_desempenho` pra medir.
  *

@@ -18,7 +18,7 @@ test('semana sem linha vira zero e a janela tem sempre o mesmo tamanho', () => {
 test('parada ha 2 semanas nao parece vendendo so porque a ultima linha dela tem venda', () => {
   const r = resumir([s('2026-09-07', 5, 4)], [m('2026-09', 40, 5, 4)], ULT, MES)
   assert.equal(r.segmento, 'parou')
-  assert.equal(intervaloDias(r.segmento), 14)
+  assert.equal(intervaloDias(r.segmento), 7) // semanal pra todos desde 20/10/2026
 })
 
 test('varios CNPJs somam por semana', () => {
@@ -33,7 +33,7 @@ test('segmentos', () => {
   assert.equal(resumir([s(ULT, 4, 1)], [], ULT, MES).segmento, 'vende_pouco')
   assert.equal(resumir([s(ULT, 6, 0)], [], ULT, MES).segmento, 'aprova_nao_vende')
   assert.equal(resumir([], [], ULT, MES).segmento, 'sem_uso')
-  assert.equal(intervaloDias('sem_uso'), 14)
+  assert.equal(intervaloDias('sem_uso'), 7)
   assert.equal(intervaloDias('aprova_nao_vende'), 7)
 })
 

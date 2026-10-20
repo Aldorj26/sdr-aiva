@@ -13,13 +13,15 @@ test('1a dica so 7 dias depois de entrar na etapa; loja antiga sem data esta lib
   assert.deepEqual(decidir(lerMarcadores(''), 'vende_firme', null, T0), { acao: 'enviar' })
 })
 
-test('semanal pra quem vende, quinzenal pra parado', () => {
+test('semanal pra todo mundo, inclusive parado e sem uso (Aldo 20/10/2026)', () => {
   const obs = `[CONSULTORIA_INICIO:${iso(T0 - 60 * DIA)}] [DICAS_ULTIMA:${iso(T0 - 7 * DIA + 3600_000)}]`
   assert.equal(decidir(lerMarcadores(obs), 'vende_pouco', null, T0).acao, 'enviar')        // 7 dias menos 1h: folga de 12h
   assert.equal(decidir(lerMarcadores(obs), 'aprova_nao_vende', null, T0).acao, 'enviar')
-  assert.deepEqual(decidir(lerMarcadores(obs), 'parou', null, T0), { acao: 'nada', motivo: 'aguardando_intervalo' })
-  const obs14 = `[DICAS_ULTIMA:${iso(T0 - 14 * DIA)}]`
-  assert.equal(decidir(lerMarcadores(obs14), 'sem_uso', null, T0).acao, 'enviar')
+  assert.equal(decidir(lerMarcadores(obs), 'parou', null, T0).acao, 'enviar')
+  assert.equal(decidir(lerMarcadores(obs), 'sem_uso', null, T0).acao, 'enviar')
+  const obs5 = `[DICAS_ULTIMA:${iso(T0 - 5 * DIA)}]`
+  assert.deepEqual(decidir(lerMarcadores(obs5), 'parou', null, T0), { acao: 'nada', motivo: 'aguardando_intervalo' })
+  assert.deepEqual(decidir(lerMarcadores(obs5), 'sem_uso', null, T0), { acao: 'nada', motivo: 'aguardando_intervalo' })
 })
 
 test('travas', () => {
@@ -45,7 +47,7 @@ test('textos: uma linha, sem link, cabem no HSM, numeros certos', () => {
   }
   for (const [seg, r] of Object.entries(casos)) {
     assert.equal(r.segmento, seg)
-    for (let c = 0; c < 3; c++) {
+    for (let c = 0; c < 4; c++) {
       const t = textoDica(r, c)
       assert.doesNotMatch(t, /\n/); assert.doesNotMatch(t, /https?:\/\//)
       assert.ok(t.length < 330, `${seg}/${c}: ${t.length}`)
@@ -55,7 +57,22 @@ test('textos: uma linha, sem link, cabem no HSM, numeros certos', () => {
   assert.match(textoDica(casos.vende_firme, 0), /semana de 28\/09 sua loja fez 4 vendas pela AIVA \(R\$\s5\.200\)/)
   assert.match(textoDica(casos.aprova_nao_vende, 0), /1 cliente aprovado pela AIVA/)
   assert.match(textoDica(casos.vende_pouco, 0), /3 clientes aprovados e 1 venda/)
-  assert.equal(textoDica(casos.parou, 3), textoDica(casos.parou, 0))
+  // parado e sem uso: 4 variações investigativas, cada uma termina perguntando (Aldo 20/10/2026)
+  for (const seg of ['parou', 'sem_uso'] as const) {
+    const textos = [0, 1, 2, 3].map((c) => textoDica(casos[seg], c))
+    assert.equal(new Set(textos).size, 4, `${seg}: 4 textos distintos`)
+    for (const t of textos) assert.match(t, /\?/, `${seg} pergunta o motivo`)
+    assert.equal(textoDica(casos[seg], 4), textos[0])
+  }
+  assert.match(textoDica(casos.parou, 0), /já fez 1 venda pela AIVA/)
+  assert.match(textoDica(casos.parou, 0), /não vejo venda por aqui/)            // consultou no mês: não afirma "nem consulta"
+  assert.match(textoDica(casos.sem_uso, 0), /o que travou/)
+  assert.match(textoDica(casos.sem_uso, 0), /nenhuma consulta de CPF/)           // sem consulta em mês nenhum: pode afirmar
+  // consultou e só reprovou: nunca ouve "não vi consulta" — abre pela reprovação
+  const soReprovou = resumir([], [{ mes: '2026-10', consultas: 12, aprovados: 0, vendas: 0, valor_vendas: 0 }], '2026-09-28', '2026-10')
+  assert.equal(soReprovou.segmento, 'sem_uso')
+  for (let c = 0; c < 4; c++) assert.doesNotMatch(textoDica(soReprovou, c), /n[aã]o vi nenhuma consulta|ainda sem consulta|só a primeira consulta/)
+  assert.match(textoDica(soReprovou, 0), /já consultou na AIVA/)
 })
 
 test('marcadores sao trocados, nao empilhados', () => {
