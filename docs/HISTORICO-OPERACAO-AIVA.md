@@ -1696,3 +1696,13 @@ crescer, com a média das lojas AIVA no retrato mais recente (≈23% de aprovaç
 estável por lead em `aiva_relatorio_link` (RLS sem policy; `acessos` diz quem abre). Regra antiga "HSM sem link" era
 convenção nossa: `aiva_comunicado_forms` (293 em 13/10) e `aiva_acesso_pendente` já levavam link na variável.
 
+### 20/10/2026 — um impacto semanal só na loja ativa (pulso e check de primeira venda desligados)
+
+Depois do relatório com link, o Aldo pediu pra conferir o que mais batia na loja ativa e deixar o relatório como padrão.
+Nos 30 dias anteriores, leads em LOJA_FINALIZADA_E_VENDENDO receberam: dicas 371 envios/194 lojas; **pulso semanal**
+(`scripts/pulso-semanal.mjs`, tarefa agendada de segunda) 319 envios em 3 segundas, com os MESMOS números da semana
+fechada e sem respeitar `[DICAS_*]`; **check de primeira venda** (terça) 36 envios perguntando "já saiu a primeira
+venda?" — pergunta que a dica investigativa do `sem_uso` já faz. Uma loja podia ouvir três robôs em três dias.
+Desligados o pulso (tarefa aposentada + script aborta sem `--forcar`) e o cron do check; o cron de data fixa do
+`comunicado-forms` (13/10) também saiu. A rotina de dicas continua pulando quem está na campanha de boas-vindas.
+

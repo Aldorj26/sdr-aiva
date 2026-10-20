@@ -1,6 +1,11 @@
 /**
  * check-primeira-venda/route.ts (AIVA — check de realidade da etapa final)
  *
+ * ⛔ FORA DO CRON desde 20/10/2026 (Aldo: "não precisa ter outro" impacto além do relatório semanal).
+ * A /dicas-desempenho já pergunta toda semana, com os números e o link do relatório, o que travou a
+ * primeira consulta/venda (segmento sem_uso) — este check era um segundo HSM pra mesma loja na terça.
+ * A rota continua existindo pra rodada manual (?dry primeiro).
+ *
  * Origem: curadoria 2026-07-27 — várias lojas em "Loja Finalizada e Vendendo"
  * relataram que NUNCA operaram ("não tenho login", "ainda não começamos",
  * "não fizemos vendas"). A etapa final do funil não reflete a realidade e

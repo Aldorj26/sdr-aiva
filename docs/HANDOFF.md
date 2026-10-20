@@ -19,6 +19,14 @@
   `delete from aiva_relatorio_link where token='TesteAldoRelatorio20'`). Link em variável de HSM já saía em outras rotinas
   (`aiva_comunicado_forms` 293 em 13/10, `aiva_acesso_pendente`), então a regra "sem link" das dicas era nossa, não da Meta.
   ⏭ Medir junto com o impacto das dicas (~03/11): `acessos` por lead (quem abre), resposta ao HSM antes × depois do link.
+- **Relatório semanal = o ÚNICO impacto recorrente na loja ativa (Aldo 20/10: "não precisa ter outro").** Levantamento dos
+  30 dias em `sdr_mensagens` pra leads em LOJA_FINALIZADA_E_VENDENDO: além das dicas (371 envios/194 lojas), as mesmas lojas
+  recebiam o **pulso semanal de segunda** (`scripts/pulso-semanal.mjs` pela tarefa agendada `aiva-pulso-semanal`: 319
+  envios em 22/09, 29/09 e 13/10, sem olhar `[DICAS_*]`) e o **check de primeira venda de terça** (`/check-primeira-venda`,
+  36 envios). Desligados: cron do check fora do `vercel.json` (rota fica pra rodada manual), tarefa `aiva-pulso-semanal`
+  marcada APOSENTADA e o script aborta sem `--forcar`. Também saiu o cron do `comunicado-forms` (data fixa 13/10 — voltaria
+  em 13/10/2027). Ficam, sem conflito: campanha de boas-vindas (4 semanas, loja nova; a dica já cede a vez enquanto ela
+  roda), nudge (conversa aberta), tickets, avisos de etapa. `consultoria-vendas` já estava sem cron desde 02/10.
 - **Dicas de desempenho: semanal pra TODOS e abordagem investigativa pra parado/sem uso** (commit de 20/10, decisão do
   Aldo). Medição 05–20/10 em `docs/Dicas-desempenho-impacto-2026-10-20.xlsx`: 390 envios/212 lojas, resposta 15,5% no
   1º toque → 6,9% no 2º, **nenhuma loja `sem_uso` (75) ou `parou` (13) vendeu depois do toque**. Agora `intervaloDias`

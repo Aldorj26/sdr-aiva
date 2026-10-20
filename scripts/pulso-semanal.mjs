@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 /**
+ * ⛔ APOSENTADO em 20/10/2026 (Aldo): o impacto semanal padrão da loja ativa é o relatório com link
+ * da /api/sdr/dicas-desempenho (lib/relatorio-loja*.ts). Este pulso mandava um segundo HSM na segunda
+ * pras mesmas lojas (22/09, 29/09 e 13/10: ~100 lojas/semana) sem olhar os marcadores [DICAS_*].
+ * Só roda com --forcar; a tarefa agendada aiva-pulso-semanal está desligada.
+ *
  * PULSO SEMANAL DE VENDAS — lojas em LOJA_FINALIZADA_E_VENDENDO (regra 31/08).
  * Textos aprovados pelo Aldo em 31/08/2026.
  *
@@ -21,6 +26,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const args = process.argv.slice(2)
+if (!args.includes('--forcar')) { console.error('APOSENTADO (20/10/2026): o impacto semanal é o relatório da /dicas-desempenho. Use --forcar só se o Aldo pedir.'); process.exit(1) }
 const DRY = args.includes('--dry')
 const pega = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null }
 
