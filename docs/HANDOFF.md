@@ -5,6 +5,18 @@
 
 ## Estado de produção (21/10/2026)
 
+- **⚠️ DISPARO D+0 PAUSADO às 11:10 por mim (motivo em `sdr_disparo_estado`): a API do Evo Talks está respondendo em 60–82 s**
+  (medido daqui às 11:15 com `checkIfUserExists` e `getOpportunity`). Desde 09:21 (intermitente) e 10:33 (contínuo) o
+  `send-initial` grava o lead (`data_disparo_inicial`) e depois trava em createOpportunity/sendWaTemplate até o timeout do
+  lote (120 s): a fila volta PENDENTE sem detalhe, mas o lead fica em INICIO — e INICIO está em `STATUS_BLOQUEADOS`, então
+  na próxima tentativa o telefone vira DUPLICADO. **57 leads queimados hoje** (41 com opp criada no Evo e sem template, 16
+  sem opp): `select … from sdr_leads where data_disparo_inicial >= '2026-10-21 03:00' and status='INICIO' and not exists
+  (mensagem)`. Reparo quando o Evo normalizar: reenviar o template 41 a esses 57 (modelo: `scripts/reenvio-nao-entregues-
+  2026-09-22.mjs`), gravar `aiva_campanha`, criar opp só pros 16, marcar a fila DISPARADO; depois `/retomar`. A retomada do
+  INTERESSADO continuou saindo (56 em 90 min), lenta. Lição pro código: o `send-initial` carimba o lead ANTES de enviar;
+  numa pane do Evo isso queima a fila — carimbar depois do template (ou limpar no catch) evita o reparo manual.
+- Painel: `Reprocessar` em lead sem mensagem agora explica o 404 ("não há o que reprocessar") em vez de só o código.
+
 - **Laço VictorIA × robô de loja cortado por regra determinística** (`lib/laco-bot-calc.ts`, `npm run test:laco`; guarda 7a do
   webhook, antes de chamar o modelo). Caso: Papo Reto Cell Peças, 21/10 08:06–08:52, bot de IA da loja respondia a tudo e a
   VictorIA respondeu 77 vezes (06/10 Papo Reto 114/h e 08/10 BF Tec Mazza 42/h foram iguais). O detector antigo depende de a

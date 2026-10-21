@@ -339,7 +339,7 @@ export async function POST(
       .maybeSingle()
 
     if (!lastMsg) {
-      return NextResponse.json({ error: 'sem_mensagem_para_reprocessar' }, { status: 404 })
+      return NextResponse.json({ error: 'sem_mensagem_para_reprocessar', detalhe: 'Esse lead ainda não mandou nenhuma mensagem — o Reprocessar refaz a resposta da VictorIA à ÚLTIMA mensagem recebida, então aqui não há o que reprocessar.' }, { status: 404 })
     }
 
     // Limpa lock se existir para não bloquear o reprocessamento
