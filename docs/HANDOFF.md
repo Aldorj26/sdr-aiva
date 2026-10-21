@@ -3,6 +3,19 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
+## Estado de produção (21/10/2026)
+
+- **Laço VictorIA × robô de loja cortado por regra determinística** (`lib/laco-bot-calc.ts`, `npm run test:laco`; guarda 7a do
+  webhook, antes de chamar o modelo). Caso: Papo Reto Cell Peças, 21/10 08:06–08:52, bot de IA da loja respondia a tudo e a
+  VictorIA respondeu 77 vezes (06/10 Papo Reto 114/h e 08/10 BF Tec Mazza 42/h foram iguais). O detector antigo depende de a
+  VictorIA marcar `atendimento_automatico_detectado` ([BOT_TROCAS] até 10) e ela não marcou. Regra: ≥35 respostas dela na
+  última hora OU a mesma frase do lojista 6+ vezes → não responde, grava `[LACO_BOT:…]` + `[PAUSA_ATE:+24h]`, alerta
+  `laco_bot` em `sdr_alertas` (sem WhatsApp), e lead em INICIO/SEM_RESPOSTA/INTERESSADO/AGUARDANDO vira BOT_DETECTADO
+  (stage 69). Calibração em `sdr_mensagens` desde 01/10: humano mais intenso = 24 respostas em 60 min e frase repetida no máximo
+  5×; replay da regra pega só os 3 laços. O espelho `manual_humano` do fromMe passou a deduplicar por janela de 10 min
+  (`ehSaidaRepetida`) — antes olhava só a última saída em 30 s e gravou 219 cópias de 12 textos. O lead da Papo Reto Cell
+  foi posto em BOT_DETECTADO à mão (o card no Evo não foi movido). **Commit local; sem push ainda.**
+
 ## Estado de produção (20/10/2026)
 
 - **Loja que já vende não recebe mais o HSM 69 "liberada para o treinamento".** O Aldo viu na Fone Express (vende desde

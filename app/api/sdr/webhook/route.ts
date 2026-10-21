@@ -47,6 +47,7 @@ import { reenviarSenhaApi, telefonePorRetailer } from '@/lib/portal-aiva'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
 import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE, ehRespostaAutomatica } from '@/lib/resposta-automatica'
+import { detectarLaco, obsComLaco, ehSaidaRepetida, STATUS_VIRA_BOT, JANELA_MIN, type MsgJanela } from '@/lib/laco-bot-calc'
 import { TESTE_ABERTURA_ATIVO, varianteAbertura, ehPrimeiraResposta } from '@/lib/teste-abertura'
 import { desempenhoDoLead } from '@/lib/desempenho-loja'
 import { blocoPrompt as blocoPromptDesempenho } from '@/lib/desempenho-loja-calc'
@@ -294,18 +295,17 @@ export async function POST(req: NextRequest) {
             .eq('telefone', phone)
             .maybeSingle()
           if (lead?.id) {
-            const { data: ultimaOut } = await supabaseAdmin
+            // Dedup por JANELA (21/10/2026): olhar só a última saída em 30 s deixou 219 cópias de 12 textos
+            // num lead em laço com bot — webhooks concorrentes viam "última" diferente. lib/laco-bot-calc.ts.
+            const { data: saidasRecentes } = await supabaseAdmin
               .from('sdr_mensagens')
-              .select('conteudo, enviado_em')
+              .select('direcao, conteudo, template_hsm, enviado_em')
               .eq('lead_id', lead.id)
               .eq('direcao', 'out')
+              .gte('enviado_em', new Date(Date.now() - 10 * 60_000).toISOString())
               .order('enviado_em', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-            const ehEcoRecente =
-              ultimaOut &&
-              ultimaOut.conteudo?.trim() === textoOut &&
-              Date.now() - new Date(ultimaOut.enviado_em).getTime() < 30_000
+              .limit(60)
+            const ehEcoRecente = ehSaidaRepetida(textoOut, (saidasRecentes ?? []) as MsgJanela[])
             if (ehEcoRecente) {
               console.log(`Webhook fromMe: eco de msg própria pra ${phone}, pulando dedup`)
             } else {
@@ -770,6 +770,47 @@ export async function POST(req: NextRequest) {
   if (mId && (await mensagemMidExiste(mId))) {
     console.log(`Lead ${lead.telefone}: mId ${mId} já processado, ignorando retry`)
     return NextResponse.json({ ok: true, ignorado: 'mid_duplicado' })
+  }
+
+  // 7a. LAÇO com robô da loja (Aldo 21/10/2026) — regra determinística em lib/laco-bot-calc.ts, independente
+  // de a VictorIA perceber o bot (em 21/10 ela respondeu 77 vezes em 46 min a um bot de IA; o contador
+  // [BOT_TROCAS] só conta quando ELA marca atendimento_automatico_detectado). ≥35 respostas dela na última
+  // hora, ou a mesma frase do lojista 6+ vezes, = corta: não chama o modelo, não envia, pausa o lead 24h e,
+  // se ele ainda não é cliente, vira BOT_DETECTADO (stage 69). Humano mais intenso medido: 23 respostas/h.
+  {
+    const desde = new Date(Date.now() - JANELA_MIN * 60_000).toISOString()
+    const { data: janela } = await supabaseAdmin
+      .from('sdr_mensagens')
+      .select('direcao, conteudo, template_hsm, enviado_em')
+      .eq('lead_id', lead.id)
+      .gte('enviado_em', desde)
+      .order('enviado_em', { ascending: false })
+      .limit(400)
+    const laco = detectarLaco((janela ?? []) as MsgJanela[])
+    if (laco.laco) {
+      const viraBot = STATUS_VIRA_BOT.has(lead.status)
+      const patch: Record<string, unknown> = { observacoes: obsComLaco(lead.observacoes, laco), acionar_humano: false }
+      if (viraBot) patch.status = 'BOT_DETECTADO'
+      await supabaseAdmin.from('sdr_leads').update(patch).eq('id', lead.id)
+      if (viraBot && lead.evotalks_opportunity_id) {
+        try {
+          await changeOpportunityStage(Number(lead.evotalks_opportunity_id), STAGES.BOT_DETECTADO)
+          await addOpportunityNote(Number(lead.evotalks_opportunity_id), `Laço com robô da loja cortado pelo sistema (${laco.respostas} respostas da VictorIA em ${JANELA_MIN} min, motivo ${laco.motivo}). Sem acesso a humano.`)
+        } catch (err) {
+          console.error(`[laco_bot] Erro ao mover opp #${lead.evotalks_opportunity_id} pra Bot Detectado:`, err)
+        }
+      }
+      try {
+        await supabaseAdmin.from('sdr_alertas').insert({
+          tipo: 'laco_bot', entregue: false,
+          mensagem: `🔁 Laço com robô cortado: ${lead.nome} (${lead.telefone}) — ${laco.respostas} respostas em ${JANELA_MIN} min, repetição ${laco.repeticaoMax}x, motivo ${laco.motivo}${viraBot ? ', lead → BOT_DETECTADO' : ', lead pausado 24h'}.`,
+        })
+      } catch (err) {
+        console.error('[laco_bot] Erro ao registrar alerta:', err)
+      }
+      console.log(`[laco_bot] ${lead.telefone}: ${laco.motivo} (${laco.respostas} respostas, repetição ${laco.repeticaoMax}x) → ${viraBot ? 'BOT_DETECTADO' : 'pausa 24h'}, sem resposta`)
+      return NextResponse.json({ ok: true, ignorado: 'laco_bot', motivo: laco.motivo, respostas: laco.respostas, repeticao: laco.repeticaoMax, status: viraBot ? 'BOT_DETECTADO' : lead.status })
+    }
   }
 
   // 7b. Lojista que DESISTIU ("vamos dar uma segurada, depois eu chamo") e voltou a escrever (Aldo 08/10/2026):

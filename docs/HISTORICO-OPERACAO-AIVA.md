@@ -1715,3 +1715,16 @@ o card da matriz pra 50 (defeito já corrigido naquele dia) e a volta 50→51 pa
 70 dispara o HSM 69. O mesmo aconteceu com Eletrocel (13/10) e Gfourr (05/10). Correção: destino 51 não passa mais
 pela 70, e o handler da 70 ignora lead em LOJA_FINALIZADA_E_VENDENDO (antes ainda rebaixava o status pra TREINAR).
 
+### 21/10/2026 — laço entre a VictorIA e o robô de uma loja (77 respostas em 46 min)
+
+Na lista de atendimentos de 12–21/10 apareceu a Papo Reto Cell Peças: o WhatsApp da loja é um bot de IA que responde a
+qualquer mensagem (texto sempre diferente, tema "só PEÇAS"), e a VictorIA respondeu 77 vezes das 08:06 às 08:52 — 77
+chamadas à API e 77 envios. Já tinha acontecido em 06/10 (Papo Reto, 114 respostas numa hora) e 08/10 (BF Tec Mazza,
+42/h, duas frases). O detector existente só conta quando a própria VictorIA diz `atendimento_automatico_detectado`
+([BOT_TROCAS] até 10); com bot de IA ela acha que fala com gente. Medido em `sdr_mensagens` desde 01/10: a conversa
+humana mais intensa teve 24 respostas da VictorIA em 60 min e frase repetida no máximo 5×; os laços tiveram 43 a 126.
+Regra nova (`lib/laco-bot-calc.ts`, guarda 7a do webhook): ≥30 respostas na última hora ou a mesma frase do lojista 6+
+vezes (teto 35) = corta sem chamar o modelo, pausa 24h, alerta `laco_bot` só no banco, BOT_DETECTADO se ainda não é cliente.
+De quebra o espelho `manual_humano` (fromMe) deduplica por janela de 10 min — o dedup pela última saída em 30 s gravou
+219 cópias de 12 textos nesse lead.
+
