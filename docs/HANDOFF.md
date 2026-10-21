@@ -15,6 +15,12 @@
   2026-09-22.mjs`), gravar `aiva_campanha`, criar opp só pros 16, marcar a fila DISPARADO; depois `/retomar`. A retomada do
   INTERESSADO continuou saindo (56 em 90 min), lenta. Lição pro código: o `send-initial` carimba o lead ANTES de enviar;
   numa pane do Evo isso queima a fila — carimbar depois do template (ou limpar no catch) evita o reparo manual.
+- **Desfecho da pane (12:50):** a pausa que eu gravei às 11:10 foi desfeita pelo painel às 11:13 (`retomado_por: painel`), e o
+  disparo seguiu queimando leads até o Evo voltar (~12:15). Reparo feito com `scripts/reparo-disparo-2026-10-21.mjs`
+  (commit `1d1c5db`): 193 leads receberam o template 41 (186 + 7 na 2ª passada), 15 ganharam opp, fila marcada
+  DISPARADO, zero duplicata. Hoje: 630 leads carimbados, 604 templates — passou dos 500 porque o reparo conta no teto
+  (derivado de `aiva_campanha`), então o cron para sozinho pelo resto do dia. ⏭ Corrigir no `send-initial`: carimbar
+  `data_disparo_inicial` só depois do template (ou apagar o carimbo no catch) — sem isso toda pane do Evo exige reparo manual.
 - Painel: `Reprocessar` em lead sem mensagem agora explica o 404 ("não há o que reprocessar") em vez de só o código.
 
 - **Laço VictorIA × robô de loja cortado por regra determinística** (`lib/laco-bot-calc.ts`, `npm run test:laco`; guarda 7a do
