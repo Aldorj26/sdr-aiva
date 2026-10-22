@@ -81,9 +81,10 @@ test('marcadores e bloco da VictorIA', () => {
 
 test('bloco: o fim da semana vem com dia da semana e distância CALCULADOS (22/10: "26/10 é amanhã" foi chute)', () => {
   const obs = '[CAMP_ATIV:2026-10-13] [CAMP_ATIV_PLACAR:s=2|c=0|v=1|g=80|ct=35|fim=0|d=2026-10-21]'
-  assert.match(blocoPromptCampanha(obs, '2026-10-22')!, /vai até 26\/10, domingo — faltam 4 dias \(hoje é 22\/10, quinta-feira\)/)
-  assert.match(blocoPromptCampanha(obs, '2026-10-25')!, /vai até 26\/10, domingo — termina AMANHÃ \(hoje é 25\/10, sábado\)/)
-  assert.match(blocoPromptCampanha(obs, '2026-10-26')!, /vai até 26\/10, domingo — termina HOJE \(hoje é 26\/10, domingo\)/)
+  // 22/10/2026 é quinta; 26/10 cai na segunda seguinte
+  assert.match(blocoPromptCampanha(obs, '2026-10-22')!, /vai até 26\/10, segunda-feira — faltam 4 dias \(hoje é 22\/10, quinta-feira\)/)
+  assert.match(blocoPromptCampanha(obs, '2026-10-25')!, /vai até 26\/10, segunda-feira — termina AMANHÃ \(hoje é 25\/10, domingo\)/)
+  assert.match(blocoPromptCampanha(obs, '2026-10-26')!, /vai até 26\/10, segunda-feira — termina HOJE \(hoje é 26\/10, segunda-feira\)/)
   assert.match(blocoPromptCampanha(obs, '2026-10-22')!, /"hoje" ou "amanhã" só se estiver escrito aqui/)
   assert.deepEqual(distanciaDias('2026-10-22', '2026-10-26'), 4)
   assert.equal(diaSemana('2026-10-22'), 'quinta-feira')
