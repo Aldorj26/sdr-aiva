@@ -16,8 +16,15 @@
  *     coleta merece "retomo de onde paramos", não a abordagem do começo.
  *
  * Marcadores em observacoes:
- *   [RETOM_INT:n:ISO]  último toque enviado (n = 1..2)
- *   [RETOM_INT_FIM]    2 toques sem resposta — a régua parou
+ *   [RETOM_INT:n:ISO]       último toque enviado (n = 1..2)
+ *   [RETOM_INT_FIM]         2 toques sem resposta — a régua parou
+ *   [RETOM_INT3:ISO]        toque 3 (oferta diferente) enviado — 22/10/2026
+ *   [DESCARTE_RETOMADA:ISO] descartado pela régua (mudo 60 d+ ou sem resposta à oferta)
+ *
+ * DEPOIS DO FIM (Aldo, 22/10/2026): em 22/10 eram 1.450 leads com [RETOM_INT_FIM] e
+ * ninguém olhava pra eles. Decisão: quem é QUENTE (deu dados ou mandou 3+ mensagens)
+ * leva UM terceiro toque com oferta diferente; quem está mudo há mais de 60 dias é
+ * descartado (card vai pra 53). Quem levou o toque 3 e ficou 15 dias calado também.
  */
 
 /** Dias de silêncio do LOJISTA pra entrar na régua. */
@@ -72,18 +79,34 @@ export const SILENCIO_MAX_DIAS = 90
  * `?max_aguardando=0` da URL só vale pra rodada MANUAL — o cron chama o caminho
  * sem parâmetro. (Estava documentado errado em 23/09 como "desliga sem deploy".)
  */
-export const ORCAMENTO_DIA: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', number>> = {
+export const ORCAMENTO_DIA: Readonly<Record<'INTERESSADO' | 'AGUARDANDO' | 'OFERTA', number>> = {
   INTERESSADO: 200,
   AGUARDANDO: 120,
+  /** Toque 3 (oferta). 100/dia: o bolsão de 22/10 (~700 quentes) sai em ~7 dias úteis. */
+  OFERTA: 100,
+}
+
+/** Silêncio do lojista a partir do qual o lead esgotado é DESCARTADO (Aldo 22/10/2026). */
+export const SILENCIO_DESCARTE_DIAS = 60
+/** Dias calado depois do toque 3 pra descartar. */
+export const DIAS_DESCARTE_POS_T3 = 15
+/** Teto de descartes por dia: cada descarte move um card no Evo e dispara as automações da etapa 53;
+ *  300/dia espalha o bolsão (223 em 22/10) e deixa margem pra reverter se algo sair errado. */
+export const TETO_DESCARTE_DIA = 300
+
+/** Quente = já deu dados OU falou de verdade (3+ mensagens). Só o quente leva o toque 3. */
+export function perfilQuente(obs: string | null | undefined, mensagensIn: number): boolean {
+  return (obs ?? '').includes('[DADOS_COLETADOS:') || mensagensIn >= 3
 }
 
 /** Rótulo gravado em sdr_mensagens.template_hsm. PRÓPRIO da retomada: até 23/09
  *  ela saía como 'aiva_reativacao_48h', igual à cobrança, à biometria e a mais
  *  seis rotinas — era impossível contar quanto a retomada mandou no dia (pro
  *  orçamento) ou medir quanto ela rende (pra decidir se fica). */
-export const ROTULO: Readonly<Record<'INTERESSADO' | 'AGUARDANDO', string>> = {
+export const ROTULO: Readonly<Record<'INTERESSADO' | 'AGUARDANDO' | 'OFERTA', string>> = {
   INTERESSADO: 'aiva_retomada_interessado',
   AGUARDANDO: 'aiva_retomada_aguardando',
+  OFERTA: 'aiva_retomada_oferta',
 }
 
 /** Quanto ainda cabe hoje, dado o que já saiu. Nunca negativo. */
@@ -116,10 +139,22 @@ export const MIOLOS_SEM_DADOS: readonly string[] = [
   'Última vez que eu chamo por aqui sobre a AIVA: se quiser saber como fica pra sua loja, é só me responder. Se não for o momento, sem problema — não te incomodo mais.',
 ]
 
+/** {{2}} do HSM 48 pro TOQUE 3 — oferta diferente (Aldo 22/10/2026): em vez de explicar de
+ *  novo, convida a ver a ferramenta funcionando numa turma ao vivo da AIVA (seg/qua/sex 9h30).
+ *  Não depende de fluxo novo da VictorIA. UMA linha, sem link. */
+export const MIOLOS_OFERTA: Readonly<{ comDados: string; semDados: string }> = {
+  comDados: 'Antes de encerrar por aqui, uma proposta diferente: a AIVA faz turmas ao vivo seg, qua e sex às 9h30 mostrando a ferramenta funcionando numa loja de verdade. Quer que eu te mande o link da próxima pra você assistir, sem compromisso?',
+  semDados: 'Antes de encerrar por aqui, uma proposta diferente: em vez de eu explicar, que tal ver a AIVA funcionando ao vivo? Tem turma seg, qua e sex às 9h30. Quer o link da próxima, sem compromisso?',
+}
+
 export type Marcadores = {
   toques: number
   ultimoToqueMs: number | null
   encerrado: boolean
+  /** [RETOM_INT3:ISO] — quando saiu o toque 3; null se nunca saiu. */
+  toque3Ms: number | null
+  /** [DESCARTE_RETOMADA:ISO] já gravado — a régua não mexe mais. */
+  descartado: boolean
   optout: boolean
   pausaVigente: boolean
 }
@@ -127,12 +162,15 @@ export type Marcadores = {
 export function lerMarcadores(obs: string | null | undefined, agora = Date.now()): Marcadores {
   const o = obs ?? ''
   const toque = o.match(/\[RETOM_INT:(\d+):([^\]]+)\]/)
+  const toque3 = o.match(/\[RETOM_INT3:([^\]]+)\]/)
   const pausaIso = o.match(/\[PAUSA_ATE:([^\]]+)\]/)?.[1]
   const pausa = pausaIso ? Date.parse(pausaIso) : NaN
   return {
     toques: toque ? Number(toque[1]) : 0,
     ultimoToqueMs: toque && Number.isFinite(Date.parse(toque[2])) ? Date.parse(toque[2]) : null,
     encerrado: o.includes('[RETOM_INT_FIM]'),
+    toque3Ms: toque3 && Number.isFinite(Date.parse(toque3[1])) ? Date.parse(toque3[1]) : null,
+    descartado: o.includes('[DESCARTE_RETOMADA:'),
     optout: o.includes('[COBRANCA_FORM_OPTOUT]') || o.includes('[CONSULTORIA_OPTOUT]'),
     pausaVigente: Number.isFinite(pausa) && pausa > agora,
   }
@@ -141,16 +179,22 @@ export function lerMarcadores(obs: string | null | undefined, agora = Date.now()
 export type Decisao =
   | { acao: 'enviar'; toque: number }
   | { acao: 'encerrar' }
+  | { acao: 'descartar'; motivo: 'mudo_60d' | 'sem_resposta_oferta' }
   | { acao: 'nada'; motivo: string }
+
+/** O que a decisão do lead ESGOTADO precisa saber além dos marcadores. */
+export type Contexto = { quente: boolean; ultimaInMs: number | null }
 
 /**
  * @param diasSilencio dias desde a ÚLTIMA mensagem DO LOJISTA (não do nosso envio —
  *        senão a própria régua zeraria o contador e ela nunca avançaria).
+ * @param ctx só importa pro lead já encerrado ([RETOM_INT_FIM]): perfil quente e
+ *        instante da última mensagem dele (pra saber se respondeu ao toque 3).
  */
-export function decidir(m: Marcadores, diasSilencio: number, agora = Date.now()): Decisao {
+export function decidir(m: Marcadores, diasSilencio: number, agora = Date.now(), ctx: Contexto = { quente: false, ultimaInMs: null }): Decisao {
   if (m.optout) return { acao: 'nada', motivo: 'optout' }
   if (m.pausaVigente) return { acao: 'nada', motivo: 'pausa' }
-  if (m.encerrado) return { acao: 'nada', motivo: 'encerrado' }
+  if (m.encerrado) return decidirEsgotado(m, diasSilencio, agora, ctx)
   if (diasSilencio < SILENCIO_DIAS) return { acao: 'nada', motivo: 'conversa_viva' }
   if (diasSilencio > SILENCIO_MAX_DIAS) return { acao: 'nada', motivo: 'frio_demais' }
   if (m.toques >= MAX_TOQUES) return { acao: 'encerrar' }
@@ -160,18 +204,48 @@ export function decidir(m: Marcadores, diasSilencio: number, agora = Date.now())
   return { acao: 'enviar', toque: m.toques + 1 }
 }
 
+/**
+ * Lead que já esgotou os 2 toques. Ordem: já descartado → nada; mudo 60 d+ → descarta
+ * (quente ou não); já levou o toque 3 → respondeu? nada / 15 d calado? descarta / espera;
+ * não quente → espera os 60 d; conversa viva → nada; D+8 do toque 2 → toque 3.
+ */
+function decidirEsgotado(m: Marcadores, diasSilencio: number, agora: number, ctx: Contexto): Decisao {
+  if (m.descartado) return { acao: 'nada', motivo: 'descartado' }
+  if (diasSilencio > SILENCIO_DESCARTE_DIAS) return { acao: 'descartar', motivo: 'mudo_60d' }
+  if (m.toque3Ms != null) {
+    if (ctx.ultimaInMs != null && ctx.ultimaInMs > m.toque3Ms) return { acao: 'nada', motivo: 'respondeu_oferta' }
+    if (diasCorridos(m.toque3Ms, agora) >= DIAS_DESCARTE_POS_T3) return { acao: 'descartar', motivo: 'sem_resposta_oferta' }
+    return { acao: 'nada', motivo: 'aguardando_oferta' }
+  }
+  if (!ctx.quente) return { acao: 'nada', motivo: 'esperando_60d' }
+  if (diasSilencio < SILENCIO_DIAS) return { acao: 'nada', motivo: 'conversa_viva' }
+  if (m.ultimoToqueMs != null && diasCorridos(m.ultimoToqueMs, agora) < DIAS_ENTRE_TOQUES) {
+    return { acao: 'nada', motivo: `aguardando D+${DIAS_ENTRE_TOQUES}` }
+  }
+  return { acao: 'enviar', toque: 3 }
+}
+
 export function miolo(toque: number, temDados: boolean): string {
+  if (toque === 3) return temDados ? MIOLOS_OFERTA.comDados : MIOLOS_OFERTA.semDados
   const lista = temDados ? MIOLOS_COM_DADOS : MIOLOS_SEM_DADOS
   return lista[Math.min(toque, lista.length) - 1]
 }
 
 /** Reescreve os marcadores da retomada sem duplicar. */
-export function remontarObs(obs: string | null | undefined, patch: { toque?: number; encerrar?: boolean }, agora = new Date()): string {
+export function remontarObs(
+  obs: string | null | undefined,
+  patch: { toque?: number; encerrar?: boolean; toque3?: boolean; descartar?: boolean },
+  agora = new Date(),
+): string {
   let base = (obs ?? '').trim()
   if (patch.toque != null) {
     base = `${base.replace(/\s*\[RETOM_INT:\d+:[^\]]*\]/g, '')} [RETOM_INT:${patch.toque}:${agora.toISOString()}]`.trim()
   }
   if (patch.encerrar && !base.includes('[RETOM_INT_FIM]')) base = `${base} [RETOM_INT_FIM]`.trim()
+  if (patch.toque3) {
+    base = `${base.replace(/\s*\[RETOM_INT3:[^\]]*\]/g, '')} [RETOM_INT3:${agora.toISOString()}]`.trim()
+  }
+  if (patch.descartar && !base.includes('[DESCARTE_RETOMADA:')) base = `${base} [DESCARTE_RETOMADA:${agora.toISOString()}]`.trim()
   return base.trim()
 }
 
@@ -187,7 +261,7 @@ export type ItemFila = { status: string; dias: number; temDados: boolean }
  * O INTERESSADO vem antes na lista porque, se a rota bater o teto de tempo, é
  * ele que precisa ter saído (é o público mais quente).
  */
-export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: number, maxAguardando: number): T[] {
+export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: number, maxAguardando: number, maxOferta = 0): T[] {
   // 25/09 (Aldo): quem JÁ deu dados vem primeiro também no INTERESSADO. Medido nos
   // 326 envios de 23-24/09: 18% de resposta de pessoa com dados × 9% sem dados.
   // Dentro de cada grupo segue a ordem aprovada em 23/09 (mais frio primeiro).
@@ -195,7 +269,14 @@ export function montarFila<T extends ItemFila>(itens: T[], maxInteressado: numbe
     .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (b.dias - a.dias))
   const aguardando = itens.filter((i) => i.status === 'AGUARDANDO')
     .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (a.dias - b.dias))
-  return [...interessados.slice(0, Math.max(0, maxInteressado)), ...aguardando.slice(0, Math.max(0, maxAguardando))]
+  // OFERTA (toque 3, 22/10): por último — é o público mais frio da fila; dados primeiro, depois o mais frio.
+  const oferta = itens.filter((i) => i.status === 'OFERTA')
+    .sort((a, b) => (Number(b.temDados) - Number(a.temDados)) || (b.dias - a.dias))
+  return [
+    ...interessados.slice(0, Math.max(0, maxInteressado)),
+    ...aguardando.slice(0, Math.max(0, maxAguardando)),
+    ...oferta.slice(0, Math.max(0, maxOferta)),
+  ]
 }
 
 // Reconhecer a mensagem automática da loja mora em lib/resposta-automatica.ts desde

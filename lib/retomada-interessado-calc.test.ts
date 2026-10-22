@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, saudacaoRetomada, SILENCIO_MAX_DIAS, ORCAMENTO_DIA, ROTULO, restanteHoje,
   MIOLOS_COM_DADOS, MIOLOS_SEM_DADOS, SILENCIO_DIAS, DIAS_ENTRE_TOQUES, MAX_TOQUES,
+  MIOLOS_OFERTA, perfilQuente, SILENCIO_DESCARTE_DIAS, DIAS_DESCARTE_POS_T3,
 } from './retomada-interessado-calc.ts'
 
 const DIA = 24 * 60 * 60 * 1000
@@ -33,7 +34,65 @@ test('dois toques e acabou — nunca vira cutucada eterna', () => {
   const t3 = t2 + 30 * DIA
   assert.deepEqual(decidir(lerMarcadores(o2, t3), 40, t3), { acao: 'encerrar' })
   const o3 = remontarObs(o2, { encerrar: true })
-  assert.deepEqual(decidir(lerMarcadores(o3, t3), 40, t3), { acao: 'nada', motivo: 'encerrado' })
+  // encerrado e não quente: só espera chegar aos 60 dias de silêncio (22/10/2026)
+  assert.deepEqual(decidir(lerMarcadores(o3, t3), 40, t3), { acao: 'nada', motivo: 'esperando_60d' })
+})
+
+// ---- 22/10/2026: toque 3 (oferta diferente) e descarte dos esgotados ----
+
+test('oferta: miolos em uma linha, sem link, < 320', () => {
+  for (const m of [MIOLOS_OFERTA.comDados, MIOLOS_OFERTA.semDados]) { assert.doesNotMatch(m, /\n/); assert.doesNotMatch(m, /https?:\/\//); assert.ok(m.length < 320) }
+  assert.equal(miolo(3, true), MIOLOS_OFERTA.comDados); assert.equal(miolo(3, false), MIOLOS_OFERTA.semDados)
+})
+
+test('perfil quente: dados coletados OU 3+ mensagens do lojista', () => {
+  assert.equal(perfilQuente('[DADOS_COLETADOS:nome_socio=Ana]', 1), true)
+  assert.equal(perfilQuente(null, 3), true); assert.equal(perfilQuente(null, 2), false)
+})
+
+test('esgotado e quente: toque 3 so depois de D+8 do toque 2 e com silencio >= 7', () => {
+  const obs = remontarObs(remontarObs(null, { toque: 2 }, new Date(T0)), { encerrar: true })
+  const q = { quente: true, ultimaInMs: T0 - 20 * DIA }
+  assert.deepEqual(decidir(lerMarcadores(obs, T0 + DIA), 20, T0 + DIA, q), { acao: 'nada', motivo: `aguardando D+${DIAS_ENTRE_TOQUES}` })
+  assert.deepEqual(decidir(lerMarcadores(obs, T0 + 8 * DIA), 28, T0 + 8 * DIA, q), { acao: 'enviar', toque: 3 })
+  assert.deepEqual(decidir(lerMarcadores(obs, T0 + 8 * DIA), 28, T0 + 8 * DIA, { quente: false, ultimaInMs: null }), { acao: 'nada', motivo: 'esperando_60d' })
+  // conversa viva segura mesmo o quente
+  assert.deepEqual(decidir(lerMarcadores(obs, T0 + 8 * DIA), 3, T0 + 8 * DIA, q), { acao: 'nada', motivo: 'conversa_viva' })
+})
+
+test('esgotado e mudo ha mais de 60 dias: descarta, quente ou nao', () => {
+  const obs = remontarObs(null, { encerrar: true })
+  for (const quente of [true, false]) assert.deepEqual(decidir(lerMarcadores(obs, T0), SILENCIO_DESCARTE_DIAS + 1, T0, { quente, ultimaInMs: null }), { acao: 'descartar', motivo: 'mudo_60d' })
+  assert.notEqual(decidir(lerMarcadores(obs, T0), SILENCIO_DESCARTE_DIAS, T0, { quente: false, ultimaInMs: null }).acao, 'descartar')
+})
+
+test('depois do toque 3: 15 dias calado descarta; resposta ao toque 3 nao descarta', () => {
+  const obs = remontarObs(remontarObs(null, { encerrar: true }), { toque3: true }, new Date(T0))
+  const t = T0 + DIAS_DESCARTE_POS_T3 * DIA
+  assert.deepEqual(decidir(lerMarcadores(obs, t), 30, t, { quente: true, ultimaInMs: T0 - DIA }), { acao: 'descartar', motivo: 'sem_resposta_oferta' })
+  assert.deepEqual(decidir(lerMarcadores(obs, t - DIA), 29, t - DIA, { quente: true, ultimaInMs: T0 - DIA }), { acao: 'nada', motivo: 'aguardando_oferta' })
+  assert.deepEqual(decidir(lerMarcadores(obs, t), 10, t, { quente: true, ultimaInMs: T0 + 2 * DIA }), { acao: 'nada', motivo: 'respondeu_oferta' })
+})
+
+test('marcadores novos: toque3 e descarte gravam uma vez e sao lidos de volta', () => {
+  const o = remontarObs(remontarObs('[RETOM_INT_FIM]', { toque3: true }, new Date(T0)), { descartar: true }, new Date(T0 + DIA))
+  const m = lerMarcadores(o, T0 + DIA)
+  assert.equal(m.toque3Ms, T0); assert.equal(m.descartado, true); assert.equal(m.encerrado, true)
+  assert.deepEqual(decidir(m, 90, T0 + DIA, { quente: true, ultimaInMs: null }), { acao: 'nada', motivo: 'descartado' })
+  assert.equal((o.match(/\[DESCARTE_RETOMADA:/g) ?? []).length, 1)
+  assert.equal((remontarObs(o, { toque3: true }, new Date(T0 + DIA)).match(/\[RETOM_INT3:/g) ?? []).length, 1)
+})
+
+test('montarFila: oferta tem teto proprio e vem depois das outras', () => {
+  const it = (status: string, dias: number, temDados = false) => ({ status, dias, temDados })
+  const fila = montarFila([it('OFERTA', 10, true), it('OFERTA', 40), it('OFERTA', 20, true), it('INTERESSADO', 9)], 5, 5, 2)
+  assert.deepEqual(fila.map((f) => [f.status, f.dias]), [['INTERESSADO', 9], ['OFERTA', 20], ['OFERTA', 10]])
+  assert.equal(montarFila([it('OFERTA', 10)], 5, 5).length, 0)
+})
+
+test('chamada antiga de decidir (3 parametros) continua igual', () => {
+  assert.deepEqual(decidir(lerMarcadores(null, T0), SILENCIO_DIAS, T0), { acao: 'enviar', toque: 1 })
+  assert.deepEqual(decidir(lerMarcadores(remontarObs(null, { encerrar: true }), T0), 30, T0), { acao: 'nada', motivo: 'esperando_60d' })
 })
 
 test('se o lojista VOLTAR a falar, a regua para de tocar nele', () => {
