@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { inicioCampanha, progresso, proximaMensagem, textoMensagem, remontarObs, lerMarcas, blocoPromptCampanha, type Retrato } from './campanha-ativacao-calc.ts'
+import { inicioCampanha, progresso, proximaMensagem, textoMensagem, remontarObs, lerMarcas, blocoPromptCampanha, distanciaDias, diaSemana, type Retrato } from './campanha-ativacao-calc.ts'
 
 // série: retrato diário com o acumulado do MÊS; o retrato do dia D conta até D-1
 function serie(diario: Record<string, [number, number]>, rid = '1'): Retrato[] {
@@ -77,6 +77,16 @@ test('marcadores e bloco da VictorIA', () => {
   assert.match(b, /semana 1 de 4/)
   assert.match(b, /20 de 30 consultas/)
   assert.equal(blocoPromptCampanha('[X:1]'), null)
+})
+
+test('bloco: o fim da semana vem com dia da semana e distância CALCULADOS (22/10: "26/10 é amanhã" foi chute)', () => {
+  const obs = '[CAMP_ATIV:2026-10-13] [CAMP_ATIV_PLACAR:s=2|c=0|v=1|g=80|ct=35|fim=0|d=2026-10-21]'
+  assert.match(blocoPromptCampanha(obs, '2026-10-22')!, /vai até 26\/10, domingo — faltam 4 dias \(hoje é 22\/10, quinta-feira\)/)
+  assert.match(blocoPromptCampanha(obs, '2026-10-25')!, /vai até 26\/10, domingo — termina AMANHÃ \(hoje é 25\/10, sábado\)/)
+  assert.match(blocoPromptCampanha(obs, '2026-10-26')!, /vai até 26\/10, domingo — termina HOJE \(hoje é 26\/10, domingo\)/)
+  assert.match(blocoPromptCampanha(obs, '2026-10-22')!, /"hoje" ou "amanhã" só se estiver escrito aqui/)
+  assert.deepEqual(distanciaDias('2026-10-22', '2026-10-26'), 4)
+  assert.equal(diaSemana('2026-10-22'), 'quinta-feira')
 })
 
 test('bloco: encerrada não vira argumento e some 14 dias depois do fim', () => {

@@ -150,6 +150,22 @@ export function textoMensagem(tipo: TipoMsg, p: Progresso): string {
 
 const fmt = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
+/** Dias de `de` até `ate` (datas civis ISO). Negativo = já passou. */
+export const distanciaDias = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / DIA)
+const NOMES_DIA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+export const diaSemana = (iso: string) => NOMES_DIA[new Date(Date.parse(iso + 'T12:00:00Z')).getUTCDay()]
+
+/**
+ * "vai até 26/10, domingo — faltam 4 dias (hoje é 22/10, quinta-feira)". A distância e o dia da semana
+ * vêm CALCULADOS porque a VictorIA não tem calendário: em 22/10/2026 ela leu "vai até 26/10" e escreveu
+ * "vai até amanhã (26/10)" pro lojista. A mesma regra das turmas (bloco TURMAS já traz o dia da semana).
+ */
+export function prazoSemana(hoje: string, fim: string): string {
+  const d = distanciaDias(hoje, fim)
+  const quando = d === 0 ? 'termina HOJE' : d === 1 ? 'termina AMANHÃ' : d < 0 ? `terminou há ${-d} dia${-d === 1 ? '' : 's'}` : `faltam ${d} dias`
+  return `vai até ${fmt(fim)}, ${diaSemana(fim)} — ${quando} (hoje é ${fmt(hoje)}, ${diaSemana(hoje)})`
+}
+
 // ─── Marcadores no lead ──────────────────────────────────────────────────────────────────────────
 // [CAMP_ATIV:<inicio>] — a loja está na campanha (o webhook mostra o placar pra VictorIA)
 // [CAMP_ATIV_PLACAR:s=<n>|c=<consultas da semana>|v=<vendas acum>|g=<R$ garantido>|ct=<consultas total>|d=<retrato>]
@@ -189,12 +205,12 @@ export function blocoPromptCampanha(obs: string | null | undefined, hoje = new D
     return `[INSTRUÇÃO DO SISTEMA — CAMPANHA DE BOAS-VINDAS]\n🎁 CAMPANHA DE BOAS-VINDAS DA AIVA — ESTA LOJA PARTICIPOU (ENCERRADA em ${fmt(somaDias(inicio, 27))}).${m ? ` Prêmio previsto pelo placar: R$ ${m[4]} (a AIVA confere os CPFs diferentes e paga junto do repasse).` : ''}\nNão use mais a campanha como argumento. Só responda se ele perguntar; dúvida de valor ou pagamento → acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".\n[FIM INSTRUÇÃO DO SISTEMA]`
   }
   const placar = m
-    ? `Placar (dados do portal até ${fmt(m[7])}, atualiza 1× por dia): semana ${n} de 4 (vai até ${fmt(somaDias(inicio, 7 * n - 1))}) — ${m[2]} de ${META_CONSULTAS} consultas${VENDAS_ACUMULADAS[n] ? `, ${m[3]} de ${VENDAS_ACUMULADAS[n]} vendas somadas desde o início` : ''}. Prêmio previsto até agora: R$ ${m[4]}. Consultas no total: ${m[5]}. ⚠️ O placar conta TODAS as consultas; a meta vale só CPF diferente e quem confere é a AIVA no fechamento — fale sempre em "pelo placar" e "previsto", nunca "garantido".`
+    ? `Placar (dados do portal até ${fmt(m[7])}, atualiza 1× por dia): semana ${n} de 4 (${prazoSemana(hoje, somaDias(inicio, 7 * n - 1))}) — ${m[2]} de ${META_CONSULTAS} consultas${VENDAS_ACUMULADAS[n] ? `, ${m[3]} de ${VENDAS_ACUMULADAS[n]} vendas somadas desde o início` : ''}. Prêmio previsto até agora: R$ ${m[4]}. Consultas no total: ${m[5]}. ⚠️ O placar conta TODAS as consultas; a meta vale só CPF diferente e quem confere é a AIVA no fechamento — fale sempre em "pelo placar" e "previsto", nunca "garantido".`
     : 'Placar ainda não calculado (sai na próxima atualização diária).'
   return `[INSTRUÇÃO DO SISTEMA — CAMPANHA DE BOAS-VINDAS]
 🎁 CAMPANHA DE BOAS-VINDAS DA AIVA — ESTA LOJA ESTÁ PARTICIPANDO (começou em ${fmt(inicio)}).
 Regras (seção 🎁 do prompt): consulta = de CPF DIFERENTE (repetir o mesmo cliente não soma). Semanas 1 e 2 = ${META_CONSULTAS} consultas cada; semana 3 = ${META_CONSULTAS} consultas + 2 vendas somadas desde a semana 1; semana 4 = ${META_CONSULTAS} consultas + 6 vendas somadas. Cada semana batida = R$ ${PREMIO_SEMANA}; fechando tudo o total vira R$ ${PREMIO_TOTAL} (não soma com os R$ ${PREMIO_SEMANA}). Paga pela AIVA junto do repasse — NÃO é a comissão de R$ 10 por venda.
 ${placar}
-Pra campanha use SÓ este placar (a semana da campanha não é a do bloco de números da loja). Use quando ele perguntar da campanha ou ao dar dica de vendas. ⛔ Não diga que prêmio está garantido, não prometa prêmio de semana que ainda não fechou, não invente regra, data de pagamento ou exceção — dúvida que não está aqui: acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".
+Pra campanha use SÓ este placar (a semana da campanha não é a do bloco de números da loja). Use quando ele perguntar da campanha ou ao dar dica de vendas. ⚠️ Datas: copie o prazo como está acima; diga "hoje" ou "amanhã" só se estiver escrito aqui — você não tem calendário e já errou isso (chamou 26/10 de "amanhã" em 22/10). ⛔ Não diga que prêmio está garantido, não prometa prêmio de semana que ainda não fechou, não invente regra, data de pagamento ou exceção — dúvida que não está aqui: acionar_humano = true, motivo_humano = "duvida_campanha_boas_vindas".
 [FIM INSTRUÇÃO DO SISTEMA]`
 }
