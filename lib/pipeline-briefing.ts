@@ -10,6 +10,7 @@
  * (flag acionar_humano).
  */
 import { supabaseAdmin } from '@/lib/supabase'
+import { linhaEsgotados, type Esgotados } from '@/lib/esgotados-calc'
 
 const EVO_BASE = process.env.EVO_TALKS_BASE_URL!
 const QUEUE_ID = Number(process.env.EVO_TALKS_QUEUE_ID ?? 10)
@@ -101,7 +102,28 @@ async function contarAguardandoHumano(): Promise<number> {
   return count ?? 0
 }
 
-function montarMensagem(opps: OppFromEvo[], aguardandoHumano: number): string {
+/**
+ * Quantos leads esgotaram os 2 toques da retomada ([RETOM_INT_FIM]) e ainda estão em
+ * INTERESSADO/AGUARDANDO, quantos deles já levaram o toque 3 ([RETOM_INT3:]) e quantos a
+ * régua descartou hoje ([DESCARTE_RETOMADA:<data UTC>]). Foi a linha que faltou em 22/10: eram
+ * 1.450 parados e ninguém via. Falha na contagem devolve null e a linha é omitida.
+ */
+export async function contarEsgotados(agora = Date.now()): Promise<Esgotados | null> {
+  try {
+    const base = () => supabaseAdmin.from('sdr_leads').select('id', { count: 'exact', head: true }).eq('produto', 'AIVA')
+    const [t, o, d] = await Promise.all([
+      base().in('status', ['INTERESSADO', 'AGUARDANDO']).ilike('observacoes', '%[RETOM_INT_FIM]%'),
+      base().in('status', ['INTERESSADO', 'AGUARDANDO']).ilike('observacoes', '%[RETOM_INT3:%'),
+      base().eq('status', 'DESCARTADO').ilike('observacoes', `%[DESCARTE_RETOMADA:${new Date(agora).toISOString().slice(0, 10)}%`),
+    ])
+    if (t.error || o.error || d.error) return null
+    return { total: t.count ?? 0, comOferta: o.count ?? 0, descartadosHoje: d.count ?? 0 }
+  } catch {
+    return null
+  }
+}
+
+function montarMensagem(opps: OppFromEvo[], aguardandoHumano: number, esgotados: Esgotados | null = null): string {
   const { data, nomeDia } = brtNow()
   const total = opps.length
   const stageCount = new Map<number, number>()
@@ -123,6 +145,8 @@ function montarMensagem(opps: OppFromEvo[], aguardandoHumano: number): string {
   if (aguardandoHumano > 0) {
     linhas.push(``, `🙋 *Aguardando atendimento humano: ${aguardandoHumano}*`)
   }
+  const esg = linhaEsgotados(esgotados)
+  if (esg) linhas.push(``, esg)
 
   const preAprov = opps.filter((o) => o.fkStage === STAGE_PRE_APROVACAO)
   const cadastro = opps.filter((o) => o.fkStage === STAGE_CADASTRO_RECEBIDO)
@@ -194,9 +218,9 @@ function montarResumoCompacto(opps: OppFromEvo[], aguardandoHumano: number): str
  */
 export async function buildBriefingCompleto(): Promise<{ detalhado: string; compacto: string }> {
   const opps = await fetchOpps()
-  const aguardandoHumano = await contarAguardandoHumano()
+  const [aguardandoHumano, esgotados] = await Promise.all([contarAguardandoHumano(), contarEsgotados()])
   return {
-    detalhado: montarMensagem(opps, aguardandoHumano),
+    detalhado: montarMensagem(opps, aguardandoHumano, esgotados),
     compacto: montarResumoCompacto(opps, aguardandoHumano),
   }
 }
