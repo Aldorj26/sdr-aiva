@@ -91,8 +91,8 @@ const ALVOS: Alvo[] = [
   { rota: 'biometria', tolerancia: 6, fila: (j) => semTerminais(j, n(j.leads_em_analise)), acao: (j) => n(j.enviar) + n(j.esgotar) + tocadosHoje(j) },
   // reaviso a cada 7 dias → uma semana quieta é o normal dela
   { rota: 'senha-pendente', tolerancia: 8, fila: (j) => n(j.pendentes_portal), acao: (j) => n(j.avisar) + n(j.resolvidos) },
-  // 2 toques com 8 dias entre eles
-  { rota: 'retomada-interessado', tolerancia: 9, fila: (j) => n(j.elegiveis), acao: (j) => n(j.enviar) + n(j.encerrar) },
+  // 2 toques com 8 dias entre eles; desde 22/10 também o toque 3 (dentro de `enviar`) e o descarte dos esgotados
+  { rota: 'retomada-interessado', tolerancia: 9, fila: (j) => n(j.elegiveis), acao: (j) => n(j.enviar) + n(j.encerrar) + n(j.descartar) },
   // dicas de desempenho (05/10/2026): 45/dia enquanto houver fila; fila 0 = todas aguardando o intervalo
   { rota: 'dicas-desempenho', tolerancia: 3, fila: (j) => n(j.fila) + tocadosHoje(j), acao: (j) => tocadosHoje(j) },
   // rede de segurança: fila 0 é o estado saudável, então nunca grita por silêncio
