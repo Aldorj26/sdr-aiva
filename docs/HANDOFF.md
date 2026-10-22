@@ -3,6 +3,23 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
+## 22/10/2026 — Terceiro toque e descarte dos interessados esgotados (commits `1ab0e62`…`17bc032`, SEM push)
+
+- **Parecer do dia:** 1.450 leads em INTERESSADO/AGUARDANDO com `[RETOM_INT_FIM]` e ninguém olhava (684 com dados, 223 mudos
+  60 d+). Decisão do Aldo: opção 1 — toque 3 com oferta diferente para os quentes, descarte de quem está mudo 60 d+.
+- **O que entrou** (spec `docs/superpowers/specs/2026-10-22-terceiro-toque-interessado-design.md`, plano em `plans/`):
+  `lib/retomada-interessado-calc.ts` decide `enviar toque 3` (quente = `[DADOS_COLETADOS:` ou 3+ msgs humanas; D+8 do toque 2;
+  silêncio 7–60 d) e `descartar` (mudo > 60 d, ou 15 d calado após o toque 3). Marcadores `[RETOM_INT3:ISO]` e
+  `[DESCARTE_RETOMADA:ISO]`. Rótulo `aiva_retomada_oferta`, orçamento 100/dia; descarte teto 300/dia, roda ANTES dos envios
+  (fatia de 60 s), card → 53, update condicional (pula se status mudou ou `acionar_humano`). Vigia conta `descartar`; briefing
+  ganhou a linha ♻️ (`lib/esgotados-calc.ts`, "descartados ontem"). Testes: `test:retomada` 25/25, `test:esgotados` 2/2, tsc ok.
+- **Dry local 22/10:** oferta 574 na fila, descartar 222, esperando_60d 587, frio_demais 315 (sem FIM, > 90 d — fora do escopo).
+- **⏭ Antes do push (Aldo):** aprovar o texto da oferta (`MIOLOS_OFERTA` — convite à turma ao vivo; o revisor sugeriu tirar
+  "seg, qua e sex às 9h30" do texto porque a AIVA muda a agenda). Depois do deploy: `?dry=1` em prod, rodada manual
+  `?max=0&max_aguardando=0&max_oferta=1&max_descarte=1`, conferir card em 53 e lead ainda DESCARTADO após o webhook
+  (`sub_estado_descartado`). Por fim excluir as automações soltas 80 e 81 do Evo (MCP Omni) e decidir se a VictorIA deve
+  entregar o link da turma a prospect que responde "quero o link" (passa pelo `revisor-prompt-victoria`).
+
 ## Estado de produção (21/10/2026)
 
 - **⚠️ DISPARO D+0 PAUSADO às 11:10 por mim (motivo em `sdr_disparo_estado`): a API do Evo Talks está respondendo em 60–82 s**
