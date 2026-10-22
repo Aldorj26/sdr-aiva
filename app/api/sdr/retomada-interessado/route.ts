@@ -35,12 +35,17 @@
  * VictorIA, que retoma a coleta de onde parou (lib/claude.ts).
  *
  * Regras/textos: lib/retomada-interessado-calc.ts (`npm run test:retomada`).
- * Params (só rodada MANUAL — o cron chama sem parâmetro): ?dry · ?max=N · ?max_aguardando=N
+ * DEPOIS DO FIM (22/10/2026, Aldo): o lead com [RETOM_INT_FIM] deixou de ser "decisão humana"
+ * que ninguém tomava (eram 1.450). Quente (dados ou 3+ msgs) leva UM toque 3 com oferta
+ * diferente (rótulo aiva_retomada_oferta, 100/dia); mudo 60 d+ ou 15 d calado depois do
+ * toque 3 é DESCARTADO (status + [DESCARTE_RETOMADA] + card → 53), teto 300/dia. Regras no calc.
+ *
+ * Params (só rodada MANUAL — o cron chama sem parâmetro): ?dry · ?max=N · ?max_aguardando=N · ?max_oferta=N · ?max_descarte=N
  *   Nunca passam do que sobrou no orçamento do dia. Pra desligar uma etapa: orçamento 0 no calc + deploy.
  * Schedule (vercel.json): `0 13-19 * * 1-5` UTC = de hora em hora, 10h–16h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate } from '@/lib/evotalks'
+import { sendTemplate, changeOpportunityStage, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
@@ -48,6 +53,7 @@ import {
   decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, saudacaoRetomada,
   MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA,
   ORCAMENTO_DIA, ROTULO, restanteHoje, diaBrt,
+  perfilQuente, TETO_DESCARTE_DIA,
 } from '@/lib/retomada-interessado-calc'
 
 export const runtime = 'nodejs'
@@ -58,7 +64,8 @@ const TEMPLATE_ID = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
 const TETO_TEMPO_MS = 240_000
 const DIA_MS = 24 * 60 * 60 * 1000
 
-type Lead = { id: string; nome: string | null; telefone: string; observacoes: string | null; status: string }
+type Lead = { id: string; nome: string | null; telefone: string; observacoes: string | null; status: string; evotalks_opportunity_id: string | number | null }
+type ChaveOrcamento = keyof typeof ORCAMENTO_DIA
 
 async function executar(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
@@ -81,7 +88,18 @@ async function executar(req: NextRequest) {
       .eq('direcao', 'out').eq('template_hsm', rotulo).gte('enviado_em', inicioDia)
     return count ?? 0
   }
-  const [hojeInt, hojeAg] = await Promise.all([jaHoje(ROTULO.INTERESSADO), jaHoje(ROTULO.AGUARDANDO)])
+  // Descartes de hoje: pelo marcador [DESCARTE_RETOMADA:ISO]. O prefixo é a data UTC do ISO
+  // gravado — a rota roda 10h–16h BRT, quando o dia UTC e o dia BRT coincidem.
+  const jaDescartadosHoje = async () => {
+    const { count } = await supabaseAdmin.from('sdr_leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('produto', 'AIVA').eq('status', 'DESCARTADO')
+      .ilike('observacoes', `%[DESCARTE_RETOMADA:${new Date(agora).toISOString().slice(0, 10)}%`)
+    return count ?? 0
+  }
+  const [hojeInt, hojeAg, hojeOferta, hojeDesc] = await Promise.all([
+    jaHoje(ROTULO.INTERESSADO), jaHoje(ROTULO.AGUARDANDO), jaHoje(ROTULO.OFERTA), jaDescartadosHoje(),
+  ])
   // `?max=` / `?max_aguardando=` só valem pra rodada MANUAL (o cron chama sem
   // parâmetro) e nunca passam do que sobrou no dia
   const param = (k: string) => { const v = url.searchParams.get(k); return v === null ? null : Math.max(0, Number(v) || 0) }
@@ -89,13 +107,17 @@ async function executar(req: NextRequest) {
   const restAg = restanteHoje(ORCAMENTO_DIA.AGUARDANDO, hojeAg)
   const max = Math.min(param('max') ?? restInt, restInt)
   const maxAguardando = Math.min(param('max_aguardando') ?? restAg, restAg)
+  const restOferta = restanteHoje(ORCAMENTO_DIA.OFERTA, hojeOferta)
+  const maxOferta = Math.min(param('max_oferta') ?? restOferta, restOferta)
+  const restDesc = restanteHoje(TETO_DESCARTE_DIA, hojeDesc)
+  const maxDescarte = Math.min(param('max_descarte') ?? restDesc, restDesc)
 
   // 1) INTERESSADO + AGUARDANDO (paginado — o PostgREST corta em 1.000 e são ~2.000)
   const todos: Lead[] = []
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabaseAdmin
       .from('sdr_leads')
-      .select('id, nome, telefone, observacoes, status')
+      .select('id, nome, telefone, observacoes, status, evotalks_opportunity_id')
       .eq('produto', 'AIVA')
       .in('status', [...STATUS_RETOMADA])
       .eq('acionar_humano', false)
@@ -138,8 +160,10 @@ async function executar(req: NextRequest) {
   }
 
   // 3) decisão
-  const enviar: Array<{ lead: Lead; toque: number; temDados: boolean; dias: number; status: string }> = []
+  // `status` é a CHAVE de orçamento (INTERESSADO/AGUARDANDO/OFERTA); `statusLead` é o status real.
+  const enviar: Array<{ lead: Lead; toque: number; temDados: boolean; dias: number; status: ChaveOrcamento; statusLead: string }> = []
   const encerrar: Lead[] = []
+  const descartar: Array<{ lead: Lead; dias: number; motivo: string }> = []
   const nada: Record<string, number> = {}
   for (const l of elegiveis) {
     const ult = ultimaIn.get(l.id)
@@ -156,15 +180,22 @@ async function executar(req: NextRequest) {
       continue
     }
     const dias = Math.floor((agora - ult) / DIA_MS)
-    const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora)
-    if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, temDados, dias, status: l.status })
+    const nIn = textosIn.get(l.id)?.length ?? 0
+    const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora, { quente: perfilQuente(l.observacoes, nIn), ultimaInMs: ult })
+    if (d.acao === 'enviar') {
+      const chave: ChaveOrcamento = d.toque === 3 ? 'OFERTA' : (l.status === 'AGUARDANDO' ? 'AGUARDANDO' : 'INTERESSADO')
+      enviar.push({ lead: l, toque: d.toque, temDados, dias, status: chave, statusLead: l.status })
+    }
     else if (d.acao === 'encerrar') encerrar.push(l)
+    else if (d.acao === 'descartar') descartar.push({ lead: l, dias, motivo: d.motivo })
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
-  // DOIS orçamentos: com fila única o AGUARDANDO nunca seria atendido, porque o
-  // disparo gera INTERESSADO novo todo dia. Regras em montarFila (calc).
-  const fila = montarFila(enviar, max, maxAguardando)
+  // TRÊS orçamentos: com fila única o AGUARDANDO nunca seria atendido, porque o
+  // disparo gera INTERESSADO novo todo dia; a OFERTA (toque 3) vem por último. Regras em montarFila (calc).
+  const fila = montarFila(enviar, max, maxAguardando, maxOferta)
   const conta = (st: string) => enviar.filter((f) => f.status === st).length
+  // Descarte: o mais mudo primeiro, até o que sobrou do teto do dia.
+  const loteDescarte = [...descartar].sort((a, b) => b.dias - a.dias).slice(0, maxDescarte)
 
   const resumo = {
     interessados: todos.length,
@@ -175,9 +206,13 @@ async function executar(req: NextRequest) {
     por_status: {
       INTERESSADO: { elegiveis_hoje: conta('INTERESSADO'), orcamento_dia: ORCAMENTO_DIA.INTERESSADO, ja_enviados_hoje: hojeInt, nesta_rodada: max },
       AGUARDANDO: { elegiveis_hoje: conta('AGUARDANDO'), orcamento_dia: ORCAMENTO_DIA.AGUARDANDO, ja_enviados_hoje: hojeAg, nesta_rodada: maxAguardando },
+      OFERTA: { elegiveis_hoje: conta('OFERTA'), orcamento_dia: ORCAMENTO_DIA.OFERTA, ja_enviados_hoje: hojeOferta, nesta_rodada: maxOferta },
     },
     na_fila_hoje: fila.length,
+    oferta: conta('OFERTA'),
     encerrar: encerrar.length,
+    descartar: descartar.length,
+    descarte: { teto_dia: TETO_DESCARTE_DIA, ja_hoje: hojeDesc, nesta_rodada: loteDescarte.length },
     com_dados: enviar.filter((f) => f.temDados).length,
     nada,
   }
@@ -189,6 +224,8 @@ async function executar(req: NextRequest) {
       saudacoes_de_sigla: fila.filter((f) => saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome) !== nomeSaudacao(f.lead.nome, f.lead.observacoes)).slice(0, 10).map((f) => `${f.lead.nome} → Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}`),
       destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, status: f.status, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
       primeiros_aguardando: fila.filter((f) => f.status === 'AGUARDANDO').slice(0, 10).map((f) => ({ loja: f.lead.nome, silencio_dias: f.dias, tem_dados: f.temDados })),
+      exemplo_oferta: (() => { const f = fila.find((x) => x.status === 'OFERTA'); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(3, f.temDados)} É só responder essa mensagem. 😊` : null })(),
+      primeiros_descartes: loteDescarte.slice(0, 10).map((d) => ({ loja: d.lead.nome, telefone: d.lead.telefone, status: d.lead.status, silencio_dias: d.dias, motivo: d.motivo, tem_card: !!d.lead.evotalks_opportunity_id })),
     })
   }
 
@@ -196,7 +233,7 @@ async function executar(req: NextRequest) {
   let enviados = 0
   const falhas: string[] = []
   const enviadosPorStatus: Record<string, number> = {}
-  for (const { lead, toque, temDados, status } of fila) {
+  for (const { lead, toque, temDados, status, statusLead } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) break
     const nome = saudacaoRetomada(nomeSaudacao(lead.nome, lead.observacoes), lead.nome)
     const texto = miolo(toque, temDados)
@@ -205,15 +242,15 @@ async function executar(req: NextRequest) {
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id, direcao: 'out',
         conteudo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`,
-        template_hsm: ROTULO[status as 'INTERESSADO' | 'AGUARDANDO'] ?? ROTULO.INTERESSADO,
+        template_hsm: ROTULO[status],
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
       await supabaseAdmin.from('sdr_leads')
-        .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { toque }), data_ultimo_contato: new Date().toISOString() })
+        .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, toque === 3 ? { toque3: true } : { toque }), data_ultimo_contato: new Date().toISOString() })
         .eq('id', lead.id)
       enviados++
       enviadosPorStatus[status] = (enviadosPorStatus[status] ?? 0) + 1
-      console.log(`[retomada-interessado] ✅ [${status}] ${lead.nome} (${lead.telefone}) — toque ${toque}/${MAX_TOQUES}${temDados ? ' (tem dados)' : ''}`)
+      console.log(`[retomada-interessado] ✅ [${status}${status === 'OFERTA' ? `/${statusLead}` : ''}] ${lead.nome} (${lead.telefone}) — toque ${toque}/${toque === 3 ? 3 : MAX_TOQUES}${temDados ? ' (tem dados)' : ''}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       falhas.push(`${lead.telefone}: ${msg}`)
@@ -230,13 +267,35 @@ async function executar(req: NextRequest) {
       .update({ observacoes: remontarObs(fresco?.observacoes ?? l.observacoes, { encerrar: true }) }).eq('id', l.id)
   }
 
-  console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} falhas=${falhas.length}`)
+  // DESCARTE (22/10/2026, Aldo): esgotado e mudo 60 d+, ou 15 d calado depois do toque 3.
+  // Card primeiro (53 Sem resposta); se o Evo falhar, o lead fica como está até a próxima
+  // rodada — nunca DESCARTADO no banco com o card parado em 47. Sem card: só o banco.
+  let descartados = 0
+  for (const { lead, motivo, dias } of loteDescarte) {
+    if (Date.now() - inicio > TETO_TEMPO_MS) break
+    try {
+      if (lead.evotalks_opportunity_id) await changeOpportunityStage(Number(lead.evotalks_opportunity_id), STAGES.SEM_RESPOSTA)
+      const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
+      const { error } = await supabaseAdmin.from('sdr_leads')
+        .update({ status: 'DESCARTADO', acionar_humano: false, observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { descartar: true }) })
+        .eq('id', lead.id)
+      if (error) throw new Error(error.message)
+      descartados++
+      console.log(`[retomada-interessado] 🗑 [${lead.status}] ${lead.nome} (${lead.telefone}) — ${motivo}, ${dias} d mudo${lead.evotalks_opportunity_id ? '' : ' (sem card)'}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      falhas.push(`descarte ${lead.telefone}: ${msg}`)
+      console.error(`[retomada-interessado] ❌ descarte ${lead.nome}:`, msg)
+    }
+  }
+
+  console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} descartados=${descartados}/${loteDescarte.length} falhas=${falhas.length}`)
   // Parou pelo TEMPO com fila de hoje ainda pendente? Não é falha: a próxima
   // rodada (de hora em hora) continua de onde parou. Fica registrado pra quem
   // olhar o log não achar que foi erro.
   const cortadoPorTempo = enviados + falhas.length < fila.length
   if (cortadoPorTempo) console.log(`[retomada-interessado] teto de tempo: ${fila.length - enviados - falhas.length} ficam pra próxima rodada`)
-  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, cortado_por_tempo: cortadoPorTempo, sobraram: enviar.length - enviados, falhas })
+  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, descartados, cortado_por_tempo: cortadoPorTempo, sobraram: enviar.length - enviados, falhas })
 }
 
 export const GET = executar
