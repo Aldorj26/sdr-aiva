@@ -50,7 +50,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import {
-  decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, saudacaoRetomada,
+  decidir, lerMarcadores, remontarObs, miolo, montarFila, soRespostaAutomatica, ehRespostaAutomatica, saudacaoRetomada,
   MAX_TOQUES, SILENCIO_DIAS, SILENCIO_MAX_DIAS, STATUS_RETOMADA,
   ORCAMENTO_DIA, ROTULO, restanteHoje, diaBrt,
   perfilQuente, TETO_DESCARTE_DIA,
@@ -62,6 +62,9 @@ export const maxDuration = 300
 
 const TEMPLATE_ID = Number(process.env.AIVA_REATIVACAO_TEMPLATE_ID ?? 0)
 const TETO_TEMPO_MS = 240_000
+/** Fatia da rodada reservada ao DESCARTE, que roda ANTES dos envios (revisão 22/10): com a fila
+ *  de envio sempre maior que os ~40 que cabem em 240 s, um descarte "depois" nunca rodaria. */
+const TETO_DESCARTE_TEMPO_MS = 60_000
 const DIA_MS = 24 * 60 * 60 * 1000
 
 type Lead = { id: string; nome: string | null; telefone: string; observacoes: string | null; status: string; evotalks_opportunity_id: string | number | null }
@@ -139,6 +142,10 @@ async function executar(req: NextRequest) {
   // o PostgREST cortava calado — lead com histórico cortado virava `nunca_falou`.
   const ultimaIn = new Map<string, number>()
   const textosIn = new Map<string, string[]>()
+  // Só fala de PESSOA (revisão 22/10): a mensagem automática da loja não pode valer como
+  // "respondeu ao toque 3" nem contar pra "3+ mensagens" do perfil quente.
+  const ultimaInHumana = new Map<string, number>()
+  const nInHumano = new Map<string, number>()
   for (let i = 0; i < elegiveis.length; i += 200) {
     const ids = elegiveis.slice(i, i + 200).map((l) => l.id)
     for (let de = 0; ; de += 1000) {
@@ -154,6 +161,10 @@ async function executar(req: NextRequest) {
         const lista = textosIn.get(m.lead_id) ?? []
         lista.push(m.conteudo ?? '')
         textosIn.set(m.lead_id, lista)
+        if (!ehRespostaAutomatica(m.conteudo ?? '')) {
+          if (!ultimaInHumana.has(m.lead_id) || t > (ultimaInHumana.get(m.lead_id) as number)) ultimaInHumana.set(m.lead_id, t)
+          nInHumano.set(m.lead_id, (nInHumano.get(m.lead_id) ?? 0) + 1)
+        }
       }
       if (!data || data.length < 1000) break
     }
@@ -173,15 +184,20 @@ async function executar(req: NextRequest) {
     // mentira. Fica de fora; se for pra falar com eles, é outra abordagem.
     if (!ult) { nada.nunca_falou = (nada.nunca_falou ?? 0) + 1; continue }
     const temDados = (l.observacoes ?? '').includes('[DADOS_COLETADOS:')
+    const marcadores = lerMarcadores(l.observacoes, agora)
     // Só o robô da loja respondeu até hoje (25/09, Aldo): fica fora. Quem já deu
     // dados nunca cai aqui — passar dados é prova de que houve uma pessoa.
-    if (!temDados && soRespostaAutomatica(textosIn.get(l.id) ?? [])) {
+    // Exceção (22/10): o lead já ESGOTADO não é poupado — a spec descarta o mudo 60 d+
+    // "quente ou não", e um "só robô" com [RETOM_INT_FIM] ficaria no bolsão pra sempre.
+    if (!temDados && !marcadores.encerrado && soRespostaAutomatica(textosIn.get(l.id) ?? [])) {
       nada.so_resposta_automatica = (nada.so_resposta_automatica ?? 0) + 1
       continue
     }
     const dias = Math.floor((agora - ult) / DIA_MS)
-    const nIn = textosIn.get(l.id)?.length ?? 0
-    const d = decidir(lerMarcadores(l.observacoes, agora), dias, agora, { quente: perfilQuente(l.observacoes, nIn), ultimaInMs: ult })
+    const d = decidir(marcadores, dias, agora, {
+      quente: perfilQuente(l.observacoes, nInHumano.get(l.id) ?? 0),
+      ultimaInMs: ultimaInHumana.get(l.id) ?? null,
+    })
     if (d.acao === 'enviar') {
       const chave: ChaveOrcamento = d.toque === 3 ? 'OFERTA' : (l.status === 'AGUARDANDO' ? 'AGUARDANDO' : 'INTERESSADO')
       enviar.push({ lead: l, toque: d.toque, temDados, dias, status: chave, statusLead: l.status })
@@ -222,7 +238,7 @@ async function executar(req: NextRequest) {
       exemplo_com_dados: (() => { const f = fila.find((x) => x.temDados); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(f.toque, true)} É só responder essa mensagem. 😊` : null })(),
       exemplo_sem_dados: (() => { const f = fila.find((x) => !x.temDados); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(f.toque, false)} É só responder essa mensagem. 😊` : null })(),
       saudacoes_de_sigla: fila.filter((f) => saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome) !== nomeSaudacao(f.lead.nome, f.lead.observacoes)).slice(0, 10).map((f) => `${f.lead.nome} → Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}`),
-      destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, status: f.status, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
+      destinatarios: fila.slice(0, 20).map((f) => ({ loja: f.lead.nome, telefone: f.lead.telefone, status: f.status, status_lead: f.statusLead, toque: f.toque, silencio_dias: f.dias, tem_dados: f.temDados })),
       primeiros_aguardando: fila.filter((f) => f.status === 'AGUARDANDO').slice(0, 10).map((f) => ({ loja: f.lead.nome, silencio_dias: f.dias, tem_dados: f.temDados })),
       exemplo_oferta: (() => { const f = fila.find((x) => x.status === 'OFERTA'); return f ? `Oi ${saudacaoRetomada(nomeSaudacao(f.lead.nome, f.lead.observacoes), f.lead.nome)}, tudo bem?\n${miolo(3, f.temDados)} É só responder essa mensagem. 😊` : null })(),
       primeiros_descartes: loteDescarte.slice(0, 10).map((d) => ({ loja: d.lead.nome, telefone: d.lead.telefone, status: d.lead.status, silencio_dias: d.dias, motivo: d.motivo, tem_card: !!d.lead.evotalks_opportunity_id })),
@@ -233,6 +249,39 @@ async function executar(req: NextRequest) {
   let enviados = 0
   const falhas: string[] = []
   const enviadosPorStatus: Record<string, number> = {}
+
+  // DESCARTE (22/10/2026, Aldo): esgotado e mudo 60 d+, ou 15 d calado depois do toque 3.
+  // Roda PRIMEIRO, com fatia própria de tempo (senão a fila de envio o deixa sem vez).
+  // Card primeiro (53 Sem resposta); se o Evo falhar, o lead fica como está até a próxima
+  // rodada — nunca DESCARTADO no banco com o card parado em 47. Sem card: só o banco.
+  // Guarda de estado: o lote foi lido no começo da rodada; se o lojista respondeu ou alguém
+  // acionou humano nesse meio-tempo, o lead não é descartado (relido antes de mover o card e
+  // o update é condicional).
+  let descartados = 0
+  let descartePulados = 0
+  let descarteCortadoPorTempo = false
+  for (const { lead, motivo, dias } of loteDescarte) {
+    if (Date.now() - inicio > TETO_DESCARTE_TEMPO_MS) { descarteCortadoPorTempo = true; break }
+    try {
+      const { data: fresco } = await supabaseAdmin.from('sdr_leads')
+        .select('status, acionar_humano, observacoes').eq('id', lead.id).maybeSingle()
+      if (!fresco || !(STATUS_RETOMADA as readonly string[]).includes(fresco.status) || fresco.acionar_humano) { descartePulados++; continue }
+      if (lead.evotalks_opportunity_id) await changeOpportunityStage(Number(lead.evotalks_opportunity_id), STAGES.SEM_RESPOSTA)
+      const { data: upd, error } = await supabaseAdmin.from('sdr_leads')
+        .update({ status: 'DESCARTADO', acionar_humano: false, observacoes: remontarObs(fresco.observacoes ?? lead.observacoes, { descartar: true }) })
+        .eq('id', lead.id).in('status', [...STATUS_RETOMADA]).eq('acionar_humano', false)
+        .select('id')
+      if (error) throw new Error(error.message)
+      if (!upd?.length) { descartePulados++; continue }
+      descartados++
+      console.log(`[retomada-interessado] 🗑 [${lead.status}] ${lead.nome} (${lead.telefone}) — ${motivo}, ${dias} d mudo${lead.evotalks_opportunity_id ? '' : ' (sem card)'}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      falhas.push(`descarte ${lead.telefone}: ${msg}`)
+      console.error(`[retomada-interessado] ❌ descarte ${lead.nome}:`, msg)
+    }
+  }
+
   for (const { lead, toque, temDados, status, statusLead } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) break
     const nome = saudacaoRetomada(nomeSaudacao(lead.nome, lead.observacoes), lead.nome)
@@ -245,9 +294,11 @@ async function executar(req: NextRequest) {
         template_hsm: ROTULO[status],
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
-      await supabaseAdmin.from('sdr_leads')
+      const { error: errMarc } = await supabaseAdmin.from('sdr_leads')
         .update({ observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, toque === 3 ? { toque3: true } : { toque }), data_ultimo_contato: new Date().toISOString() })
         .eq('id', lead.id)
+      // O marcador é a única trava contra repetir o toque na próxima rodada: falha aqui é falha.
+      if (errMarc) throw new Error(`marcador não gravado após o envio: ${errMarc.message}`)
       enviados++
       enviadosPorStatus[status] = (enviadosPorStatus[status] ?? 0) + 1
       console.log(`[retomada-interessado] ✅ [${status}${status === 'OFERTA' ? `/${statusLead}` : ''}] ${lead.nome} (${lead.telefone}) — toque ${toque}/${toque === 3 ? 3 : MAX_TOQUES}${temDados ? ' (tem dados)' : ''}`)
@@ -267,35 +318,17 @@ async function executar(req: NextRequest) {
       .update({ observacoes: remontarObs(fresco?.observacoes ?? l.observacoes, { encerrar: true }) }).eq('id', l.id)
   }
 
-  // DESCARTE (22/10/2026, Aldo): esgotado e mudo 60 d+, ou 15 d calado depois do toque 3.
-  // Card primeiro (53 Sem resposta); se o Evo falhar, o lead fica como está até a próxima
-  // rodada — nunca DESCARTADO no banco com o card parado em 47. Sem card: só o banco.
-  let descartados = 0
-  for (const { lead, motivo, dias } of loteDescarte) {
-    if (Date.now() - inicio > TETO_TEMPO_MS) break
-    try {
-      if (lead.evotalks_opportunity_id) await changeOpportunityStage(Number(lead.evotalks_opportunity_id), STAGES.SEM_RESPOSTA)
-      const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()
-      const { error } = await supabaseAdmin.from('sdr_leads')
-        .update({ status: 'DESCARTADO', acionar_humano: false, observacoes: remontarObs(fresco?.observacoes ?? lead.observacoes, { descartar: true }) })
-        .eq('id', lead.id)
-      if (error) throw new Error(error.message)
-      descartados++
-      console.log(`[retomada-interessado] 🗑 [${lead.status}] ${lead.nome} (${lead.telefone}) — ${motivo}, ${dias} d mudo${lead.evotalks_opportunity_id ? '' : ' (sem card)'}`)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      falhas.push(`descarte ${lead.telefone}: ${msg}`)
-      console.error(`[retomada-interessado] ❌ descarte ${lead.nome}:`, msg)
-    }
-  }
-
-  console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} descartados=${descartados}/${loteDescarte.length} falhas=${falhas.length}`)
+  console.log(`[retomada-interessado] elegiveis=${elegiveis.length} enviados=${enviados} encerrados=${encerrar.length} descartados=${descartados}/${loteDescarte.length} (pulados ${descartePulados}${descarteCortadoPorTempo ? ', cortado por tempo' : ''}) falhas=${falhas.length}`)
   // Parou pelo TEMPO com fila de hoje ainda pendente? Não é falha: a próxima
   // rodada (de hora em hora) continua de onde parou. Fica registrado pra quem
   // olhar o log não achar que foi erro.
   const cortadoPorTempo = enviados + falhas.length < fila.length
   if (cortadoPorTempo) console.log(`[retomada-interessado] teto de tempo: ${fila.length - enviados - falhas.length} ficam pra próxima rodada`)
-  return NextResponse.json({ ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus, descartados, cortado_por_tempo: cortadoPorTempo, sobraram: enviar.length - enviados, falhas })
+  return NextResponse.json({
+    ok: true, ...resumo, enviados, enviados_por_status: enviadosPorStatus,
+    descartados, descarte_pulados: descartePulados, descarte_cortado_por_tempo: descarteCortadoPorTempo,
+    cortado_por_tempo: cortadoPorTempo, sobraram: enviar.length - enviados, falhas,
+  })
 }
 
 export const GET = executar
