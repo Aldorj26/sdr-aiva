@@ -3,7 +3,21 @@
 > Documento vivo. **Leia ao abrir a sessão; atualize ao encerrar (`/handoff`).** Substitui carregar o histórico da
 > conversa anterior: aqui vai o que foi feito, o que está em aberto e o próximo passo — nada mais.
 
-## 22/10/2026 — Terceiro toque e descarte dos interessados esgotados (commits `1ab0e62`…`17bc032`, SEM push)
+## 23/10/2026 — Comissão do vendedor só no 1º mês + data da campanha (`8d4070d`…`fc581d5`, publicados)
+
+- **Comissão de R$ 10/venda ao VENDEDOR vale só nos 30 dias da criação da loja** (`aiva_desempenho.cadastro_em`;
+  Aldo 23/10, depois de a VictorIA dizer "garantida, todo mês" à Loja André Cell em 21/10). `comissaoVendedor()` em
+  `lib/desempenho-loja-calc.ts`; linha 💰 no bloco NÚMEROS DA LOJA (VIGENTE até dd/mm / ENCERRADA / DESCONHECIDA);
+  motivo_humano novo `duvida_comissao_vendedor` (painel orienta). Prompt: 💰 da FASE 5, objeção "outra financeira",
+  exclusão na seção REPASSE; dicas e relatório não prometem fora do 1º mês. Premissa aprovada: loja com vários CNPJs
+  usa a data mais antiga (filial nova de matriz antiga = ENCERRADA). ⏭ Conferir com a AIVA se o material de
+  treinamento/apresentação diz "primeiro mês"; o revisor apontou que a VictorIA manda esse material.
+- **Prazo da campanha de boas-vindas** sai calculado ("vai até 26/10, segunda-feira — faltam 4 dias"): em 22/10 ela
+  chamou 26/10 de "amanhã". `prazoSemana()` em `lib/campanha-ativacao-calc.ts`.
+- **Disparo 500/dia** já roda na nuvem (cron Vercel); fila com ~25 mil PENDENTE (≈50 dias úteis). Só carregar lista
+  nova depende do PC (`scripts/importar-fila-varredura.mjs`).
+
+## 22/10/2026 — Terceiro toque e descarte dos interessados esgotados (commits `1ab0e62`…`17bc032`, publicados em 22/10)
 
 - **Parecer do dia:** 1.450 leads em INTERESSADO/AGUARDANDO com `[RETOM_INT_FIM]` e ninguém olhava (684 com dados, 223 mudos
   60 d+). Decisão do Aldo: opção 1 — toque 3 com oferta diferente para os quentes, descarte de quem está mudo 60 d+.
