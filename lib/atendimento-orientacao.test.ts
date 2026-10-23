@@ -10,6 +10,13 @@ test('codigo do prompt: situacao e acao proprias', () => {
   assert.match(orientar('cadastro_caf_confirmado').acao, /Marcar Atendido/)
 })
 
+test('duvida_comissao_vendedor nao cai na familia de acesso da equipe (23/10/2026)', () => {
+  const o = orientar('duvida_comissao_vendedor')
+  assert.match(o.situacao, /comissão de R\$ 10/)
+  assert.match(o.acao, /primeiro mês/)
+  assert.doesNotMatch(o.acao, /Login de operadores/)
+})
+
 test('detalhe depois dos dois pontos vai junto da situacao', () => {
   const o = orientar('cliente_final_bloqueio_indevido: Thalita, comprou ha 2 meses')
   assert.match(o.situacao, /cliente final/i)

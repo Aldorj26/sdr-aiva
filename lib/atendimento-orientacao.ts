@@ -47,6 +47,8 @@ const EXATOS: Record<string, Orientacao> = {
   duvida_pos_cadastro: { situacao: 'Dúvida depois do cadastro que a VictorIA não soube responder', acao: 'Ler a conversa e responder o lojista.' },
   duvida_qsa_historico: { situacao: 'Dúvida sobre os sócios da empresa (QSA)', acao: 'Conferir o quadro societário e responder o lojista.' },
   campanha_comissao: { situacao: 'Quer os detalhes da campanha de bônus/comissão vigente', acao: 'Passar as regras da campanha atual.' },
+  // 23/10/2026: a comissão de R$ 10/venda ao vendedor vale só no 1º mês da loja (30 dias da criação)
+  duvida_comissao_vendedor: { situacao: 'Lojista perguntou ou cobrou a comissão de R$ 10 por venda do vendedor', acao: `Conferir a data de criação da loja: a comissão vale só no primeiro mês. Vendas do primeiro mês sem pagamento → cobrar ${AIVA}; fora dele → explicar ao lojista que o incentivo encerrou.` },
   confirmar_contato: { situacao: 'Lojista desconfiou de um contato/número da Track', acao: 'Confirmar pra ele se o contato é nosso.' },
   recusou_email_socio: { situacao: 'Lojista não quis passar o e-mail do sócio', acao: 'Ligar e explicar que o e-mail é exigência do cadastro da AIVA.' },
   usuario_multi_loja: { situacao: 'Quer um mesmo usuário em mais de uma loja', acao: `Confirmar com ${AIVA} como cadastrar.` },

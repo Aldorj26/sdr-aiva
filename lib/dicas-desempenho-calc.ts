@@ -9,7 +9,7 @@
  * travou a 1ª consulta?), não dica de venda (Aldo 20/10/2026).
  * Entrega: HSM 48 ("Olá {{1}}, {{2}}"), {{2}} em UMA linha, sem \n e sem link.
  */
-import { intervaloDias, type Resumo, type Segmento } from './desempenho-loja-calc.ts'
+import { intervaloDias, comissaoVendedor, diaBrtDe, type Resumo, type Segmento } from './desempenho-loja-calc.ts'
 
 const DIA = 24 * 60 * 60 * 1000
 export const ROTULO = 'aiva_dicas_desempenho'
@@ -81,9 +81,12 @@ const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 const pl = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
 
-/** {{2}} do HSM 48. Varia pelo número de dicas já enviadas. */
-export function textoDica(r: Resumo, count: number): string {
+/** {{2}} do HSM 48. Varia pelo número de dicas já enviadas.
+ *  A comissão de R$ 10/venda ao vendedor só entra no PRIMEIRO MÊS da loja (Aldo 23/10/2026):
+ *  fora dele a variante troca por uma dica sem promessa. */
+export function textoDica(r: Resumo, count: number, agora = Date.now()): string {
   const s0 = r.semanas[0]
+  const comissaoVale = comissaoVendedor(r.cadastroEm, diaBrtDe(agora)).estado === 'vigente'
   const v2 = pl(r.vendas2, 'venda', 'vendas')
   const a2 = pl(r.aprovados2, 'cliente aprovado', 'clientes aprovados')
   const vt = pl(r.vendasTotal, 'venda', 'vendas')
@@ -92,7 +95,9 @@ export function textoDica(r: Resumo, count: number): string {
     vende_firme: [
       `na semana de ${ddmm(s0.semana)} sua loja fez ${pl(s0.vendas, 'venda', 'vendas')} pela AIVA (${brl(s0.valor_vendas)}) 👏 Dica pra subir o ticket: venda dentro do limite aprovado e complete com capa, película e fone. Quer que eu te passe como a equipe pode oferecer isso?`,
       `sua loja segue firme na AIVA: ${v2} nas últimas 2 semanas 💪 Dica da semana: ofereça o crediário pra TODO cliente que entra, até pra quem veio só olhar — quem consulta mais, vende mais. Como está o movimento aí?`,
-      `${v2} nas últimas 2 semanas, parabéns! 🎉 Lembrete pra motivar o time: a AIVA paga R$ 10 por venda pro vendedor, via Pix na chave CPF. Seus vendedores já estão cadastrados pra receber?`,
+      comissaoVale
+        ? `${v2} nas últimas 2 semanas, parabéns! 🎉 Lembrete pra motivar o time: no primeiro mês da loja a AIVA paga R$ 10 por venda pro vendedor, via Pix na chave CPF. Seus vendedores já estão cadastrados pra receber?`
+        : `${v2} nas últimas 2 semanas, parabéns! 🎉 Dica pra manter o ritmo: combine com a equipe uma meta de consultas por dia — quem consulta todo cliente que pede preço é quem mais fecha. Quantas consultas vocês fazem por dia hoje?`,
     ],
     vende_pouco: [
       `nas últimas 2 semanas sua loja teve ${a2} e ${v2} pela AIVA. Dica rápida: quando aprovar, mostre o aparelho que cabe no limite e fale da parcela, não do preço cheio. Quer mais umas dicas pra fechar esses aprovados?`,
@@ -112,7 +117,9 @@ export function textoDica(r: Resumo, count: number): string {
       `sua loja já fez ${vt} pela AIVA e faz umas semanas que não vejo ${consultou ? 'venda' : 'nem consulta de CPF'} por aqui. O que aconteceu: a aprovação caiu, a equipe mudou, travou o acesso, ou o movimento deu uma baixa? Me conta que eu te ajudo a retomar — é bem mais fácil do que começar do zero.`,
       `se o que freou as vendas pela AIVA foi cliente reprovando, me conta: a AIVA banca 100% do risco (você recebe certinho, sem calote), por isso é mais criteriosa — e o jeito de contornar é consultar TODO cliente, sem pré-julgar: quem consulta mais, aprova mais. Foi isso que parou aí, ou foi outra coisa?`,
       `quando uma loja que vendia pela AIVA para, quase sempre é vendedor que saiu e o novo ficou sem login, ou senha que travou. É o seu caso? Vendedor novo o próprio sócio cadastra pelo formulário de Login de operadores (eu te mando o link), e acesso travado tem o canal certo. Me conta o que aconteceu aí.`,
-      `você já provou que sua loja vende no crediário (${vt} pela AIVA). Cada cliente que pergunta "parcela?" e sai sem consulta é venda indo pro concorrente — e a AIVA ainda paga R$ 10 por venda pro vendedor. O que falta pra voltar a consultar essa semana?`,
+      comissaoVale
+        ? `você já provou que sua loja vende no crediário (${vt} pela AIVA). Cada cliente que pergunta "parcela?" e sai sem consulta é venda indo pro concorrente — e no primeiro mês a AIVA ainda paga R$ 10 por venda pro vendedor. O que falta pra voltar a consultar essa semana?`
+        : `você já provou que sua loja vende no crediário (${vt} pela AIVA). Cada cliente que pergunta "parcela?" e sai sem consulta é venda indo pro concorrente. O que falta pra voltar a consultar essa semana?`,
     ],
     // Abordagem INVESTIGATIVA (Aldo 20/10/2026): o objetivo é a PRIMEIRA consulta de CPF (ou a primeira
     // venda, se ela já consultou e só reprovou); cada toque pergunta o que travou e dá um motivo pra consultar.

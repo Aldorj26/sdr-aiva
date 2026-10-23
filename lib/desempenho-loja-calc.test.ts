@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { resumir, blocoPrompt, intervaloDias, SEMANAS_JANELA } from './desempenho-loja-calc.ts'
+import { resumir, blocoPrompt, intervaloDias, SEMANAS_JANELA, comissaoVendedor, COMISSAO_VENDEDOR_DIAS } from './desempenho-loja-calc.ts'
 
 const ULT = '2026-09-21'
 const MES = '2026-10'
@@ -54,4 +54,32 @@ test('bloco do prompt: numeros, datas e as travas', () => {
   assert.match(b, /120 consultas · 30 aprovados · 9 vendas \(30% dos aprovados\)/)
   assert.match(b, /ACREDITE nele/)
   assert.match(b, /Nunca invente/)
+})
+
+// 23/10/2026 (Aldo): a comissão de R$ 10/venda ao vendedor vale SÓ no primeiro mês da loja. A Loja André Cell
+// (criada 25/08) ouviu da VictorIA em 21/10 que a comissão era "garantida, todo mês".
+test('comissão do vendedor: vigente nos primeiros 30 dias da loja, encerrada depois, desconhecida sem data', () => {
+  assert.equal(COMISSAO_VENDEDOR_DIAS, 30)
+  assert.deepEqual(comissaoVendedor('2026-08-25', '2026-09-23'), { estado: 'vigente', ate: '2026-09-23' })
+  assert.deepEqual(comissaoVendedor('2026-08-25', '2026-09-24'), { estado: 'encerrada', ate: '2026-09-23' })
+  assert.deepEqual(comissaoVendedor('2026-08-25', '2026-10-21'), { estado: 'encerrada', ate: '2026-09-23' })
+  assert.deepEqual(comissaoVendedor(null, '2026-10-21'), { estado: 'desconhecida', ate: null })
+})
+
+test('resumir guarda a data de criação da loja (a mais antiga entre os CNPJs)', () => {
+  const r = resumir([], [{ ...m('2026-10', 1, 0, 0), cadastro_em: '2026-09-02' }, { ...m('2026-09', 1, 0, 0), cadastro_em: '2026-08-25' }], ULT, MES)
+  assert.equal(r.cadastroEm, '2026-08-25')
+  assert.equal(resumir([], [m('2026-10', 1, 0, 0)], ULT, MES).cadastroEm, null)
+})
+
+test('bloco do prompt diz se a comissão do vendedor ainda vale — e manda não prometer fora do 1º mês', () => {
+  const velha = resumir([], [{ ...m('2026-10', 1, 0, 0), cadastro_em: '2026-08-25' }], ULT, MES)
+  const bv = blocoPrompt(velha, '2026-10-23')
+  assert.match(bv, /Comissão de R\$ 10 por venda ao VENDEDOR[^\n]*ENCERRADA[^\n]*25\/08[^\n]*23\/09/)
+  assert.match(bv, /não diga "todo mês"/)
+  assert.match(bv, /duvida_comissao_vendedor/)
+  const nova = resumir([], [{ ...m('2026-10', 1, 0, 0), cadastro_em: '2026-10-10' }], ULT, MES)
+  assert.match(blocoPrompt(nova, '2026-10-23'), /Comissão de R\$ 10 por venda ao VENDEDOR[^\n]*VIGENTE até 08\/11/)
+  const semData = resumir([], [m('2026-10', 1, 0, 0)], ULT, MES)
+  assert.match(blocoPrompt(semData, '2026-10-23'), /Comissão de R\$ 10 por venda ao VENDEDOR[^\n]*data de criação DESCONHECIDA[^\n]*não prometa/)
 })

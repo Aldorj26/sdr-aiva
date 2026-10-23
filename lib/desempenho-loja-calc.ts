@@ -9,7 +9,22 @@
  */
 
 export type LinhaSemana = { semana: string; aprovados: number; vendas: number; valor_vendas: number }
-export type LinhaMes = { mes: string; consultas: number; aprovados: number; vendas: number; valor_vendas: number }
+export type LinhaMes = { mes: string; consultas: number; aprovados: number; vendas: number; valor_vendas: number; cadastro_em?: string | null }
+
+/**
+ * Comissão de R$ 10 por venda ao VENDEDOR: incentivo do PRIMEIRO MÊS da loja na AIVA (Aldo 23/10/2026).
+ * Contado da criação da loja no portal (`aiva_desempenho.cadastro_em`). Em 21/10 a VictorIA disse à
+ * Loja André Cell (criada 25/08) que a comissão era "garantida, todo mês" — e o lojista cobrou os vendedores.
+ */
+export const COMISSAO_VENDEDOR_DIAS = 30
+export type ComissaoVendedor = { estado: 'vigente' | 'encerrada' | 'desconhecida'; ate: string | null }
+export function comissaoVendedor(cadastroEm: string | null | undefined, hoje: string): ComissaoVendedor {
+  if (!cadastroEm) return { estado: 'desconhecida', ate: null }
+  const ate = menosDias(cadastroEm.slice(0, 10), -(COMISSAO_VENDEDOR_DIAS - 1))
+  return { estado: hoje <= ate ? 'vigente' : 'encerrada', ate }
+}
+/** Data civil BRT de um instante (pra `comissaoVendedor` e `textoDica`). */
+export const diaBrtDe = (ms: number) => new Date(ms - 3 * 3600_000).toISOString().slice(0, 10)
 
 export type Segmento = 'vende_firme' | 'vende_pouco' | 'aprova_nao_vende' | 'parou' | 'sem_uso'
 
@@ -21,6 +36,7 @@ export type Resumo = {
   vendasTotal: number             // tudo que temos (semanas + meses)
   mes: LinhaMes | null            // mês corrente (parcial)
   mesAnterior: LinhaMes | null
+  cadastroEm: string | null       // criação da loja no portal (a mais antiga entre os CNPJs) — gate da comissão do vendedor
 }
 
 /** Quantas semanas fechadas a VictorIA enxerga. */
@@ -95,7 +111,8 @@ export function resumir(
   else if (vendasTotal > 0) segmento = 'parou'
   else segmento = 'sem_uso'
 
-  return { segmento, semanas, vendas2, aprovados2, vendasTotal, mes, mesAnterior }
+  const cadastroEm = mesesBrutos.map((m) => m.cadastro_em?.slice(0, 10)).filter((d): d is string => !!d).sort()[0] ?? null
+  return { segmento, semanas, vendas2, aprovados2, vendasTotal, mes, mesAnterior, cadastroEm }
 }
 
 /**
@@ -119,7 +136,15 @@ const LEITURA: Record<Segmento, string> = {
 }
 
 /** Bloco dinâmico pro prompt (fora do cache). Números do PORTAL da AIVA, por semana fechada. */
-export function blocoPrompt(r: Resumo): string {
+export function linhaComissaoVendedor(r: Pick<Resumo, 'cadastroEm'>, hoje: string): string {
+  const c = comissaoVendedor(r.cadastroEm, hoje)
+  const regra = 'é incentivo do PRIMEIRO MÊS da loja na AIVA (30 dias da criação), paga no 10º dia útil do mês seguinte via Pix CPF'
+  if (c.estado === 'vigente') return `💰 Comissão de R$ 10 por venda ao VENDEDOR: VIGENTE até ${ddmm(c.ate as string)} (loja criada em ${ddmm(r.cadastroEm as string)}) — ${regra}. Pode usar como munição; diga que vale até ${ddmm(c.ate as string)}, não diga "todo mês".`
+  if (c.estado === 'encerrada') return `💰 Comissão de R$ 10 por venda ao VENDEDOR: ENCERRADA (loja criada em ${ddmm(r.cadastroEm as string)}; valeu até ${ddmm(c.ate as string)}) — ${regra}. ⛔ NÃO prometa, não use como munição, não diga "todo mês" nem "garantida". Se ele cobrar comissão de vendas depois de ${ddmm(c.ate as string)}: explique que o incentivo era do primeiro mês da loja e já encerrou; se ele disser que vendas DENTRO do primeiro mês não foram pagas, ou insistir → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".`
+  return `💰 Comissão de R$ 10 por venda ao VENDEDOR: data de criação DESCONHECIDA — ${regra}. ⛔ Sem a data, não prometa comissão nem diga "todo mês"; se ele perguntar ou cobrar → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".`
+}
+
+export function blocoPrompt(r: Resumo, hoje: string = diaBrtDe(Date.now())): string {
   const consultasSemAprovacao = (r.mes?.consultas ?? 0) + (r.mesAnterior?.consultas ?? 0) > 0 &&
     (r.mes?.aprovados ?? 0) + (r.mesAnterior?.aprovados ?? 0) === 0
   const leitura = consultasSemAprovacao
@@ -137,6 +162,7 @@ Leitura: ${leitura}.
 ${linhasSem}
 ${mesTxt(r.mesAnterior, 'Mês anterior')}
 ${mesTxt(r.mes, 'Mês atual até agora')}
+${linhaComissaoVendedor(r, hoje)}
 Como usar:
 - Use pra DIAGNOSTICAR e dar dica concreta quando o assunto for vendas, desempenho, "não está vendendo", aprovação ou consultas. Cite no máximo 1 ou 2 números, nunca a tabela inteira, e cite exatamente como estão aqui (sem arredondar pra faixa).
 - Se a leitura acima já mostra o gargalo, diga isso e já dê a dica pra ele — não pergunte o que o número já responde.

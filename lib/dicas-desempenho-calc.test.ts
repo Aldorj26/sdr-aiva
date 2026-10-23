@@ -37,6 +37,23 @@ test('travas', () => {
   assert.deepEqual(ok(`[CHECK_VENDA_ULTIMA:${iso(T0 - 1 * DIA)}]`), { acao: 'nada', motivo: 'check_venda_recente' })
 })
 
+test('dica só fala da comissão de R$ 10 ao vendedor no primeiro mês da loja (Aldo 23/10/2026)', () => {
+  const hoje = Date.parse('2026-10-23T14:00:00Z')
+  const firme = (cadastro: string | null) => resumir(
+    [{ semana: '2026-09-28', aprovados: 9, vendas: 4, valor_vendas: 5200 }, { semana: '2026-09-21', aprovados: 5, vendas: 2, valor_vendas: 2600 }],
+    cadastro ? [{ mes: '2026-10', consultas: 1, aprovados: 0, vendas: 0, valor_vendas: 0, cadastro_em: cadastro }] : [], '2026-09-28', '2026-10')
+  const parou = (cadastro: string | null) => resumir([], [{ mes: '2026-09', consultas: 10, aprovados: 2, vendas: 1, valor_vendas: 1300, cadastro_em: cadastro }], '2026-09-28', '2026-10')
+  // loja velha (25/08): nenhuma das 4 variantes cita a comissão
+  for (let c = 0; c < 4; c++) {
+    assert.doesNotMatch(textoDica(firme('2026-08-25'), c, hoje), /R\$ 10/)
+    assert.doesNotMatch(textoDica(parou('2026-08-25'), c, hoje), /R\$ 10/)
+    assert.doesNotMatch(textoDica(firme(null), c, hoje), /R\$ 10/)
+  }
+  // loja no 1º mês (criada 10/10): a variante da comissão continua existindo
+  assert.match(textoDica(firme('2026-10-10'), 2, hoje), /R\$ 10 por venda/)
+  assert.match(textoDica(parou('2026-10-10'), 3, hoje), /R\$ 10 por venda/)
+})
+
 test('textos: uma linha, sem link, cabem no HSM, numeros certos', () => {
   const casos: Record<Segmento, ReturnType<typeof resumir>> = {
     vende_firme: resumir([{ semana: '2026-09-28', aprovados: 9, vendas: 4, valor_vendas: 5200 }, { semana: '2026-09-21', aprovados: 5, vendas: 2, valor_vendas: 2600 }], [], '2026-09-28', '2026-10'),

@@ -102,7 +102,8 @@ function textoC(nome, loja, vendas, vendasAnt) {
   return `Acompanhando a ${loja}: semana retrasada foram ${vendasAnt} vendas e semana passada ${vendas}. Aconteceu algo por aí — equipe, movimento, alguma trava? Me conta que eu ajudo a retomar. Uma dica rápida que funciona: pedir o CPF logo na abordagem — quem consulta na entrada fecha mais na saída. 😉`
 }
 function textoD(nome, loja, vendas) {
-  return `Que semana! 🎉 ${vendas} venda(s) no crediário na ${loja} — mandaram muito. E a comissão dos vendedores agradece (R$10 por venda pra eles!). A meta de referência é 15 aparelhos no mês, e vocês estão no caminho. Quer munição pra acelerar ainda mais (combo de acessórios dentro do limite aprovado)? Tô aqui!`
+  // 23/10/2026: a comissão de R$ 10/venda ao vendedor vale só no 1º mês da loja — o texto não promete mais.
+  return `Que semana! 🎉 ${vendas} venda(s) no crediário na ${loja} — mandaram muito. A meta de referência é 15 aparelhos no mês, e vocês estão no caminho. Quer munição pra acelerar ainda mais (combo de acessórios dentro do limite aprovado)? Tô aqui!`
 }
 
 function segmenta(r, vendasAnt) {

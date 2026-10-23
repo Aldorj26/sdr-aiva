@@ -20,6 +20,14 @@ test('funil do mês, semana e eventos saem do retrato acumulado', () => {
   assert.equal(r.gargalo, 'crescer')
 })
 
+test('relatório não promete a comissão de R$ 10 ao vendedor (vale só no 1º mês; a página é de toda loja)', () => {
+  for (const seg of ['parou', 'vende_firme', 'vende_pouco'] as const) {
+    const r = diagnosticar([d('2026-10-19', 16, 5, 2), d('2026-10-05', 3, 1, 0)], seg, REDE)!
+    const tudo = JSON.stringify(r)
+    assert.doesNotMatch(tudo, /R\$ 10/)
+  }
+})
+
 test('mês novo compara com zero; serie vazia = null', () => {
   const r = diagnosticar([d('2026-11-03', 4, 1, 0)], 'aprova_nao_vende', REDE)!
   assert.deepEqual(r.semana, { desde: '2026-11-01', consultas: 4, aprovados: 1, vendas: 0, valor: 0 })

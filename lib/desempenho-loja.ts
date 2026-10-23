@@ -35,7 +35,8 @@ export async function desempenhoPorCnpjs(cnpjs: string[], ult?: string | null): 
   const mes = mesBrt()
   const [sem, mens] = await Promise.all([
     supabaseAdmin.from('aiva_desempenho_semanal').select('semana,aprovados,vendas,valor_vendas').in('cnpj', cnpjs).gte('semana', desde),
-    supabaseAdmin.from('aiva_desempenho').select('mes,consultas,aprovados,vendas,valor_vendas').in('cnpj', cnpjs).order('mes', { ascending: false }).limit(cnpjs.length * 6),
+    // cadastro_em = criação da loja no portal: gate da comissão do vendedor (1º mês) no bloco do prompt e nas dicas
+    supabaseAdmin.from('aiva_desempenho').select('mes,consultas,aprovados,vendas,valor_vendas,cadastro_em').in('cnpj', cnpjs).order('mes', { ascending: false }).limit(cnpjs.length * 6),
   ])
   if (sem.error) throw new Error(`desempenho semanal: ${sem.error.message}`)
   if (mens.error) throw new Error(`desempenho mensal: ${mens.error.message}`)
