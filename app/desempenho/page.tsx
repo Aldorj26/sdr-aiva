@@ -36,6 +36,8 @@ type Row = {
   foto_fora_pct: number | null   // formato real do portal 09/09: escala 0–100
   cadastro_em: string | null
   atencao: 'novo_sem_engajamento' | 'baixa_performance' | null
+  // calculado aqui (não vem do banco): aprovados ÷ consultas. Pedido do Aldo 26/10.
+  aprovacao?: number | null
 }
 
 // Telefone canônico pra casar desempenho ↔ sdr_leads (tira 55 e o 9º dígito),
@@ -200,7 +202,10 @@ export default async function DesempenhoPage({
   const dataRetrato = drRes.data?.[0]?.data_ref as string | undefined
   // mês do Data Studio não tem status_portal — o filtro viraria beco sem saída
   let status = dataRetrato ? sp.status : undefined
-  const todas = (dataRes.data ?? []) as Row[]
+  const todas = ((dataRes.data ?? []) as Row[]).map((r) => ({
+    ...r,
+    aprovacao: r.consultas != null && r.consultas > 0 && r.aprovados != null ? r.aprovados / r.consultas : null,
+  }))
   const anterior = new Map<string, Row>()
   for (const r of (antRes.data ?? []) as Row[]) anterior.set(r.cnpj, r)
   const { porCnpj, porFone, blobPorLead } = mapas
@@ -244,6 +249,7 @@ export default async function DesempenhoPage({
     status: { rotulo: 'Status', campo: 'status_portal', numerica: false },
     consultas: { rotulo: 'Consultas', campo: 'consultas', numerica: true },
     aprovados: { rotulo: 'Aprovados', campo: 'aprovados', numerica: true },
+    aprov_pct: { rotulo: 'Aprov. %', campo: 'aprovacao', numerica: true },
     vendas: { rotulo: 'Vendas', campo: 'vendas', numerica: true },
     conv: { rotulo: 'Conv.', campo: 'conversao', numerica: true },
     valor: { rotulo: 'Valor', campo: 'valor_vendas', numerica: true },
@@ -284,6 +290,7 @@ export default async function DesempenhoPage({
     baixa: todas.filter((r) => r.atencao === 'baixa_performance').length,
   }
   const convMedia = tot.aprovados > 0 ? tot.vendas / tot.aprovados : null
+  const aprovMedia = tot.consultas > 0 ? tot.aprovados / tot.consultas : null
   const qs = (extra: Record<string, string>) => {
     const p = new URLSearchParams()
     if (mes) p.set('mes', mes)
@@ -357,6 +364,7 @@ export default async function DesempenhoPage({
           <>
             <Card label="Ativas" value={String(tot.ativas)} href={qs({ status: 'ativas' })} ativo={status === 'ativas'} />
             <Card label="Consultas" value={tot.consultas.toLocaleString('pt-BR')} href={qs({})} />
+            <Card label="Aprovação" value={fmtPct(aprovMedia)} color="var(--accent)" href={qs({})} />
           </>
         )}
         <Card label="Aprovados" value={tot.aprovados.toLocaleString('pt-BR')} href={qs({})} />
@@ -429,6 +437,7 @@ export default async function DesempenhoPage({
                   <td style={{ padding: '0.45rem 0.6rem', color: r.status_portal === 'Ativo' ? 'var(--green)' : 'var(--text-dim)' }}>{r.status_portal ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.consultas ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.aprovados ?? '—'}</td>
+                  <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }} title="Aprovados ÷ Consultas">{fmtPct(r.aprovacao ?? null)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{r.vendas ?? '—'}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>{fmtPct(r.conversao)}</td>
                   <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtBRL(r.valor_vendas)}</td>
