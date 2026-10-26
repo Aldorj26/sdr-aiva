@@ -379,3 +379,33 @@ test('coluna NOVA do portal cai na dedução pelo stage em vez de congelar o car
     assert.equal(porLead.get('a')!.maisAntigo, Date.parse(h(30)))
   })
 }
+
+// ── AIVA reconsiderou um reprovado (DG Importados, 26/10/2026) ───────────────
+test('card em 95 pelo espelho ([PORTAL_REPROVADO]) e CNPJ aprovado no portal: volta pra etapa do portal, destravando', () => {
+  const reg = (l: string) => ({ id: l, cnpj: '33333333000191', lead_id: l, status: 'pre_cadastro_enviado' })
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '33333333000191', stage: 'dados_varejo', board_column: 'dados_varejo' })],
+    registros: [reg('reconsiderado'), reg('manual95'), reg('optout95')],
+    leads: [
+      lead('reconsiderado', 1, 'NAO_QUALIFICADO', '[PORTAL_REPROVADO:2026-10-08T03:01:03Z] [RETORNO_CNPJ_ALERTA:2026-10-26T17:22:15Z]'),
+      // card em 95 SEM o nosso marcador = o time descartou na mão: intocado
+      lead('manual95', 2, 'NAO_QUALIFICADO'),
+      lead('optout95', 3, 'OPT_OUT', '[PORTAL_REPROVADO:2026-10-08T03:01:03Z]'),
+    ],
+    stageAtual: new Map([[1, 95], [2, 95], [3, 95]]),
+  }))
+  assert.deepEqual(r.movimentos.map((m) => [m.lead_id, m.de, m.para, m.via, m.reconsiderado]), [['reconsiderado', 95, 50, [], true]])
+  assert.match(r.movimentos[0].motivo, /AIVA reconsiderou/)
+  assert.deepEqual(r.reprovados, [])
+  assert.deepEqual(r.pulados.map((p) => p.lead_id).sort(), ['manual95', 'optout95'])
+})
+
+test('reconsiderado com o portal já em cadastro finalizado passa pela 70 (HSM do treinamento)', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '33333333000191', stage: 'cadastro_finalizado', board_column: 'pronto_para_operar', retailer_id: '9001' })],
+    registros: [{ id: 'a', cnpj: '33333333000191', lead_id: 'x', status: 'pre_cadastro_enviado' }],
+    leads: [lead('x', 1, 'NAO_QUALIFICADO', '[PORTAL_REPROVADO:2026-10-08T03:01:03Z]')],
+    stageAtual: new Map([[1, 95]]),
+  }))
+  assert.deepEqual(r.movimentos.map((m) => [m.de, m.para, m.via, m.reconsiderado]), [[95, 71, [70], true]])
+})

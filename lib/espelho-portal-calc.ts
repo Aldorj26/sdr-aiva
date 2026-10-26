@@ -79,6 +79,9 @@ export type Movimento = {
   /** etapas intermediárias por onde o card passa antes de `para` (ex.: [70]) */
   via: number[]
   motivo: string
+  /** card estava em 95 (reprovado pela AIVA) e o portal passou a mostrar o CNPJ aprovado: o IO destrava o
+   *  lead (status + marcadores) ANTES de mover — senão o handler do /opportunity-stage pula status terminal */
+  reconsiderado?: boolean
 }
 export type Reprovado = {
   lead_id: string
@@ -284,6 +287,22 @@ export function calcularEspelho(e: Entrada): Resultado {
       continue
     }
     if (!melhor) continue
+
+    // 2b) AIVA RECONSIDEROU (DG Importados, 26/10/2026): o card foi pra 95 pela reprovação e, horas depois, o
+    //     portal passou a mostrar o MESMO CNPJ aprovado (dados_varejo). Ficou 18 dias preso: o status
+    //     NAO_QUALIFICADO é terminal e a 95 é "não mexe". Com o nosso [PORTAL_REPROVADO] no lead (foi o
+    //     espelho que travou, não o Nei) e o portal pedindo uma etapa real, o card volta pra ela e o lead
+    //     destrava. Card em 95 SEM o marcador = decisão manual do time; continua intocado.
+    if (opp != null && e.stageAtual.get(opp) === ETAPA.REPROVADO && lead.status !== 'OPT_OUT'
+        && (lead.observacoes ?? '').includes(`[${MARCADOR_REPROVADO}:`)) {
+      const via = melhor.para !== ETAPA.VENDENDO && ordem(melhor.para) > ORDEM[ETAPA.TREINAR] ? [ETAPA.TREINAR] : []
+      out.movimentos.push({
+        lead_id: leadId, nome, opp, de: ETAPA.REPROVADO, para: melhor.para, via,
+        motivo: `AIVA reconsiderou: portal em ${ROTULO_COLUNA[melhor.para] ?? melhor.onb.stage} (CNPJ ${soDigitos(melhor.onb.cnpj)})`,
+        reconsiderado: true,
+      })
+      continue
+    }
 
     // 3) avanço do card
     if (STATUS_TERMINAL.has(lead.status)) { out.pulados.push({ lead_id: leadId, nome, motivo: `status terminal ${lead.status}` }); continue }

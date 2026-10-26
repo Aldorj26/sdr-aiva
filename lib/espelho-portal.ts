@@ -18,7 +18,7 @@
  * Spec: docs/superpowers/specs/2026-09-16-espelho-portal-evo-design.md
  */
 import { supabaseAdmin } from '@/lib/supabase'
-import { changeOpportunityStage, getOpportunity, getPipeOpportunities, sendText } from '@/lib/evotalks'
+import { changeOpportunityStage, getOpportunity, getPipeOpportunities, sendText, STAGE_TO_STATUS } from '@/lib/evotalks'
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
 import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
@@ -412,10 +412,21 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
 
   // 5) movimentos no Evo — teto por rodada; o que sobrar volta na próxima (15 min)
   let i = 0
+  const reconsiderados: string[] = []
   for (; i < r.movimentos.length; i++) {
     if (i >= TETO_MOVIMENTOS || Date.now() - inicio > TETO_MS) break
     const m = r.movimentos[i]
     try {
+      // AIVA reconsiderou um reprovado (calc 2b): destrava ANTES de mover. O /opportunity-stage não troca
+      // status de lead NAO_QUALIFICADO (terminal) e o webhook 4c seguiria silenciando o lojista pelo
+      // [PORTAL_REPROVADO]. O [RETORNO_CNPJ_ALERTA] sai junto pra um próximo travamento avisar de novo.
+      if (m.reconsiderado) {
+        await desmarcar(m.lead_id, MARCADOR_REPROVADO)
+        await desmarcar(m.lead_id, 'RETORNO_CNPJ_ALERTA')
+        await supabaseAdmin.from('sdr_leads')
+          .update({ status: STAGE_TO_STATUS[m.para] ?? 'EM_ANALISE_AIVA', acionar_humano: false })
+          .eq('id', m.lead_id)
+      }
       // biometria aprovada sem loja criada: o marcador vai ANTES do move — o handler da 70 (HSM 69 + kit)
       // lê ele pra não prometer login nem formulário de vendedor a quem ainda não tem loja (revisor 06/10)
       if (m.motivo === MOTIVO_BIO_APROVADA) await marcar(m.lead_id, MARCADOR_ONB_ETAPA, `aguardando_aiva:${new Date().toISOString()}`)
@@ -436,6 +447,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       await marcar(m.lead_id, MARCADOR_ESPELHO, `${m.para}:${new Date().toISOString()}`)
       console.log(`[espelho-portal] opp #${m.opp} ${m.de} → ${m.para}${m.via.length ? ` (via ${m.via.join(',')})` : ''} · ${m.nome} · ${m.motivo}`)
       saida.movidos.push(m)
+      if (m.reconsiderado) reconsiderados.push(`• ${m.nome} · opp #${m.opp} → etapa ${m.para} · ${m.motivo}`)
     } catch (e) {
       const erro = String(e).slice(0, 160)
       console.error(`[espelho-portal] falha ao mover opp #${m.opp} (${m.nome}):`, erro)
@@ -706,7 +718,13 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   if (novos.length) {
     blocos.push(
       `⛔ *Pré-cadastro REPROVADO pela AIVA* (${novos.length})\n${novos.join('\n')}\n\n` +
-      'Card movido pra "Loja Descartada pela Aiva" e lead travado. Se a AIVA reconsiderar: mover o card pra Interessado e clicar Reativar no painel.',
+      'Card movido pra "Loja Descartada pela Aiva" e lead travado. Se a AIVA reconsiderar (o CNPJ voltar aprovado no portal), o espelho destrava sozinho e avisa aqui.',
+    )
+  }
+  if (reconsiderados.length) {
+    blocos.push(
+      `✅ *AIVA reconsiderou um reprovado* (${reconsiderados.length})\n${reconsiderados.join('\n')}\n\n` +
+      'O portal passou a mostrar o CNPJ aprovado: o card saiu de "Loja Descartada pela Aiva" pra etapa que o portal pede e o lead foi destravado (a VictorIA volta a responder; o link/cobrança da etapa saem sozinhos).',
     )
   }
   if (conferirNovos.length) {

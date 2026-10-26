@@ -720,7 +720,7 @@ export async function POST(req: NextRequest) {
       const aviso =
         `🔁 *LEAD TRAVADO VOLTOU A FALAR*\n\n🏪 ${lead.nome}\n📱 ${lead.telefone}\n🧾 Motivo da trava: ${motivoTrava}\n💬 "${String(conteudo ?? '').slice(0, 300)}"\n\n` +
         (reprovado
-          ? 'A VictorIA não responde (status travado). Se a AIVA reconsiderar: mova o card pra Interessado e clique Reativar no painel.'
+          ? 'A VictorIA não responde (status travado). Se a AIVA reconsiderar (CNPJ aprovado no portal), o espelho destrava sozinho em até 15 min; se o portal segue reprovado, mova o card pra Interessado e clique Reativar no painel.'
           : 'A VictorIA não responde (status travado). Se regularizou: confira na Receita, mova o card pra Interessado e clique Reativar no painel.')
       if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
       if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
