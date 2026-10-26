@@ -79,3 +79,23 @@ test('negada: marcador proprio, sem mexer nos toques genericos', () => {
   const m = lerMarcadores(o, Date.parse('2026-10-06T13:00:00Z'))
   assert.equal(m.negadaToques, 1); assert.equal(m.toques, 3)
 })
+
+// ── Lojista disse que já fez (26/10/2026, Obattacell) ────────────────────────
+test('lojista diz que fez: para os lembretes, avisa o time uma vez e some quando o portal anda', () => {
+  const o1 = remontarObs(null, { inicio: true, link: URL, toque: 1 }, new Date(T0))
+  const feita = `${o1} [BIOMETRIA_FEITA_LOJISTA:${new Date(T0 + DIA).toISOString()}]`
+  // sem o marcador, D+2 mandaria o toque 2; com ele, vira "conferir"
+  assert.deepEqual(decidir(lerMarcadores(o1, T0 + 2 * DIA), false, T0 + 2 * DIA), { acao: 'enviar', toque: 2 })
+  assert.deepEqual(decidir(lerMarcadores(feita, T0 + 2 * DIA), false, T0 + 2 * DIA), { acao: 'conferir' })
+  // avisado: nada mais, nem o esgotamento dias depois
+  const avisada = remontarObs(feita, { feitaAvisado: true }, new Date(T0 + 2 * DIA))
+  assert.equal((avisada.match(/BIOMETRIA_FEITA_AVISADO/g) ?? []).length, 1)
+  assert.deepEqual(decidir(lerMarcadores(avisada, T0 + 2 * DIA), false, T0 + 2 * DIA), { acao: 'nada', motivo: 'lojista_diz_que_fez' })
+  assert.deepEqual(decidir(lerMarcadores(avisada, T0 + 20 * DIA), false, T0 + 20 * DIA), { acao: 'nada', motivo: 'lojista_diz_que_fez' })
+  // optout e pausa continuam na frente
+  assert.deepEqual(decidir(lerMarcadores(`${feita} [BIOMETRIA_OPTOUT]`, T0 + 2 * DIA), false, T0 + 2 * DIA), { acao: 'nada', motivo: 'optout' })
+  // mesma limpeza do cron (passo 5): some junto com o link
+  const limpo = avisada.replace(/\s*\[BIOMETRIA_LINK:[^\]]*\]/g, '').replace(/\s*\[BIOMETRIA_FEITA_(?:LOJISTA:[^\]]*|AVISADO)\]/g, '').trim()
+  assert.doesNotMatch(limpo, /BIOMETRIA_FEITA|BIOMETRIA_LINK/)
+  assert.match(limpo, /BIOMETRIA_INICIO/)
+})

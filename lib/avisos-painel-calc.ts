@@ -5,7 +5,7 @@
  * Parte PURA (catálogo + regra de aviso velho); IO em lib/avisos-painel.ts.
  */
 
-export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
+export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biometria_conferir' | 'biometria' | 'formulario' | 'treinamento' | 'cadastro_recebido' | 'fase3_destravada' | 'senha_pendente'
   | 'senha_usuario' | 'portal_reprovado_conferir' | 'cnpj_irregular' | 'cnpj_invalido' | 'nunca_acessou'
 
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
@@ -20,6 +20,12 @@ export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: s
     oque: 'o lojista fez o reconhecimento facial e a AIVA não aprovou (a análise sai depois — ele acha que concluiu)',
     acao: 'Avisar o lojista e pedir pra refazer: lugar claro, sem boné/óculos, documento original. Se o link só abrir a tela de concluído, pedir um link novo pra AIVA (Mauricio/Edu).',
     ordem: 0,
+  },
+  biometria_conferir: {
+    titulo: '🪪 Lojista diz que fez a biometria, portal segue pendente',
+    oque: 'ele disse na conversa que já fez o reconhecimento facial (ou mandou o print da tela "Tudo certo") e o portal da AIVA ainda mostra pendente — a AIVA costuma levar dias pra registrar a análise. O robô parou de mandar o link',
+    acao: 'Conferir com a AIVA (Mauricio/Edu) se a selfie chegou e está na análise. Some sozinho quando o portal sair de pendente.',
+    ordem: 0.5,
   },
   biometria: {
     titulo: '🪪 Biometria não concluída',
@@ -105,6 +111,7 @@ const TERMINAIS = ['DESCARTADO', 'OPT_OUT', 'NAO_QUALIFICADO']
  * marcador sai (o espelho desmarca ao regularizar) ou o lead sai do funil.
  */
 export const PELO_MARCADOR: Partial<Record<TipoAviso, string>> = {
+  biometria_conferir: 'BIOMETRIA_FEITA_LOJISTA',
   senha_usuario: 'SENHA_USUARIO_NAO_CHEGOU',
   nunca_acessou: 'ACESSO_ESGOTADO',
   portal_reprovado_conferir: 'PORTAL_REPROVADO_CONFERIR',

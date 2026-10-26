@@ -13,6 +13,12 @@
  *   [BIOMETRIA:n:ISO]        último envio (n = 1..3)
  *   [BIOMETRIA_LINK:url]     link atual (a VictorIA usa na conversa — FASE 4)
  *   [BIOMETRIA_ESGOTADO] [BIOMETRIA_ESGOTADO_AVISADO] [BIOMETRIA_OPTOUT]
+ *   [BIOMETRIA_FEITA_LOJISTA:ISO]  o lojista DISSE na conversa que já fez (ou mandou o print da tela
+ *                            "Tudo certo") enquanto o portal ainda mostrava pendente — gravado pelo
+ *                            webhook (Aldo 26/10/2026, caso Obattacell: 3 lembretes depois do "já fiz",
+ *                            a AIVA levou 5 dias pra registrar a aprovação). Para os lembretes; o time
+ *                            é avisado UMA vez pra conferir com a AIVA ([BIOMETRIA_FEITA_AVISADO]).
+ *                            O cron apaga os dois quando a loja sai de `biometria` no portal.
  *   [BIO_NEGADA:n:ISO]       aviso de selfie REPROVADA pela AIVA (n = 1..2) — trilha própria, abaixo
  */
 
@@ -87,6 +93,9 @@ export type Marcadores = {
   esgotadoAvisado: boolean
   optout: boolean
   pausaVigente: boolean
+  /** lojista disse que já fez (webhook) — null = nunca disse */
+  feitaLojistaMs: number | null
+  feitaAvisado: boolean
 }
 
 export function lerMarcadores(obs: string | null | undefined, agora = Date.now()): Marcadores {
@@ -106,12 +115,16 @@ export function lerMarcadores(obs: string | null | undefined, agora = Date.now()
     esgotadoAvisado: o.includes('[BIOMETRIA_ESGOTADO_AVISADO]'),
     optout: o.includes('[BIOMETRIA_OPTOUT]'),
     pausaVigente: pausa != null && pausa > agora,
+    feitaLojistaMs: ms(/\[BIOMETRIA_FEITA_LOJISTA:([^\]]+)\]/),
+    feitaAvisado: o.includes('[BIOMETRIA_FEITA_AVISADO]'),
   }
 }
 
 export type Decisao =
   | { acao: 'enviar'; toque: number }
   | { acao: 'esgotou' }
+  /** lojista disse que já fez e o portal segue pendente: avisar o time UMA vez e parar de cobrar */
+  | { acao: 'conferir' }
   | { acao: 'nada'; motivo: string }
 
 /**
@@ -122,6 +135,8 @@ export type Decisao =
 export function decidir(m: Marcadores, respondeuRecente: boolean, agora = Date.now()): Decisao {
   if (m.optout) return { acao: 'nada', motivo: 'optout' }
   if (m.pausaVigente) return { acao: 'nada', motivo: 'pausa' }
+  // Ele disse que já fez: cobrar de novo é chamá-lo de mentiroso. Quem confere é o time, com a AIVA.
+  if (m.feitaLojistaMs != null) return m.feitaAvisado ? { acao: 'nada', motivo: 'lojista_diz_que_fez' } : { acao: 'conferir' }
   if (m.esgotado) return m.esgotadoAvisado ? { acao: 'nada', motivo: 'esgotado' } : { acao: 'esgotou' }
   if (m.toques >= MAX_TOQUES) return { acao: 'esgotou' }
   const proximo = m.toques + 1
@@ -135,7 +150,7 @@ export function decidir(m: Marcadores, respondeuRecente: boolean, agora = Date.n
 
 export function remontarObs(
   obs: string | null | undefined,
-  patch: { inicio?: boolean; toque?: number; link?: string; esgotado?: boolean; esgotadoAvisado?: boolean; negada?: number },
+  patch: { inicio?: boolean; toque?: number; link?: string; esgotado?: boolean; esgotadoAvisado?: boolean; negada?: number; feitaAvisado?: boolean },
   agora = new Date(),
 ): string {
   let base = (obs ?? '').trim()
@@ -146,5 +161,6 @@ export function remontarObs(
   if (patch.negada != null) base = `${base.replace(/\s*\[BIO_NEGADA:\d+:[^\]]*\]/g, '')} [BIO_NEGADA:${patch.negada}:${iso}]`.trim()
   if (patch.esgotado && !base.includes('[BIOMETRIA_ESGOTADO]')) base = `${base} [BIOMETRIA_ESGOTADO]`
   if (patch.esgotadoAvisado && !base.includes('[BIOMETRIA_ESGOTADO_AVISADO]')) base = `${base} [BIOMETRIA_ESGOTADO_AVISADO]`
+  if (patch.feitaAvisado && !base.includes('[BIOMETRIA_FEITA_AVISADO]')) base = `${base} [BIOMETRIA_FEITA_AVISADO]`
   return base.trim()
 }

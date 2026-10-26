@@ -13,7 +13,9 @@
  * VictorIA usa na conversa (bloco FASE 4 em lib/claude.ts).
  *
  * Não envia: acionar_humano, [PAUSA_ATE], [BIOMETRIA_OPTOUT], importados do
- * portal sem WhatsApp, loja sem liveness_url (aparece em `sem_link`).
+ * portal sem WhatsApp, loja sem liveness_url (aparece em `sem_link`), nem quem
+ * DISSE que já fez ([BIOMETRIA_FEITA_LOJISTA], gravado pelo webhook) — esse vira
+ * aviso "conferir com a AIVA" no painel, uma vez (Aldo 26/10/2026).
  *
  * Regras puras e textos: lib/biometria-calc.ts (`npm run test:biometria`).
  * Params: ?dry=true · ?max=N (padrão 40)
@@ -96,6 +98,7 @@ async function executar(req: NextRequest) {
   const enviar: Array<{ lead: (typeof elegiveis)[number]; toque: number; onb: NonNullable<ReturnType<typeof onbDe>>; negada?: boolean }> = []
   let negadas = 0
   const esgotar: typeof elegiveis = []
+  const conferir: typeof elegiveis = []
   const semLink: string[] = []
   const nada: Record<string, number> = {}
   // Quem já levou toque HOJE (meia-noite de Brasília). O vigia roda às 17h, depois
@@ -121,12 +124,13 @@ async function executar(req: NextRequest) {
     const d = decidir(marc, recentes.has(l.id), agora)
     if (d.acao === 'enviar') enviar.push({ lead: l, toque: d.toque, onb })
     else if (d.acao === 'esgotou') esgotar.push(l)
+    else if (d.acao === 'conferir') conferir.push(l)
     else nada[d.motivo] = (nada[d.motivo] ?? 0) + 1
   }
   // negada primeiro (notícia que o lojista não tem como saber), depois o 1º envio de quem acabou de fechar o formulário
   enviar.sort((a, b) => Number(!!b.negada) - Number(!!a.negada) || a.toque - b.toque)
   const fila = enviar.slice(0, max)
-  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length - negadas, negadas, enviar: enviar.length, esgotar: esgotar.length, sem_link: semLink.length, tocados_hoje: tocadosHoje, nada }
+  const resumo = { na_biometria_portal: pendentesPortal.length, leads_em_analise: elegiveis.length - negadas, negadas, enviar: enviar.length, esgotar: esgotar.length, conferir: conferir.length, sem_link: semLink.length, tocados_hoje: tocadosHoje, nada }
 
   if (dry) {
     return NextResponse.json({
@@ -185,6 +189,24 @@ async function executar(req: NextRequest) {
     }
   }
 
+  // Lojista disse que já fez e o portal segue pendente: o time confere com a AIVA (o lembrete
+  // automático parou no `decidir`). Aviso único por loja — [BIOMETRIA_FEITA_AVISADO].
+  if (conferir.length && !dry) {
+    const aviso =
+      `🪪 *BIOMETRIA DA AIVA — ${conferir.length} loja(s) dizem que JÁ FIZERAM e o portal segue pendente*\n\n` +
+      conferir.map((l) => `• ${l.nome} (${l.telefone})`).slice(0, 30).join('\n') +
+      '\n\nParei de mandar o link pra essas. Vale conferir com a AIVA se a selfie chegou e está na análise.' + RODAPE_PAINEL
+    await registrarAvisos('biometria_conferir', conferir.map((l) => ({ leadId: l.id, loja: l.nome, telefone: l.telefone })))
+    try {
+      if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+      if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+    } catch (e) { console.error('[biometria] aviso de conferir falhou:', e) }
+    for (const l of conferir) {
+      const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', l.id).maybeSingle()
+      await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(fresco?.observacoes ?? l.observacoes, { feitaAvisado: true }) }).eq('id', l.id)
+    }
+  }
+
   // 5) quem saiu da biometria no portal (concluiu, ou voltou) perde o [BIOMETRIA_LINK]:
   //    senão a FASE 4 seguiria dizendo "formulário concluído" e mandando um link velho
   //    — inclusive pra uma loja nova do mesmo lead (revisor 16/09).
@@ -194,7 +216,9 @@ async function executar(req: NextRequest) {
     const { data: rs } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').eq('lead_id', l.id)
     const aindaNaBiometria = (rs ?? []).some((r) => porCnpj.has(soDigitos(r.cnpj)))
     if (aindaNaBiometria) continue
-    await supabaseAdmin.from('sdr_leads').update({ observacoes: (l.observacoes ?? '').replace(/\s*\[BIOMETRIA_LINK:[^\]]*\]/g, '').trim() }).eq('id', l.id)
+    // [BIOMETRIA_FEITA_*] sai junto: o aviso "conferir" do painel fecha por esse marcador, e uma loja
+    // nova do mesmo lead começa sem o "já fez" da anterior.
+    await supabaseAdmin.from('sdr_leads').update({ observacoes: (l.observacoes ?? '').replace(/\s*\[BIOMETRIA_LINK:[^\]]*\]/g, '').replace(/\s*\[BIOMETRIA_FEITA_(?:LOJISTA:[^\]]*|AVISADO)\]/g, '').trim() }).eq('id', l.id)
     limpos++
   }
 

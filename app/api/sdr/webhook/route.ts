@@ -2041,6 +2041,17 @@ export async function POST(req: NextRequest) {
     if (resposta.motivo_humano === 'cadastro_caf_confirmado' && !obsPrev.includes('[CAF_OK')) {
       partes.push(`[CAF_OK:${new Date().toISOString()}]`)
     }
+    // Lojista disse que JÁ FEZ a biometria (ou mandou o print da tela "Tudo certo") com o portal
+    // ainda em `biometria` — [BIOMETRIA_LINK] só existe enquanto o portal está nessa etapa (o cron
+    // apaga quando sai). O cron /api/sdr/biometria lê este marcador: para os lembretes do link e
+    // avisa o time pra conferir com a AIVA (Aldo 26/10/2026, Obattacell: "já fiz" em 21/10, mais um
+    // lembrete em 26/10, aprovação registrada pela AIVA 2h depois).
+    if (
+      ['cadastro_caf_confirmado', 'biometria_em_analise_aiva', 'portal_nao_atualizou_cadastro'].includes(resposta.motivo_humano ?? '') &&
+      obsPrev.includes('[BIOMETRIA_LINK:') && !obsPrev.includes('[BIOMETRIA_FEITA_LOJISTA:')
+    ) {
+      partes.push(`[BIOMETRIA_FEITA_LOJISTA:${new Date().toISOString()}]`)
+    }
     // Contador de tentativas de furar o bot. Enquanto tentando, persiste n; ao forçar
     // BOT_DETECTADO, some (não regrava) pra que a reativação comece com contador zerado.
     if (autoDetected && !forcarBotDetectado) {
