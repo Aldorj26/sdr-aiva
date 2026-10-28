@@ -95,6 +95,9 @@ export type Reprovado = {
   jaAvisado: boolean
 }
 export type Pulado = { lead_id: string; nome: string; motivo: string }
+/** Cadastro que a AIVA tirou do quadro (30+ dias em "Formulário do varejo pendente"): o card em 50 volta pra
+ *  Pré-aprovação (54) e o pré-cadastro é refeito pelo /registros (Aldo 28/10/2026). */
+export type Derrubado = { lead_id: string; nome: string; opp: number; cnpjs: string[]; desde: string; dias: number }
 /** Reprovado no portal, mas com sinal de loja operando (card em Vendendo, RID ou registro ativo): não move, o time confere. */
 export type Conferir = { lead_id: string; nome: string; opp: number; de: number; cnpj: string; loja: string | null; motivo: string; jaAvisado: boolean }
 export type Entrada = {
@@ -108,10 +111,13 @@ export type Entrada = {
   leads: LeadEspelho[]
   /** opp id → fkStage (todas as opps abertas do funil 15) */
   stageAtual: Map<number, number>
+  /** relógio (ms) — testes passam um fixo; produção usa Date.now() */
+  agora?: number
 }
 export type Resultado = {
   movimentos: Movimento[]
   reprovados: Reprovado[]
+  derrubados: Derrubado[]
   /** ids de sdr_registros_cnpj que ganham status pre_cadastro_enviado */
   registrosEnviados: Array<string | number>
   pulados: Pulado[]
@@ -123,7 +129,7 @@ export type Resultado = {
  *  97 Biometria aprovada · 70 Cadastro finalizado · 98 Treinamento agendado · 71 Pronto para operar.
  *  Antes e depois disso o funil é nosso (prospecção até Cadastro Recebido; 51 = loja que consulta/vende). */
 export const ETAPA = {
-  EM_ANALISE: 50, BIO_PENDENTE: 96, BIO_APROVADA: 97, TREINAR: 70, TREINO_AGENDADO: 98, LOGIN: 71, PRIMEIRO_ACESSO: 99, VENDENDO: 51, REPROVADO: 95,
+  PRE_APROVACAO: 54, EM_ANALISE: 50, BIO_PENDENTE: 96, BIO_APROVADA: 97, TREINAR: 70, TREINO_AGENDADO: 98, LOGIN: 71, PRIMEIRO_ACESSO: 99, VENDENDO: 51, REPROVADO: 95,
 } as const
 /** Mesma progressão linear do ORDEM_FUNIL de lib/evotalks (duplicada aqui pra manter este módulo sem imports). */
 export const ORDEM: Record<number, number> = { 66: 0, 47: 1, 54: 2, 49: 3, 50: 4, 96: 5, 97: 6, 70: 7, 98: 8, 71: 9, 99: 10, 51: 11 }
@@ -158,6 +164,21 @@ const SEM_RESPOSTA = 53
 const NAO_MEXER = new Set([69, 93, 94, 95])
 const STATUS_TERMINAL = new Set(['OPT_OUT', 'NAO_QUALIFICADO', 'DESCARTADO', 'BOT_DETECTADO'])
 export const MARCADOR_REPROVADO = 'PORTAL_REPROVADO'
+/** [DERRUBADO_AIVA:ISO] — a AIVA tirou o cadastro do quadro e o card voltou pra Pré-aprovação. */
+export const MARCADOR_DERRUBADO = 'DERRUBADO_AIVA'
+export const MOTIVO_DERRUBADO = 'sumiu do portal da AIVA (30+ dias em formulário do varejo pendente) — refazer o pré-cadastro'
+/** Idade mínima da prova de que o portal TINHA o cadastro pra ler o sumiço como "derrubado pela AIVA"
+ *  (ela derruba com 30+ dias na coluna; a margem cobre o relógio nosso vs. o dela). */
+export const DIAS_MIN_DERRUBADO = 25
+/** Quando o portal passou a mostrar o cadastro deste lead em formulário do varejo: o mais antigo entre
+ *  [ESPELHO_PORTAL:50:ISO] (o espelho moveu o card por isso) e [ONB_ETAPA:dados_varejo:ISO] (contexto da
+ *  VictorIA). null = nunca houve prova — card em 50 por outra via (ex.: pré-cadastro que nunca chegou). */
+export function dataProvaPortal(obs: string | null | undefined): number | null {
+  const o = obs ?? ''
+  const datas = [o.match(/\[ESPELHO_PORTAL:50:([^\]]+)\]/)?.[1], o.match(/\[ONB_ETAPA:dados_varejo:([^\]]+)\]/)?.[1]]
+    .map((iso) => (iso ? Date.parse(iso) : NaN)).filter((t) => Number.isFinite(t))
+  return datas.length ? Math.min(...datas) : null
+}
 export const MARCADOR_CONFERIR = 'PORTAL_REPROVADO_CONFERIR'
 /** Motivo do movimento pra Biometria aprovada (97): o espelho grava [ONB_ETAPA:aguardando_aiva] antes de mover.
  *  (A regra de 06/10 "biometria aprovada → Treinar" foi substituída pela etapa própria em 07/10/2026.) */
@@ -208,7 +229,7 @@ export function calcularEspelho(e: Entrada): Resultado {
     else registrosPorLead.set(r.lead_id, [r])
   }
 
-  const out: Resultado = { movimentos: [], reprovados: [], registrosEnviados: [], pulados: [], conferir: [] }
+  const out: Resultado = { movimentos: [], reprovados: [], derrubados: [], registrosEnviados: [], pulados: [], conferir: [] }
 
   for (const [leadId, regs] of registrosPorLead) {
     const lead = leadPorId.get(leadId)
@@ -243,6 +264,25 @@ export function calcularEspelho(e: Entrada): Resultado {
 
     const oppId = lead.evotalks_opportunity_id != null ? Number(lead.evotalks_opportunity_id) : NaN
     const opp = Number.isFinite(oppId) && oppId > 0 ? oppId : null
+
+    // 1c) DERRUBADO PELA AIVA (Aldo 28/10/2026): a AIVA vai tirar do quadro quem fica 30+ dias em
+    //     "Formulário do varejo pendente" (490 lojas na coluna em 28/10, 264 com mais de 30 dias). O cadastro
+    //     SOME do portal — e nenhum CNPJ do lead no portal era silêncio (`melhor` nulo), o card ficaria em 50
+    //     pra sempre. Regra: card em 50, lead EM_ANALISE_AIVA, prova de que o portal TINHA o cadastro há
+    //     DIAS_MIN_DERRUBADO+ dias e nenhum CNPJ do lead no portal → volta pra Pré-aprovação (54); o IO põe
+    //     o CNPJ de volta em pendente no /registros pro pré-cadastro ser refeito. Card em 50 SEM a prova é
+    //     pré-cadastro que nunca chegou (trilha 11), não derrubado. Importado do portal (sem conversa) só avisa.
+    if (!melhor && !reprovadoEm && opp != null && e.stageAtual.get(opp) === ETAPA.EM_ANALISE && lead.status === 'EM_ANALISE_AIVA') {
+      const obs = lead.observacoes ?? ''
+      const desde = dataProvaPortal(obs)
+      if (desde != null) {
+        const dias = Math.floor(((e.agora ?? Date.now()) - desde) / 86_400_000)
+        if (dias < DIAS_MIN_DERRUBADO) { out.pulados.push({ lead_id: leadId, nome, motivo: `sumiu do portal com ${dias} dia(s) na etapa 50 — derrubado só a partir de ${DIAS_MIN_DERRUBADO}` }); continue }
+        if (obs.includes('[IMPORTADO_PORTAL:')) { out.pulados.push({ lead_id: leadId, nome, motivo: `sumiu do portal (${dias} dias), mas é importado do portal sem conversa — não volta pra pré-aprovação` }); continue }
+        out.derrubados.push({ lead_id: leadId, nome, opp, cnpjs: regs.map((r) => soDigitos(r.cnpj)), desde: new Date(desde).toISOString(), dias })
+        continue
+      }
+    }
 
     // 2a) LOJA QUE OPERA E TEM OUTRO CNPJ REPROVADO (achado 24/09/2026).
     //     Quando o lead tem mais de um CNPJ e UM deles avança, `melhor` fica

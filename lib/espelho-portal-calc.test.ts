@@ -409,3 +409,40 @@ test('reconsiderado com o portal já em cadastro finalizado passa pela 70 (HSM d
   }))
   assert.deepEqual(r.movimentos.map((m) => [m.de, m.para, m.via, m.reconsiderado]), [[95, 71, [70], true]])
 })
+
+// ── Derrubado pela AIVA: 30+ dias em formulário do varejo pendente (Aldo 28/10/2026) ──
+import { DIAS_MIN_DERRUBADO, dataProvaPortal } from './espelho-portal-calc.ts'
+
+test('derrubado: card em 50 com prova antiga do portal e CNPJ sumido volta pra 54; sem prova, novo ou importado não', () => {
+  const DIA = 86_400_000
+  const agora = Date.parse('2026-10-28T12:00:00Z')
+  const velho = new Date(agora - 40 * DIA).toISOString()
+  const novo = new Date(agora - 10 * DIA).toISOString()
+  const reg = (l: string, cnpj: string) => ({ id: l, cnpj, lead_id: l, status: 'pre_cadastro_enviado' })
+  const r = calcularEspelho(base({
+    agora,
+    onboardings: [onb({ cnpj: '99999999000191', stage: 'dados_varejo', board_column: 'dados_varejo' })],
+    registros: [reg('derrubado', '11111111000191'), reg('semprova', '22222222000191'), reg('recente', '33333333000191'), reg('importado', '44444444000191'), reg('aindaNoPortal', '99999999000191'), reg('em49', '55555555000191')],
+    leads: [
+      lead('derrubado', 1, 'EM_ANALISE_AIVA', `[ESPELHO_PORTAL:50:${velho}] [ONB_ETAPA:dados_varejo:${novo}]`),
+      lead('semprova', 2, 'EM_ANALISE_AIVA', '[CAD_ALERTADO]'),
+      lead('recente', 3, 'EM_ANALISE_AIVA', `[ESPELHO_PORTAL:50:${novo}]`),
+      lead('importado', 4, 'EM_ANALISE_AIVA', `[IMPORTADO_PORTAL:x] [ONB_ETAPA:dados_varejo:${velho}]`),
+      lead('aindaNoPortal', 5, 'EM_ANALISE_AIVA', `[ESPELHO_PORTAL:50:${velho}]`),
+      lead('em49', 6, 'CADASTRO_RECEBIDO', `[ESPELHO_PORTAL:50:${velho}]`),
+    ],
+    stageAtual: new Map([[1, 50], [2, 50], [3, 50], [4, 50], [5, 50], [6, 49]]),
+  }))
+  assert.deepEqual(r.derrubados.map((d) => [d.lead_id, d.opp, d.cnpjs, d.dias]), [['derrubado', 1, ['11111111000191'], 40]])
+  // a prova mais antiga manda (ESPELHO 40 dias, não o ONB de 10)
+  assert.equal(r.derrubados[0].desde, velho)
+  assert.deepEqual(r.movimentos, [])
+  const motivos = Object.fromEntries(r.pulados.map((p) => [p.lead_id, p.motivo]))
+  assert.match(motivos.recente, /10 dia/)
+  assert.match(motivos.importado, /importado/)
+  assert.equal(motivos.semprova, undefined)
+  assert.equal(motivos.aindaNoPortal, undefined)
+  assert.equal(motivos.em49, undefined)
+  assert.equal(DIAS_MIN_DERRUBADO, 25)
+  assert.equal(dataProvaPortal('[X]'), null)
+})

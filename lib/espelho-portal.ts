@@ -21,9 +21,11 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { changeOpportunityStage, getOpportunity, getPipeOpportunities, sendText, STAGE_TO_STATUS } from '@/lib/evotalks'
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
 import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
+import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
 import {
   calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
+  MARCADOR_DERRUBADO, MOTIVO_DERRUBADO,
   preCadastroNaoChegou, PRE_CAD_HORAS, type PreCadastroEstado,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
@@ -222,6 +224,8 @@ export type SaidaEspelho = {
   onboarding_aberto: { dados_varejo: number; biometria: number; aguardando_aiva: number; marcados: number; limpos: number }
   /** leads com pré-cadastro marcado como enviado há 24h+ que não chegou ao portal (no dry: os que seriam) */
   pre_cadastro_nao_chegou: string[]
+  /** a AIVA tirou o cadastro do quadro (30+ dias em formulário pendente): card voltou pra Pré-aprovação (no dry: os que voltariam) */
+  derrubados: string[]
   /** mesmo movimento (opp+de+para) repetido em 4 rodadas seguidas = card travado (no dry: os que avisariam) */
   repetidos: string[]
   /** coluna do quadro da AIVA que ninguém mapeou — a loja cai na dedução pelo stage, mas o mapa precisa crescer */
@@ -306,7 +310,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
-    pre_cadastro_nao_chegou: [], repetidos: [], colunas_desconhecidas: [],
+    pre_cadastro_nao_chegou: [], derrubados: [], repetidos: [], colunas_desconhecidas: [],
   }
 
   // coluna nova no quadro da AIVA: `etapaDesejada` cai na dedução pelo stage em vez de congelar o card,
@@ -455,6 +459,36 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     }
   }
   saida.sobraram = r.movimentos.length - i
+
+  // 5b) DERRUBADOS PELA AIVA (calc 1c): card 50 → 54 Pré-aprovação, lead PRE_APROVACAO (a VictorIA responde
+  //     "em análise"), CNPJs do lead voltam a PENDENTE no /registros pro pré-cadastro ser refeito pelo
+  //     "Abrir form". Move silencioso: o handler da 54 só troca o status (não grava "dados enviados pra
+  //     planilha"). Quando a AIVA aceitar o pré-cadastro de novo, o card anda sozinho pela coluna real.
+  const derrubadosFeitos: string[] = []
+  for (const x of r.derrubados) {
+    const linha = `• ${x.nome} · opp #${x.opp} · CNPJ ${x.cnpjs.join('/')} · ${x.dias} dias na etapa`
+    if (dry) { derrubadosFeitos.push(linha); continue }
+    if (Date.now() - inicio > TETO_MS) { saida.sobraram += 1; continue }
+    try {
+      await desmarcar(x.lead_id, MARCADOR_ONB_ETAPA)
+      await desmarcar(x.lead_id, MARCADOR_ESPELHO)
+      await marcar(x.lead_id, MARCADOR_DERRUBADO, new Date().toISOString())
+      await marcar(x.lead_id, 'MOVE_SILENCIOSO', `${ETAPA.PRE_APROVACAO}:${new Date().toISOString()}`)
+      await supabaseAdmin.from('sdr_leads').update({ status: 'PRE_APROVACAO', acionar_humano: false }).eq('id', x.lead_id)
+      await supabaseAdmin.from('sdr_registros_cnpj').update({ enviado: false, origem: null, enviado_em: null, status: 'informada' }).eq('lead_id', x.lead_id).neq('status', 'ativa')
+      const corpo = await changeOpportunityStage(x.opp, ETAPA.PRE_APROVACAO)
+      await new Promise((res) => setTimeout(res, 800))
+      const relida = Number((await getOpportunity(x.opp)).fkStage)
+      if (relida !== ETAPA.PRE_APROVACAO) throw new Error(`Evo respondeu 200 mas a opp ficou na etapa ${relida} (corpo: ${corpo.slice(0, 80)})`)
+      await gravarEtapaLog([{ lead_id: x.lead_id, nome: x.nome, opp: x.opp, de: ETAPA.EM_ANALISE, para: ETAPA.PRE_APROVACAO, via: [], motivo: MOTIVO_DERRUBADO, ok: true }])
+      console.log(`[espelho-portal] opp #${x.opp} 50 → 54 (derrubado pela AIVA) · ${x.nome}`)
+      derrubadosFeitos.push(linha)
+    } catch (e) {
+      avisos.push(`derrubado ${x.nome} (opp #${x.opp}) não movido: ${String(e).slice(0, 100)}`)
+      await gravarEtapaLog([{ lead_id: x.lead_id, nome: x.nome, opp: x.opp, de: ETAPA.EM_ANALISE, para: ETAPA.PRE_APROVACAO, via: [], motivo: MOTIVO_DERRUBADO, ok: false, erro: String(e).slice(0, 160) }])
+    }
+  }
+  saida.derrubados = derrubadosFeitos
 
   // 5b) trilha dos movimentos tentados nesta rodada (best-effort) e aviso de card travado.
   //     O defeito de 15/10 (opp #29936, 70 → 51 recusado pelo Evo com HTTP 200) ficou mais de 24 h
@@ -747,6 +781,15 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       `🔗 *CNPJ diferente no cadastro da AIVA — vinculei ao lead* (${vinculados.length})\n${vinculados.join('\n')}\n\n` +
       'O lojista fez o cadastro na AIVA com um CNPJ que não era o que estava anotado com a gente. ' +
       'Achei pelo telefone do cadastro e registrei em Registros AIVA; o card passa a andar pela etapa real desse CNPJ.',
+    )
+  }
+  if (derrubadosFeitos.length && !dry) {
+    blocos.push(
+      `🪂 *Derrubados pela AIVA — voltaram pra Pré-aprovação* (${derrubadosFeitos.length})\n${derrubadosFeitos.slice(0, 30).join('\n')}` +
+      (derrubadosFeitos.length > 30 ? `\n… +${derrubadosFeitos.length - 30}` : '') +
+      '\n\nA AIVA tirou do quadro quem ficou 30+ dias em "Formulário do varejo pendente". O card voltou pra Pré-aprovação, ' +
+      'o lead está em PRE_APROVACAO (a VictorIA responde "em análise") e o CNPJ voltou a PENDENTE em Registros AIVA: ' +
+      'refazer o pré-cadastro pelo "Abrir form". Quando a AIVA aceitar, o card anda sozinho pela coluna real.' + RODAPE_PAINEL,
     )
   }
   if (paradosAiva.length) {
