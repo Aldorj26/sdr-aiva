@@ -8,6 +8,8 @@
  * Lead com vários CNPJs: tudo é SOMADO (o lojista pensa na operação dele, não no CNPJ).
  */
 
+import { blackNovemberAtivo, linhaComissaoBlackNovember } from './black-november-calc.ts'
+
 export type LinhaSemana = { semana: string; aprovados: number; vendas: number; valor_vendas: number }
 export type LinhaMes = { mes: string; consultas: number; aprovados: number; vendas: number; valor_vendas: number; cadastro_em?: string | null }
 
@@ -137,11 +139,17 @@ const LEITURA: Record<Segmento, string> = {
 
 /** Bloco dinâmico pro prompt (fora do cache). Números do PORTAL da AIVA, por semana fechada. */
 export function linhaComissaoVendedor(r: Pick<Resumo, 'cadastroEm'>, hoje: string): string {
+  // Black November (Aldo 09/11/2026): em novembro a campanha substitui a regra do 1º mês pra TODA loja.
+  if (blackNovemberAtivo(hoje)) return linhaComissaoBlackNovember()
+  // Dez/2026 e jan/2027: é quando caem os R$ 20 e os R$ 30 das vendas de novembro — cobrança delas não é "encerrou".
+  const posBlack = hoje >= '2026-12-01' && hoje <= '2027-01-31'
+    ? ' ⚠️ Vendas de 01 a 30/11/2026 são da BLACK NOVEMBER (R$ 20 pagos no início de dezembro + R$ 30 na 1ª semana de janeiro, conforme a inadimplência da loja): cobrança delas NÃO é "encerrou" → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".'
+    : ''
   const c = comissaoVendedor(r.cadastroEm, hoje)
   const regra = 'é incentivo do PRIMEIRO MÊS da loja na AIVA (30 dias da criação), paga no 10º dia útil do mês seguinte via Pix CPF'
   if (c.estado === 'vigente') return `💰 Comissão de R$ 10 por venda ao VENDEDOR: VIGENTE até ${ddmm(c.ate as string)} (loja criada em ${ddmm(r.cadastroEm as string)}) — ${regra}. Pode usar como munição; diga que vale até ${ddmm(c.ate as string)}, não diga "todo mês".`
-  if (c.estado === 'encerrada') return `💰 Comissão de R$ 10 por venda ao VENDEDOR: ENCERRADA (loja criada em ${ddmm(r.cadastroEm as string)}; valeu até ${ddmm(c.ate as string)}) — ${regra}. ⛔ NÃO prometa, não use como munição, não diga "todo mês" nem "garantida". Se ele cobrar comissão de vendas depois de ${ddmm(c.ate as string)}: explique que o incentivo era do primeiro mês da loja e já encerrou; se ele disser que vendas DENTRO do primeiro mês não foram pagas, ou insistir → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".`
-  return `💰 Comissão de R$ 10 por venda ao VENDEDOR: data de criação DESCONHECIDA — ${regra}. ⛔ Sem a data, não prometa comissão nem diga "todo mês"; se ele perguntar ou cobrar → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".`
+  if (c.estado === 'encerrada') return `💰 Comissão de R$ 10 por venda ao VENDEDOR: ENCERRADA (loja criada em ${ddmm(r.cadastroEm as string)}; valeu até ${ddmm(c.ate as string)}) — ${regra}. ⛔ NÃO prometa, não use como munição, não diga "todo mês" nem "garantida". Se ele cobrar comissão de vendas depois de ${ddmm(c.ate as string)}: explique que o incentivo era do primeiro mês da loja e já encerrou; se ele disser que vendas DENTRO do primeiro mês não foram pagas, ou insistir → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".${posBlack}`
+  return `💰 Comissão de R$ 10 por venda ao VENDEDOR: data de criação DESCONHECIDA — ${regra}. ⛔ Sem a data, não prometa comissão nem diga "todo mês"; se ele perguntar ou cobrar → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".${posBlack}`
 }
 
 export function blocoPrompt(r: Resumo, hoje: string = diaBrtDe(Date.now())): string {
