@@ -1,8 +1,8 @@
-// Uso: node --env-file=.env.local scripts/sonda-api-aiva.mjs — compara com o retrato de 24/09 (26 campos) e lista caminhos/filtros.
+// Uso: node --env-file=.env.local scripts/sonda-api-aiva.mjs — compara com o retrato de 07/10 (29 campos; reconferido 09/11) e lista caminhos/filtros.
 // Sondagem SÓ LEITURA da API pública da AIVA (GET/OPTIONS). Nada de POST: remove e resend-password têm efeito real.
 const BASE = 'https://parceiro-aiva.lovable.app/api/public/partner'
 const H = { 'x-api-key': process.env.AIVA_PORTAL_API_KEY }
-const CONHECIDOS = ['id', 'cnpj', 'legal_name', 'partner_owner_name', 'retailer_id', 'retailer_name', 'stage', 'pre_cadastro_status', 'formulario_status', 'biometry_status', 'training_at', 'retailer_registered_at', 'created_at', 'updated_at', 'phone_number', 'email', 'liveness_url', 'cnpj_check_status', 'cnpj_check_reason', 'cnpj_official_name', 'cnpj_situacao', 'cnpj_checked_at', 'cnpj_opened_at', 'training_id', 'training_label', 'training_source']
+const CONHECIDOS = ['id', 'cnpj', 'legal_name', 'partner_owner_name', 'retailer_id', 'retailer_name', 'stage', 'pre_cadastro_status', 'formulario_status', 'biometry_status', 'training_at', 'retailer_registered_at', 'created_at', 'updated_at', 'phone_number', 'email', 'liveness_url', 'cnpj_check_status', 'cnpj_check_reason', 'cnpj_official_name', 'cnpj_situacao', 'cnpj_checked_at', 'cnpj_opened_at', 'training_id', 'training_label', 'training_source', 'primeiro_acesso_em', 'board_column', 'board_column_since']
 
 async function get(path) {
   const r = await fetch(`${BASE}${path}`, { headers: H })

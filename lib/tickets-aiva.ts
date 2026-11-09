@@ -105,7 +105,8 @@ export const fmtCnpj = (c: string) => { const d = c.replace(/\D/g, ''); return d
 // ─── acompanhamento (consulta) ────────────────────────────────────────────────────────────────────
 export interface TicketApi {
   id: string; number: number; type: string; status: string; retailer_id: string | null; cnpj: string | null
-  subject?: string; details?: Record<string, unknown>; created_at: string; updated_at: string; resolved_at?: string | null
+  subject?: string; description?: string | null; priority?: string | null; details?: Record<string, unknown>
+  created_at: string; updated_at: string; first_response_at?: string | null; resolved_at?: string | null; closed_at?: string | null
   messages?: Array<{ id: string; from: 'aiva' | 'parceiro'; body: string; created_at: string }>
 }
 export const STATUS_ROTULO: Record<string, string> = { aberto: 'aberto', em_analise: 'em análise', aguardando_parceiro: 'aguardando a nossa resposta', resolvido: 'resolvido', fechado: 'fechado' }
