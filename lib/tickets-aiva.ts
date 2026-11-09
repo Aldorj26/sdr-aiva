@@ -109,6 +109,11 @@ export interface TicketApi {
   created_at: string; updated_at: string; first_response_at?: string | null; resolved_at?: string | null; closed_at?: string | null
   messages?: Array<{ id: string; from: 'aiva' | 'parceiro'; body: string; created_at: string }>
 }
+/** Painel financeiro da AIVA (Looker Studio) — o lojista entra com o Gmail liberado no ticket. Aldo 09/11/2026: a VictorIA passa o link
+ *  SÓ depois do ticket resolvido (antes, o Looker nega o acesso). Vídeo de como usar: o que o Nei já mandava à mão. */
+export const LINK_PAINEL_FINANCEIRO = 'https://lookerstudio.google.com/u/0/reporting/d5e20107-fc42-4b47-8468-2436a01d7fc8/page/p_hlolzz8r0d'
+export const VIDEO_PAINEL_FINANCEIRO = 'https://drive.google.com/file/d/1wCBGBDH7BeKsk9jWQEQrXMGzAF83a3mI/view?usp=drive_link'
+
 export const STATUS_ROTULO: Record<string, string> = { aberto: 'aberto', em_analise: 'em análise', aguardando_parceiro: 'aguardando a nossa resposta', resolvido: 'resolvido', fechado: 'fechado' }
 export const ABERTOS = ['aberto', 'em_analise', 'aguardando_parceiro']
 
@@ -143,7 +148,7 @@ export function eventosDoTicket(t: TicketApi, visto: { status: string; msgsAiva:
 export function avisoLojista(t: TicketApi, e: EventoTicket): string | null {
   const tipo = t.type.toLowerCase()
   if (e.tipo === 'resolvido') {
-    if (/painel/.test(tipo)) return `seu pedido de acesso ao painel financeiro da AIVA (ticket nº ${t.number}) foi resolvido ✅ Confere o e-mail que você informou — vale olhar também o spam e as promoções.`
+    if (/painel/.test(tipo)) return `seu pedido de acesso ao painel financeiro da AIVA (ticket nº ${t.number}) foi resolvido ✅ Pra entrar, use este link com o e-mail que você informou: ${LINK_PAINEL_FINANCEIRO} — se aparecer pedido de acesso, confere o e-mail (inclusive spam e promoções). E aqui tem um vídeo curto de como usar o painel: ${VIDEO_PAINEL_FINANCEIRO}`
     if (/repasse/.test(tipo)) return `o chamado sobre o seu repasse (ticket nº ${t.number}) foi resolvido pela AIVA ✅ Se ainda ficou alguma dúvida sobre esse valor, me chama aqui.`
     if (/filial/.test(tipo)) return `o cadastro da sua filial (ticket nº ${t.number}) foi concluído pela AIVA ✅ Qualquer dúvida pra começar a vender nela, me chama aqui.`
     return `o seu chamado na AIVA (ticket nº ${t.number}) foi resolvido ✅ Se ainda precisar de algo, me chama aqui.`
@@ -156,7 +161,7 @@ export function blocoPromptTickets(obs: string | null | undefined): string | nul
   const t = [...lerTicketsDoLead(obs).entries()]
   if (!t.length) return null
   const linhas = t.sort((a, b) => b[0] - a[0]).slice(0, 6).map(([n, x]) => `- ticket nº ${n} (${x.tipo}): ${STATUS_ROTULO[x.status] ?? x.status}`)
-  return `[INSTRUÇÃO DO SISTEMA — CHAMADOS DESTA LOJA NA AIVA]\n${linhas.join('\n')}\nSe ele perguntar de um desses pedidos, diga o status acima (atualiza de hora em hora), sem prazo e sem prometer data. "Aguardando a nossa resposta" = a AIVA pediu algo ao nosso time, que já foi avisado — diga que o time está tratando. Pedido resolvido do painel financeiro: oriente a conferir o e-mail (inclusive spam). ⛔ Não abra outro ticket igual a um que ainda está aberto.\n[FIM INSTRUÇÃO DO SISTEMA]`
+  return `[INSTRUÇÃO DO SISTEMA — CHAMADOS DESTA LOJA NA AIVA]\n${linhas.join('\n')}\nSe ele perguntar de um desses pedidos, diga o status acima (atualiza de hora em hora), sem prazo e sem prometer data. "Aguardando a nossa resposta" = a AIVA pediu algo ao nosso time, que já foi avisado — diga que o time está tratando. Pedido resolvido do painel financeiro: o link é ${LINK_PAINEL_FINANCEIRO} (entra com o Gmail do ticket); se ele não conseguir, oriente a conferir o e-mail (inclusive spam). ⛔ Não passe esse link com o pedido ainda aberto, salvo se ele disser que já recebeu o e-mail de liberação da AIVA. ⛔ Não abra outro ticket igual a um que ainda está aberto.\n[FIM INSTRUÇÃO DO SISTEMA]`
 }
 
 // ─── IO ───────────────────────────────────────────────────────────────────────────────────────────
