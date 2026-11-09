@@ -1,0 +1,729 @@
+{
+ "churn": [
+  {
+   "rid": "5796",
+   "cnpj": "58713285000198",
+   "varejo": "58.713.285 JACKSON BATISTA CALDAS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 14,
+   "originacao": 17939.75,
+   "mdr": 2152.77,
+   "comissao": 430.5540000000001,
+   "nossa": true
+  },
+  {
+   "rid": "5668",
+   "cnpj": "61713107000171",
+   "varejo": "61.713.107 KETLIN CRISTHIANE REIS SANTOS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 6,
+   "originacao": 8615,
+   "mdr": 1033.8,
+   "comissao": 206.76,
+   "nossa": true
+  },
+  {
+   "rid": "5166",
+   "cnpj": "66661353000140",
+   "varejo": "FONE EXPRESS PIRAPORA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 6,
+   "originacao": 8476.15,
+   "mdr": 1017.1400000000001,
+   "comissao": 203.42800000000003,
+   "nossa": true
+  },
+  {
+   "rid": "6330",
+   "cnpj": "52618643000105",
+   "varejo": "SORA CELULARES",
+   "grupo": "INSIDE_SALES",
+   "contratos": 4,
+   "originacao": 4538,
+   "mdr": 544.56,
+   "comissao": 108.912,
+   "nossa": true
+  },
+  {
+   "rid": "6103",
+   "cnpj": "59302159000103",
+   "varejo": "STAR CELL",
+   "grupo": "INSIDE_SALES",
+   "contratos": 3,
+   "originacao": 4220,
+   "mdr": 506.4,
+   "comissao": 101.28,
+   "nossa": true
+  },
+  {
+   "rid": "5898",
+   "cnpj": "41461703000102",
+   "varejo": "BLACK CELL COMERCIOS E SERVICOS LTDA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 4,
+   "originacao": 4100,
+   "mdr": 492,
+   "comissao": 98.4,
+   "nossa": true
+  },
+  {
+   "rid": "6518",
+   "cnpj": "51881564000111",
+   "varejo": "CONSERTA MAIS CELULAR",
+   "grupo": "INSIDE_SALES",
+   "contratos": 3,
+   "originacao": 3690,
+   "mdr": 442.8,
+   "comissao": 88.56,
+   "nossa": true
+  },
+  {
+   "rid": "5640",
+   "cnpj": "22330380000165",
+   "varejo": "MAJESTADE CARNES E PANIFICAÇÃO",
+   "grupo": "INSIDE_SALES",
+   "contratos": 3,
+   "originacao": 3603,
+   "mdr": 432.36,
+   "comissao": 86.47200000000001,
+   "nossa": true
+  },
+  {
+   "rid": "6246",
+   "cnpj": "24541691000107",
+   "varejo": "LAZARO CELL",
+   "grupo": "INSIDE_SALES",
+   "contratos": 3,
+   "originacao": 2779,
+   "mdr": 333.48,
+   "comissao": 66.696,
+   "nossa": true
+  },
+  {
+   "rid": "5906",
+   "cnpj": "17786692000148",
+   "varejo": "WEST INFORMATICA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 2,
+   "originacao": 2382,
+   "mdr": 285.84,
+   "comissao": 57.168,
+   "nossa": true
+  },
+  {
+   "rid": "6514",
+   "cnpj": "33009529000125",
+   "varejo": "33.009.529 ANTONIO DIONE DOS SANTOS SENA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 2,
+   "originacao": 2259,
+   "mdr": 271.08000000000004,
+   "comissao": 54.21600000000001,
+   "nossa": true
+  },
+  {
+   "rid": "6687",
+   "cnpj": "53259692000153",
+   "varejo": "IG CELL CELULARES",
+   "grupo": "INSIDE_SALES",
+   "contratos": 2,
+   "originacao": 2029,
+   "mdr": 243.48000000000002,
+   "comissao": 48.696,
+   "nossa": true
+  },
+  {
+   "rid": "4866",
+   "cnpj": "58941526000156",
+   "varejo": "CTI CELULAR",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1500,
+   "mdr": 180,
+   "comissao": 36,
+   "nossa": true
+  },
+  {
+   "rid": "6176",
+   "cnpj": "43252789000180",
+   "varejo": "HITECH IMPORTS EQUIPAMENTOS E CELULARES LTDA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1500,
+   "mdr": 180,
+   "comissao": 36,
+   "nossa": true
+  },
+  {
+   "rid": "6315",
+   "cnpj": "50798154000149",
+   "varejo": "50.798.154 JOHNATHA CARLOS DE ARAUJO SILVA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1500,
+   "mdr": 180,
+   "comissao": 36,
+   "nossa": true
+  },
+  {
+   "rid": "5636",
+   "cnpj": "43434541000130",
+   "varejo": "KING ACESSORIOS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1499.15,
+   "mdr": 179.9,
+   "comissao": 35.980000000000004,
+   "nossa": true
+  },
+  {
+   "rid": "6707",
+   "cnpj": "39691858000185",
+   "varejo": "IHOME",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1209,
+   "mdr": 145.08,
+   "comissao": 29.016000000000005,
+   "nossa": true
+  },
+  {
+   "rid": "2604",
+   "cnpj": "61047789000120",
+   "varejo": "IVS JARAGUA DO SUL",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "contratos": 5,
+   "originacao": 4690,
+   "mdr": 234.5,
+   "comissao": 28.14,
+   "nossa": true
+  },
+  {
+   "rid": "6728",
+   "cnpj": "33875674000199",
+   "varejo": "33.875.674 PAMELA GOMES LEMOS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1170.9,
+   "mdr": 140.51,
+   "comissao": 28.102,
+   "nossa": true
+  },
+  {
+   "rid": "4582",
+   "cnpj": "33356634000130",
+   "varejo": "KW CELULARES",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1130,
+   "mdr": 135.6,
+   "comissao": 27.12,
+   "nossa": true
+  },
+  {
+   "rid": "5791",
+   "cnpj": "34299804000155",
+   "varejo": "CELULAR EXPRESS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1130,
+   "mdr": 135.6,
+   "comissao": 27.12,
+   "nossa": true
+  },
+  {
+   "rid": "6025",
+   "cnpj": "59912594000150",
+   "varejo": "SNAP SMART BRASIL",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1120,
+   "mdr": 134.4,
+   "comissao": 26.880000000000003,
+   "nossa": true
+  },
+  {
+   "rid": "5666",
+   "cnpj": "51045266000191",
+   "varejo": "CASA DO CELULAR",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1100,
+   "mdr": 132,
+   "comissao": 26.400000000000002,
+   "nossa": true
+  },
+  {
+   "rid": "6667",
+   "cnpj": "46993680000192",
+   "varejo": "ROSA RIO SHOP ELETRONICOS E ACESSORIOS",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1059,
+   "mdr": 127.08,
+   "comissao": 25.416,
+   "nossa": true
+  },
+  {
+   "rid": "5365",
+   "cnpj": "52534312000189",
+   "varejo": "ALLAN CARLOS BORTOLOTE CELULARES ME",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1050,
+   "mdr": 126,
+   "comissao": 25.200000000000003,
+   "nossa": true
+  },
+  {
+   "rid": "5393",
+   "cnpj": "65732674000126",
+   "varejo": "SMARTMANIA CELULARES E INFORMATICA",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 1050,
+   "mdr": 126,
+   "comissao": 25.200000000000003,
+   "nossa": true
+  },
+  {
+   "rid": "4317",
+   "cnpj": "59444911000150",
+   "varejo": "IVS JOINVILLE 1",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "contratos": 3,
+   "originacao": 3689.99,
+   "mdr": 184.5,
+   "comissao": 22.14,
+   "nossa": true
+  },
+  {
+   "rid": "6033",
+   "cnpj": "45686439000158",
+   "varejo": "MARTINI CELULAR",
+   "grupo": "INSIDE_SALES",
+   "contratos": 1,
+   "originacao": 835,
+   "mdr": 100.2,
+   "comissao": 20.040000000000003,
+   "nossa": true
+  },
+  {
+   "rid": "4664",
+   "cnpj": "60888521000159",
+   "varejo": "IVS JUNDIAI",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "contratos": 5,
+   "originacao": 2723,
+   "mdr": 136.15,
+   "comissao": 16.338,
+   "nossa": true
+  },
+  {
+   "rid": "3414",
+   "cnpj": "48725265000183",
+   "varejo": "REALME BFL",
+   "grupo": "REALME_CURITIBA",
+   "contratos": 1,
+   "originacao": 1289,
+   "mdr": 64.45,
+   "comissao": 12.89,
+   "nossa": true
+  },
+  {
+   "rid": "5116",
+   "cnpj": "54939441000182",
+   "varejo": "IVS LONDRINA CALCADAO 177",
+   "grupo": "INSTITUTO_VISAO_SOLIDARIA",
+   "contratos": 1,
+   "originacao": 700,
+   "mdr": 35,
+   "comissao": 4.2,
+   "nossa": false
+  }
+ ],
+ "pvFora": [
+  {
+   "rid": "7937",
+   "cnpj": "53324201000291",
+   "nome": "i-love-celulares-53324201000291",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6732",
+   "cnpj": "40520119000100",
+   "nome": "panificadora-caremellas-40520119000100",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5905",
+   "cnpj": "13715407000570",
+   "nome": "gong-jianwei-13715407000570",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6320",
+   "cnpj": "59055844000182",
+   "nome": "smart-power-59055844000182",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6846",
+   "cnpj": "47755230000124",
+   "nome": "dayane-fernanda-dos-santos-silva-eletronicos-47755230000124",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6301",
+   "cnpj": "14722880000114",
+   "nome": "dolfimports-14722880000114",
+   "desde": "2026-11-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6728",
+   "cnpj": "33875674000199",
+   "nome": "33.875.674-pamela-gomes-lemos-33875674000199",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 28.102
+  },
+  {
+   "rid": "6707",
+   "cnpj": "39691858000185",
+   "nome": "ihome-39691858000185",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 29.016000000000005
+  },
+  {
+   "rid": "6687",
+   "cnpj": "53259692000153",
+   "nome": "rg-cell-celulares-53259692000153",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 48.696
+  },
+  {
+   "rid": "6514",
+   "cnpj": "33009529000125",
+   "nome": "33.009.529-antonio-dione-dos-santos-sena-33009529000125",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 54.21600000000001
+  },
+  {
+   "rid": "6667",
+   "cnpj": "46993680000192",
+   "nome": "rosa-rio-shop-eletronicos-e-acessorios-46993680000192",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 25.416
+  },
+  {
+   "rid": "6315",
+   "cnpj": "50798154000149",
+   "nome": "50.798.154-johnatha-carlos-de-araujo-silva-50798154000149",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 36
+  },
+  {
+   "rid": "6330",
+   "cnpj": "52618643000105",
+   "nome": "sora-celulares-52618643000105",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 108.912
+  },
+  {
+   "rid": "6176",
+   "cnpj": "43252789000180",
+   "nome": "hitech-imports-equipamentos-e-celulares-ltda-43252789000180",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 36
+  },
+  {
+   "rid": "6103",
+   "cnpj": "59302159000103",
+   "nome": "star-cell-59302159000103",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 101.28
+  },
+  {
+   "rid": "6033",
+   "cnpj": "45686439000158",
+   "nome": "martini-celular-45686439000158",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 20.040000000000003
+  },
+  {
+   "rid": "5393",
+   "cnpj": "65732674000126",
+   "nome": "smartmania-celulares-e-informatica-65732674000126",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 25.200000000000003
+  },
+  {
+   "rid": "5666",
+   "cnpj": "51045266000191",
+   "nome": "casa-do-celular-51045266000191",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 26.400000000000002
+  },
+  {
+   "rid": "6518",
+   "cnpj": "51881564000111",
+   "nome": "conserta-mais-celular-51881564000111",
+   "desde": "2026-09-01",
+   "nossa": true,
+   "setembro": 88.56
+  },
+  {
+   "rid": "6025",
+   "cnpj": "59912594000150",
+   "nome": "snap-smart-brasil-59912594000150",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 26.880000000000003
+  },
+  {
+   "rid": "6020",
+   "cnpj": "10624536000131",
+   "nome": "lojas-nobre-10624536000131",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "6246",
+   "cnpj": "24541691000107",
+   "nome": "lazaro-cell-24541691000107",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 66.696
+  },
+  {
+   "rid": "6055",
+   "cnpj": "46717947000208",
+   "nome": "apple-cel-celulares-46717947000208",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5802",
+   "cnpj": "56942003000107",
+   "nome": "lojas-migui-56942003000107",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5670",
+   "cnpj": "50520678000173",
+   "nome": "50.520.678-rogelio-de-carvalho-lopes-50520678000173",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5906",
+   "cnpj": "17786692000148",
+   "nome": "west-informatica-17786692000148",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 57.168
+  },
+  {
+   "rid": "5791",
+   "cnpj": "34299804000155",
+   "nome": "celular-express-34299804000155",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 27.12
+  },
+  {
+   "rid": "5898",
+   "cnpj": "41461703000102",
+   "nome": "black-cell-comercios-e-servicos-ltda-41461703000102",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 98.4
+  },
+  {
+   "rid": "5803",
+   "cnpj": "40667100000190",
+   "nome": "camila-da-silva-brito-40062442821-40667100000190",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5392",
+   "cnpj": "12376429000167",
+   "nome": "sol-empreendimentos-fotovoltaicos-12376429000167",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5796",
+   "cnpj": "58713285000198",
+   "nome": "58.713.285-jackson-batista-caldas-58713285000198",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 430.5540000000001
+  },
+  {
+   "rid": "5636",
+   "cnpj": "43434541000130",
+   "nome": "king-acessorios-43434541000130",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 35.980000000000004
+  },
+  {
+   "rid": "5804",
+   "cnpj": "40257849000160",
+   "nome": "expresso-phone-ltda-40257849000160",
+   "desde": "2026-08-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5243",
+   "cnpj": "34839617000117",
+   "nome": "kero-celular-34839617000117",
+   "desde": "2026-07-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5911",
+   "cnpj": "22073344000163",
+   "nome": "black-shark-imports-22073344000163",
+   "desde": "2026-07-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "5640",
+   "cnpj": "22330380000165",
+   "nome": "majestade-importados-22330380000165",
+   "desde": "2026-07-01",
+   "nossa": true,
+   "setembro": 86.47200000000001
+  },
+  {
+   "rid": "5668",
+   "cnpj": "61713107000171",
+   "nome": "61.713.107-ketlin-cristhiane-reis-santos-61713107000171",
+   "desde": "2026-07-01",
+   "nossa": true,
+   "setembro": 206.76
+  },
+  {
+   "rid": "5794",
+   "cnpj": "54863616000115",
+   "nome": "tech-world-54863616000115",
+   "desde": "2026-07-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "4962",
+   "cnpj": "13415505000169",
+   "nome": "top-celulares-13415505000169",
+   "desde": "2026-06-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "4966",
+   "cnpj": "39981417000118",
+   "nome": "techfix-celulares-e-assistencia-tecnica-39981417000118",
+   "desde": "2026-06-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "4661",
+   "cnpj": "37385404000150",
+   "nome": "lfn-celulares-ltda-37385404000150",
+   "desde": "2026-05-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "4582",
+   "cnpj": "33356634000130",
+   "nome": "KW CELULARES",
+   "desde": "2026-05-01",
+   "nossa": true,
+   "setembro": 27.12
+  },
+  {
+   "rid": "4434",
+   "cnpj": "22902819000187",
+   "nome": "JR ACESSORIOS PARA CELULARES LTDA",
+   "desde": "2026-05-01",
+   "nossa": true,
+   "setembro": 0
+  },
+  {
+   "rid": "4866",
+   "cnpj": "58941526000156",
+   "nome": "cti-celular-58941526000156",
+   "desde": "2026-05-01",
+   "nossa": true,
+   "setembro": 36
+  }
+ ],
+ "calib": {
+  "2026-10": {
+   "total": 19,
+   "dentro": 19
+  },
+  "2026-11": {
+   "total": 6,
+   "dentro": 0
+  },
+  "2026-09": {
+   "total": 33,
+   "dentro": 20
+  },
+  "2026-07": {
+   "total": 13,
+   "dentro": 8
+  },
+  "2026-05": {
+   "total": 8,
+   "dentro": 4
+  },
+  "2026-06": {
+   "total": 6,
+   "dentro": 4
+  },
+  "2026-08": {
+   "total": 37,
+   "dentro": 23
+  }
+ }
+}
