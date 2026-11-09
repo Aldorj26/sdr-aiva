@@ -16,6 +16,7 @@ import {
   agregarMensal, derivarSemana, mesDe, somarDias,
   type LinhaDiaria, type LinhaMensal, type LinhaSemanal,
 } from '@/lib/portal-aiva-derivar'
+import { diagnosticarLoginPortal } from '@/lib/frescor-portal-calc'
 
 const URL_PORTAL = () => (process.env.AIVA_PORTAL_URL ?? '').replace(/\/$/, '')
 const ANON = () => process.env.AIVA_PORTAL_ANON_KEY ?? ''
@@ -56,7 +57,12 @@ export async function loginPortal(): Promise<Sessao> {
     // consumir tudo em silêncio (revisão 09/09).
     signal: AbortSignal.timeout(20_000),
   })
-  if (!res.ok) throw new Error(`login do portal recusado: HTTP ${res.status} ${(await res.text()).slice(0, 160)}`)
+  // ⚠️ 26/10/2026: o portal passou a devolver `HTTP 422 {"error_code":"email_provider_disabled"}` e a
+  // coleta subiu um `login do portal recusado: HTTP 422 ...` genérico, indistinguível de portal fora
+  // do ar. Ficou 14 dias caindo todo dia sem ninguém ler. Agora a falha sai com NOME: 4xx de auth
+  // vira `FalhaAcessoPortal` ("a credencial não serve, a coleta está parada até alguém agir") e 5xx
+  // segue como portal fora do ar, que passa sozinho. Regra em lib/frescor-portal-calc.ts.
+  if (!res.ok) throw diagnosticarLoginPortal(res.status, await res.text())
   const j = (await res.json()) as { access_token: string; user: { id: string } }
   return { token: j.access_token, userId: j.user.id }
 }

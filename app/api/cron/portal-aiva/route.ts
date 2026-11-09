@@ -6,8 +6,12 @@
  * ontem) → rederiva mensal → (segunda) rederiva a semana fechada → ativação.
  *
  * Reprocesso na mão: ?mes=YYYY-MM | ?semana=YYYY-MM-DD (segunda) | ?dry=1.
- * Falha = WhatsApp pro Aldo + HTTP 500 (aparece no log do Vercel). Sucesso é
- * silencioso — o painel mostra a data do retrato.
+ * Falha = WhatsApp + HTTP 500 (aparece no log do Vercel). Sucesso é silencioso — o painel mostra a
+ * data do retrato, e desde 09/11/2026 o vigia das 17h cobra o FRESCOR dessa data
+ * (lib/frescor-portal-calc.ts): retrato mais velho que ontem = alerta pro Aldo e pro Nei.
+ * ⚠️ Falha de ACESSO (4xx no login — o portal desligou e-mail/senha em 26/10/2026) sai pelo
+ * `avisarEquipe`, com coringa, porque texto livre fora da janela de 24 h a Meta descarta em silêncio:
+ * foi assim que esta rota caiu 14 dias seguidos "avisando" sem ninguém saber.
  *
  * ⚠️ O HORÁRIO DO CRON É PARTE DA SEMÂNTICA (revisão 09/09). A linha do portal
  * é um contador VIVO do mês corrente (acumulado até agora), não um fechamento
@@ -29,6 +33,9 @@ import {
 } from '@/lib/portal-aiva'
 import { backfillRidsOnboarding } from '@/lib/portal-aiva'
 import { mesDe, somarDias } from '@/lib/portal-aiva-derivar'
+import { FalhaAcessoPortal } from '@/lib/frescor-portal-calc'
+import { flag } from '@/lib/req-flags'
+import { avisarEquipe } from '@/lib/alerta-equipe'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
@@ -54,7 +61,9 @@ export async function GET(req: NextRequest) {
   if (semanaParam && !/^\d{4}-\d{2}-\d{2}$/.test(semanaParam)) {
     return NextResponse.json({ ok: false, error: 'parâmetro inválido' }, { status: 400 })
   }
-  const dry = sp.get('dry') === '1'
+  // `flag()` e não `=== '1'`: a regra do repo é uma só pra todas as rotas de cron — `?dry` sozinho,
+  // `?dry=true`, `?dry=sim` ligam, e nenhuma variação cai no caminho real por engano (lib/req-flags).
+  const dry = flag(sp, 'dry')
   const hoje = hojeBrt()
   const ontem = somarDias(hoje, -1)
   const log: string[] = []
@@ -161,13 +170,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data_ref: ontem, log, mensal, semanal, ativacoes, rids_por_onboarding })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error('[portal-aiva]', msg, log)
+    const acesso = e instanceof FalhaAcessoPortal
+    console.error(`[portal-aiva]${acesso ? ' FALHA DE ACESSO —' : ''}`, msg, log)
     // "Nada foi gravado" era mentira quando a falha vinha depois do diário —
     // o aviso agora lista o que já concluiu (revisão 09/09).
-    if (!dry) {
-      await avisarAldo(`⚠️ Coleta do portal AIVA falhou (${hoje}): ${msg}.` +
-        (log.length ? ` Etapas concluídas: ${log.join(' | ')}` : ' Nada foi gravado.'))
+    const etapas = log.length ? ` Etapas concluídas: ${log.join(' | ')}` : ' Nada foi gravado.'
+    if (!dry && acesso) {
+      // ⚠️ POR QUE ESTE CAMINHO É DIFERENTE (09/11/2026): o `avisarAldo` manda TEXTO LIVRE, e fora da
+      // janela de 24 h do WhatsApp a Meta o descarta em silêncio. Foi assim que esta rota caiu todo
+      // dia de 26/10 a 09/11 "avisando" e ninguém soube. Falha de ACESSO não passa sozinha e cega a
+      // conferência de comissão, então sai pelo `avisarEquipe`: Aldo E Nei, e pelo coringa (HSM), que
+      // atravessa a janela. Falha de portal fora do ar segue no caminho antigo — essa passa sozinha e
+      // o vigia das 17h cobra no dia seguinte pelo frescor do dado.
+      await avisarEquipe(
+        [`🚨 *COLETA DO PORTAL AIVA PARADA* (${hoje})`, '', msg, '', etapas.trim(),
+         'Rota: /api/cron/portal-aiva (cron de 6h BRT). Enquanto não voltar, a conferência de comissão',
+         'perde a prova de venda e as dicas de desempenho não saem.'].join('\n'),
+        `🚨 coleta do portal AIVA parada: acesso recusado (HTTP ${e.httpStatus}${e.codigo ? ` ${e.codigo}` : ''}) — precisa de acesso novo`.slice(0, 160),
+        { chaveDedupe: 'portal-aiva:acesso', janelaMs: 20 * 3_600_000 },
+      )
+    } else if (!dry) {
+      await avisarAldo(`⚠️ Coleta do portal AIVA falhou (${hoje}): ${msg}.` + etapas)
     }
-    return NextResponse.json({ ok: false, error: msg, log }, { status: 500 })
+    return NextResponse.json({ ok: false, error: msg, tipo: acesso ? 'acesso' : 'falha', log }, { status: 500 })
   }
 }

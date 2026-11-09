@@ -12,6 +12,10 @@
  * Entrega: HSM 48 com o texto no {{2}} + o link /r/<token> do relatório semanal da loja (formato do Farm Track
  * da Parcelex, 20/10/2026 — lib/relatorio-loja.ts); rótulo próprio `aiva_dicas_desempenho` pra medir.
  *
+ * ⚠️ FRESCOR (09/11/2026): a rodada se RECUSA a sair se o retrato do portal tiver mais de
+ * DIAS_RETRATO_ACEITO_DICAS dias (`aiva_portal_diario`) — número congelado transforma loja que está
+ * vendendo em "por que você parou?". Quem acusa a parada é o VIGIA 4 do /vigia das 17h.
+ *
  * ?dry → mostra o que faria (segmentos, motivos, amostra dos textos) sem enviar nada.
  * ?max=N → limita o lote (rodada manual). ?force → ignora o horário comercial.
  * Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
@@ -28,6 +32,8 @@ import { comLink } from '@/lib/relatorio-loja-calc'
 import { linkDoLead, BASE_RELATORIO } from '@/lib/relatorio-loja'
 import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
 import { cnpjsComPrimeiroAcesso, ROTULO_PRIMEIRO_ACESSO, MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
+import { lerFrescorPortal } from '@/lib/frescor-portal'
+import { retratoUsavelParaDicas, DIAS_RETRATO_ACEITO_DICAS } from '@/lib/frescor-portal-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -61,6 +67,30 @@ export async function GET(req: NextRequest) {
 
   const horaBrt = (new Date().getUTCHours() + 21) % 24
   if (!dry && !force && (horaBrt < 9 || horaBrt >= 18)) return NextResponse.json({ ok: true, ignorado: 'fora_horario_comercial', horaBrt })
+
+  // ⚠️ DADO VELHO NÃO VIRA DICA (09/11/2026). Esta rota só checava "a tabela está vazia?" — nunca a
+  // IDADE do que está nela. Com a coleta do portal parada desde 26/10, em 09/11 a última semana
+  // fechada era de 19/10 e `aiva_desempenho` não tinha nenhuma linha de novembro: `resumir()` lê
+  // zero no mês corrente, e loja que vendeu em novembro cai em `parou`/`sem_uso` e recebe
+  // "por que você parou de vender?". Mandar número errado pro lojista é pior que não mandar nada,
+  // então a rodada se recusa. Regra em lib/frescor-portal-calc.ts (`npm run test:frescor`).
+  // Isto NÃO esconde o problema: a mesma condição que cala a dica acende o VIGIA 4 das 17h, que
+  // avisa Aldo e Nei com a data da parada e o número de dias.
+  const { frescor, erro: erroFrescor, hoje: hojeFrescor } = await lerFrescorPortal()
+  const retrato = erroFrescor
+    ? { ok: false as const, dias: null, motivo: 'frescor_indisponivel' }
+    : retratoUsavelParaDicas(hojeFrescor, frescor?.ultimoRetrato ?? null)
+  if (!retrato.ok) {
+    const corpo = {
+      ok: true, ignorado: retrato.motivo, ultimo_retrato: frescor?.ultimoRetrato ?? null,
+      dias_parados: retrato.dias, limite_dias: DIAS_RETRATO_ACEITO_DICAS, erro_frescor: erroFrescor,
+      // fila 0 de propósito: nada vai sair nesta rodada. Quem acusa a parada é o VIGIA 4.
+      fila: 0, tocados_hoje: 0,
+      detalhe: 'retrato do portal velho demais pra citar número com o lojista — ver /api/sdr/vigia',
+    }
+    console.error(`[dicas-desempenho] rodada RECUSADA: ${retrato.motivo} (último retrato ${frescor?.ultimoRetrato ?? 'nenhum'}, ${retrato.dias ?? '?'} dias)`)
+    return NextResponse.json(corpo)
+  }
 
   const ult = await ultimaSemanaFechada()
   if (!ult) return NextResponse.json({ ok: false, erro: 'aiva_desempenho_semanal vazia' }, { status: 500 })

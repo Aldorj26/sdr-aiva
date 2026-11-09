@@ -33,6 +33,17 @@
  * ⚠️ Detecta "ACABOU", não "está acabando": a Anthropic não expõe saldo restante
  * por API. Prevenção de verdade é recarga automática na organização dona da chave.
  *
+ * VIGIA 4 — O DADO CHEGOU? (09/11/2026): as três checagens acima perguntam se algo RESPONDE
+ * (rota de pé, recibo da Meta, chave da Anthropic). Nenhuma pergunta se o dado ENTROU no banco — e
+ * foi exatamente por aí que a coleta do portal AIVA ficou 14 dias morta sem ninguém saber: ela
+ * parou de gravar em 26/10, o portal passou a recusar o login por e-mail e senha, e o vigia rodou
+ * verde todo dia porque a coleta nem está na lista de rotas dele. O resultado: a conferência de
+ * comissão de outubro cega no fim do mês e as dicas semanais mandando número congelado pro lojista.
+ * Aqui a pergunta é a idade da linha mais nova — `aiva_portal_diario` tem retrato de ontem? o mês
+ * corrente existe em `aiva_desempenho`? Regra e textos em lib/frescor-portal-calc.ts
+ * (`npm run test:frescor`). Avisa Aldo E Nei pelo `avisarEquipe` (coringa, que atravessa a janela de
+ * 24 h — o aviso de falha da própria coleta saía por texto livre e a Meta o descartava em silêncio).
+ *
  * Params: ?dry (só mostra o diagnóstico, não avisa ninguém)
  * Schedule (vercel.json): `0 20 * * 1-5` UTC = 17h BRT, seg–sex — depois de todos
  * os outros crons do dia terem rodado. GET obrigatório.
@@ -45,6 +56,9 @@ import { conferirEntregaHoje } from '@/lib/entrega-meta'
 import { textoAlerta } from '@/lib/entrega-meta-calc'
 import { sondarAnthropic } from '@/lib/saude-contas'
 import { exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
+import { avisarEquipe } from '@/lib/alerta-equipe'
+import { lerFrescorPortal } from '@/lib/frescor-portal'
+import { teaserFrescor } from '@/lib/frescor-portal-calc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,6 +158,41 @@ async function executar(req: NextRequest) {
     }
   }
 
+  // ─── VIGIA 4: O DADO CHEGOU? (frescor da coleta do portal) ─────────────────
+  // Rota respondendo não é dado chegando. A coleta do portal AIVA (6h BRT) ficou 14 DIAS sem
+  // gravar nada — login recusado pelo portal desde 26/10 — e este cron rodou verde todo dia,
+  // porque ela nem está na lista de rotas abaixo. Aqui a pergunta é a IDADE DA LINHA MAIS NOVA.
+  // Duas leituras baratas (`head: true`), feitas ANTES do laço de rotas pelo mesmo motivo da
+  // checagem de entrega: o laço pode comer os 300 s e este é o alerta que ninguém viu por 14 dias.
+  // Fica na frente da checagem de entrega sem risco pro orçamento: `avisarEquipe` tem prazo geral de
+  // 35 s (lib/alerta-equipe.ts) e só é chamado quando há problema — menos do que o aviso de conta
+  // logo acima, que manda `alertHuman` sem teto nenhum.
+  const frescor = await lerFrescorPortal()
+  const linhasFrescor = frescor.erro
+    ? [`• *portal-aiva* — não consegui conferir o frescor da coleta: ${frescor.erro}`]
+    : (frescor.frescor?.problemas ?? [])
+  // Avisa TODO DIA enquanto estiver parada, não só no dia em que quebra: o laço de rotas avisa uma
+  // vez (`agora === limite`) e um aviso perdido vira silêncio de novo — foi o que custou 14 dias.
+  // Janela de 20 h (e não 24 h) pra que a rodada diária das 17h nunca caia dentro da anterior;
+  // reprocesso manual na mesma tarde não avisa em dobro.
+  if (!dry && linhasFrescor.length) {
+    const detalhe = [
+      '🚨 *A COLETA DO PORTAL AIVA PAROU*',
+      '',
+      ...linhasFrescor,
+      '',
+      'Rota: /api/cron/portal-aiva (cron de 6h BRT). O vigia compara a data da linha mais nova no',
+      'banco com a de ontem — rota respondendo não é dado chegando.',
+      'Enquanto isso: a conferência de comissão perde a prova de venda e as dicas de desempenho',
+      'não saem (elas se recusam a citar número de retrato com mais de 3 dias).',
+      'Olhe o log do cron no Vercel: se o login do portal foi recusado, é acesso, não código.',
+    ].join('\n')
+    const teaser = frescor.frescor
+      ? teaserFrescor(frescor.frescor)
+      : '🚨 vigia AIVA: não consegui conferir se a coleta do portal está gravando'
+    await avisarEquipe(detalhe, teaser, { chaveDedupe: 'vigia:frescor-portal', janelaMs: 20 * 3_600_000 })
+  }
+
   // ⚠️ ESTA CHECAGEM VEM PRIMEIRO de propósito: o laço de rotas abaixo faz 6
   // chamadas com timeout de 120s cada e a função morre em 300s. Se uma rota
   // travar, o alerta mais urgente do dia ("saiu, foi cobrado e não chegou")
@@ -180,7 +229,10 @@ async function executar(req: NextRequest) {
   const volumeAlto = 'enviados_hoje' in entrega && (entrega as { enviados_hoje: number }).enviados_hoje >= 100
 
   const diag: Array<{ rota: string; http: number; fila: number; acao: number; seguidos: number; tolerancia: number; estado: string }> = []
-  const problemas: string[] = []
+  // `problemas` é a lista do que está errado hoje — o dry inteiro e o log saem dela.
+  // ⚠️ As linhas de frescor JÁ saíram pelo `avisarEquipe` logo acima (coringa + Nei); o aviso de
+  // texto livre no fim do arquivo as filtra pra não avisar o Aldo duas vezes do mesmo.
+  const problemas: string[] = [...linhasFrescor]
   if (entrega.estado === 'falhou') {
     problemas.push(`• *entrega* — a checagem de entrega quebrou: ${(entrega as { erro: string }).erro}`)
   } else if (volumeAlto && entrega.estado === 'sem_dados') {
@@ -228,13 +280,16 @@ async function executar(req: NextRequest) {
     }
   }
 
-  if (!dry && problemas.length) {
+  // As linhas de frescor saem fora: já foram avisadas pelo `avisarEquipe` (coringa, que atravessa a
+  // janela de 24 h, e também pro Nei). Repeti-las aqui só duplicaria o aviso pro Aldo.
+  const paraAvisar = problemas.filter((p) => !linhasFrescor.includes(p))
+  if (!dry && paraAvisar.length) {
     // A explicação só vale pros itens que vêm do laço de rotas. O item de
     // entrega tem causa diferente, então o rodapé só aparece quando há item de rota
     // — senão o aviso explicaria a coisa errada.
-    const temItemDeRota = problemas.some((p) => !p.startsWith('• *entrega*'))
+    const temItemDeRota = paraAvisar.some((p) => !p.startsWith('• *entrega*'))
     const texto =
-      `🚨 *ALGO PAROU DE FUNCIONAR*\n\n${problemas.join('\n')}\n\n` +
+      `🚨 *ALGO PAROU DE FUNCIONAR*\n\n${paraAvisar.join('\n')}\n\n` +
       (temItemDeRota
         ? `O vigia compara, todo dia, o que cada automação TEM na fila com o que ela FARIA. ` +
           `Fila cheia e ação zero por ${DIAS_PARA_GRITAR} dias seguidos — ou a rota fora do ar.\n`
@@ -245,8 +300,9 @@ async function executar(req: NextRequest) {
     }
   }
 
-  console.log(`[vigia] ${diag.map((d) => `${d.rota}:${d.estado === 'ok' ? `${d.fila}/${d.acao}` : d.estado}`).join(' · ')} | entrega:${entrega.estado} | conta:${conta.ok ? 'ok' : conta.tipo}`)
-  return NextResponse.json({ ok: true, dry, dias_para_gritar: DIAS_PARA_GRITAR, diagnostico: diag, conta, entrega, problemas })
+  const frescorLog = frescor.erro ? `erro(${frescor.erro.slice(0, 40)})` : frescor.frescor?.ok ? `ok(${frescor.frescor.ultimoRetrato})` : `PAROU(${frescor.frescor?.ultimoRetrato} · ${frescor.frescor?.diasParados}d)`
+  console.log(`[vigia] ${diag.map((d) => `${d.rota}:${d.estado === 'ok' ? `${d.fila}/${d.acao}` : d.estado}`).join(' · ')} | entrega:${entrega.estado} | conta:${conta.ok ? 'ok' : conta.tipo} | frescor:${frescorLog}`)
+  return NextResponse.json({ ok: true, dry, dias_para_gritar: DIAS_PARA_GRITAR, diagnostico: diag, conta, entrega, frescor, problemas })
 }
 
 export const GET = executar

@@ -37,7 +37,8 @@
     "test:comissoes": "node --test lib/comissoes.test.ts",
     "test:evo": "node --test lib/evo-resposta-calc.test.ts",
     "test:disparo": "node --test lib/disparo-diario-calc.test.ts lib/comando-sugestao.test.ts",
-    "test:esgotados": "node --test lib/esgotados-calc.test.ts"
+    "test:esgotados": "node --test lib/esgotados-calc.test.ts",
+    "test:frescor": "node --test lib/frescor-portal-calc.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
