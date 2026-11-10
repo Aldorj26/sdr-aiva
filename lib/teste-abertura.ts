@@ -42,8 +42,11 @@ export function ehPrimeiraResposta(p: {
   dados: Record<string, string> | undefined
   historico: ReadonlyArray<{ direcao: string; template_hsm: string | null }>
   mensagemEhAutomatica: boolean
+  /** observações do lead: [TESTE_ABERTURA:] já gravado = a 1ª resposta já aconteceu, mesmo que saiu da janela do histórico (20 msgs) */
+  observacoes?: string | null
 }): boolean {
   if (!STATUS_FASE1.has(p.status)) return false
+  if ((p.observacoes ?? '').includes('[TESTE_ABERTURA:')) return false
   if (p.dados?.nome_socio) return false
   if (p.mensagemEhAutomatica) return false
   return !p.historico.some((m) => m.direcao === 'out' && !m.template_hsm)

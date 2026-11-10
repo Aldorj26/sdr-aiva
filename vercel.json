@@ -81,6 +81,10 @@
       "schedule": "13 11-22 * * *"
     },
     {
+      "path": "/api/sdr/aquecer-cache",
+      "schedule": "0,30 10-23 * * *"
+    },
+    {
       "path": "/api/sdr/comunicado-black-november",
       "schedule": "17,37,57 13-18 10,11 11 *"
     }

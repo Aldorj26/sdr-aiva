@@ -20,6 +20,8 @@ const base = { status: 'INICIO', dados: {}, historico: [{ direcao: 'out', templa
 test('1ª resposta: só o template D+0 saiu antes → vale o teste', () => {
   assert.equal(ehPrimeiraResposta(base), true)
   assert.equal(ehPrimeiraResposta({ ...base, status: 'INTERESSADO' }), true)
+  // marcador já gravado = a 1ª resposta já saiu, mesmo que tenha sumido da janela de 20 msgs do histórico (10/11/2026)
+  assert.equal(ehPrimeiraResposta({ ...base, observacoes: 'x [TESTE_ABERTURA:B:2026-10-01T00:00:00Z] y' }), false)
 })
 
 test('não é 1ª resposta: VictorIA já falou, nome já coletado, robô ou fora da Fase 1', () => {

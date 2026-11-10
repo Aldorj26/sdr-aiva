@@ -960,9 +960,8 @@ export async function POST(req: NextRequest) {
     // 8. Busca histórico (inclui as msgs que chegaram durante o debounce),
     // remove marcadores internos ([Template X enviado]) que confundem a VictorIA,
     // e deduplica rajadas de 'in' consecutivas idênticas.
-    // Janela ampliada para 30 msgs (era 20) — reduz perda de contexto em
-    // conversas longas de qualificação sem custo significativo de tokens.
-    const historicoRaw = await getMensagens(lead.id, 30)
+    // 20 mensagens (auditoria 10/11/2026: mediana 1 msg/lead em 14 d, p90 = 7; regra vem dos marcadores, não do histórico)
+    const historicoRaw = await getMensagens(lead.id, 20)
     const historico = dedupConsecutiveIn(stripInternalMarkers(historicoRaw))
 
     // Usa a última mensagem 'in' como conteúdo efetivo (pode ser diferente da que
@@ -1331,7 +1330,7 @@ export async function POST(req: NextRequest) {
     // por lead; só vale quando é a 1ª fala da VictorIA a uma PESSOA nesta conversa.
     const testeAbertura =
       TESTE_ABERTURA_ATIVO && (lead.produto ?? 'AIVA') === 'AIVA' &&
-      ehPrimeiraResposta({ status: lead.status, dados: dadosAcumulados, historico, mensagemEhAutomatica: ehRespostaAutomatica(conteudoEfetivo) })
+      ehPrimeiraResposta({ status: lead.status, dados: dadosAcumulados, historico, mensagemEhAutomatica: ehRespostaAutomatica(conteudoEfetivo), observacoes: lead.observacoes })
         ? varianteAbertura(lead.id)
         : null
     // Números da loja no portal da AIVA (Aldo 02/10/2026): só pra loja que opera. Falha na
