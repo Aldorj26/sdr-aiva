@@ -3,7 +3,7 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
-## Estado de produção (11/11/2026, 13h)
+## Estado de produção (11/11/2026, 16h40)
 
 - **Disparo D+0 na nuvem** (cron 5 min, 8h–19h BRT dia útil, teto 500/dia, 3 lotes de 5). Entrega baixa AVISA, não pausa.
 - **Retomada do INTERESSADO** com toque 3 + oferta (22/10) e descarte; **campanha de boas-vindas**; **dicas semanais**
@@ -27,18 +27,23 @@
   mensagem de 09/11. Testar: POST em `AIVA_PORTAL_URL/auth/v1/token?grant_type=password` com as credenciais do `.env.local`.
 - **API pública** (`/onboardings`): sem mudança desde 07/10 — 29 campos; `scripts/sonda-api-aiva.mjs` usa esse retrato.
   `/tickets` devolve `priority, description, first_response_at, closed_at` (tipados em `d2dbd6f`).
-- **APAGÃO DE TEMPLATES (desde 10/11 15h45 BRT) — `silencio_templates` LIGADO (11/11 12h48).** A Meta parou de entregar
-  os HSM da fila 10 (Evo devolve `success`, mas a mensagem nem é criada no chat); texto de sessão voltou 11/11 10h36. O Evo
-  está REFAZENDO todos os templates; quando a Maisa entregar os IDs novos: trocar `HSM_TEMPLATE_ID` (41), `AIVA_REATIVACAO_`
-  (48), `AIVA_APROVACAO_` (34), `AIVA_COMPLETE_CADASTRO_` (29) na Vercel e o 69 no código, testar o 48 pro Aldo com
-  `clientrcvtime`, e só então `delete from sdr_avisos_chave where chave='silencio_templates'` (SÓ com ordem do Aldo).
+- **TEMPLATES: apagão 10/11 15h45 → resolvido 11/11 16h30, mas `silencio_templates` SEGUE LIGADO até ordem do Aldo.**
+  O Evo reconectou o número +55 47 9204-2626 numa conta de mensagens NOVA da Meta ("Track … - Habilis", asset
+  `1836233717512412`); o Aldo recriou os 12 templates lá e a Maisa sincronizou no Evo (IDs 21–70 do Evo continuam valendo,
+  mesmo com `cloudApiId` antigo no `getTemplates`). Causa real da não entrega: a conta de cobrança nova estava sem dados
+  fiscais ("Faltam informações da empresa") → texto de sessão (grátis) passava e template (conversa paga) era aceito com
+  `wamid` e nunca entregue. Aldo preencheu às 16h30; teste 48 → Aldo 7 s, 48 → Nei 4 s, 69 → Aldo 3 s.
+  **Pendente (12/11):** a Evo vai reclassificar os 8 templates que a Meta marcou como MARKETING (41, 48, 34, 38, 32, 31…)
+  de volta pra UTILITY; o Aldo avisa aqui quando estiver pronto → então: testar 48 pro Aldo com `clientrcvtime` e
+  `delete from sdr_avisos_chave where chave='silencio_templates'`. Depois: **reenviar** Black November marcado 10/11 após
+  15h45 + os 12 de 11/11, retomada/acesso-pendente de 11/11, biometria aprovada `c999b0f1`, treinamento liberado Casa
+  Brasileira (aviso no painel). D+0 continua pausado (ordem de 10/11).
   Travas em `lib/evotalks.ts` (`7ec8f41`): `silencio_global` (tudo) e `silencio_templates` (só `sendWaTemplate`), chaves em
   `sdr_avisos_chave`, sem deploy, cache 20 s. Teste de texto em prod: `GET /api/admin/test-alert?number=&secret=` (WEBHOOK_SECRET).
-  **Reenviar depois:** Black November marcado 10/11 após 15h45 e 11/11 (12 rótulos hoje), retomada/acesso-pendente de
-  11/11, biometria aprovada do lead `c999b0f1` (12h46). **Bug visto:** com silêncio ligado o webhook grava a resposta em
-  `sdr_mensagens` como `out` mesmo bloqueada (3 casos 12h31–12h33; lead `14c80fe6` disse "Oi" e ficou sem resposta).
-- **Templates HSM (10/11):** 13 UTILITY/APPROVED. Em uso: 41 (D+0), 48 (coringa), 34, 29, 69; 21 manual; 28 sem rota; resto ocioso.
-  Lista via `POST /int/getTemplates` {queueId, apiKey, limit}. Planilha: `docs/Templates-HSM-AIVA-categorias-2026-11-10.xlsx`.
+  **Bug visto:** com silêncio ligado o webhook grava a resposta em `sdr_mensagens` como `out` mesmo bloqueada (3 casos
+  12h31–12h33; lead `14c80fe6` disse "Oi" e ficou sem resposta). Monitor do dia: `scratchpad/monitor_victoria.mjs` (sessão 11/11).
+- **Templates HSM:** 13 no Evo (21 e 48 = mesmo nome na Meta). Em uso: 41 (D+0), 48 (coringa), 34, 29, 69; 21 manual; 28 sem
+  rota. Lista via `POST /int/getTemplates` {queueId, apiKey, limit}. Planilha: `docs/Templates-HSM-AIVA-categorias-2026-11-10.xlsx`.
 - `send-initial` segue sem autenticação (Aldo: não mexer agora). Biometria negada: cron DESLIGADO.
 
 ## Feito em 09–10/11 (publicado: `d2dbd6f`, `6f4e384`, `e5bd706`, `e4de388`)
