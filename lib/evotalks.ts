@@ -37,7 +37,34 @@ export interface IncomingMessage {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// ─── Silêncio global (11/11/2026) ─────────────────────────────────────────────
+// Trava ÚNICA de todo envio ao lojista/time: respostas da VictorIA, templates, crons,
+// alertas. Ligada/desligada SEM deploy pela chave `silencio_global` em `sdr_avisos_chave`
+// (linha existe → nada sai; apagar a linha → volta). O envio bloqueado lança erro claro e
+// as rotas contam como falha, sem marcar o lead como avisado. Criada quando o Evo pediu
+// pra interromper os envios do Claude pra reconectar o número (Maisa, 11/11 11h19).
+// Leitura cacheada 20 s por instância pra não bater no banco em toda mensagem.
+//   ligar:    insert into sdr_avisos_chave (chave, ultimo_aviso) values ('silencio_global', now());
+//   desligar: delete from sdr_avisos_chave where chave = 'silencio_global';
+const CAMINHOS_DE_ENVIO = new Set(['/int/sendMessageToChat', '/int/sendWaTemplate', '/int/openChat', '/int/sendText'])
+let silencioCache: { valor: boolean; lidoEm: number } | null = null
+export async function silencioGlobalAtivo(): Promise<boolean> {
+  if (silencioCache && Date.now() - silencioCache.lidoEm < 20_000) return silencioCache.valor
+  try {
+    const { supabaseAdmin } = await import('@/lib/supabase')
+    const { data } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').eq('chave', 'silencio_global').maybeSingle()
+    silencioCache = { valor: !!data, lidoEm: Date.now() }
+  } catch (e) {
+    console.error('[evotalks] não consegui ler o silêncio global (sdr_avisos_chave); seguindo com o último valor conhecido', e)
+    silencioCache = { valor: silencioCache?.valor ?? false, lidoEm: Date.now() }
+  }
+  return silencioCache.valor
+}
+
 async function post<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  if (CAMINHOS_DE_ENVIO.has(path) && (await silencioGlobalAtivo())) {
+    throw new Error(`SILENCIO_GLOBAL: envio bloqueado (${path}) — chave silencio_global em sdr_avisos_chave`)
+  }
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
