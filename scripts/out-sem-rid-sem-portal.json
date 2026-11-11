@@ -1,0 +1,492 @@
+[
+ {
+  "cnpj": "46717947000119",
+  "rids": [],
+  "nomes": [
+   "AppleCel Celulares - Loja 3"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "50657879000206",
+  "rids": [],
+  "nomes": [
+   "B5 tech - Loja 2"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "54932952000172",
+  "rids": [],
+  "nomes": [
+   "BK PRO"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "53964923000120",
+  "rids": [],
+  "nomes": [
+   "Iphonix"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "41238442000158",
+  "rids": [],
+  "nomes": [
+   "John Store"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "36064421000123",
+  "rids": [],
+  "nomes": [
+   "Maricell assistência e acessórios - Loja 1"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "47697956000123",
+  "rids": [],
+  "nomes": [
+   "Maricell assistência e acessórios - Loja 2"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "58944104000134",
+  "rids": [],
+  "nomes": [
+   "Phonetec"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "28992177000130",
+  "rids": [],
+  "nomes": [
+   "Tech Point"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "559691934618",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "58267251000117",
+  "rids": [],
+  "nomes": [
+   "Upcell"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5551993442191",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "34711586000203",
+  "rids": [],
+  "nomes": [
+   "Elder Tech - Loja 2"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "46957616000237",
+  "rids": [],
+  "nomes": [
+   "Smarting - Loja 2"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)"
+  ],
+  "etapa15": null,
+  "statusLead": null,
+  "telefone": null,
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "61013875000112",
+  "rids": [],
+  "nomes": [
+   "Magnífica"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "559888537959",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "50093267000149",
+  "rids": [],
+  "nomes": [
+   "Azitech"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "553196359190",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "36317872000125",
+  "rids": [],
+  "nomes": [
+   "Xiaomi Patrick"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5577998259009",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "59431556000185",
+  "rids": [],
+  "nomes": [
+   "Carlos Celulares"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5528999795939",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "17088175000103",
+  "rids": [],
+  "nomes": [
+   "Emc"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5518996577799",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "47241758000185",
+  "rids": [],
+  "nomes": [
+   "WS Modas e WSCell"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5516988483321",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "43626929000133",
+  "rids": [],
+  "nomes": [
+   "Uti Celulares"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "553898300831",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ },
+ {
+  "cnpj": "65457460000199",
+  "rids": [],
+  "nomes": [
+   "TECHSMART"
+  ],
+  "fontes": [
+   "funil 11 (contas fechadas)",
+   "sdr_leads · LOJA_FINALIZADA_E_VENDENDO"
+  ],
+  "etapa15": null,
+  "statusLead": "LOJA_FINALIZADA_E_VENDENDO",
+  "telefone": "5511958131443",
+  "statusPortal": null,
+  "cadastroEm": null,
+  "ativaEm": null,
+  "consultas": 0,
+  "aprovados": 0,
+  "vendas": 0,
+  "valorVendas": 0,
+  "vendasSeg": 0,
+  "noRelatorio": false,
+  "comoCasou": null,
+  "comissao": 0
+ }
+]
