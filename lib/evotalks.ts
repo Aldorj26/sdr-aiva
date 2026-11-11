@@ -46,24 +46,47 @@ export interface IncomingMessage {
 // Leitura cacheada 20 s por instância pra não bater no banco em toda mensagem.
 //   ligar:    insert into sdr_avisos_chave (chave, ultimo_aviso) values ('silencio_global', now());
 //   desligar: delete from sdr_avisos_chave where chave = 'silencio_global';
+//
+// Silêncio de TEMPLATES (11/11/2026, 12h50): chave `silencio_templates` trava só o
+// `/int/sendWaTemplate` (D+0, retomada, comunicados, avisos de etapa, alertas por HSM) e deixa
+// passar texto de sessão (respostas da VictorIA, alertas em chat aberto). Criada porque a Meta
+// parou de entregar os templates da fila desde 10/11 15h45 e o Evo está refazendo todos; o
+// Aldo pediu pra não sair nenhum template até ele religar.
+//   ligar:    insert into sdr_avisos_chave (chave, ultimo_aviso) values ('silencio_templates', now());
+//   desligar: delete from sdr_avisos_chave where chave = 'silencio_templates';
 const CAMINHOS_DE_ENVIO = new Set(['/int/sendMessageToChat', '/int/sendWaTemplate', '/int/openChat', '/int/sendText'])
-let silencioCache: { valor: boolean; lidoEm: number } | null = null
-export async function silencioGlobalAtivo(): Promise<boolean> {
+const CAMINHO_TEMPLATE = '/int/sendWaTemplate'
+type Silencio = { global: boolean; templates: boolean }
+let silencioCache: { valor: Silencio; lidoEm: number } | null = null
+export async function lerSilencio(): Promise<Silencio> {
   if (silencioCache && Date.now() - silencioCache.lidoEm < 20_000) return silencioCache.valor
   try {
     const { supabaseAdmin } = await import('@/lib/supabase')
-    const { data } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').eq('chave', 'silencio_global').maybeSingle()
-    silencioCache = { valor: !!data, lidoEm: Date.now() }
+    const { data } = await supabaseAdmin
+      .from('sdr_avisos_chave')
+      .select('chave')
+      .in('chave', ['silencio_global', 'silencio_templates'])
+    const chaves = new Set((data ?? []).map((r) => r.chave as string))
+    silencioCache = { valor: { global: chaves.has('silencio_global'), templates: chaves.has('silencio_templates') }, lidoEm: Date.now() }
   } catch (e) {
-    console.error('[evotalks] não consegui ler o silêncio global (sdr_avisos_chave); seguindo com o último valor conhecido', e)
-    silencioCache = { valor: silencioCache?.valor ?? false, lidoEm: Date.now() }
+    console.error('[evotalks] não consegui ler o silêncio (sdr_avisos_chave); seguindo com o último valor conhecido', e)
+    silencioCache = { valor: silencioCache?.valor ?? { global: false, templates: false }, lidoEm: Date.now() }
   }
   return silencioCache.valor
 }
+export async function silencioGlobalAtivo(): Promise<boolean> {
+  return (await lerSilencio()).global
+}
 
 async function post<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  if (CAMINHOS_DE_ENVIO.has(path) && (await silencioGlobalAtivo())) {
-    throw new Error(`SILENCIO_GLOBAL: envio bloqueado (${path}) — chave silencio_global em sdr_avisos_chave`)
+  if (CAMINHOS_DE_ENVIO.has(path)) {
+    const s = await lerSilencio()
+    if (s.global) {
+      throw new Error(`SILENCIO_GLOBAL: envio bloqueado (${path}) — chave silencio_global em sdr_avisos_chave`)
+    }
+    if (s.templates && path === CAMINHO_TEMPLATE) {
+      throw new Error(`SILENCIO_TEMPLATES: template bloqueado (templateId ${String(body.templateId)}) — chave silencio_templates em sdr_avisos_chave`)
+    }
   }
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
