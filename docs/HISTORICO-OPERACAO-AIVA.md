@@ -1728,3 +1728,32 @@ vezes (teto 35) = corta sem chamar o modelo, pausa 24h, alerta `laco_bot` só no
 De quebra o espelho `manual_humano` (fromMe) deduplica por janela de 10 min — o dedup pela última saída em 30 s gravou
 219 cópias de 12 textos nesse lead.
 
+
+## Apagão de templates 10–11/11/2026 (Evo reconectou o número numa conta nova da Meta)
+
+- 10/11 15h45 BRT: templates da fila 10 param de entregar (Evo devolve `success`, mensagem nem é criada); inbound para
+  às 16h15. 11/11 10h36: inbound e texto de sessão voltam; templates não. Maisa (Evotalks) pede pra interromper os
+  envios do Claude pra reconectar o número → `silencio_global` (11h28–12h36 e 12h47–12h55), depois `silencio_templates`
+  (`7ec8f41`, 12h51). As duas travas são chaves em `sdr_avisos_chave`, lidas no `post()` de `lib/evotalks.ts`.
+- Causa de fato: o número +55 47 9204-2626 passou pra uma conta de mensagens nova da Meta ("Track … - Habilis", asset
+  `1836233717512412`). O Aldo recriou os 12 templates nela (IDs novos na Meta); o Evo não sincronizava templates desde
+  26/05 e só voltou a gerar `wamid` depois que a Maisa sincronizou (16h07). Mesmo assim nada entregava: a conta de
+  cobrança nova estava sem dados fiscais ("Faltam informações da empresa") — texto de sessão é grátis e passava;
+  template abre conversa paga e morria sem recibo. Aldo preencheu 16h30 → 69 entregue em 3 s, 48 em 7 s (Aldo) e 4 s (Nei).
+- Efeitos colaterais: Black November marcado como enviado sem entrega (10/11 após 15h45 e 12 em 11/11), retomada e
+  acesso-pendente de 11/11, biometria aprovada (`c999b0f1`), treinamento liberado Casa Brasileira. Com silêncio ligado o
+  webhook grava a resposta como `out` mesmo bloqueada (lead `14c80fe6` ficou sem resposta ao "Oi" de 12h32) — corrigir.
+- A Meta reclassificou 8 dos 12 templates novos como MARKETING (41, 48, 34, 38, 32, 31…); a Evo refaz em 12/11. Lição:
+  texto de sessão OK + template com `wamid` e sem `clientrcvtime` = olhar a conta de COBRANÇA da conta de mensagens
+  (Configurações → Contas de mensagens → Configurações de pagamento), não só o cartão.
+
+## Itens de 09–10/11/2026 (tirados do HANDOFF em 12/11)
+
+- Sonda da API pública: baseline 07/10, `TicketApi` com 4 campos, relatório `docs/Sonda-API-AIVA-2026-11-09.md`.
+- "Marcado e não chegou à AIVA (17)": os 20 CNPJs estão fora do portal; o Resolvido é soneca de 6 h por desenho. 6 são
+  lojas que a AIVA DERRUBOU (30+ dias em formulário pendente; reenvio do pré-cadastro NÃO as traz de volta,
+  `[DERRUBADO_AIVA:…]` no lead); 14 nunca apareceram (Minas desde 02/10). Mensagem pro Mauricio:
+  `docs/Mensagem-Mauricio-nao-chegou-2026-11-09.md`.
+- Lead Sidney (opp Evo 20338) reativado à mão (CNPJ novo ATIVO há 1,2 ano; card 93 → 47). **Lição:** retomar pelo painel
+  um lead NAO_QUALIFICADO não destrava — o webhook descarta as respostas dele (bloco 4c) e só avisa 1×/24 h; mover o
+  card pra Interessado + Reativar (ou trocar os marcadores).
