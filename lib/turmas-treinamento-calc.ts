@@ -26,6 +26,39 @@ export function gerarFallback(agora: Date, n: number, regra = REGRA_FALLBACK): T
   return out
 }
 
+/**
+ * Turmas (datas REAIS) a partir das linhas de treinamento da API pública de onboardings.
+ * Dedup por horário de início; o link vem da sala fixa conhecida (`regra.inviteId`) porque a API
+ * não expõe o invite_id do Meet. Ordenado por data. Quem chama ainda passa por `futuras()` pra
+ * cortar o passado (cada loja traz o training_at da sua turma, que pode já ter acontecido).
+ */
+export function turmasDeTreinamentos(rows: Array<{ startsAt: string }>, regra = REGRA_FALLBACK): Turma[] {
+  const vistos = new Set<string>()
+  const out: Turma[] = []
+  for (const r of rows) {
+    if (!r.startsAt || vistos.has(r.startsAt)) continue
+    vistos.add(r.startsAt)
+    out.push({ startsAt: r.startsAt, inviteId: regra.inviteId, link: linkMeet(regra.inviteId), label: null })
+  }
+  return out.sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+}
+
+/**
+ * Inscrições por CNPJ a partir das mesmas linhas da API (cada onboarding traz o training_at da loja
+ * = a turma em que ela está marcada). `alvo` vazio = todos. Link da sala fixa; firstName não vem na API.
+ */
+export function inscricoesDeTreinamentos(rows: Array<{ cnpj: string; startsAt: string }>, alvo: Set<string>, regra = REGRA_FALLBACK): Map<string, Inscricao[]> {
+  const out = new Map<string, Inscricao[]>()
+  for (const r of rows) {
+    const c = (r.cnpj ?? '').replace(/\D/g, '')
+    if (!c || !r.startsAt || (alvo.size && !alvo.has(c))) continue
+    const lista = out.get(c) ?? []
+    lista.push({ startsAt: r.startsAt, inviteId: regra.inviteId, link: linkMeet(regra.inviteId), firstName: null })
+    out.set(c, lista)
+  }
+  return out
+}
+
 export const futuras = (turmas: Turma[], agora: Date, n: number) =>
   turmas.filter((t) => Date.parse(t.startsAt) >= agora.getTime() - TOLERANCIA_MS).sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, n)
 

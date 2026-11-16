@@ -9,10 +9,10 @@
  * mensagem ao lojista e NÃO chama a rota de etapa.
  *
  * Fontes:
- *   - onboardings: API pública do parceiro (chave) — etapa, pré-cadastro, RID
- *   - login_sends e retailer_performance: banco do portal com o login do site
- *     (mesmo acesso da tela Performance). Se esse login falhar, o espelho segue
- *     só com a API: ninguém sobe pra Login/Vendendo nessa rodada, e nada quebra.
+ *   - onboardings: API pública do parceiro (chave) — etapa, pré-cadastro, RID, board_column,
+ *     primeiro_acesso_em. Login/Vendendo saem da COLUNA do quadro (board_column), não mais do
+ *     banco do portal: a AIVA desligou o login em 26/10/2026 e login_sends/retailer_performance
+ *     deixaram de ser legíveis (ver sinaisPortal e docs/Analise-recuperar-dados-portal-pos-login-2026-11-16.md).
  *
  * Regras de decisão: lib/espelho-portal-calc.ts (puro, testado).
  * Spec: docs/superpowers/specs/2026-09-16-espelho-portal-evo-design.md
@@ -22,7 +22,7 @@ import { changeOpportunityStage, getOpportunity, getPipeOpportunities, sendText,
 import { candidatos as candidatosVinculo, variantesTelefone, vinculos } from '@/lib/vinculo-portal-calc'
 import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
-import { listarOnboardingsApi, loginPortal, partnerIdTrack, rest, type Sessao } from '@/lib/portal-aiva'
+import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import {
   calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
   MARCADOR_DERRUBADO, MOTIVO_DERRUBADO,
@@ -64,35 +64,26 @@ const CNPJ_NAO_FECHA = new Set(['invalid', 'not_found'])
 // Sem essa separação, um CNPJ só porque ainda não foi checado apareceria pro Nei
 // como "não confere" — achado de 18/09, quando o status pending passou a existir.
 
-async function sinaisPortal(): Promise<{ loginEnviado: Set<string>; vendeu: Set<string>; aviso: string | null }> {
-  let s: Sessao
-  try {
-    s = await loginPortal()
-  } catch (e) {
-    return { loginEnviado: new Set(), vendeu: new Set(), aviso: `login do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo não avaliados nesta rodada` }
+/**
+ * Login enviado e loja operando — derivados da COLUNA do quadro da AIVA, que vem na própria API
+ * pública de onboardings. ⚠️ 26/10/2026: a AIVA desligou o login no banco do portal, então
+ * `login_sends.credentials_sent_at` e `retailer_performance` (que vinham com senha) pararam. A coluna
+ * cobre o mesmo sinal: `primeira_venda` = loja operando (→ 51); `pronto_para_operar`/`primeiro_acesso`/
+ * `primeira_venda` ou `primeiro_acesso_em` preenchido = acesso liberado (→ Login). `etapaDesejada` já lê
+ * `board_column` direto; estes Sets só reforçam e cobrem o caminho antigo de cadastro sem board_column.
+ * O que NÃO dá mais pra saber pela API: "pediu a senha e ela não chegou" (contagens e login_sends exatos)
+ * — isso depende de a AIVA expor na API (ver docs/Analise-recuperar-dados-portal-pos-login-2026-11-16.md).
+ */
+function sinaisPortal(onboardings: OnbApi[]): { loginEnviado: Set<string>; vendeu: Set<string> } {
+  const loginEnviado = new Set<string>()
+  const vendeu = new Set<string>()
+  for (const o of onboardings) {
+    const rid = o.retailer_id != null && String(o.retailer_id) !== '' ? String(o.retailer_id) : null
+    if (!rid) continue
+    if (o.board_column === 'primeira_venda') vendeu.add(rid)
+    if (o.board_column === 'primeira_venda' || o.board_column === 'primeiro_acesso' || o.board_column === 'pronto_para_operar' || o.primeiro_acesso_em) loginEnviado.add(rid)
   }
-  try {
-    const partner = await partnerIdTrack(s)
-    const loginEnviado = new Set<string>()
-    const vendeu = new Set<string>()
-    for (let de = 0; ; de += 1000) {
-      const { data } = await rest<Array<{ retailer_id: string | number }>>(s, 'login_sends?select=retailer_id&credentials_sent_at=not.is.null', [de, de + 999])
-      for (const l of data) loginEnviado.add(String(l.retailer_id))
-      if (data.length < 1000) break
-    }
-    for (let de = 0; ; de += 1000) {
-      // Loja OPERANDO vai pra 51 (Aldo 28/09/2026): vendeu OU já consultou crédito.
-      // Antes era só venda — loja que consultava ficava presa em Em Análise/Treinar/Login.
-      const { data } = await rest<Array<{ retailer_id: string | number }>>(
-        s, `retailer_performance?select=retailer_id&partner_id=eq.${encodeURIComponent(partner)}&or=(n_vendas.gt.0,n_consultas.gt.0)`, [de, de + 999],
-      )
-      for (const l of data) vendeu.add(String(l.retailer_id))
-      if (data.length < 1000) break
-    }
-    return { loginEnviado, vendeu, aviso: null }
-  } catch (e) {
-    return { loginEnviado: new Set(), vendeu: new Set(), aviso: `leitura do banco do portal falhou (${String(e).slice(0, 120)}) — Login/Vendendo não avaliados nesta rodada` }
-  }
+  return { loginEnviado, vendeu }
 }
 
 /** Colunas do registro. `enviado_em` entrou em 15/10/2026 (docs/sql/2026-10-15-pre-cadastro-enviado-em.sql):
@@ -247,8 +238,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     board_column: (o.board_column as string | null | undefined) ?? null, board_column_since: (o.board_column_since as string | null | undefined) ?? null,
     primeiro_acesso_em: (o.primeiro_acesso_em as string | null | undefined) ?? null,
   }))
-  const sinais = await sinaisPortal()
-  if (sinais.aviso) avisos.push(sinais.aviso)
+  const sinais = sinaisPortal(onboardings)
 
   // 1b) CNPJ que o lojista usou no cadastro da AIVA e a gente NÃO tinha anotado → vincula ao
   //     lead pelo telefone do sócio (Gfourr e Francell, 05/10/2026: loja criada, RID, e o card

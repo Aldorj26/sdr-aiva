@@ -507,6 +507,31 @@ export async function listarOnboardingsApi(): Promise<OnboardingApi[]> {
 }
 
 /**
+ * Agenda de treinamento derivada da API pública de onboardings (campo `training_at` por loja).
+ *
+ * ⚠️ 26/10/2026: a AIVA desligou o login no banco do portal, então `training_sessions` (a agenda
+ * completa, com `invite_id`/link do Meet) deixou de ser legível. A API pública só traz, em cada
+ * onboarding, o `training_at` (data/hora da turma da loja) e um `training_id` interno de 2 dígitos —
+ * NÃO o código do Meet, e `training_label` vem sempre vazio. Por isso aqui a gente recupera as DATAS
+ * reais das turmas (as que têm ao menos uma loja marcada) e o LINK sai da sala fixa conhecida
+ * (`REGRA_FALLBACK.inviteId`, regime de link único publicado pela AIVA em 16/09). Uma turma recém-
+ * publicada que ainda não tenha nenhuma loja marcada não aparece aqui — some sozinho quando alguém marca.
+ */
+export async function listarTreinamentosApi(): Promise<Array<{ cnpj: string; startsAt: string; trainingId: string | null }>> {
+  const out: Array<{ cnpj: string; startsAt: string; trainingId: string | null }> = []
+  for (const o of await listarOnboardingsApi()) {
+    const at = (o.training_at as string | null | undefined) ?? null
+    if (!at) continue
+    out.push({
+      cnpj: String(o.cnpj ?? '').replace(/\D/g, ''),
+      startsAt: at,
+      trainingId: o.training_id != null && String(o.training_id) !== '' ? String(o.training_id) : null,
+    })
+  }
+  return out
+}
+
+/**
  * Mesma lista de `listarBiometriaPendente`, porém pela API pública — sem senha.
  *
  * O Mauricio expôs `liveness_url`, `phone_number` e `email` em 18/09/2026, e o

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { gerarFallback, futuras, rotulo, resumoDias, linhasTurmas, blocoTurmasPrompt, calendarLink, classificarInscricoes, type Turma } from './turmas-treinamento-calc.ts'
+import { gerarFallback, futuras, rotulo, resumoDias, linhasTurmas, blocoTurmasPrompt, calendarLink, classificarInscricoes, turmasDeTreinamentos, inscricoesDeTreinamentos, type Turma } from './turmas-treinamento-calc.ts'
 
 const t = (iso: string, id = 'vou-gpmy-rtp'): Turma => ({ startsAt: iso, inviteId: id, link: `https://meet.google.com/${id}`, label: null })
 
@@ -55,4 +55,33 @@ test('calendarLink: 1h de duração no formato do Google', () => {
   const l = calendarLink(t('2026-09-21T12:30:00Z'))
   assert.match(l, /dates=20260921T123000Z\/20260921T133000Z/)
   assert.match(l, /location=https%3A%2F%2Fmeet\.google\.com%2Fvou-gpmy-rtp/)
+})
+
+test('turmasDeTreinamentos: dedup por horário, link da sala fixa, ordenado; futuras corta o passado', () => {
+  const rows = [
+    { startsAt: '2026-11-18T12:30:00.000Z' },
+    { startsAt: '2026-11-16T12:30:00.000Z' },
+    { startsAt: '2026-11-16T12:30:00.000Z' }, // duplicada (outra loja, mesma turma)
+    { startsAt: '2026-11-13T12:30:00.000Z' }, // passada
+  ]
+  const turmas = turmasDeTreinamentos(rows)
+  assert.deepEqual(turmas.map((t) => t.startsAt), ['2026-11-13T12:30:00.000Z', '2026-11-16T12:30:00.000Z', '2026-11-18T12:30:00.000Z'])
+  assert.ok(turmas.every((t) => t.link === 'https://meet.google.com/vou-gpmy-rtp' && t.label === null))
+  // na quarta 18/11 10h BRT (13:00Z) sobra só a de 18/11 (13 e 16 já passaram)
+  assert.deepEqual(futuras(turmas, new Date('2026-11-18T13:00:00Z'), 4).map(rotulo), ['quarta 18/11, 9h30'])
+})
+
+test('inscricoesDeTreinamentos: filtra pelo alvo, link fixo, firstName nulo', () => {
+  const rows = [
+    { cnpj: '11.222.333/0001-44', startsAt: '2026-11-16T12:30:00.000Z' },
+    { cnpj: '99999999000199', startsAt: '2026-11-18T12:30:00.000Z' }, // fora do alvo
+  ]
+  const mapa = inscricoesDeTreinamentos(rows, new Set(['11222333000144']))
+  assert.equal(mapa.size, 1)
+  const ins = mapa.get('11222333000144')!
+  assert.equal(ins.length, 1)
+  assert.equal(ins[0].link, 'https://meet.google.com/vou-gpmy-rtp')
+  assert.equal(ins[0].firstName, null)
+  // alvo vazio = todos
+  assert.equal(inscricoesDeTreinamentos(rows, new Set()).size, 2)
 })
