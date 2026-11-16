@@ -7,6 +7,7 @@ import ChamadoResolver from '../_components/ChamadoResolver'
 import AtendidoButton from '../_components/AtendidoButton'
 import Copiavel from '@/app/_components/Copiavel'
 import AvisoResolver from '../_components/AvisoResolver'
+import ReenviarFormLink from '../_components/ReenviarFormLink'
 import { CATALOGO, TIPOS, avisoVelho, type TipoAviso } from '@/lib/avisos-painel-calc'
 import { orientar, resumirFala, haQuanto } from '@/lib/atendimento-orientacao'
 import AbrirFormLink from '@/app/registros/AbrirFormLink'
@@ -148,7 +149,7 @@ function botaoAviso(a: AvisoPainel) {
   if (!link) return <AvisoResolver id={a.id} />
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-      <a href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: '0.8rem', padding: '0.2rem 0.5rem', border: '1px solid var(--accent)', borderRadius: 6, textDecoration: 'none' }}>Abrir form ↗</a>
+      <ReenviarFormLink id={a.id} href={link} cnpj={cnpj!} />
       <AvisoResolver id={a.id} />
     </span>
   )

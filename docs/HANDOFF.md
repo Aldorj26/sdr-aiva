@@ -5,7 +5,17 @@
 
 ## Estado de produção (12/11/2026, manhã)
 
-- **TEMPLATES TRAVADOS: chave `silencio_templates` em `sdr_avisos_chave` LIGADA desde 11/11 12h48, até ordem do Aldo.**
+- **16/11 09h27 BRT — TEMPLATES RELIGADOS (ordem do Aldo: "pode, mesmo em marketing"):** teste do 48 pro Aldo
+  entregue em 2 s e lido (chat 59230); chave `silencio_templates` apagada. D+0 SEGUE PAUSADO. Botão "Saber Mais"
+  do 41 nunca parou (40/40 respondidos desde 10/11). Os 3 templates novos da Evo ainda não aparecem no `getTemplates`
+  (fila 10) — quando o Aldo avisar, trocar o 48 rota a rota (ver abaixo).
+- **16/11 ~09h45 — REENVIO do apagão feito (ordem do Aldo):** dos 74 templates de 10/11 18h45 UTC → 11/11 19h30 UTC,
+  61 reenviados (37 retomada, 11 Black November, 10 D+0/41, 2 acesso pendente, 1 pronto pra operar); **54 entregues
+  em 1 min (89%)**, 7 sem recibo (4 D+0 frios, 2 retomada, 1 BN). Gravados em `sdr_mensagens` com prefixo
+  `[REENVIO 16/11 apagão]` e o mesmo rótulo. Ficaram de fora 13: 3 já entregues, 2 que responderam, 1 descartado,
+  biometria/treinamento/link de cadastro desatualizados (lead já avançou) e os **3 "Info pendente" manuais
+  (7f574c37, be9e9233, f72f21ce — texto não gravado: Nei reenvia pelo botão do painel, que voltou a funcionar)**.
+- ~~TEMPLATES TRAVADOS: chave `silencio_templates` em `sdr_avisos_chave` LIGADA desde 11/11 12h48, até ordem do Aldo.~~
   Só o `/int/sendWaTemplate` é bloqueado (`lib/evotalks.ts`, `7ec8f41`; erro `SILENCIO_TEMPLATES`, lead não é marcado);
   texto de sessão passa — a VictorIA respondeu 44 mensagens em 11/11 à tarde, todas com recibo em 1–7 s. Existe também
   `silencio_global` (bloqueia tudo), hoje desligada. Ligar/desligar = insert/delete da chave, sem deploy, cache 20 s.
@@ -75,6 +85,23 @@
   Marketing custa ~8× utilidade no Brasil; prazo de 24 h pra pedir análise de reclassificação na Meta.
 - `send-initial` sem autenticação (Aldo: não mexer agora). Biometria negada: cron DESLIGADO. Retomada, boas-vindas e dicas: HISTORICO.
 
+## Feito em 12–15/11 (Evo: fechamento em massa; portal: diagnóstico do login)
+
+- **Atendimentos abertos no Evo (filas 10 e 21):** eram 33.847 em 12/11. A Evo fechou 18.859 em lote em 12/11 16h08
+  (motivo "Encerrado +15d sem interação (ticket 17055)"). Nós fechamos pela API os que sobraram com >30 dias:
+  30 em 12/11 + 163 em 13–15/11 (72 fila 10, 91 fila 21), zero erro. Em 15/11 restam ~144 com >30 dias (envelhecem
+  ~50/dia; todos tiveram interação nos últimos 15 dias). Receita: `getChatDetail` por ID (tenta fila 10, 404 → 21),
+  `status===1` e `beginTime` < corte → `endChat` {chatId, reason, endReason:'ATENDIMENTO FINALIZADO'} (fila exige
+  motivo; chat já fechado devolve 404 "Chat not found"). **Não existe endpoint de listagem de abertos** na API
+  `/int` (`getChatsByDateRange` filtra por endTime); a contagem vem do MCP omni `chats_list` (status=open, dateTo).
+  ⚠️ Concorrência: 20 chamadas paralelas em 12/11 coincidiram com um 502 da Evo (~14h50, reiniciou e ficou ~1 h
+  recarregando, filas desconectadas até a noite) — rodar com 5. Script: `closebulk2.mjs` no scratchpad da sessão 12/11.
+- **Portal AIVA — causa do 422 confirmada (13/11):** `/auth/v1/settings` do Supabase do portal mostra provedor
+  `email: false`, só `google: true` — desligaram o login por e-mail/senha; magic link/OTP dão o mesmo 422; API pública
+  `x-api-key` segue 200. Última coleta boa 27/10 (dados de 26/10, 371 lojas). Mensagem pronta pro Mauricio com 3
+  saídas (religar Email provider / liberar nossa conta no Google / expor as 3 tabelas na API):
+  `docs/Mensagem-Mauricio-login-portal-2026-11-13.md` — **Aldo envia**.
+
 ## Feito em 11/11 (publicado `eebbdcf`, `7ec8f41`; docs locais `ab2fd63`, `6ba451b`)
 
 - Travas `silencio_global` e `silencio_templates`; rota `GET /api/admin/test-alert?number=&secret=` (WEBHOOK_SECRET) pra testar texto em prod.
@@ -85,7 +112,7 @@
 ## Em aberto (quem decide)
 
 - **Aldo:** avisar quando a Evo terminar a reclassificação → religar templates (passos acima). Pedir análise de categoria na Meta?
-- **Aldo → Mauricio:** mensagem de 09/11 (20 CNPJs + login do portal). **Nei:** 14 CNPJs "nunca apareceram" — viu "resposta registrada"?
+- **Aldo → Mauricio:** mensagens de 09/11 (20 CNPJs) e 13/11 (login do portal: religar Email provider). **Nei:** 14 CNPJs "nunca apareceram" — viu "resposta registrada"?
 - **Aldo — Evo:** excluir automações 80 e 81. **Aldo — Vercel:** remover `GOOGLE_SHEETS_WEBHOOK_URL`, `HUBSPOT_*`.
 - **Aldo × AIVA:** material diz "R$ 10 por venda" sem "primeiro mês"? **Viagem até 15/11:** Aldo/Nei respondem o briefing das 5h.
 
