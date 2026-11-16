@@ -3,7 +3,7 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
-## Estado de produção (12/11/2026, manhã)
+## Estado de produção (16/11/2026)
 
 - **16/11 09h27 BRT — TEMPLATES RELIGADOS (ordem do Aldo: "pode, mesmo em marketing"):** teste do 48 pro Aldo
   entregue em 2 s e lido (chat 59230); chave `silencio_templates` apagada. D+0 SEGUE PAUSADO. Botão "Saber Mais"
@@ -78,12 +78,37 @@
 - **Black November (`e5bd706`):** comissão até R$ 50/venda em novembro; regras em `lib/black-november-calc.ts`. Dúvidas sem
   resposta do Aldo: gerente (20% sobre R$ 50?), vendas Odres contam?
 - **Painel financeiro (`6f4e384`):** link do Looker no aviso de ticket resolvido e no prompt (REPASSE DE VENDA) — mudar nos DOIS.
-- **Login do portal BLOQUEADO desde 26/10** (`422 email_provider_disabled`): parados turmas, senha pendente, desempenho,
-  limite de originação. Pedido ao Mauricio na mensagem de 09/11 (`docs/Mensagem-Mauricio-nao-chegou-2026-11-09.md`).
+- **Login do portal bloqueado desde 26/10, e o Mauricio confirmou em 15/11 que é DEFINITIVO** (bloqueou de
+  propósito; só a API pública `x-api-key` fica). Em 16/11 tiramos espelho e turmas do login morto (commit
+  `bca2166`, no ar): espelho lê `board_column`/`primeiro_acesso_em` (loginEnviado 371, vendeu 126 reais, sem o
+  aviso "não avaliados"); turmas usam a regra fixa + `training_at` retrospectivo. **Ainda cegos (só o Mauricio
+  expondo `retailer_performance` na API):** dicas-desempenho e limite de originação. Análise completa em
+  `docs/Analise-recuperar-dados-portal-pos-login-2026-11-16.md`.
 - **Templates HSM:** 13 no Evo (21 e 48 = mesmo nome na Meta). Em uso: 41 (D+0), 48 (coringa), 34, 29, 69; 21 manual;
   28 sem rota. Lista: `POST /int/getTemplates` {queueId, apiKey, limit}. Planilha `docs/Templates-HSM-AIVA-categorias-2026-11-10.xlsx`.
   Marketing custa ~8× utilidade no Brasil; prazo de 24 h pra pedir análise de reclassificação na Meta.
 - `send-initial` sem autenticação (Aldo: não mexer agora). Biometria negada: cron DESLIGADO. Retomada, boas-vindas e dicas: HISTORICO.
+
+## Feito em 16/11 (publicado `bca2166`)
+
+- **Mauricio confirmou (15/11): o login do portal foi bloqueado DE PROPÓSITO e não volta** — daqui pra frente só
+  a API pública de parceiros (`parceiro-aiva.lovable.app/api/public/partner/...`, `x-api-key`). O pedido ao
+  Mauricio deixa de ser "religar o login" e passa a ser **expor na API** o que o login lia.
+- **espelho e turmas tirados do login morto (commit `bca2166`, deploy de produção feito 16/11):** `tsc` limpo,
+  42 testes verdes. O que mudou:
+  - **espelho-portal** — `sinaisPortal` não chama mais o login; "operando"/"login enviado" saem de
+    `board_column`/`primeiro_acesso_em`. Sumiu o aviso "Login/Vendendo não avaliados" de toda rodada.
+    Teste real: loginEnviado **371**, vendeu **126** (antes 0/0 + erro).
+  - **turmas-treinamento** — login removido das 3 funções; `inscricoesPorCnpj` volta (training_at por loja,
+    retrospectivo); `houveTurmaHoje` usa a cadência oficial seg/qua/sex; `proximasTurmas` tenta a API e cai no
+    fallback da regra fixa (a API NÃO traz agenda futura — `training_at` é só retrospectivo, 0 datas futuras no teste).
+  - Arquivos: `lib/espelho-portal.ts`, `lib/turmas-treinamento.ts`, `lib/turmas-treinamento-calc.ts`,
+    `lib/portal-aiva.ts` (nova `listarTreinamentosApi`), `lib/turmas-treinamento-calc.test.ts` (+2 testes).
+- **Veredito (doc `docs/Analise-recuperar-dados-portal-pos-login-2026-11-16.md`):** números de desempenho
+  (consultas/vendas/R$/inadimplência) **não** vêm pela API — só o Mauricio expondo `retailer_performance`.
+  Agenda FUTURA de turmas também **não** — só expondo `training_sessions` (starts_at + invite_id/link).
+- **Pendente:** reescrever `docs/Mensagem-Mauricio-login-portal-2026-11-13.md` (ela ainda pede religar login;
+  trocar por pedir só `retailer_performance` e `training_sessions` na API). Ainda não commitada.
 
 ## Feito em 12–15/11 (Evo: fechamento em massa; portal: diagnóstico do login)
 
@@ -112,7 +137,7 @@
 ## Em aberto (quem decide)
 
 - **Aldo:** avisar quando a Evo terminar a reclassificação → religar templates (passos acima). Pedir análise de categoria na Meta?
-- **Aldo → Mauricio:** mensagens de 09/11 (20 CNPJs) e 13/11 (login do portal: religar Email provider). **Nei:** 14 CNPJs "nunca apareceram" — viu "resposta registrada"?
+- **Aldo → Mauricio:** mensagens de 09/11 (20 CNPJs) e, agora, pedir na API `retailer_performance` (números de venda) + `training_sessions` (agenda+link) — o login não volta. **Nei:** 14 CNPJs "nunca apareceram" — viu "resposta registrada"?
 - **Aldo — Evo:** excluir automações 80 e 81. **Aldo — Vercel:** remover `GOOGLE_SHEETS_WEBHOOK_URL`, `HUBSPOT_*`.
 - **Aldo × AIVA:** material diz "R$ 10 por venda" sem "primeiro mês"? **Viagem até 15/11:** Aldo/Nei respondem o briefing das 5h.
 
@@ -120,7 +145,7 @@
 
 1. Religar templates (ordem do Aldo) → reenvios → tirar cron Black November → corrigir o bug do `out` gravado com silêncio.
 2. ~17/11: medir cache em `sdr_token_usage`; depois dieta do prompt em sessão nova, com o revisor.
-3. Login do portal de volta → conferir os 20 CNPJs no banco do portal. Medir toque 3/descarte e dicas+link (23/10).
+3. Reescrever a mensagem do Mauricio (pedir `retailer_performance` + `training_sessions` na API). Medir toque 3/descarte e dicas+link (23/10).
 4. Depois da viagem: auth no `send-initial` + desfazer o lead quando o template falha.
 
 ## Como retomar rápido
