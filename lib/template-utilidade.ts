@@ -63,3 +63,21 @@ export async function enviarCoringa(telefone: string, e: EnvioCoringa): Promise<
   const resultado = await sendTemplate(telefone, e.coringaId, [e.nome, e.miolo])
   return { conteudo: e.conteudoAntigo, viaUtilidade: false, resultado }
 }
+
+/**
+ * Mesma escolha do `enviarCoringa`, pra quem saía por OUTRO template (41 do D+0, 34 do link de cadastro,
+ * 69 do treinamento, os da régua D+3): com a chave ligada vai pelo de utilidade; sem ela, roda o envio
+ * antigo (`legado`) exatamente como era. `conteudo` só vem preenchido quando saiu por utilidade.
+ */
+export async function enviarUtilidadeOu(
+  telefone: string,
+  novo: { nome: string; loja: string; util: MsgUtilidade },
+  legado: () => ReturnType<typeof sendTemplate>,
+): Promise<{ viaUtilidade: boolean; conteudo: string | null; resultado: Awaited<ReturnType<typeof sendTemplate>> }> {
+  if (await utilidadeLigada()) {
+    const m = montar(novo.nome, novo.loja, novo.util)
+    const resultado = await sendTemplate(telefone, novo.util.tipo === 'pendencia' ? TPL_PENDENCIA : TPL_ETAPA, m.vars)
+    return { viaUtilidade: true, conteudo: m.texto, resultado }
+  }
+  return { viaUtilidade: false, conteudo: null, resultado: await legado() }
+}

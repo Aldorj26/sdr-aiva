@@ -165,3 +165,26 @@ export function campanha(tipo: string, textoAntigo: string): Etapa {
     : `fechamento da semana ${n ?? ''} da campanha de boas-vindas da AIVA.`.replace('  ', ' ')
   return etapa(rotulo, frase(textoAntigo))
 }
+
+// ─── disparo inicial (D+0), link de cadastro e treinamento (Aldo 17/11/2026, 2ª ordem) ────
+// "Nenhum disparado pelo marketing": os templates 41 (D+0), 34 (link de cadastro), 69 (treinamento) e os da
+// régua D+3/D+7/D+14 foram reclassificados pela Meta como MARKETING em ~10/11. Passam a sair pelos de utilidade.
+
+/** D+0: primeiro contato com a loja. Não há nome de pessoa ainda — a saudação é "pessoal". */
+export const NOME_D0 = 'pessoal'
+export const disparoInicial = (): Pendencia => pend(
+  'convite pra conhecer a parceria da AIVA de financiamento de celulares, aguardando o retorno da loja.',
+  'sem data definida. Aprovação do cliente em 2 minutos, a loja recebe em 2 dias úteis e o risco de inadimplência é da AIVA. Quer que eu te explique como funciona? É só responder esta mensagem.',
+)
+
+/** Loja aprovada: link do cadastro (CAF). */
+export const linkCadastro = (url: string): Etapa => etapa('aprovação da loja pela AIVA.', `falta preencher o cadastro da AIVA neste link: ${url} Assim que finalizar, me avisa por aqui.`)
+
+/** Loja liberada pro treinamento. `turmas` = "quinta 19/11, 9h30 https://meet…" (até 3). */
+export function treinamentoLiberado(turmas: string[], materiais: string, semLoja: boolean, formVendedores: string): Etapa {
+  const agenda = turmas.length ? `turmas ao vivo de 1 hora (horário de Brasília): ${turmas.join(' | ')}.` : 'turmas ao vivo de 1 hora durante a semana; me responde aqui que eu te passo a data e o link da próxima.'
+  const acesso = semLoja
+    ? 'O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 assim que a AIVA concluir a criação da loja.'
+    : `O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: ${formVendedores}`
+  return etapa('loja liberada pra etapa de treinamento da AIVA.', `${agenda} Materiais (documentos e vídeos): ${materiais} ${acesso}`)
+}

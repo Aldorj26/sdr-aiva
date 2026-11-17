@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
-import { enviarCoringa } from '@/lib/template-utilidade'
-import { painelInfo, painelFollowup, lojaDe } from '@/lib/template-utilidade-calc'
+import { enviarCoringa, enviarUtilidadeOu } from '@/lib/template-utilidade'
+import { painelInfo, painelFollowup, lojaDe, linkCadastro } from '@/lib/template-utilidade-calc'
 import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId, getOpportunity, statusFromOpp } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
 import { normalizaNome, nomeSaudacao, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
@@ -280,7 +280,7 @@ export async function POST(
 
     // 1) Dispara HSM template 15 (Link de Cadastro AIVA) — abre janela 24h
     try {
-      await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
+      await enviarUtilidadeOu(telefone, { nome: nomeContato || 'lojista', loja: lojaDe(lead.nome, lead.observacoes), util: linkCadastro('https://retail-onboarding-hub.vercel.app/') }, () => sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR]))
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[lead-action] approve sendTemplate falhou id=${id}: ${msg}`)

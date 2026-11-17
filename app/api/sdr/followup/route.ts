@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLeadsForFollowup, updateLeadStatus, saveMensagem, supabaseAdmin } from '@/lib/supabase'
+import { enviarUtilidadeOu } from '@/lib/template-utilidade'
+import { generico, NOME_D0, lojaDe } from '@/lib/template-utilidade-calc'
 import { sendTemplate, changeOpportunityStage, addOpportunityNote, STAGES, checkUserExists } from '@/lib/evotalks'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 import { flag } from '@/lib/req-flags'
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Envia HSM template via Evo Talks (funciona fora da janela de 24h)
-      await sendTemplate(lead.telefone, template.id, [lead.nome])
+      await enviarUtilidadeOu(lead.telefone, { nome: NOME_D0, loja: lojaDe(lead.nome, lead.observacoes), util: generico(template.texto(lead.nome)) }, () => sendTemplate(lead.telefone, template.id, [lead.nome]))
 
       // Salva o texto do template no histórico para contexto do Claude
       await saveMensagem(lead.id, 'out', template.texto(lead.nome), `aiva_d${etapa}`)

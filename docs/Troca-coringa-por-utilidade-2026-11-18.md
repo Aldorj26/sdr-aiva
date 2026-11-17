@@ -159,3 +159,26 @@ D+3/D+7 (pausada). O Evo lista todos como utilidade; vale o mesmo aviso — conf
 A simulação de 17/11 mostra `dados_frescos: false` (último retrato do portal em 26/10) e **0 mensagens por
 dia**: a rotina já se recusa a enviar placar com dado velho. Como a coleta do portal foi desligada de vez, ela
 não volta a enviar. Está convertida, mas hoje não manda nada.
+
+## Atualização 2 — D+0, link de cadastro e treinamento (2ª ordem do Aldo, 17/11 à noite)
+
+"Não quero nenhum disparado pelo marketing." Os templates 41 (D+0), 34 (link de cadastro), 69 (treinamento) e os
+da régua D+3/D+7/D+14 também passam a sair pelos de utilidade, com a mesma chave `coringa_utilidade_ativo`
+(apagar a chave devolve cada um ao template antigo).
+
+| envio | antes | agora | texto |
+|---|---|---|---|
+| Disparo inicial (D+0) | 41, com botão "Saber Mais" | 87 | **Pendência:** convite pra conhecer a parceria da AIVA de financiamento de celulares, aguardando o retorno da loja. **Prazo:** sem data definida. Aprovação do cliente em 2 minutos, a loja recebe em 2 dias úteis e o risco de inadimplência é da AIVA. Quer que eu te explique como funciona? É só responder esta mensagem. |
+| Link de cadastro (loja aprovada) | 34 | 86 | **Etapa:** aprovação da loja pela AIVA. **Situação:** falta preencher o cadastro da AIVA neste link: *[link]* Assim que finalizar, me avisa por aqui. |
+| Treinamento liberado | 69, cinco campos | 86 | **Etapa:** loja liberada pra etapa de treinamento da AIVA. **Situação:** turmas ao vivo de 1 hora (horário de Brasília): *[até 3 turmas com link]*. Materiais (documentos e vídeos): *[link do Drive]* O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: *[formulário]* |
+| Régua D+3/D+7/D+14 (pausada) | 31/32/38/39 | 87 | pendência genérica; o texto antigo vai no prazo |
+
+Diferenças que importam no D+0:
+- **Sem botão.** O 87 não tem o "Saber Mais"; o lojista precisa responder digitando.
+- **Sem nome de pessoa.** No primeiro contato não há nome do sócio; a saudação é "Olá pessoal".
+- **O texto diz "tem uma pendência registrada"** pra uma loja que nunca falou com a gente. A pendência descrita é
+  o convite aguardando retorno, mas é o envio com maior chance de o lojista bloquear ou denunciar — e é o de
+  maior volume (500/dia). O D+0 segue PAUSADO (ordem do Aldo de 10/11); só ele dá `/retomar`.
+
+Depois desta mudança, o único `sendTemplate` direto que resta no código é o da própria régua de alerta, que já
+usa o 87 e o 86.

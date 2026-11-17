@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   montar, limpar, lojaDe, FORMULARIO, cadastroIncompleto, biometria, acessoPendente, treinamentoGenerico, treinamentoLembrete,
   treinamentoPosTurma, ticketResolvido, AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, alertaInterno, LOJA_INTERNA, type MsgUtilidade,
-  retomada, campanha, generico, painelInfo, painelFollowup,
+  retomada, campanha, generico, painelInfo, painelFollowup, disparoInicial, linkCadastro, treinamentoLiberado, NOME_D0,
 } from './template-utilidade-calc.ts'
 
 const URL = 'https://liveness.exemplo/abc'
@@ -125,4 +125,37 @@ test('campanha de boas-vindas: sai pelo 86, com o rotulo do momento e o placar a
   assert.equal(m.tipo, 'etapa')
   assert.equal(m.situacao, 'Passando o placar Semana 1: 6 de 30 consultas. Faltam 24 pra ganhar mais R$ 80.')
   assert.equal(montar('Carlos', 'Cell Center', m).vars.length, 4)
+})
+
+// 17/11/2026 (2ª ordem do Aldo): D+0, link de cadastro e treinamento também saem por utilidade.
+test('disparo inicial (D+0): pendencia, sem nome de pessoa, pede resposta por texto (o 87 nao tem botao)', () => {
+  const m = disparoInicial()
+  assert.equal(m.tipo, 'pendencia')
+  assert.match(m.prazo, /É só responder esta mensagem\.$/)
+  const { vars, texto } = montar(NOME_D0, 'Cell Center', m)
+  assert.equal(vars[0], 'pessoal')
+  assert.ok(texto.startsWith('Olá pessoal, aqui é a VictorIA da Track.\n\nA loja Cell Center tem uma pendência registrada: convite pra conhecer a parceria da AIVA'))
+  assert.ok(texto.length <= 1000)
+})
+
+test('link de cadastro: etapa concluida, com o link dentro', () => {
+  const m = linkCadastro('https://retail-onboarding-hub.vercel.app/')
+  assert.equal(m.tipo, 'etapa')
+  assert.equal(m.etapa, 'aprovação da loja pela AIVA.')
+  assert.ok(m.situacao.includes('https://retail-onboarding-hub.vercel.app/'))
+})
+
+test('treinamento liberado: turmas, materiais e acesso cabem num corpo so', () => {
+  const turmas = ['quarta 18/11, 9h30 https://meet.google.com/vou-gpmy-rtp', 'sexta 20/11, 9h30 https://meet.google.com/vou-gpmy-rtp', 'segunda 23/11, 9h30 https://meet.google.com/vou-gpmy-rtp']
+  const DRIVE = 'https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w', FORM = 'https://forms.gle/izjwzRDXzYWDvtEt6'
+  const com = treinamentoLiberado(turmas, DRIVE, false, FORM)
+  assert.equal(com.tipo, 'etapa')
+  for (const x of [...turmas, DRIVE, FORM, '+55 21 4020-2024']) assert.ok(com.situacao.includes(x), x)
+  const corpo = montar('Carlos Eduardo', 'Cell Center Assistência e Acessórios', com).texto
+  assert.ok(corpo.length <= 1000, `corpo com ${corpo.length} caracteres`)
+  // loja ainda nao criada pela AIVA: sem formulario de vendedores
+  const sem = treinamentoLiberado(turmas, DRIVE, true, FORM)
+  assert.ok(!sem.situacao.includes(FORM) && sem.situacao.includes('assim que a AIVA concluir a criação da loja'))
+  // sem agenda: nao inventa data
+  assert.match(treinamentoLiberado([], DRIVE, false, FORM).situacao, /me responde aqui que eu te passo a data e o link/)
 })

@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendTemplate, sendText, STAGES, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
-import { enviarCoringa } from '@/lib/template-utilidade'
-import { AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, lojaDe } from '@/lib/template-utilidade-calc'
+import { enviarCoringa, enviarUtilidadeOu } from '@/lib/template-utilidade'
+
+/** Link do cadastro da AIVA (o mesmo que vai dentro do APROVACAO_TEMPLATE_VAR, lib/text.ts). */
+const LINK_CADASTRO_AIVA = 'https://retail-onboarding-hub.vercel.app/'
+import { AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, lojaDe, linkCadastro, treinamentoLiberado } from '@/lib/template-utilidade-calc'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, PRE_APROVADA_MIOLO } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 import { proximasTurmas, resumoDias, rotulo } from '@/lib/turmas-treinamento'
@@ -578,7 +581,7 @@ export async function POST(req: NextRequest) {
       // Corpo do template:
       //   Bem vindo{{1}}
       //   Assim que finalizar, retorne aqui.
-      const tplResult = await sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR])
+      const tplResult = (await enviarUtilidadeOu(telefone, { nome: nomeContato || 'lojista', loja: lojaDe(lead?.nome, lead?.observacoes), util: linkCadastro(LINK_CADASTRO_AIVA) }, () => sendTemplate(telefone, templateId, [APROVACAO_TEMPLATE_VAR]))).resultado
 
       // Texto livre reforçando o preenchimento completo do cadastro CAF —
       // incluindo a biometria facial obrigatória ao final.
@@ -699,7 +702,7 @@ export async function POST(req: NextRequest) {
       const linkTurmas = turmas.length
         ? `🔗 Reunião ao vivo (1h, horário de Brasília) — próximas turmas: ${turmas.map((t) => `${rotulo(t)} ${t.link}`).join(' | ')}`
         : '🔗 Reunião ao vivo: me responde aqui que eu te passo a data e o link da próxima turma.'
-      await sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
+      await enviarUtilidadeOu(telefone, { nome: nomeContato, loja: lojaDe(lead?.nome, lead?.observacoes), util: treinamentoLiberado(turmas.map((t) => `${rotulo(t)} ${t.link}`), 'https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w', semLoja, 'https://forms.gle/izjwzRDXzYWDvtEt6') }, () => sendTemplate(telefone, TREINAMENTO_TEMPLATE_ID, [
         nomeContato,
         turmas.length
           ? `🎓 Treinamento: temos turmas ao vivo às ${resumoDias(turmas)} (1h cada; horários e links na próxima linha) — participa da próxima! O vídeo Curso_Treinamento na pasta de materiais adianta o aprendizado.`
@@ -709,7 +712,7 @@ export async function POST(req: NextRequest) {
         semLoja
           ? '🔑 Acessos: seu cadastro e a biometria estão aprovados — assim que a AIVA concluir a criação da sua loja, o SEU login (sócio) chega automático no WhatsApp pelo +55 21 4020-2024. Os logins dos vendedores você pede depois disso.'
           : '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS).',
-      ])
+      ]))
 
       // Atualiza status no Supabase e registra histórico
       if (lead?.id) {

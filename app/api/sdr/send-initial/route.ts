@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, saveMensagem } from '@/lib/supabase'
+import { enviarUtilidadeOu } from '@/lib/template-utilidade'
+import { disparoInicial, NOME_D0, lojaDe } from '@/lib/template-utilidade-calc'
 import { sendTemplate, createOpportunity, linkChatToOpportunity, getOpenChatId, STAGES, checkUserExists, addOpportunityTags, TAG_IDS } from '@/lib/evotalks'
 import { isDiaUtil, rotuloHorario } from '@/lib/business-time'
 
@@ -170,7 +172,10 @@ export async function POST(req: NextRequest) {
       // ANTES esse retorno era DESCARTADO: o lead ficava com evotalks_chat_id null
       // até responder, e a opp nunca era amarrada ao chat (aba Atendimento vazia).
       // Agora persistimos os ids e pedimos o vínculo explícito no CRM.
-      const tpl = await sendTemplate(lead.telefone, HSM_TEMPLATE_ID, vars)
+      // 17/11/2026 (Aldo): nada por template de marketing. Com a chave `coringa_utilidade_ativo` ligada o D+0 sai
+      // pelo 87 (pendência); sem ela, pelo 41 de sempre. O 87 NÃO tem o botão "Saber Mais": o lojista responde por texto.
+      const envio = await enviarUtilidadeOu(lead.telefone, { nome: NOME_D0, loja: lojaDe(lead.nome, null), util: disparoInicial() }, () => sendTemplate(lead.telefone, HSM_TEMPLATE_ID, vars))
+      const tpl = envio.resultado
       // O retorno do sendWaTemplate nem sempre traz o chatId (só ~27% no lote
       // de 29/07). Fallback: busca o chat aberto pelo número — o template
       // acabou de abrir um, então quase sempre acha.
