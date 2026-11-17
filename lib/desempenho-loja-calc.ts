@@ -152,6 +152,34 @@ export function linhaComissaoVendedor(r: Pick<Resumo, 'cadastroEm'>, hoje: strin
   return `💰 Comissão de R$ 10 por venda ao VENDEDOR: data de criação DESCONHECIDA — ${regra}. ⛔ Sem a data, não prometa comissão nem diga "todo mês"; se ele perguntar ou cobrar → acionar_humano = true, motivo_humano = "duvida_comissao_vendedor".${posBlack}`
 }
 
+/**
+ * A última semana fechada é velha demais pra ser citada como atual? (17/11/2026)
+ * A coleta do portal morreu em 26/10/2026 (a AIVA bloqueou o login de propósito e ela não volta), mas o
+ * bloco continuava entrando no prompt com as semanas de outubro e o mês corrente "sem registro" — a
+ * VictorIA lia "parou" numa loja que podia estar vendendo. Semana fecha toda segunda: mais de 21 dias
+ * sem semana nova = a fonte parou, não é a loja que parou.
+ */
+export const DIAS_NUMEROS_ACEITOS = 21
+export function numerosCongelados(ultimaSemana: string | null | undefined, hoje: string): boolean {
+  if (!ultimaSemana) return true
+  const dias = Math.floor((Date.parse(hoje + 'T12:00:00Z') - Date.parse(ultimaSemana + 'T12:00:00Z')) / 86_400_000)
+  // a semana de segunda S só fecha em S+7: 21 dias de folga depois disso
+  return Number.isNaN(dias) || dias > 7 + DIAS_NUMEROS_ACEITOS
+}
+
+/** Bloco quando os números não são mais confiáveis: mantém o NOME do bloco e a linha 💰 (que o resto do
+ *  prompt referencia) e proíbe citar número. */
+export function blocoPromptSemNumeros(r: Pick<Resumo, 'cadastroEm'>, hoje: string = diaBrtDe(Date.now())): string {
+  return `
+[INSTRUÇÃO DO SISTEMA — NÚMEROS DA LOJA NO PORTAL DA AIVA]
+⚠️ NÚMEROS INDISPONÍVEIS: neste turno você NÃO tem os números de consultas, aprovações e vendas desta loja (a fonte deixou de ser atualizada). Não há "leitura" de gargalo.
+- ⛔ Não cite quantidade de consultas, aprovados, vendas nem valor vendido — nem de memória do histórico, nem de mensagens antigas suas. Não diga que a loja "parou", "caiu" ou "não vendeu" como se você estivesse vendo isso nos números. EXCEÇÕES: (1) a situação que o bloco LOJA NA RÉGUA DE ALERTA informar, se ele vier — aquela é sinal do sistema e vale; (2) o placar do bloco 🎁 da campanha de boas-vindas, se vier — cite só como o bloco mandar, com a data que ele mostra.
+- Vale a regra de sempre pra quando não há números: DIAGNÓSTICO PRIMEIRO, perguntando a ele (uma pergunta por vez). Se vier o bloco LOJA NA RÉGUA DE ALERTA, o que perguntar — e se ainda é pra perguntar — é o que ELE manda. Se o lojista citar números, ACREDITE e trabalhe com o que ele disse.
+- Se ele perguntar pelos números ou pelo relatório semanal (📊): diga só que o relatório semanal não está sendo atualizado. ⛔ Não prometa data de volta, não escreva link /r/, e NÃO descreva tela, menu ou caminho da plataforma onde ele veria os números (você não sabe se existe); se ele precisar conferir uma venda, vale o que já existe sobre o chat da plataforma e o painel de repasses.
+${linhaComissaoVendedor(r, hoje)}
+`
+}
+
 export function blocoPrompt(r: Resumo, hoje: string = diaBrtDe(Date.now())): string {
   const consultasSemAprovacao = (r.mes?.consultas ?? 0) + (r.mesAnterior?.consultas ?? 0) > 0 &&
     (r.mes?.aprovados ?? 0) + (r.mesAnterior?.aprovados ?? 0) === 0

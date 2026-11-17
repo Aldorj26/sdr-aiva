@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { resumir, blocoPrompt, intervaloDias, SEMANAS_JANELA, comissaoVendedor, COMISSAO_VENDEDOR_DIAS } from './desempenho-loja-calc.ts'
+import { resumir, blocoPrompt, blocoPromptSemNumeros, numerosCongelados, intervaloDias, SEMANAS_JANELA, comissaoVendedor, COMISSAO_VENDEDOR_DIAS } from './desempenho-loja-calc.ts'
 
 const ULT = '2026-09-21'
 const MES = '2026-10'
@@ -82,4 +82,23 @@ test('bloco do prompt diz se a comissão do vendedor ainda vale — e manda não
   assert.match(blocoPrompt(nova, '2026-10-23'), /Comissão de R\$ 10 por venda ao VENDEDOR[^\n]*VIGENTE até 08\/11/)
   const semData = resumir([], [m('2026-10', 1, 0, 0)], ULT, MES)
   assert.match(blocoPrompt(semData, '2026-10-23'), /Comissão de R\$ 10 por venda ao VENDEDOR[^\n]*data de criação DESCONHECIDA[^\n]*não prometa/)
+})
+
+// 17/11/2026: a coleta do portal morreu em 26/10 e não volta. Semana fechada velha não entra como atual.
+test('numeros congelados: semana fechada com mais de ~4 semanas = fonte parada', () => {
+  assert.equal(numerosCongelados('2026-10-19', '2026-10-27'), false) // fechou ontem
+  assert.equal(numerosCongelados('2026-10-19', '2026-11-16'), false) // 28 dias: ainda aceita
+  assert.equal(numerosCongelados('2026-10-19', '2026-11-17'), true)  // 29 dias: congelado
+  assert.equal(numerosCongelados(null, '2026-11-17'), true)
+  assert.equal(numerosCongelados('lixo', '2026-11-17'), true)
+})
+
+test('bloco sem numeros: mantem o nome do bloco e a linha da comissao, e nao traz numero nenhum', () => {
+  const r = resumir([s('2026-10-19', 6, 2, 2600)], [{ ...m('2026-10', 120, 30, 9), cadastro_em: '2026-08-25' }], '2026-10-19', '2026-11')
+  const b = blocoPromptSemNumeros(r, '2026-11-17')
+  assert.match(b, /\[INSTRUÇÃO DO SISTEMA — NÚMEROS DA LOJA NO PORTAL DA AIVA\]/)
+  assert.match(b, /NÚMEROS INDISPONÍVEIS/)
+  assert.match(b, /💰/) // a linha da comissão/Black November continua vindo: o resto do prompt aponta pra ela
+  assert.ok(!/120 consultas|6 aprovados|semana de 19\/10|Leitura:/.test(b))
+  assert.ok(!/um novo chega toda semana/.test(b))
 })

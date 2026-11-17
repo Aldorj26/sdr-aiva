@@ -51,7 +51,7 @@ import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE, ehRespostaAutomatica
 import { detectarLaco, obsComLaco, ehSaidaRepetida, STATUS_VIRA_BOT, JANELA_MIN, type MsgJanela } from '@/lib/laco-bot-calc'
 import { TESTE_ABERTURA_ATIVO, varianteAbertura, ehPrimeiraResposta } from '@/lib/teste-abertura'
 import { desempenhoDoLead } from '@/lib/desempenho-loja'
-import { blocoPrompt as blocoPromptDesempenho } from '@/lib/desempenho-loja-calc'
+import { blocoPrompt as blocoPromptDesempenho, blocoPromptSemNumeros, numerosCongelados, diaBrtDe } from '@/lib/desempenho-loja-calc'
 
 // Status que bloqueiam processamento (silenciosamente — sem alerta).
 // Lead chegou no fim do funil (terminal positivo OU descartado/bot/opt-out/odres/ume).
@@ -1337,14 +1337,19 @@ export async function POST(req: NextRequest) {
     // Números da loja no portal da AIVA (Aldo 02/10/2026): só pra loja que opera. Falha na
     // leitura não pode calar a VictorIA — sem números ela responde como sempre respondeu.
     // Régua de alerta (17/11/2026): bloco da loja que já recebeu aviso. NÃO entra com a loja bloqueada por limite
-    // (o bloco do bloqueio proíbe dica e investigação) e, quando entra, o bloco de NÚMEROS não entra: os números
-    // do portal estão congelados desde 26/10 e contradiriam o "você não tem os números" da régua (revisor 17/11).
+    // (o bloco do bloqueio proíbe dica e investigação). Com a régua, o bloco de NÚMEROS entra SEMPRE na variante
+    // sem números (a régua diz "você não tem os números"; a linha 💰 da comissão continua vindo) — revisor 17/11.
     const blocoRegua = !bloqueioLimite && (lead.produto ?? 'AIVA') === 'AIVA' ? blocoPromptRegua(lead.observacoes, Date.now(), lead.status) : null
     let desempenhoLoja: string | null = null
-    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO' && !blocoRegua) {
+    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO') {
       try {
         const r = await desempenhoDoLead(lead.id, lead.observacoes, [String(dadosAcumulados?.cnpj_matriz ?? '')])
-        if (r) desempenhoLoja = blocoPromptDesempenho(r)
+        if (r) {
+          // Números velhos não entram como atuais (17/11/2026): a coleta do portal morreu em 26/10 e não volta.
+          // Semana fechada com mais de ~4 semanas = fonte parada → variante que proíbe citar número.
+          const hojeBrt = diaBrtDe(Date.now())
+          desempenhoLoja = blocoRegua || numerosCongelados(r.semanas[0]?.semana, hojeBrt) ? blocoPromptSemNumeros(r, hojeBrt) : blocoPromptDesempenho(r)
+        }
       } catch (e) {
         console.error('[webhook] desempenho da loja:', e instanceof Error ? e.message : e)
       }

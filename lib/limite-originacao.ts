@@ -19,11 +19,21 @@ import { cnpjsDoLead } from '@/lib/desempenho-loja'
 
 export type Bloqueio = { rid: string; cnpj: string | null; desde: string | null }
 
+/**
+ * ⛔ LEITURA DESLIGADA (Aldo 17/11/2026). `store_origination_limit` só existia pelo LOGIN no banco do portal,
+ * que a AIVA bloqueou de propósito em 26/10 e não volta; não está na API pública. Cada conversa de loja ativa
+ * disparava uma tentativa de login recusada no portal da AIVA, pra nada. Com isto ligado ninguém é dado como
+ * bloqueado: a VictorIA volta a não saber quando a loja bateu o teto (era o que já acontecia desde 26/10).
+ * Se a AIVA expuser o bloqueio na API pública, religue trocando a leitura abaixo, não só esta constante.
+ */
+export const LEITURA_LIMITE_DESLIGADA = true
+
 let cache: { em: number; porCnpj: Map<string, Bloqueio>; porRid: Map<string, Bloqueio> } | null = null
 const VALIDADE_MS = 10 * 60_000
 
 /** Lojas bloqueadas agora, por CNPJ e por RID (cache de 10 min). */
 export async function lojasBloqueadasPorLimite(): Promise<{ porCnpj: Map<string, Bloqueio>; porRid: Map<string, Bloqueio> }> {
+  if (LEITURA_LIMITE_DESLIGADA) return { porCnpj: new Map(), porRid: new Map() }
   if (cache && Date.now() - cache.em < VALIDADE_MS) return cache
   const s = await loginPortal()
   const { data } = await rest<Array<{ retailer_id: string | number; bloqueado_desde: string | null }>>(

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processarMensagem } from '@/lib/claude'
 import type { Mensagem } from '@/lib/supabase'
 import { desempenhoPorCnpjs } from '@/lib/desempenho-loja'
-import { blocoPrompt } from '@/lib/desempenho-loja-calc'
+import { blocoPrompt, blocoPromptSemNumeros, numerosCongelados, diaBrtDe } from '@/lib/desempenho-loja-calc'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
       typeof onb_etapa === 'string' ? onb_etapa : undefined,
       undefined,
       teste_abertura === 'B' ? 'B' : null,
-      r ? blocoPrompt(r) : null,
+      // mesma escolha do webhook (17/11/2026): semana fechada velha → variante sem números
+      r ? (numerosCongelados(r.semanas[0]?.semana, diaBrtDe(Date.now())) ? blocoPromptSemNumeros(r) : blocoPrompt(r)) : null,
       pre_cadastro_nao_chegou === true,
       bloqueio_limite ? blocoPromptBloqueio({ rid: '0', cnpj: null, desde: typeof bloqueio_limite === 'string' ? bloqueio_limite : null }) : null,
     )

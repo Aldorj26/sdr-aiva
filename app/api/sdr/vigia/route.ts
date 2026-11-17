@@ -60,6 +60,18 @@ import { avisarEquipe } from '@/lib/alerta-equipe'
 import { lerFrescorPortal } from '@/lib/frescor-portal'
 import { teaserFrescor } from '@/lib/frescor-portal-calc'
 
+/**
+ * ⛔ COLETA DO PORTAL DESLIGADA (Aldo 17/11/2026). O Maurício confirmou em 15/11 que o login no banco do
+ * portal foi bloqueado de propósito e não volta; `/api/cron/portal-aiva` saiu do vercel.json. O retrato
+ * (`aiva_portal_diario`, `aiva_desempenho`) fica congelado em 26/10 PRA SEMPRE, então o VIGIA 4 avisaria
+ * todo dia de uma coisa que ninguém pode consertar. O frescor continua sendo LIDO e sai no JSON do vigia;
+ * só não vira aviso nem entra em `problemas`. Se a AIVA um dia expuser os números na API pública e a
+ * coleta voltar por outro caminho, volte isto pra `false`.
+ * ⚠️ Segue cego sem aviso: conferência de comissão (prova de venda), placar da campanha de boas-vindas,
+ * relatório semanal da loja e o bloco NÚMEROS DA LOJA da VictorIA.
+ */
+const COLETA_PORTAL_DESLIGADA = true
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -107,8 +119,8 @@ const ALVOS: Alvo[] = [
   { rota: 'senha-pendente', tolerancia: 8, fila: (j) => n(j.pendentes_portal), acao: (j) => n(j.avisar) + n(j.resolvidos) },
   // 2 toques com 8 dias entre eles; desde 22/10 também o toque 3 (dentro de `enviar`) e o descarte dos esgotados
   { rota: 'retomada-interessado', tolerancia: 9, fila: (j) => n(j.elegiveis), acao: (j) => n(j.enviar) + n(j.encerrar) + n(j.descartar) },
-  // dicas de desempenho (05/10/2026): 45/dia enquanto houver fila; fila 0 = todas aguardando o intervalo
-  { rota: 'dicas-desempenho', tolerancia: 3, fila: (j) => n(j.fila) + tocadosHoje(j), acao: (j) => tocadosHoje(j) },
+  // dicas-desempenho SAIU daqui e do vercel.json em 17/11/2026: dependia dos números do portal (coleta morta em
+  // 26/10). Quem aborda a loja ativa agora é a /regua-alerta — entra nesta lista quando for ligada no cron.
   // rede de segurança: fila 0 é o estado saudável, então nunca grita por silêncio
   { rota: 'fase3-destravada', tolerancia: 999, fila: () => 0, acao: (j) => n(j.ativos) },
   // espelho: fila 0 é NORMAL (tudo espelhado); o que se vigia é ele responder
@@ -168,9 +180,11 @@ async function executar(req: NextRequest) {
   // 35 s (lib/alerta-equipe.ts) e só é chamado quando há problema — menos do que o aviso de conta
   // logo acima, que manda `alertHuman` sem teto nenhum.
   const frescor = await lerFrescorPortal()
-  const linhasFrescor = frescor.erro
-    ? [`• *portal-aiva* — não consegui conferir o frescor da coleta: ${frescor.erro}`]
-    : (frescor.frescor?.problemas ?? [])
+  const linhasFrescor = COLETA_PORTAL_DESLIGADA
+    ? []
+    : frescor.erro
+      ? [`• *portal-aiva* — não consegui conferir o frescor da coleta: ${frescor.erro}`]
+      : (frescor.frescor?.problemas ?? [])
   // Avisa TODO DIA enquanto estiver parada, não só no dia em que quebra: o laço de rotas avisa uma
   // vez (`agora === limite`) e um aviso perdido vira silêncio de novo — foi o que custou 14 dias.
   // Janela de 20 h (e não 24 h) pra que a rodada diária das 17h nunca caia dentro da anterior;

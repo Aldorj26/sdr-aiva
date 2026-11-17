@@ -21,10 +21,6 @@
       "schedule": "0 14 * * 1-5"
     },
     {
-      "path": "/api/sdr/dicas-desempenho",
-      "schedule": "0 13 * * 1-5"
-    },
-    {
       "path": "/api/sdr/cadastro-recebido-cobranca",
       "schedule": "0 18 * * 1-5"
     },
@@ -35,10 +31,6 @@
     {
       "path": "/api/sdr/fila-humano",
       "schedule": "0 11 * * 1-5"
-    },
-    {
-      "path": "/api/cron/portal-aiva",
-      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/sdr/check-treinamento",
