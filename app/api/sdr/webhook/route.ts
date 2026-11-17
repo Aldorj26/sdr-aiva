@@ -30,6 +30,7 @@ import type { DadosColetados } from '@/lib/claude'
 import { processarMensagem, transcreverAudio, resumirProblemaChamado, FALLBACK_MENSAGEM_OVERLOADED } from '@/lib/claude'
 import { registrarAvisos } from '@/lib/avisos-painel'
 import { bloqueioDoLead, blocoPromptBloqueio } from '@/lib/limite-originacao'
+import { blocoPromptRegua, normalizarMotivo, marcaMotivo } from '@/lib/regua-alerta-calc'
 import { normalizaNome, buildAvisoCadastroMsg, buildAvisoTreinamentoMsgs, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, formatarDadosLead } from '@/lib/text'
 import { proximasTurmas } from '@/lib/turmas-treinamento'
 import { classificarFalha, exigeAcaoHumana, textoAlertaConta, chaveAviso, JANELA_AVISO_MS } from '@/lib/saude-contas-calc'
@@ -1335,8 +1336,12 @@ export async function POST(req: NextRequest) {
         : null
     // Números da loja no portal da AIVA (Aldo 02/10/2026): só pra loja que opera. Falha na
     // leitura não pode calar a VictorIA — sem números ela responde como sempre respondeu.
+    // Régua de alerta (17/11/2026): bloco da loja que já recebeu aviso. NÃO entra com a loja bloqueada por limite
+    // (o bloco do bloqueio proíbe dica e investigação) e, quando entra, o bloco de NÚMEROS não entra: os números
+    // do portal estão congelados desde 26/10 e contradiriam o "você não tem os números" da régua (revisor 17/11).
+    const blocoRegua = !bloqueioLimite && (lead.produto ?? 'AIVA') === 'AIVA' ? blocoPromptRegua(lead.observacoes, Date.now(), lead.status) : null
     let desempenhoLoja: string | null = null
-    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO') {
+    if (lead.status === 'LOJA_FINALIZADA_E_VENDENDO' && !blocoRegua) {
       try {
         const r = await desempenhoDoLead(lead.id, lead.observacoes, [String(dadosAcumulados?.cnpj_matriz ?? '')])
         if (r) desempenhoLoja = blocoPromptDesempenho(r)
@@ -1365,7 +1370,7 @@ export async function POST(req: NextRequest) {
         desempenhoLoja,
         (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
         // + campanha de boas-vindas (placar gravado pela /campanha-ativacao — lib/campanha-ativacao-calc.ts)
-        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null, blocoPromptTickets(lead.observacoes)].filter(Boolean).join('\n\n') || null,
+        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null, blocoPromptTickets(lead.observacoes), blocoRegua].filter(Boolean).join('\n\n') || null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -1464,6 +1469,20 @@ export async function POST(req: NextRequest) {
         .trim()
       await supabaseAdmin.from('sdr_leads').update({ observacoes: lead.observacoes }).eq('id', lead.id)
     }
+
+  // 9·0. Régua de alerta (17/11/2026): o motivo declarado vem em dados_coletados.motivo_alerta, mas NÃO é
+  // dado de cadastro — sai daqui antes de qualquer uso de dados_coletados (card, [DADOS_COLETADOS], alertas)
+  // e vira a marca [REGUA_MOTIVO] no remonte das observações lá embaixo.
+  let motivoAlerta: ReturnType<typeof normalizarMotivo> = null
+  {
+    const dc = resposta.dados_coletados as Record<string, unknown> | null | undefined
+    if (dc && typeof dc === 'object' && 'motivo_alerta' in dc) {
+      motivoAlerta = normalizarMotivo(dc.motivo_alerta)
+      delete dc.motivo_alerta
+      // só tinha o motivo: volta a ser "nenhum dado novo", como o resto do código espera
+      if (!Object.values(dc).some((v) => v && v !== 'null')) resposta.dados_coletados = null
+    }
+  }
 
   // 9a. GUARD UNIVERSAL ANTI-REGRESSÃO (raiz do bug "Mundo das Capas", 03/06/2026)
   // ───────────────────────────────────────────────────────────────────────────
@@ -2014,6 +2033,12 @@ export async function POST(req: NextRequest) {
       ? [...marcadores.filter((m) => !m.startsWith('[TICKET_AIVA:')), ...((obsAgora.observacoes ?? '').match(/\[TICKET_AIVA:[^\]]+\]/g) ?? [])]
       : [...marcadores]
     if (cnpjInfoNovo) partes.push(cnpjInfoMarker(cnpjInfoNovo))
+    // Régua de alerta (17/11/2026): a VictorIA devolve o motivo declarado em dados_coletados.motivo_alerta.
+    // Vira marca DURÁVEL [REGUA_MOTIVO:codigo:ISO] (a mais recente substitui a anterior).
+    if (motivoAlerta && obsPrev.includes('[REGUA_ALERTA:')) {
+      for (let i = partes.length - 1; i >= 0; i--) if (partes[i].startsWith('[REGUA_MOTIVO:')) partes.splice(i, 1)
+      partes.push(marcaMotivo(motivoAlerta))
+    }
     // Lojista recusou passar faturamento/venda parcelada (regra 2026-08-20).
     // O marcador faz o cron de cobrança parar de pedir esses campos por HSM —
     // sem ele a VictorIA para de insistir no chat mas a automação insiste

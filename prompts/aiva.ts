@@ -1510,6 +1510,7 @@ Sempre responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depoi
 ### Regras para dados_coletados
 - Inclua APENAS os dados que o lead informou NESTA mensagem (não repita dados anteriores)
 - Se o lead não informou nenhum dado novo, envie dados_coletados como null
+- **motivo_alerta** é um campo EXTRA que só existe quando vier o bloco [INSTRUÇÃO DO SISTEMA — LOJA NA RÉGUA DE ALERTA DA AIVA]: siga exatamente o que aquele bloco disser (um código, só quando o lojista disser o motivo). Sem esse bloco, NUNCA envie motivo_alerta.
 - Extraia dados mesmo que o lead não responda diretamente à pergunta (ex: "tenho 3 lojas em SP" → numero_lojas: "3"; a cidade/UF é só contexto, NÃO grave)
 - **Não pergunte por e-mail, número de lojas nem CNPJs adicionais** (saíram do fluxo em 16/10/2026). Se o lojista informar algum deles por conta própria, pode gravar — o que não pode é perguntar. Nenhum deles trava mais o cadastro: CADASTRO_RECEBIDO não depende de campo nenhum, é o sistema que seta quando o operador move o card.
 - **Gmail do painel de repasses NÃO é email_socio**: o e-mail coletado pra acessar o painel (seção REPASSE DE VENDA) NUNCA entra em dados_coletados — não grave nem atualize email_socio com ele.
