@@ -9,9 +9,13 @@
  * entra no alerta recebe o toque 1; loja que sai recebe um reconhecimento e a régua zera.
  *
  * ⛔ TRAVA DE ENVIO (decisão do Aldo 17/11): só sai por template de UTILIDADE — 87 (pendência) e
- * 86 (etapa concluída) — e só com `REGUA_ALERTA_ATIVA=1` + `AIVA_TPL_PENDENCIA_ID` +
- * `AIVA_TPL_ETAPA_ID` na Vercel. Sem os três, a rota responde SEMPRE em simulação (como ?dry),
- * mesmo chamada sem o parâmetro. Nunca usa o coringa 48. Ainda NÃO está no vercel.json.
+ * 86 (etapa concluída), IDs do Evo na fila 10 (padrão no código; `AIVA_TPL_PENDENCIA_ID` /
+ * `AIVA_TPL_ETAPA_ID` só se um dia mudarem). Nunca usa o coringa 48. Ainda NÃO está no vercel.json.
+ * LIGA/DESLIGA NO BANCO (18/11/2026, o Aldo estava sem acesso à Vercel): a régua só envia se existir
+ * a chave `regua_alerta_ativa` em `sdr_avisos_chave` (mesmo padrão do `silencio_templates`). Sem a
+ * chave — ou se a leitura falhar — a rota responde SEMPRE em simulação, mesmo chamada sem ?dry.
+ *   ligar:    insert into sdr_avisos_chave (chave, ultimo_aviso) values ('regua_alerta_ativa', now())
+ *   desligar: delete from sdr_avisos_chave where chave = 'regua_alerta_ativa'
  *
  * ⚠️ Lista de alerta vazia ou API fora = rodada RECUSADA. Lista vazia não é "todo mundo saiu do
  * alerta": tratar assim mandaria reconhecimento pra base inteira.
@@ -38,9 +42,21 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const TPL_PENDENCIA = Number(process.env.AIVA_TPL_PENDENCIA_ID ?? 0)
-const TPL_ETAPA = Number(process.env.AIVA_TPL_ETAPA_ID ?? 0)
-const ATIVA = process.env.REGUA_ALERTA_ATIVA === '1'
+const TPL_PENDENCIA = Number(process.env.AIVA_TPL_PENDENCIA_ID) || 87
+const TPL_ETAPA = Number(process.env.AIVA_TPL_ETAPA_ID) || 86
+const CHAVE_ATIVA = 'regua_alerta_ativa'
+
+/** A régua está ligada? Chave em `sdr_avisos_chave`. Falha de leitura = DESLIGADA (nunca envia no escuro). */
+async function reguaAtiva(): Promise<boolean> {
+  try {
+    const { data, error } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').eq('chave', CHAVE_ATIVA).maybeSingle()
+    if (error) throw new Error(error.message)
+    return !!data
+  } catch (e) {
+    console.error('[regua-alerta] não consegui ler a chave de ativação — tratando como DESLIGADA:', e)
+    return false
+  }
+}
 const MAX_POR_RODADA = 45
 const TETO_MS = 240_000
 const STATUS_ALVO = ['LOGIN', 'LOJA_FINALIZADA_E_VENDENDO', 'TREINAR']
@@ -65,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
   const t0 = Date.now()
   const sp = new URL(req.url).searchParams
-  const envioLiberado = ATIVA && TPL_PENDENCIA > 0 && TPL_ETAPA > 0
+  const envioLiberado = await reguaAtiva()
   const dry = flag(sp, 'dry') || !envioLiberado
   const force = flag(sp, 'force')
   const max = Math.min(Number(sp.get('max')) || MAX_POR_RODADA, MAX_POR_RODADA)
@@ -205,7 +221,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true, dry: true,
       envio_liberado: envioLiberado,
-      trava: envioLiberado ? null : 'simulação forçada: falta REGUA_ALERTA_ATIVA=1 e/ou AIVA_TPL_PENDENCIA_ID / AIVA_TPL_ETAPA_ID',
+      trava: envioLiberado ? null : `simulação forçada: régua DESLIGADA (sem a chave ${CHAVE_ATIVA} em sdr_avisos_chave)`,
       alertas_no_portal: alertas.length, por_alerta: porAlerta, alertas_sem_cadastro_na_listagem: semCadastro,
       lojistas_em_alerta: Object.values(porTrilha).reduce((a, b) => a + b, 0), por_trilha: porTrilha,
       fila: fila.length, fila_detalhe: filaPorTrilha, nesta_rodada: Math.min(fila.length, max), para_ligar: ligar,
