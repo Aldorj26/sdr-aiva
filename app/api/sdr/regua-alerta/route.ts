@@ -10,7 +10,10 @@
  *
  * ⛔ TRAVA DE ENVIO (decisão do Aldo 17/11): só sai por template de UTILIDADE — 87 (pendência) e
  * 86 (etapa concluída), IDs do Evo na fila 10 (padrão no código; `AIVA_TPL_PENDENCIA_ID` /
- * `AIVA_TPL_ETAPA_ID` só se um dia mudarem). Nunca usa o coringa 48. Ainda NÃO está no vercel.json.
+ * `AIVA_TPL_ETAPA_ID` só se um dia mudarem). Nunca usa o coringa 48.
+ * CRON (18/11/2026): `0,30 12-14 * * 1-5` UTC = 9h, 9h30, 10h, 10h30, 11h e 11h30 BRT, seg–sex. Seis rodadas de
+ * até 45 = 270/manhã: esvazia a fila inicial (~236) numa manhã; depois as rodadas saem quase vazias (só
+ * loja que entrou no alerta, toque seguinte vencido ou reconhecimento).
  * LIGA/DESLIGA NO BANCO (18/11/2026, o Aldo estava sem acesso à Vercel): a régua só envia se existir
  * a chave `regua_alerta_ativa` em `sdr_avisos_chave` (mesmo padrão do `silencio_templates`). Sem a
  * chave — ou se a leitura falhar — a rota responde SEMPRE em simulação, mesmo chamada sem ?dry.
