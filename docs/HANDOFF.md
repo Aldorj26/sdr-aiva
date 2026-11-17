@@ -5,7 +5,7 @@
 
 ## ⚠️ LEIA PRIMEIRO — estado em 17/11/2026 à noite (vale por cima do que conflitar abaixo)
 
-**Três mudanças grandes no dia. Tudo publicado (último commit `b2dfbfd` + o ajuste do D+0 que grava o texto).**
+**Três mudanças grandes no dia. Tudo publicado e no ar: último commit `7a18edc`, deploy READY em 17/11 ~19h20 BRT. Nada pendente de push.**
 
 ### 1. Régua de alerta — LIGADA e agendada
 - Fonte nova: `GET /api/public/partner/retailers/attention` (Maurício liberou em 17/11). Só `retailer_id`,
@@ -49,6 +49,13 @@
 - **D+0 PAUSADO** — o Aldo vai dar `/retomar` pra testar a abertura nova. Antes, vale `/disparar <telefone do Aldo>`
   pra ele ver a mensagem. Sem botão a resposta tende a cair; medir resposta e entrega do dia contra o histórico.
 - Conferir no fim do dia: recibos (`clientrcvtime`) por rótulo, respostas da régua, motivos `[REGUA_MOTIVO]`.
+
+### Como mexer nas chaves (tabela `sdr_avisos_chave`, sem deploy)
+- Ver: `select chave, ultimo_aviso from sdr_avisos_chave where chave in ('regua_alerta_ativa','coringa_utilidade_ativo','silencio_templates','silencio_global')`
+- Desligar a régua: `delete ... where chave = 'regua_alerta_ativa'` · voltar aos templates antigos: `delete ... where chave = 'coringa_utilidade_ativo'`
+- Simular sem enviar: `GET /api/sdr/regua-alerta?dry=1` (e `?dry=1` em qualquer rotina), Bearer `WEBHOOK_SECRET`.
+- D+0 sem botão foi escolha consciente do Aldo (17/11): medir a resposta; se cair, ele pede ao Gustavo um 4º template
+  de utilidade com botão "Saiba Mais" (aí a Maísa sincroniza e o D+0 aponta pra ele).
 
 ### Pendências
 - Vercel: o Aldo está sem acesso (pediu desligar o 2FA). A conexão da sessão lê deploys mas não cria variável de
