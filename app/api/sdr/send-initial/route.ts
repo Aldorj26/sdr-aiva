@@ -204,7 +204,8 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. Salva mensagem no histórico
-      const mensagemTemplate = `[Template AIVA enviado para ${lead.telefone}]`
+      // por utilidade grava o TEXTO que o lojista leu (a VictorIA precisa saber o que a abertura disse); pelo 41, o marcador de sempre
+      const mensagemTemplate = envio.conteudo ?? `[Template AIVA enviado para ${lead.telefone}]`
       await saveMensagem(leadId, 'out', mensagemTemplate, 'aiva_campanha')
 
       resultados.push({ telefone: lead.telefone, ok: true, lead_id: leadId })

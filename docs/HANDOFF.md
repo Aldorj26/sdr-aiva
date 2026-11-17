@@ -3,6 +3,61 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## ⚠️ LEIA PRIMEIRO — estado em 17/11/2026 à noite (vale por cima do que conflitar abaixo)
+
+**Três mudanças grandes no dia. Tudo publicado (último commit `b2dfbfd` + o ajuste do D+0 que grava o texto).**
+
+### 1. Régua de alerta — LIGADA e agendada
+- Fonte nova: `GET /api/public/partner/retailers/attention` (Maurício liberou em 17/11). Só `retailer_id`,
+  `attention_status`, `mes` — **sem número nenhum**. Cruzada com `board_column` vira trilha: A fechar a venda ·
+  B reconquista · C primeira venda · D primeira consulta. Regra em `lib/regua-alerta-calc.ts` (`npm run test:regua`),
+  rota `/api/sdr/regua-alerta`, proposta em `docs/Proposta-regua-ativacao-alertas-2026-11-17.md`.
+- **Permanente** (decisão do Aldo): toda loja que entra no alerta entra na régua; quem sai recebe reconhecimento.
+- Cron `0,30 12-14 * * 1-5` (9h–11h30 BRT, 6 rodadas × 45). Liga/desliga: chave `regua_alerta_ativa` em
+  `sdr_avisos_chave` — **LIGADA**. 1º lote 17/11 17h48: 10 da trilha A, 0 falha, 7/10 com recibo, 2 respostas.
+  **18/11 de manhã saem os ~236 restantes.**
+- Conversa: bloco dinâmico `blocoPromptRegua` (só pra loja que já recebeu toque) + motivo declarado em
+  `dados_coletados.motivo_alerta` → marca `[REGUA_MOTIVO:codigo:ISO]`. Marca da régua: `[REGUA_ALERTA:trilha=X|toque=N|ultima=ISO]`.
+
+### 2. Tudo que dependia do login do portal — DESLIGADO
+- Fora do `vercel.json`: `/api/cron/portal-aiva` e `/api/sdr/dicas-desempenho`. Vigia não avisa mais de coleta
+  parada (`COLETA_PORTAL_DESLIGADA`). Limite de originação não tenta mais o login (`LEITURA_LIMITE_DESLIGADA`).
+- Bloco NÚMEROS DA LOJA: semana fechada velha (> ~28 dias) vira a variante "números indisponíveis"
+  (`blocoPromptSemNumeros`) — mantém a linha 💰 da comissão.
+- Segue sem dado e sem aviso: conferência de comissão, placar da campanha de boas-vindas (a rota se recusa a
+  enviar: `dados_frescos:false`), relatório semanal da loja.
+
+### 3. NADA mais sai por template de marketing — tudo pelos de utilidade (ordem do Aldo, repetida 3×)
+- Templates de utilidade no Evo (fila 10): **85** alteração na conta (sem uso), **86** etapa concluída, **87** pendência.
+- Textos todos em `lib/template-utilidade-calc.ts` (`npm run test:utilidade`); envio em `lib/template-utilidade.ts`
+  (`enviarCoringa` pro que era 48, `enviarUtilidadeOu` pro que era outro template). Tabela antes/depois em
+  `docs/Troca-coringa-por-utilidade-2026-11-18.md`.
+- Chave `coringa_utilidade_ativo` em `sdr_avisos_chave` — **LIGADA**. Apagar = cada envio volta ao template antigo,
+  sem deploy (volta de emergência; quem decide é o Aldo). Falha de leitura da chave NÃO cai no antigo.
+- Convertidos: cobrança de formulário, cadastro recebido, biometria, acesso pendente, check-treinamento, tickets,
+  avisos de etapa, alertas internos + briefing, retomada de interessado, campanha, painel (enviar info / follow-up),
+  **D+0 (era 41 → 86, sem botão "Saber Mais", saudação "Olá pessoal")**, link de cadastro (34 → 86),
+  treinamento (69 → 86), régua D+3 (→ 87). Único `sendTemplate` direto que resta: a régua de alerta.
+- ⚠️ **Risco avisado e assumido pelo Aldo:** a Meta reclassificou 41 e 48 pra marketing em ~10/11 por uso em
+  prospecção; D+0 (500/dia) e retomada (até 420/dia) pelo 86/87 expõem os dois ao mesmo. Se acontecer, tudo encarece
+  junto. O campo "UTILITY" do catálogo do Evo NÃO prova a categoria da Meta — **conferir no WhatsApp Manager/fatura**.
+- **Nenhum envio real por utilidade foi conferido na fatura ainda.** Recibo de entrega prova entrega, não categoria.
+
+### Amanhã (18/11)
+- 5h: briefing do pipeline chega por 87 (1º envio real das rotinas convertidas). Se não chegar: apagar a chave.
+- 9h–11h30: régua de alerta (236).
+- **D+0 PAUSADO** — o Aldo vai dar `/retomar` pra testar a abertura nova. Antes, vale `/disparar <telefone do Aldo>`
+  pra ele ver a mensagem. Sem botão a resposta tende a cair; medir resposta e entrega do dia contra o histórico.
+- Conferir no fim do dia: recibos (`clientrcvtime`) por rótulo, respostas da régua, motivos `[REGUA_MOTIVO]`.
+
+### Pendências
+- Vercel: o Aldo está sem acesso (pediu desligar o 2FA). A conexão da sessão lê deploys mas não cria variável de
+  produção (403). Nada depende mais de variável nova.
+- `CLAUDE.md` do repo (gitignored) ainda lista dicas-desempenho e portal-aiva como automações — atualizar.
+- `test:campanha` tem 1 teste falhando por data (campanha encerrada em 05/11) — pré-existente.
+- Lista de ligação do Nei (trilhas A/B, 3º toque), retrato diário do alerta e quadro semanal de motivos: não feitos.
+- Mensagem pro Maurício (pedir `retailer_performance` + `training_sessions` na API): não reescrita.
+
 ## Estado de produção (16/11/2026)
 
 - **16/11 09h27 BRT — TEMPLATES RELIGADOS (ordem do Aldo: "pode, mesmo em marketing"):** teste do 48 pro Aldo
