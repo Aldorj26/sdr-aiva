@@ -128,13 +128,15 @@ test('campanha de boas-vindas: sai pelo 86, com o rotulo do momento e o placar a
 })
 
 // 17/11/2026 (2ª ordem do Aldo): D+0, link de cadastro e treinamento também saem por utilidade.
-test('disparo inicial (D+0): pendencia, sem nome de pessoa, pede resposta por texto (o 87 nao tem botao)', () => {
+test('disparo inicial (D+0): etapa concluida (86), sem nome de pessoa, sem prometer aprovacao', () => {
   const m = disparoInicial()
-  assert.equal(m.tipo, 'pendencia')
-  assert.match(m.prazo, /É só responder esta mensagem\.$/)
+  assert.equal(m.tipo, 'etapa')
+  assert.match(m.situacao, /Quer que eu te explique como funciona\?$/)
+  assert.ok(!/aprovad[ao]\b/i.test(m.etapa), 'nao pode dizer que a loja foi aprovada no 1o contato')
   const { vars, texto } = montar(NOME_D0, 'Cell Center', m)
   assert.equal(vars[0], 'pessoal')
-  assert.ok(texto.startsWith('Olá pessoal, aqui é a VictorIA da Track.\n\nA loja Cell Center tem uma pendência registrada: convite pra conhecer a parceria da AIVA'))
+  assert.ok(texto.startsWith('Olá pessoal, aqui é a VictorIA da Track.\n\nA loja Cell Center teve uma etapa concluída: seleção para o convite da parceria AIVA'))
+  assert.ok(texto.endsWith('Quer que eu te explique como funciona?\n\nDúvidas, responda esta mensagem.'))
   assert.ok(texto.length <= 1000)
 })
 

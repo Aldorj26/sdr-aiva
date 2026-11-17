@@ -172,9 +172,12 @@ export function campanha(tipo: string, textoAntigo: string): Etapa {
 
 /** D+0: primeiro contato com a loja. Não há nome de pessoa ainda — a saudação é "pessoal". */
 export const NOME_D0 = 'pessoal'
-export const disparoInicial = (): Pendencia => pend(
-  'convite pra conhecer a parceria da AIVA de financiamento de celulares, aguardando o retorno da loja.',
-  'sem data definida. Aprovação do cliente em 2 minutos, a loja recebe em 2 dias úteis e o risco de inadimplência é da AIVA. Quer que eu te explique como funciona? É só responder esta mensagem.',
+// Sai pelo 86 (etapa concluída), não pelo 87: "tem uma pendência registrada" soava estranho pra quem nunca
+// falou com a gente (Aldo, 17/11). A etapa descrita é verdadeira — a loja entrou na nossa lista de convite.
+// ⛔ Não escrever "pré-aprovada"/"aprovada": isso é etapa real do funil e seria promessa falsa no 1º contato.
+export const disparoInicial = (): Etapa => etapa(
+  'seleção para o convite da parceria AIVA de financiamento de celulares.',
+  'aguardando o retorno da loja. Aprovação do cliente em 2 minutos, recebimento em 2 dias úteis e risco de inadimplência por conta da AIVA. Quer que eu te explique como funciona?',
 )
 
 /** Loja aprovada: link do cadastro (CAF). */

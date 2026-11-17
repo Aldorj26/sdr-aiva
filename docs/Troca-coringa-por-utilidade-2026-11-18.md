@@ -168,7 +168,7 @@ da régua D+3/D+7/D+14 também passam a sair pelos de utilidade, com a mesma cha
 
 | envio | antes | agora | texto |
 |---|---|---|---|
-| Disparo inicial (D+0) | 41, com botão "Saber Mais" | 87 | **Pendência:** convite pra conhecer a parceria da AIVA de financiamento de celulares, aguardando o retorno da loja. **Prazo:** sem data definida. Aprovação do cliente em 2 minutos, a loja recebe em 2 dias úteis e o risco de inadimplência é da AIVA. Quer que eu te explique como funciona? É só responder esta mensagem. |
+| Disparo inicial (D+0) | 41, com botão "Saber Mais" | 86 (era 87 na 1ª versão; o Aldo achou "pendência registrada" estranho pra 1º contato) | **Etapa:** seleção para o convite da parceria AIVA de financiamento de celulares. **Situação:** aguardando o retorno da loja. Aprovação do cliente em 2 minutos, recebimento em 2 dias úteis e risco de inadimplência por conta da AIVA. Quer que eu te explique como funciona? |
 | Link de cadastro (loja aprovada) | 34 | 86 | **Etapa:** aprovação da loja pela AIVA. **Situação:** falta preencher o cadastro da AIVA neste link: *[link]* Assim que finalizar, me avisa por aqui. |
 | Treinamento liberado | 69, cinco campos | 86 | **Etapa:** loja liberada pra etapa de treinamento da AIVA. **Situação:** turmas ao vivo de 1 hora (horário de Brasília): *[até 3 turmas com link]*. Materiais (documentos e vídeos): *[link do Drive]* O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: *[formulário]* |
 | Régua D+3/D+7/D+14 (pausada) | 31/32/38/39 | 87 | pendência genérica; o texto antigo vai no prazo |
@@ -176,9 +176,9 @@ da régua D+3/D+7/D+14 também passam a sair pelos de utilidade, com a mesma cha
 Diferenças que importam no D+0:
 - **Sem botão.** O 87 não tem o "Saber Mais"; o lojista precisa responder digitando.
 - **Sem nome de pessoa.** No primeiro contato não há nome do sócio; a saudação é "Olá pessoal".
-- **O texto diz "tem uma pendência registrada"** pra uma loja que nunca falou com a gente. A pendência descrita é
-  o convite aguardando retorno, mas é o envio com maior chance de o lojista bloquear ou denunciar — e é o de
-  maior volume (500/dia). O D+0 segue PAUSADO (ordem do Aldo de 10/11); só ele dá `/retomar`.
+- **O texto diz "teve uma etapa concluída"** pra uma loja que nunca falou com a gente. A etapa descrita é a
+  seleção pra lista de convite (verdadeira), sem dizer "aprovada". Continua sendo o envio com maior chance de o
+  lojista bloquear ou denunciar — e é o de maior volume (500/dia). O D+0 segue PAUSADO (ordem do Aldo de 10/11); só ele dá `/retomar`.
 
 Depois desta mudança, o único `sendTemplate` direto que resta no código é o da própria régua de alerta, que já
 usa o 87 e o 86.

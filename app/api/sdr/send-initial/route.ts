@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       // até responder, e a opp nunca era amarrada ao chat (aba Atendimento vazia).
       // Agora persistimos os ids e pedimos o vínculo explícito no CRM.
       // 17/11/2026 (Aldo): nada por template de marketing. Com a chave `coringa_utilidade_ativo` ligada o D+0 sai
-      // pelo 87 (pendência); sem ela, pelo 41 de sempre. O 87 NÃO tem o botão "Saber Mais": o lojista responde por texto.
+      // pelo 86 (etapa concluída); sem ela, pelo 41 de sempre. O 86 NÃO tem o botão "Saber Mais": o lojista responde por texto.
       const envio = await enviarUtilidadeOu(lead.telefone, { nome: NOME_D0, loja: lojaDe(lead.nome, null), util: disparoInicial() }, () => sendTemplate(lead.telefone, HSM_TEMPLATE_ID, vars))
       const tpl = envio.resultado
       // O retorno do sendWaTemplate nem sempre traz o chatId (só ~27% no lote
