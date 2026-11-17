@@ -15,7 +15,9 @@
  * derruba o chamador esconde o problema original.
  */
 import { supabaseAdmin } from './supabase'
-import { alertHuman, sendTemplate } from './evotalks'
+import { alertHuman } from './evotalks'
+import { enviarCoringa } from './template-utilidade'
+import { alertaInterno, LOJA_INTERNA } from './template-utilidade-calc'
 
 const PRAZO_MS = 20_000
 /** Banco de dedupe (leitura + gravação da chave, e o soltar): `supabase-js` não tem timeout, e este módulo
@@ -130,7 +132,7 @@ async function avisar(detalhe: string, teaser: string, opts: OpcoesAviso): Promi
       coringa: true,
       run: async () => {
         if (!templateId) throw new Error('AIVA_REATIVACAO_TEMPLATE_ID não configurado')
-        await sendTemplate(tel, templateId, [nome, teaser])
+        await enviarCoringa(tel, { nome, loja: LOJA_INTERNA, coringaId: templateId, miolo: teaser, conteudoAntigo: '', util: alertaInterno(teaser) })
         return true
       },
     })

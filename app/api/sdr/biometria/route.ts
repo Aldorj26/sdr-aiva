@@ -22,8 +22,10 @@
  * Schedule (vercel.json): `0 12-21 * * 1-5` UTC = de hora em hora, 9h–18h BRT, seg–sex.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { biometria as biometriaUtil, lojaDe } from '@/lib/template-utilidade-calc'
 import { nomeSaudacao } from '@/lib/text'
 import { loginPortal, partnerIdTrack, listarBiometriaPendenteApi, registrarLivenessSend } from '@/lib/portal-aiva'
 import { decidir, decidirNegada, lerMarcadores, remontarObs, miolo, mioloNegada, MAX_TOQUES } from '@/lib/biometria-calc'
@@ -151,10 +153,10 @@ async function executar(req: NextRequest) {
     const link = onb.liveness_url!.trim()
     const texto = negada ? mioloNegada(toque, link) : miolo(toque, link)
     try {
-      await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, texto])
+      const env = await enviarCoringa(lead.telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: TEMPLATE_ID, miolo: texto, conteudoAntigo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`, util: biometriaUtil(toque, link, negada) })
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id, direcao: 'out',
-        conteudo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`,
+        conteudo: env.conteudo,
         template_hsm: 'aiva_reativacao_48h',
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()

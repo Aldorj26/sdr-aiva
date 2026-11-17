@@ -10,11 +10,13 @@
  * ?dry mostra o que faria. Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { ticketResolvido, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
-import { listarTicketsAtualizados, eventosDoTicket, avisoLojista, lerTicketsDoLead, gravarTicketNoLead, STATUS_ROTULO, type TicketApi } from '@/lib/tickets-aiva'
+import { LINK_PAINEL_FINANCEIRO, VIDEO_PAINEL_FINANCEIRO, listarTicketsAtualizados, eventosDoTicket, avisoLojista, lerTicketsDoLead, gravarTicketNoLead, STATUS_ROTULO, type TicketApi } from '@/lib/tickets-aiva'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,8 +75,8 @@ export async function GET(req: NextRequest) {
           if (TEMPLATE_ID) {
             const nome = normalizaNome((lead.observacoes ?? '').match(/nome_socio=([^|\]]+)/)?.[1] ?? null) || normalizaNome(lead.nome) || 'lojista'
             try {
-              await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, texto])
-              await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${texto}`, template_hsm: ROTULO })
+              const env = await enviarCoringa(lead.telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: TEMPLATE_ID, miolo: texto, conteudoAntigo: `Olá ${nome}, ${texto}`, util: ticketResolvido(t.type, t.number, LINK_PAINEL_FINANCEIRO, VIDEO_PAINEL_FINANCEIRO) })
+              await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: env.conteudo, template_hsm: ROTULO })
               ok = true
             } catch (err) { console.error('[tickets-aiva] aviso ao lojista falhou:', err) }
           }

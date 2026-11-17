@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { acessoPendente, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { listarOnboardingsApi } from '@/lib/portal-aiva'
@@ -126,9 +128,9 @@ export async function GET(req: NextRequest) {
     try {
       if (f.toque) {
         const nome = nomeDe(f.lead), t = texto(f.toque), quando = new Date()
-        await sendTemplate(f.lead.telefone, TEMPLATE_ID, [nome, t])
+        const env = await enviarCoringa(f.lead.telefone, { nome, loja: lojaDe(f.lead.nome, f.lead.observacoes), coringaId: TEMPLATE_ID, miolo: t, conteudoAntigo: `Olá ${nome}, ${t}`, util: acessoPendente(f.toque) })
         await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(f.lead.observacoes, f.toque, quando), data_ultimo_contato: quando.toISOString() }).eq('id', f.lead.id)
-        await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${t}`, template_hsm: ROTULO })
+        await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: env.conteudo, template_hsm: ROTULO })
         enviados.push(f.lead.nome)
       } else {
         await supabaseAdmin.from('sdr_leads').update({ observacoes: `${(f.lead.observacoes ?? '').trim()} [ACESSO_ESGOTADO:${new Date().toISOString()}]`.trim() }).eq('id', f.lead.id)

@@ -35,8 +35,10 @@
  * Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { treinamentoGenerico, treinamentoLembrete, treinamentoPosTurma, lojaDe, type Pendencia } from '@/lib/template-utilidade-calc'
 import { nomeSaudacao } from '@/lib/text'
 import { proximasTurmas, houveTurmaHoje, inscricoesPorCnpj, classificarInscricoes, rotulo, type Inscricao, type Turma } from '@/lib/turmas-treinamento'
 import { flag } from '@/lib/req-flags'
@@ -192,7 +194,7 @@ async function executar(req: NextRequest) {
     console.warn('[check-treinamento] inscrições do portal indisponíveis:', String(e).slice(0, 120))
   }
 
-  type Item = { lead: (typeof elegiveis)[number]; tipo: 'lembrete' | 'pos_turma' | 'generico'; miolo: string; turma: string | null }
+  type Item = { lead: (typeof elegiveis)[number]; tipo: 'lembrete' | 'pos_turma' | 'generico'; miolo: string; turma: string | null; util: Pendencia }
   const itens: Item[] = []
   let inscritosPulados = 0
   for (const l of elegiveis) {
@@ -200,14 +202,14 @@ async function executar(req: NextRequest) {
     if (insc?.futura) {
       // Tem turma marcada: manda o lembrete UMA vez (com data e link) e nunca cobra.
       if (lembreteEnviado(l.observacoes, insc.futura.startsAt)) { inscritosPulados++; continue }
-      itens.push({ lead: l, tipo: 'lembrete', miolo: mioloLembrete(insc.futura), turma: insc.futura.startsAt })
+      itens.push({ lead: l, tipo: 'lembrete', miolo: mioloLembrete(insc.futura), turma: insc.futura.startsAt, util: treinamentoLembrete(rotuloInscricao(insc.futura), insc.futura.link) })
       continue
     }
     if (insc?.passada) {
-      itens.push({ lead: l, tipo: 'pos_turma', miolo: mioloPosTurma(insc.passada, turmas), turma: insc.passada.startsAt })
+      itens.push({ lead: l, tipo: 'pos_turma', miolo: mioloPosTurma(insc.passada, turmas), turma: insc.passada.startsAt, util: treinamentoPosTurma(rotuloInscricao(insc.passada), turmas[0] ? rotulo(turmas[0]) : null) })
       continue
     }
-    itens.push({ lead: l, tipo: 'generico', miolo: MIOLO, turma: null })
+    itens.push({ lead: l, tipo: 'generico', miolo: MIOLO, turma: null, util: treinamentoGenerico(turmas.slice(0, 2).map(rotulo)) })
   }
   const fila = itens.slice(0, max)
 
@@ -232,7 +234,7 @@ async function executar(req: NextRequest) {
   let enviados = 0
   const falhas: string[] = []
 
-  for (const { lead, tipo, miolo, turma } of fila) {
+  for (const { lead, tipo, miolo, turma, util } of fila) {
     if (Date.now() - inicio > TETO_TEMPO_MS) {
       console.log('[check-treinamento] teto de tempo atingido — resto fica pra próxima rodada')
       break
@@ -241,11 +243,11 @@ async function executar(req: NextRequest) {
     // Lembrete de turma marcada NÃO é cobrança: não consome toque.
     const n = tipo === 'lembrete' ? toques(lead.observacoes) : toques(lead.observacoes) + 1
     try {
-      await sendTemplate(lead.telefone, REOPEN_TEMPLATE_ID, [nome, miolo])
+      const env = await enviarCoringa(lead.telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: REOPEN_TEMPLATE_ID, miolo, conteudoAntigo: `Oi ${nome}, tudo bem?\n${miolo} É só responder essa mensagem. 😊`, util })
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id,
         direcao: 'out',
-        conteudo: `Oi ${nome}, tudo bem?\n${miolo} É só responder essa mensagem. 😊`,
+        conteudo: env.conteudo,
         template_hsm: 'aiva_reativacao_48h',
       })
       // Re-lê observacoes AGORA: o laço leva minutos e o webhook pode ter

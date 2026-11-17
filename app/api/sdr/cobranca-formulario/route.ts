@@ -26,8 +26,10 @@
  * Schedule (vercel.json): `0 16 * * 1-5` UTC = 13h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { FORMULARIO, lojaDe } from '@/lib/template-utilidade-calc'
 import { nomeSaudacao } from '@/lib/text'
 import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import { decidir, lerMarcadores, remontarObs, MIOLOS, MAX_TOQUES } from '@/lib/cobranca-formulario-calc'
@@ -170,10 +172,11 @@ async function executar(req: NextRequest) {
     const nome = nomeSaudacao(lead.nome, lead.observacoes)
     const miolo = MIOLOS[toque - 1]
     try {
-      await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, miolo])
+      // utilidade 87 se a chave estiver ligada; senão o coringa 48 como sempre (lib/template-utilidade.ts)
+      const env = await enviarCoringa(lead.telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: TEMPLATE_ID, miolo, conteudoAntigo: `Oi ${nome}, tudo bem?\n${miolo} É só responder essa mensagem. 😊`, util: FORMULARIO[toque - 1] })
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id, direcao: 'out',
-        conteudo: `Oi ${nome}, tudo bem?\n${miolo} É só responder essa mensagem. 😊`,
+        conteudo: env.conteudo,
         template_hsm: 'aiva_reativacao_48h',
       })
       // re-lê observacoes: o laço leva minutos e o webhook pode ter escrito no meio

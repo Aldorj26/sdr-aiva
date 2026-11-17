@@ -18,7 +18,9 @@
  * Auth: Bearer WEBHOOK_SECRET ou CRON_SECRET
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendText, sendTemplate } from '@/lib/evotalks'
+import { sendText } from '@/lib/evotalks'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { alertaInterno, LOJA_INTERNA } from '@/lib/template-utilidade-calc'
 import { buildBriefingCompleto, briefingDestinos, brtNow, salvarBriefingFollowup } from '@/lib/pipeline-briefing'
 
 export const runtime = 'nodejs'
@@ -65,7 +67,7 @@ async function entregarBriefing(
   }
 
   // CAMINHO CRÍTICO: HSM carrega o resumo compacto. Se isto lançar, o destino falhou.
-  await sendTemplate(num, REOPEN_TEMPLATE_ID, [destino, compacto])
+  await enviarCoringa(num, { nome: destino, loja: LOJA_INTERNA, coringaId: REOPEN_TEMPLATE_ID, miolo: compacto, conteudoAntigo: '', util: alertaInterno(compacto) })
 
   // Guarda o briefing DETALHADO do dia. Ele NÃO é enviado agora (o HSM não abre a
   // janela 24h). Quando o admin RESPONDER o HSM, o webhook dispara este texto — aí

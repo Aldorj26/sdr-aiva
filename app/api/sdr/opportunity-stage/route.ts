@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MIOLO_PRIMEIRO_ACESSO } from '@/lib/primeiro-acesso'
 import { alertHuman, criarContaMrr, getOpportunity, getOpenChatId, openChat, sendMessageToChat, sendTemplate, sendText, STAGES, STAGE_TO_STATUS, statusFromOpp } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg, buildAvisoCadastroMsg, buildAvisoColetandoComplementoMsg, buildKitPosFechamentoMsg, PRE_APROVADA_MIOLO } from '@/lib/text'
 import { extrairCnpjs } from '@/lib/pre-cadastro-form'
 import { proximasTurmas, resumoDias, rotulo } from '@/lib/turmas-treinamento'
@@ -81,8 +83,8 @@ async function avisarEtapa(opportunityId: string | number, stageNum: number): Pr
   if (!TEMPLATE_AVISO_ETAPA) return NextResponse.json({ ok: false, erro: 'AIVA_REATIVACAO_TEMPLATE_ID não configurado', status_atualizado: cfg.status })
   const socio = (lead.observacoes ?? '').match(/nome_socio=([^|\]]+)/)?.[1]
   const nome = normalizaNome(forms['da6ddf70']) || normalizaNome(socio ?? null) || normalizaNome(lead.nome) || 'lojista'
-  await sendTemplate(telefone, TEMPLATE_AVISO_ETAPA, [nome, cfg.miolo])
-  await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${cfg.miolo}`, template_hsm: cfg.rotulo })
+  const env = await enviarCoringa(telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: TEMPLATE_AVISO_ETAPA, miolo: cfg.miolo, conteudoAntigo: `Olá ${nome}, ${cfg.miolo}`, util: AVISO_ETAPA_UTIL[stageNum] })
+  await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo: env.conteudo, template_hsm: cfg.rotulo })
   await supabaseAdmin.from('sdr_leads').update({ data_ultimo_contato: new Date().toISOString() }).eq('id', lead.id)
   console.log(`[aviso-etapa-lojista] ${cfg.rotulo} → ${telefone} (opp #${opportunityId})`)
   return NextResponse.json({ ok: true, aviso_enviado: cfg.rotulo, status_atualizado: cfg.status, telefone })
@@ -371,7 +373,8 @@ export async function POST(req: NextRequest) {
 
       // O coringa carrega a mensagem inteira: nada de texto livre em seguida, que diria
       // a mesma coisa duas vezes na mesma janela.
-      const tplResult49 = await sendTemplate(telefone, templateId, [nomeSocio, PRE_APROVADA_MIOLO])
+      const env49 = await enviarCoringa(telefone, { nome: nomeSocio, loja: lojaDe(lead?.nome, lead?.observacoes), coringaId: templateId, miolo: PRE_APROVADA_MIOLO, conteudoAntigo: `Oi ${nomeSocio}, tudo bem?\n${PRE_APROVADA_MIOLO}`, util: PRE_APROVADA_UTIL })
+      const tplResult49 = env49.resultado
       const chatId49 = tplResult49.chatId ?? (lead?.evotalks_chat_id ? Number(lead.evotalks_chat_id) : undefined)
 
       // Muda status do lead pra INTERESSADO (se o lead existir no Supabase)
@@ -395,8 +398,7 @@ export async function POST(req: NextRequest) {
           {
             lead_id: lead.id,
             direcao: 'out',
-            conteudo: `Oi ${nomeSocio}, tudo bem?
-${PRE_APROVADA_MIOLO}`,
+            conteudo: env49.conteudo,
             template_hsm: 'aiva_loja_pre_aprovada',
           },
         ])

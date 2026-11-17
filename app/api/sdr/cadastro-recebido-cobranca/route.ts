@@ -18,8 +18,10 @@
  * Schedule: `0 18 * * 1-5` UTC = 15h BRT seg-sex. Auth: Bearer WEBHOOK_SECRET/CRON_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { cadastroIncompleto, lojaDe } from '@/lib/template-utilidade-calc'
 import { listarCadastroRecebidoIncompletos } from '@/lib/cadastro-recebido'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
@@ -155,7 +157,7 @@ export async function GET(req: NextRequest) {
     const miolo = `Sua loja já passou na análise da AIVA e falta pouco pra liberar o crediário! Pra destravar, me manda ${pedido}? O resto eu resolvo com você por aqui, leva 1 minutinho. 😊`
     const textoCompleto = `Olá ${nome}, ${miolo}`
     try {
-      await sendTemplate(c.telefone, REOPEN_TEMPLATE_ID, [nome, miolo])
+      const env = await enviarCoringa(c.telefone, { nome, loja: lojaDe(c.nome, obs), coringaId: REOPEN_TEMPLATE_ID, miolo, conteudoAntigo: textoCompleto, util: cadastroIncompleto(pedido) })
 
       const novaObs = setCobrancaFlags(obs, tentativas + 1, new Date().toISOString())
       await supabaseAdmin
@@ -164,7 +166,7 @@ export async function GET(req: NextRequest) {
         .eq('id', c.leadId)
       await supabaseAdmin.from('sdr_mensagens').insert([
         { lead_id: c.leadId, direcao: 'out', conteudo: `[Cobrança Cadastro Recebido — toque ${tentativas + 1}/${MAX_TOQUES}]`, template_hsm: 'aiva_reativacao_48h' },
-        { lead_id: c.leadId, direcao: 'out', conteudo: textoCompleto },
+        { lead_id: c.leadId, direcao: 'out', conteudo: env.conteudo },
       ])
       cobrados++
       resultados.push({ telefone: c.telefone, acao: 'cobrado', toque: tentativas + 1 })
