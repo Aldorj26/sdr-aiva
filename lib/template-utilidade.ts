@@ -3,10 +3,11 @@
  * UTILIDADE 87 (pendência) e 86 (etapa concluída). Textos e regras em lib/template-utilidade-calc.ts.
  *
  * LIGA/DESLIGA NO BANCO: chave `coringa_utilidade_ativo` em `sdr_avisos_chave` (mesmo padrão do
- * `silencio_templates` e da `regua_alerta_ativa`). Sem a chave — ou se a leitura falhar — cada rotina
- * segue EXATAMENTE como era, pelo coringa 48 e com o texto antigo. Serve pra duas coisas:
- *   1. os textos novos só vão a lojista depois de o Aldo aprovar (regra do projeto);
- *   2. volta instantânea se a Meta reclassificar o template ou a entrega cair — apaga a chave.
+ * `silencio_templates` e da `regua_alerta_ativa`). LIGADA desde 17/11/2026, por ordem do Aldo, que em
+ * seguida determinou: "não quero que saia mais nada pelo coringa 48" — TODA rotina que usava o 48 passa
+ * por aqui. A chave continua existindo só como volta de emergência (apagar = volta pro 48 sem deploy, se
+ * a Meta reclassificar um template ou a entrega cair); quem decide apagar é o Aldo. Falha na LEITURA da
+ * chave não derruba pro 48: segue em utilidade.
  *   ligar:    insert into sdr_avisos_chave (chave, ultimo_aviso) values ('coringa_utilidade_ativo', now())
  *   desligar: delete from sdr_avisos_chave where chave = 'coringa_utilidade_ativo'
  */
@@ -20,16 +21,16 @@ export const CHAVE_UTILIDADE = 'coringa_utilidade_ativo'
 
 let cache: { valor: boolean; em: number } | null = null
 
-/** As rotinas devem usar os templates de utilidade? Cache de 20 s. Falha de leitura = NÃO (segue no 48). */
+/** As rotinas devem usar os templates de utilidade? Cache de 20 s. Falha de leitura = SIM (nada pelo 48). */
 export async function utilidadeLigada(): Promise<boolean> {
   if (cache && Date.now() - cache.em < 20_000) return cache.valor
-  let valor = false
+  let valor = true
   try {
     const { data, error } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').eq('chave', CHAVE_UTILIDADE).maybeSingle()
     if (error) throw new Error(error.message)
     valor = !!data
   } catch (e) {
-    console.error('[template-utilidade] não consegui ler a chave — seguindo pelo coringa 48:', e)
+    console.error('[template-utilidade] não consegui ler a chave — seguindo em utilidade (nada pelo 48):', e)
   }
   cache = { valor, em: Date.now() }
   return valor

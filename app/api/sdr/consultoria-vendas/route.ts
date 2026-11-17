@@ -27,6 +27,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 
@@ -146,7 +148,7 @@ export async function GET(req: NextRequest) {
     try {
       if (!REOPEN_TEMPLATE_ID) throw new Error('AIVA_REATIVACAO_TEMPLATE_ID não configurado')
       // Opener vai no próprio HSM (entrega garantida, reabre a janela).
-      await sendTemplate(lead.telefone, REOPEN_TEMPLATE_ID, [nome, abertura])
+      await enviarCoringa(lead.telefone, { nome: nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: REOPEN_TEMPLATE_ID, miolo: abertura, conteudoAntigo: '', util: generico(abertura) })
 
       // Toque 1 menciona o Guia de Vendas, mas a URL em parâmetro de HSM não
       // vira link clicável — marca [GUIA_VENDAS_ENVIADO] pro webhook mandar a

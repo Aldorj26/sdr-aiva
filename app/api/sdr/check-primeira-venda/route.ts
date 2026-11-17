@@ -34,6 +34,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { leadsBloqueadosPorLimite } from '@/lib/limite-originacao'
@@ -144,7 +146,7 @@ export async function GET(req: NextRequest) {
     if (!REOPEN_TEMPLATE_ID) { falhas++; continue }
 
     try {
-      await sendTemplate(loja.telefone, REOPEN_TEMPLATE_ID, [nome, MIOLO_CHECK])
+      await enviarCoringa(loja.telefone, { nome: nome, loja: lojaDe(loja.nome, obs), coringaId: REOPEN_TEMPLATE_ID, miolo: MIOLO_CHECK, conteudoAntigo: '', util: generico(MIOLO_CHECK) })
 
       const n = parseInt(obs.match(/\[CHECK_VENDA_N:(\d+)\]/)?.[1] ?? '0', 10) + 1
       const novaObs = `${obs

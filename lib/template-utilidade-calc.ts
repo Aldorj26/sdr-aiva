@@ -16,10 +16,11 @@
  *    reclassificar o template (aí os três ficam caros, inclusive a régua de alerta).
  *  - Uma linha por campo: a Meta recusa \n, tab e 4+ espaços em variável.
  *
- * ⛔ FICAM NO CORINGA 48 de propósito (não cabem em "a loja tem uma pendência"):
- *  - retomada-interessado e followup: prospect que ainda NÃO é loja — é prospecção, marketing por natureza;
- *  - campanha-ativacao: prêmio em dinheiro, é promoção;
- *  - painel "Enviar info" e "Follow-up agora": texto livre do operador / gerado pela IA.
+ * ⚠️ DECISÃO DO ALDO (18/11/2026, depois do alerta de risco): "não quero que saia mais nada pelo coringa 48".
+ * Por isso também passam por aqui a retomada de interessado (prospect — a "pendência" é o cadastro/conversa
+ * em aberto), a campanha de boas-vindas (fala de prêmio em R$ — é a única exceção à regra de não levar
+ * promoção) e os envios de texto livre do painel. O risco assumido é a Meta reclassificar o template por
+ * conteúdo de venda; se acontecer, o custo sobe nos três de uma vez. Quem volta atrás é o Aldo.
  */
 
 export type Pendencia = { tipo: 'pendencia'; pendencia: string; prazo: string }
@@ -123,3 +124,44 @@ export const PRE_APROVADA_UTIL: Etapa = etapa('pré-aprovação da loja na AIVA.
 /** Alerta do sistema pro time: o teaser de uma linha vira a "pendência". */
 export const LOJA_INTERNA = 'Track (aviso interno)'
 export const alertaInterno = (teaser: string): Pendencia => pend(teaser, 'verificar hoje.')
+
+// ─── texto livre (painel, rotinas de rodada manual) ──────────────────────────────────────
+const semEmoji = (s: string) => s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/ {2,}/g, ' ').trim()
+/** Primeira letra maiúscula: os miolos antigos continuavam a frase "Olá Fulano, …". */
+const frase = (s: string) => { const t = semEmoji(s); return t ? t[0].toUpperCase() + t.slice(1) : t }
+
+/** Qualquer miolo antigo de uma linha, sem tradução própria: vira o complemento do aviso. */
+export const generico = (miolo: string): Pendencia => pend('há um aviso do nosso time sobre a AIVA pra sua loja.', `assim que puder. ${frase(miolo)}`)
+/** Painel → "Enviar info": o operador digitou a resposta. */
+export const painelInfo = (texto: string): Pendencia => pend('há um retorno do nosso time pra você.', `assim que puder. ${frase(texto)}`)
+/** Painel → "Follow-up agora": miolo curto gerado pela IA, terminando em pergunta. */
+export const painelFollowup = (miolo: string): Pendencia => pend('o atendimento da loja com a Track ficou em aberto.', `assim que puder. ${frase(miolo)}`)
+
+// ─── retomada de interessado (prospect; toques 1 e 2, e o 3 com a oferta da turma ao vivo) ──
+export function retomada(toque: number, temDados: boolean): Pendencia {
+  if (toque >= 3) {
+    return temDados
+      ? pend('o cadastro da loja na AIVA segue em aberto.', 'antes de encerrar por aqui. A AIVA faz turmas ao vivo segunda, quarta e sexta às 9h30 mostrando a ferramenta numa loja de verdade. Quer o link da próxima, sem compromisso?')
+      : pend('a conversa sobre a AIVA pra sua loja segue em aberto.', 'antes de encerrar por aqui. Em vez de eu explicar, dá pra ver a AIVA funcionando ao vivo: tem turma segunda, quarta e sexta às 9h30. Quer o link da próxima, sem compromisso?')
+  }
+  if (temDados) {
+    return toque <= 1
+      ? pend('o cadastro da loja na AIVA foi iniciado e parou no meio. Os dados já informados estão guardados.', 'sem data definida. Dá pra retomar de onde paramos, sem começar do zero. Quer seguir?')
+      : pend('o cadastro da loja na AIVA segue incompleto. Falta pouco pra concluir.', 'último contato sobre isso. Se ainda fizer sentido, me responde que eu sigo de onde paramos.')
+  }
+  return toque <= 1
+    ? pend('a conversa sobre a AIVA pra sua loja ficou sem conclusão.', 'sem data definida. Se ainda fizer sentido, eu te explico em 2 minutos como funciona e o que precisa pra ativar. Quer que eu siga?')
+    : pend('a conversa sobre a AIVA pra sua loja segue em aberto.', 'último contato sobre isso. Se quiser saber como fica pra sua loja, é só me responder. Se não for o momento, não te incomodo mais.')
+}
+
+// ─── campanha de boas-vindas (o texto antigo, com o placar, vira a "situação") ───────────
+/** `tipo` = boas_vindas | meio_sN | fim_sN. ⚠️ Única rotina que fala de prêmio em R$ (decisão do Aldo). */
+export function campanha(tipo: string, textoAntigo: string): Etapa {
+  const n = tipo.match(/_s(\d)/)?.[1]
+  const rotulo = tipo === 'boas_vindas'
+    ? 'entrada da loja na campanha de boas-vindas da AIVA.'
+    : tipo.startsWith('meio') ? `placar parcial da semana ${n ?? ''} da campanha de boas-vindas da AIVA.`.replace('  ', ' ')
+    : tipo === 'fim_s4' ? 'encerramento da campanha de boas-vindas da AIVA.'
+    : `fechamento da semana ${n ?? ''} da campanha de boas-vindas da AIVA.`.replace('  ', ' ')
+  return etapa(rotulo, frase(textoAntigo))
+}

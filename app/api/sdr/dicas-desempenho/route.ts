@@ -23,6 +23,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, AVISO_ETAPA_UTIL, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { resumir, type LinhaMes, type LinhaSemana, type Segmento } from '@/lib/desempenho-loja-calc'
@@ -206,7 +208,7 @@ export async function GET(req: NextRequest) {
     if (Date.now() - t0 > TETO_MS) { cortadoPorTempo = true; break }
     const nome = nomeDe(l)
     try {
-      await sendTemplate(l.telefone, TEMPLATE_ID, [nome, MIOLO_PRIMEIRO_ACESSO])
+      await enviarCoringa(l.telefone, { nome, loja: lojaDe(l.nome, l.observacoes), coringaId: TEMPLATE_ID, miolo: MIOLO_PRIMEIRO_ACESSO, conteudoAntigo: '', util: AVISO_ETAPA_UTIL[99] })
       await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: l.id, direcao: 'out', conteudo: `Olá ${nome}, ${MIOLO_PRIMEIRO_ACESSO}`, template_hsm: ROTULO_PRIMEIRO_ACESSO })
       await supabaseAdmin.from('sdr_leads').update({ data_ultimo_contato: new Date().toISOString() }).eq('id', l.id)
       avisados.push(l.nome)
@@ -221,7 +223,7 @@ export async function GET(req: NextRequest) {
       // link estável do relatório da loja (/r/<token>) no fim do texto — só pra loja em LOJA_FINALIZADA_E_VENDENDO:
       // LOGIN em primeiro acesso não recebe o bloco NÚMEROS DA LOJA no prompt, e a VictorIA não saberia do relatório (revisor 20/10)
       const texto = f.lead.status === 'LOJA_FINALIZADA_E_VENDENDO' ? comLink(f.texto, await linkDoLead(f.lead.id, [...(cnpjsPorLead.get(f.lead.id) ?? [])])) : f.texto
-      await sendTemplate(f.lead.telefone, TEMPLATE_ID, [nome, texto])
+      await enviarCoringa(f.lead.telefone, { nome, loja: lojaDe(f.lead.nome, f.lead.observacoes), coringaId: TEMPLATE_ID, miolo: texto, conteudoAntigo: '', util: generico(texto) })
       const agora = new Date()
       await supabaseAdmin.from('sdr_leads').update({ observacoes: remontarObs(f.lead.observacoes, f.count + 1, f.seg, agora), data_ultimo_contato: agora.toISOString() }).eq('id', f.lead.id)
       await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${texto}`, template_hsm: ROTULO })

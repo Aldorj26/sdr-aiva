@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   montar, limpar, lojaDe, FORMULARIO, cadastroIncompleto, biometria, acessoPendente, treinamentoGenerico, treinamentoLembrete,
   treinamentoPosTurma, ticketResolvido, AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, alertaInterno, LOJA_INTERNA, type MsgUtilidade,
+  retomada, campanha, generico, painelInfo, painelFollowup,
 } from './template-utilidade-calc.ts'
 
 const URL = 'https://liveness.exemplo/abc'
@@ -20,6 +21,10 @@ const TODAS: Array<[string, MsgUtilidade]> = [
   ...['Acesso ao Painel Financeiro', 'Problemas com repasse', 'Cadastro de filial', 'Outro'].map((t): [string, MsgUtilidade] => [`ticket ${t}`, ticketResolvido(t, 1040, 'https://painel', 'https://video')]),
   ...[97, 99, 71].map((e): [string, MsgUtilidade] => [`etapa ${e}`, AVISO_ETAPA_UTIL[e]]),
   ['pre-aprovada', PRE_APROVADA_UTIL],
+  ...[1, 2, 3].flatMap((tq): Array<[string, MsgUtilidade]> => [[`retomada ${tq} com dados`, retomada(tq, true)], [`retomada ${tq} sem dados`, retomada(tq, false)]]),
+  ['painel info', painelInfo('o reenvio da senha já foi pedido pra AIVA 😊')],
+  ['painel follow-up', painelFollowup('ainda dá pra continuar de onde paramos. consegue retornar pra finalizarmos?')],
+  ['generico', generico('vi que a loja já consultou na AIVA 👏 me conta como foi?')],
 ]
 
 test('todo campo cabe numa variavel da Meta: uma linha, sem tab, sem 4 espacos, tamanho razoavel', () => {
@@ -92,4 +97,32 @@ test('aviso interno: o teaser de uma linha vira a pendencia', () => {
   assert.equal(m.vars[1], 'Track (aviso interno)')
   assert.ok(m.vars[2].includes('/pausar'))
   assert.equal(m.vars[3], 'verificar hoje.')
+})
+
+// 18/11/2026 — Aldo: "não quero que saia mais nada pelo coringa 48".
+test('retomada de interessado: 6 variantes, todas pendencia, com a pergunta no fim', () => {
+  const todas = [1, 2, 3].flatMap((tq) => [retomada(tq, true), retomada(tq, false)])
+  assert.equal(new Set(todas.map((m) => m.pendencia + m.prazo)).size, 6)
+  assert.ok(todas.every((m) => m.tipo === 'pendencia'))
+  assert.match(retomada(1, true).prazo, /de onde paramos/)
+  assert.match(retomada(2, false).prazo, /não te incomodo mais/)
+  assert.match(retomada(3, true).prazo, /turmas ao vivo/)
+})
+
+test('texto livre: tira emoji, comeca com maiuscula e preserva o conteudo', () => {
+  assert.equal(painelInfo('o reenvio da senha já foi pedido 😊').prazo, 'assim que puder. O reenvio da senha já foi pedido')
+  assert.equal(painelFollowup('consegue retornar pra finalizarmos?').prazo, 'assim que puder. Consegue retornar pra finalizarmos?')
+  assert.equal(generico('vi que a loja já consultou 👏 me conta como foi?').prazo, 'assim que puder. Vi que a loja já consultou me conta como foi?')
+})
+
+test('campanha de boas-vindas: sai pelo 86, com o rotulo do momento e o placar antigo como situacao', () => {
+  // unica rotina que leva premio em R$ num template de utilidade — decisao do Aldo, risco avisado
+  assert.equal(campanha('boas_vindas', 'sua loja entrou na campanha 🎁 vale R$ 80').etapa, 'entrada da loja na campanha de boas-vindas da AIVA.')
+  assert.equal(campanha('meio_s2', 'x').etapa, 'placar parcial da semana 2 da campanha de boas-vindas da AIVA.')
+  assert.equal(campanha('fim_s1', 'x').etapa, 'fechamento da semana 1 da campanha de boas-vindas da AIVA.')
+  assert.equal(campanha('fim_s4', 'x').etapa, 'encerramento da campanha de boas-vindas da AIVA.')
+  const m = campanha('meio_s1', 'passando o placar 📊 Semana 1: 6 de 30 consultas. Faltam 24 pra ganhar mais R$ 80.')
+  assert.equal(m.tipo, 'etapa')
+  assert.equal(m.situacao, 'Passando o placar Semana 1: 6 de 30 consultas. Faltam 24 pra ganhar mais R$ 80.')
+  assert.equal(montar('Carlos', 'Cell Center', m).vars.length, 4)
 })

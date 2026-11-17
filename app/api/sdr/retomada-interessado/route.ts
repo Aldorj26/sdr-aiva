@@ -45,8 +45,10 @@
  * Schedule (vercel.json): `0 13-19 * * 1-5` UTC = de hora em hora, 10h–16h BRT, seg–sex. GET obrigatório.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, changeOpportunityStage, STAGES } from '@/lib/evotalks'
+import { changeOpportunityStage, STAGES } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { retomada as retomadaUtil, lojaDe } from '@/lib/template-utilidade-calc'
 import { nomeSaudacao } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import {
@@ -287,10 +289,10 @@ async function executar(req: NextRequest) {
     const nome = saudacaoRetomada(nomeSaudacao(lead.nome, lead.observacoes), lead.nome)
     const texto = miolo(toque, temDados)
     try {
-      await sendTemplate(lead.telefone, TEMPLATE_ID, [nome, texto])
+      const env = await enviarCoringa(lead.telefone, { nome, loja: lojaDe(lead.nome, lead.observacoes), coringaId: TEMPLATE_ID, miolo: texto, conteudoAntigo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`, util: retomadaUtil(toque, temDados) })
       await supabaseAdmin.from('sdr_mensagens').insert({
         lead_id: lead.id, direcao: 'out',
-        conteudo: `Oi ${nome}, tudo bem?\n${texto} É só responder essa mensagem. 😊`,
+        conteudo: env.conteudo,
         template_hsm: ROTULO[status],
       })
       const { data: fresco } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', lead.id).maybeSingle()

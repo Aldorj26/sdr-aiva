@@ -8,8 +8,10 @@
  * A última rodada do dia manda o resumo a Aldo e Nei. ?dry mostra o que faria; ?force ignora a data (rodada manual).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 
@@ -83,7 +85,7 @@ export async function GET(req: NextRequest) {
     if (Date.now() - t0 > TETO_MS) { cortado = true; break }
     const nome = nomeDe(l)
     try {
-      await sendTemplate(l.telefone, TEMPLATE_ID, [nome, TEXTO])
+      await enviarCoringa(l.telefone, { nome: nome, loja: lojaDe(l.nome, l.observacoes), coringaId: TEMPLATE_ID, miolo: TEXTO, conteudoAntigo: '', util: generico(TEXTO) })
       const agora = new Date().toISOString()
       await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: l.id, direcao: 'out', conteudo: `Olá ${nome}, ${TEXTO}`, template_hsm: ROTULO })
       await supabaseAdmin.from('sdr_leads').update({ observacoes: `${(l.observacoes ?? '').trim()} ${MARCADOR}${agora}]`.trim(), data_ultimo_contato: agora }).eq('id', l.id)

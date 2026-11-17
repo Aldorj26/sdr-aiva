@@ -111,3 +111,51 @@ inclusive a régua de alerta. O teste `test:utilidade` barra essas palavras.
 Usa o template 41 ("Saber Mais"), que o Evo lista como utilidade. Nenhuma mudança de código. O ID 96, que
 apareceu depois da sincronização como marketing com o mesmo nome, não é usado em lugar nenhum. O D+0 segue
 pausado por ordem do Aldo (10/11); só ele dá `/retomar`.
+
+## Atualização — "mais nada pelo 48" (decisão do Aldo, 17/11 à noite)
+
+Depois de ler o alerta de risco, o Aldo determinou: **nada mais sai pelo coringa 48**. A chave
+`coringa_utilidade_ativo` foi ligada em 17/11 às 18h19 e as rotinas que tinham ficado de fora foram convertidas.
+A seção "O que NÃO foi convertido" acima deixou de valer.
+
+| rotina | template | como ficou |
+|---|---|---|
+| Retomada de interessado (toques 1, 2 e 3) | 87 | a "pendência" é o cadastro ou a conversa em aberto; a pergunta vai no prazo |
+| Campanha de boas-vindas | 86 | a etapa é o momento da campanha (entrada, placar parcial, fechamento da semana, encerramento); a situação é o texto antigo com o placar, sem emoji. **Única rotina que leva prêmio em R$ num template de utilidade.** |
+| Painel: "Enviar info" | 87 | pendência "há um retorno do nosso time pra você."; o texto digitado vai no prazo |
+| Painel: "Follow-up agora" | 87 | pendência "o atendimento da loja com a Track ficou em aberto."; a frase da IA vai no prazo |
+| Dicas, consultoria, comunicados, check/treinar primeira venda (fora do agendamento) | 87 | pendência "há um aviso do nosso time sobre a AIVA pra sua loja."; o texto antigo vai no prazo |
+
+Textos da retomada (template 87):
+
+| caso | pendência | prazo |
+|---|---|---|
+| toque 1, com dados | o cadastro da loja na AIVA foi iniciado e parou no meio. Os dados já informados estão guardados. | sem data definida. Dá pra retomar de onde paramos, sem começar do zero. Quer seguir? |
+| toque 2, com dados | o cadastro da loja na AIVA segue incompleto. Falta pouco pra concluir. | último contato sobre isso. Se ainda fizer sentido, me responde que eu sigo de onde paramos. |
+| toque 1, sem dados | a conversa sobre a AIVA pra sua loja ficou sem conclusão. | sem data definida. Se ainda fizer sentido, eu te explico em 2 minutos como funciona e o que precisa pra ativar. Quer que eu siga? |
+| toque 2, sem dados | a conversa sobre a AIVA pra sua loja segue em aberto. | último contato sobre isso. Se quiser saber como fica pra sua loja, é só me responder. Se não for o momento, não te incomodo mais. |
+| toque 3, com dados | o cadastro da loja na AIVA segue em aberto. | antes de encerrar por aqui. A AIVA faz turmas ao vivo segunda, quarta e sexta às 9h30 mostrando a ferramenta numa loja de verdade. Quer o link da próxima, sem compromisso? |
+| toque 3, sem dados | a conversa sobre a AIVA pra sua loja segue em aberto. | antes de encerrar por aqui. Em vez de eu explicar, dá pra ver a AIVA funcionando ao vivo: tem turma segunda, quarta e sexta às 9h30. Quer o link da próxima, sem compromisso? |
+
+**A chave continua existindo como volta de emergência:** apagar `coringa_utilidade_ativo` devolve todas as
+rotinas ao 48 sem deploy. Falha na leitura da chave não derruba pro 48 (segue em utilidade).
+
+### ⚠️ Risco assumido, com precedente nosso
+
+Em ~10/11 a Meta reclassificou como MARKETING oito templates nossos que tinham sido aprovados como utilidade,
+entre eles o **41 (D+0)** e o **48** (HANDOFF, bloco de 12/11). O catálogo do Evo continua mostrando os dois
+como "UTILITY", mas esse campo é o do Evo, não o da Meta — **a categoria cobrada só se confirma no WhatsApp
+Manager ou na fatura**. Ou seja: a Meta já reclassificou template nosso por causa do uso em prospecção. Passar a
+retomada (até 420 envios/dia a prospects) e a campanha com prêmio pelo 87 e pelo 86 expõe os dois ao mesmo
+tratamento; se acontecer, a régua de alerta e todas as rotinas de cadastro encarecem juntas.
+
+### Outros templates em uso (não são o 48)
+
+34 (link de cadastro), 29 (loja pré-aprovada, hoje sem rota), 69 (treinamento completo), 41 (D+0) e o da régua
+D+3/D+7 (pausada). O Evo lista todos como utilidade; vale o mesmo aviso — conferir na Meta.
+
+### Campanha de boas-vindas: parada na prática
+
+A simulação de 17/11 mostra `dados_frescos: false` (último retrato do portal em 26/10) e **0 mensagens por
+dia**: a rotina já se recusa a enviar placar com dado velho. Como a coleta do portal foi desligada de vez, ela
+não volta a enviar. Está convertida, mas hoje não manda nada.

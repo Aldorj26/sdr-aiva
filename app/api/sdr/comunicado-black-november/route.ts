@@ -12,8 +12,10 @@
  * Molde: comunicado-forms (13/10/2026).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTemplate, alertHuman } from '@/lib/evotalks'
+import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { grupoDoStatus, textoComunicado } from '@/lib/black-november-calc'
@@ -103,7 +105,7 @@ export async function GET(req: NextRequest) {
     const grupo = grupoDoStatus(l.status)!
     const texto = textoComunicado(grupo)
     try {
-      await sendTemplate(l.telefone, TEMPLATE_ID, [nome, texto])
+      await enviarCoringa(l.telefone, { nome: nome, loja: lojaDe(l.nome, l.observacoes), coringaId: TEMPLATE_ID, miolo: texto, conteudoAntigo: '', util: generico(texto) })
       const agora = new Date().toISOString()
       await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: l.id, direcao: 'out', conteudo: `Oi ${nome}, tudo bem? ${texto} É só responder essa mensagem.`, template_hsm: ROTULO })
       await supabaseAdmin.from('sdr_leads').update({ observacoes: `${(l.observacoes ?? '').trim()} ${MARCADOR}${agora}|${grupo}]`.trim(), data_ultimo_contato: agora }).eq('id', l.id)

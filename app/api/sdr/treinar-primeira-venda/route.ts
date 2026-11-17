@@ -20,6 +20,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin, getLeadByTelefone } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { generico, lojaDe } from '@/lib/template-utilidade-calc'
 import { fetchOpps } from '@/lib/pipeline-briefing'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
@@ -104,7 +106,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-      await sendTemplate(telefone, REOPEN_TEMPLATE_ID, [nome, MIOLO])
+      await enviarCoringa(telefone, { nome: nome, loja: lojaDe(lead?.nome, obs), coringaId: REOPEN_TEMPLATE_ID, miolo: MIOLO, conteudoAntigo: '', util: generico(MIOLO) })
 
       if (lead?.id) {
         const novaObs = `[${FLAG}:${new Date().toISOString()}] ${obs

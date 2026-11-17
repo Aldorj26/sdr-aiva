@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { painelInfo, painelFollowup, lojaDe } from '@/lib/template-utilidade-calc'
 import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId, getOpportunity, statusFromOpp } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
 import { normalizaNome, nomeSaudacao, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
@@ -188,13 +190,13 @@ export async function POST(
     // Saudação usa o nome do SÓCIO (lead.nome é o nome do varejo — "Tudo Celular"
     // virava "Olá Tudo,"). Cai pro nome da loja só se não houver sócio coletado.
     const nomeBase = nomeSaudacao(lead.nome, lead.observacoes)
+    let textoCompleto = `Olá ${nomeBase}, ${texto}`
     try {
-      await sendTemplate(lead.telefone, templateId, [nomeBase, texto])
+      textoCompleto = (await enviarCoringa(lead.telefone, { nome: nomeBase, loja: lojaDe(lead.nome, lead.observacoes), coringaId: templateId, miolo: texto, conteudoAntigo: textoCompleto, util: painelInfo(texto) })).conteudo
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return NextResponse.json({ error: `template_falhou: ${msg}` }, { status: 500 })
     }
-    const textoCompleto = `Olá ${nomeBase}, ${texto}`
     await supabaseAdmin.from('sdr_mensagens').insert([
       {
         lead_id: id,
@@ -530,8 +532,9 @@ export async function POST(
       miolo = 'ainda dá pra continuar de onde paramos. consegue retornar pra finalizarmos?'
     }
 
+    let conteudoFollowup = `Olá ${nomeBase}, ${miolo}`
     try {
-      await sendTemplate(lead.telefone, templateId, [nomeBase, miolo])
+      conteudoFollowup = (await enviarCoringa(lead.telefone, { nome: nomeBase, loja: lojaDe(lead.nome, lead.observacoes), coringaId: templateId, miolo, conteudoAntigo: conteudoFollowup, util: painelFollowup(miolo) })).conteudo
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[lead-action] force-followup sendTemplate falhou id=${id}: ${msg}`)
@@ -540,7 +543,7 @@ export async function POST(
 
     // Salva no histórico tanto o marker do template (pra métrica/audit) quanto o
     // texto cheio reconstruído (pra Claude ter contexto na próxima resposta)
-    const textoCompleto = `Olá ${nomeBase}, ${miolo}`
+    const textoCompleto = conteudoFollowup
     await supabaseAdmin.from('sdr_mensagens').insert([
       {
         lead_id: id,

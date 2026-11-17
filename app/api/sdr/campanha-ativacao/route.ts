@@ -14,6 +14,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTemplate } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
+import { enviarCoringa } from '@/lib/template-utilidade'
+import { campanha as campanhaUtil, lojaDe } from '@/lib/template-utilidade-calc'
 import { normalizaNome } from '@/lib/text'
 import { flag } from '@/lib/req-flags'
 import { listarOnboardingsApi, lerSerie } from '@/lib/portal-aiva'
@@ -141,8 +143,8 @@ export async function GET(req: NextRequest) {
     try {
       if (f.msg && enviados < MAX_POR_RODADA) {
         const nome = nomeDe(f.lead)
-        await sendTemplate(f.lead.telefone, TEMPLATE_ID, [nome, f.texto!])
-        await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: `Olá ${nome}, ${f.texto}`, template_hsm: ROTULO })
+        const env = await enviarCoringa(f.lead.telefone, { nome, loja: lojaDe(f.lead.nome, f.lead.observacoes), coringaId: TEMPLATE_ID, miolo: f.texto!, conteudoAntigo: `Olá ${nome}, ${f.texto}`, util: campanhaUtil(String(f.msg), f.texto!) })
+        await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: f.lead.id, direcao: 'out', conteudo: env.conteudo, template_hsm: ROTULO })
         await supabaseAdmin.from('sdr_leads').update({ observacoes: f.obs, data_ultimo_contato: new Date().toISOString() }).eq('id', f.lead.id)
         enviados++
       } else {
