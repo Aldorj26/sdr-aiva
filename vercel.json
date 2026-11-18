@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/sdr/regua-alerta",
-      "schedule": "0,30 12-14 * * 1-5"
+      "schedule": "0,30 12-20 * * 1-5"
     },
     {
       "path": "/api/sdr/sync-from-evo",

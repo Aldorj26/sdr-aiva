@@ -11,7 +11,8 @@
  * ⛔ TRAVA DE ENVIO (decisão do Aldo 17/11): só sai por template de UTILIDADE — 87 (pendência) e
  * 86 (etapa concluída), IDs do Evo na fila 10 (padrão no código; `AIVA_TPL_PENDENCIA_ID` /
  * `AIVA_TPL_ETAPA_ID` só se um dia mudarem). Nunca usa o coringa 48.
- * CRON (18/11/2026): `0,30 12-14 * * 1-5` UTC = 9h, 9h30, 10h, 10h30, 11h e 11h30 BRT, seg–sex. Seis rodadas de
+ * CRON: `0,30 12-20 * * 1-5` UTC = de 9h a 17h30 BRT, a cada meia hora, seg–sex (estendido pra tarde em 18/11:
+ * a 1ª manhã só deu conta de 95 dos 236). Era `0,30 12-14` = 9h, 9h30, 10h, 10h30, 11h e 11h30 BRT. Rodadas de
  * até 45 = 270/manhã: esvazia a fila inicial (~236) numa manhã; depois as rodadas saem quase vazias (só
  * loja que entrou no alerta, toque seguinte vencido ou reconhecimento).
  * LIGA/DESLIGA NO BANCO (18/11/2026, o Aldo estava sem acesso à Vercel): a régua só envia se existir
@@ -62,6 +63,7 @@ async function reguaAtiva(): Promise<boolean> {
 }
 const MAX_POR_RODADA = 45
 const TETO_MS = 240_000
+const PARALELO = 3
 const STATUS_ALVO = ['LOGIN', 'LOJA_FINALIZADA_E_VENDENDO', 'TREINAR']
 const dig = (v: unknown) => String(v ?? '').replace(/\D/g, '')
 
@@ -237,8 +239,12 @@ export async function GET(req: NextRequest) {
   const enviados: { loja: string; o_que: string }[] = []
   const falhas: { loja: string; erro: string }[] = []
   let cortadoPorTempo = false
-  for (const i of fila.slice(0, max)) {
+  // Envio em paralelo de 3 (18/11/2026): em série cada envio leva ~10–13 s no Evo e a rodada de 240 s só
+  // conseguia ~16 dos 45 — na 1ª manhã saíram 95 de 236. Cada lead é independente (marca e histórico próprios).
+  const lote = fila.slice(0, max)
+  for (let k = 0; k < lote.length; k += PARALELO) {
     if (Date.now() - t0 > TETO_MS) { cortadoPorTempo = true; break }
+    await Promise.all(lote.slice(k, k + PARALELO).map(async (i) => {
     const msg = montar(i)
     try {
       await sendTemplate(i.lead.telefone, msg.template, msg.vars)
@@ -254,6 +260,7 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       falhas.push({ loja: i.lead.nome, erro: e instanceof Error ? e.message : String(e) })
     }
+    }))
   }
   return NextResponse.json({ ok: true, alertas_no_portal: alertas.length, por_trilha: porTrilha, fila: fila.length, enviados: enviados.length, falhas, cortado_por_tempo: cortadoPorTempo, para_ligar: ligar, motivos, detalhe: enviados })
 }
