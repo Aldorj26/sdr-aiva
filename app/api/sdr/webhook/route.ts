@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { blocoPromptCampanha } from '@/lib/campanha-ativacao-calc'
 import { ABERTOS, lerTicketsDoLead, ehMotivoTicket, lerMotivoRepasse, lerMotivoFilial, abrirTicketRepasse, abrirTicketFilial, mensagemRepasse, mensagemFilial, gravarTicketNoLead, fmtCnpj, blocoPromptTickets } from '@/lib/tickets-aiva'
 import { emailDoMotivo, ehMotivoPainel, abrirTicketPainel, mensagemLojista, type ResultadoTicket } from '@/lib/painel-financeiro'
-import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta } from '@/lib/desistencia'
+import { ehDesistencia, marcadoresDesistencia, statusDeVolta, obsDaVolta, retornoDeDescartado, obsReabertoAuto } from '@/lib/desistencia'
 import {
   getLeadByTelefone,
   getLeadByChatId,
@@ -733,7 +733,9 @@ export async function POST(req: NextRequest) {
   }
 
   // 5. Ignora leads em status final (desistente passa: o 7b decide se reabre, depois da idempotência)
-  if (STATUS_IGNORAR.includes(lead.status) && !statusDeVolta(lead.status, lead.observacoes)) {
+  // DESCARTADO também passa (18/11/2026): quem decide é o 7c, depois da idempotência — reabre o descarte
+  // automático, avisa o time no descarte manual. Os outros status finais seguem ignorados aqui.
+  if (STATUS_IGNORAR.includes(lead.status) && lead.status !== 'DESCARTADO' && !statusDeVolta(lead.status, lead.observacoes)) {
     return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
   }
 
@@ -843,6 +845,42 @@ export async function POST(req: NextRequest) {
   if (statusDeVolta(lead.status, lead.observacoes)) {
     // desistente que não reabriu (aceno, < 12h, reprocesso): fica quieto como qualquer DESCARTADO
     return NextResponse.json({ ok: true, ignorado: `status_${lead.status}` })
+  }
+
+  // 7c. DESCARTADO (não desistente) que voltou a escrever — Aldo 18/11/2026. Regra em lib/desistencia.ts.
+  if (lead.status === 'DESCARTADO') {
+    const acao = retornoDeDescartado(lead.observacoes, ehSoReconhecimento(conteudo), req.headers.get('x-auto-reprocess') === 'true')
+    if (acao === 'ignorar') return NextResponse.json({ ok: true, ignorado: 'status_DESCARTADO' })
+    if (acao === 'avisar') {
+      // descarte MANUAL: a VictorIA não responde, mas a fala fica guardada (o painel mostra) e o time é avisado
+      // 1× a cada 24h por lead, com o caminho pra reativar.
+      await saveMensagem(lead.id, 'in', conteudo?.trim() || '[mídia/anexo sem texto]', undefined, mId || null)
+      try {
+        const chave = `descartado_voltou:${lead.id}`
+        const { data: ja } = await supabaseAdmin.from('sdr_avisos_chave').select('ultimo_aviso').eq('chave', chave).maybeSingle()
+        if (!ja || Date.now() - Date.parse(ja.ultimo_aviso) > 24 * 3600e3) {
+          await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+          const aviso = `🔔 *${lead.nome}* (${lead.telefone}) foi DESCARTADO manualmente e voltou a escrever. A VictorIA NÃO respondeu.\nMensagem: "${String(conteudo).slice(0, 200)}"\n\nPra ela assumir: abra o lead no painel e clique em *↺ Reativar* — ela responde essa mensagem na hora.`
+          if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+          if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, aviso)
+        }
+      } catch (err) {
+        console.error('[descartado-voltou] aviso falhou:', err)
+      }
+      return NextResponse.json({ ok: true, ignorado: 'descartado_manual_voltou', mensagem_salva: true })
+    }
+    // descarte AUTOMÁTICO: reabre e segue o fluxo normal — a VictorIA responde neste mesmo turno.
+    const obsNova = obsReabertoAuto(lead.observacoes, new Date())
+    await supabaseAdmin.from('sdr_leads').update({ status: 'INTERESSADO', observacoes: obsNova }).eq('id', lead.id)
+    console.log(`[descartado-voltou] ${lead.telefone}: descarte automático, voltou a falar — reaberto em INTERESSADO`)
+    lead.status = 'INTERESSADO' as typeof lead.status
+    lead.observacoes = obsNova
+    try {
+      const aviso = `🔁 *${lead.nome}* (${lead.telefone}) estava descartado por falta de resposta e voltou a falar — reaberto em Interessado, a VictorIA segue a conversa.\nMensagem: "${String(conteudo).slice(0, 200)}"\n\nSe o card dele no Evo estiver fora do funil da AIVA, mova pra Interessado.`
+      if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, aviso)
+    } catch (err) {
+      console.error('[descartado-voltou] aviso de reabertura falhou:', err)
+    }
   }
 
 

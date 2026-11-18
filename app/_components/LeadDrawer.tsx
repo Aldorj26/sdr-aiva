@@ -687,7 +687,7 @@ export default function LeadDrawer() {
                   onClick={() =>
                     runAction(
                       { type: 'reativar' },
-                      'Reativar esse lead? Ele sai de DESCARTADO e volta para a etapa em que o card está no Evo.',
+                      'Reativar esse lead? Ele sai de DESCARTADO, volta pra etapa do card no Evo (ou pra Interessado, se o card estiver fora do funil) e a VictorIA responde a última mensagem dele, se houver uma sem resposta.',
                     )
                   }
                   color="#4ade80"

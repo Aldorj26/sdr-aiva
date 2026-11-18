@@ -31,6 +31,28 @@ export function statusDeVolta(status: string, obs: string | null | undefined): s
   return (obs ?? '').match(/\[DESISTIU:([A-Z_]+):[^\]]*\]/)?.[1] ?? null
 }
 
+/**
+ * Lead DESCARTADO que volta a escrever (Aldo 18/11/2026: "o cliente foi descartado, voltou a falar e o Nei
+ * não consegue reativar"). Antes ele era ignorado em silêncio — nem a mensagem era guardada.
+ *   - 'reabrir': descarte AUTOMÁTICO (limpeza em massa, silêncio, retomada esgotada — não tem o carimbo
+ *     [DESCARTADO_MANUAL]). O lojista que volta sozinho é lead quente: reabre em INTERESSADO e a VictorIA
+ *     responde na hora.
+ *   - 'avisar': descarte MANUAL (botão do painel). Alguém decidiu tirar esse lead: a VictorIA NÃO responde,
+ *     mas a mensagem é guardada e o time é avisado pra decidir se clica em ↺ Reativar.
+ *   - 'ignorar': aceno ("ok", 👍, "obrigado") ou reprocessamento interno — não é retomada.
+ * Desistência ([DESISTIU]) não passa por aqui: tem regra própria (`statusDeVolta`).
+ */
+export type RetornoDescartado = 'reabrir' | 'avisar' | 'ignorar'
+export function retornoDeDescartado(obs: string | null | undefined, ehAceno: boolean, ehReprocesso: boolean): RetornoDescartado {
+  if (ehAceno || ehReprocesso) return 'ignorar'
+  return (obs ?? '').includes('[DESCARTADO_MANUAL') ? 'avisar' : 'reabrir'
+}
+/** Marca de quem foi reaberto sozinho (uma só; a mais recente substitui). */
+export function obsReabertoAuto(obs: string | null | undefined, agora: Date): string {
+  const limpo = (obs ?? '').replace(/\s*\[REABERTO_AUTO:[^\]]*\]/g, '').trim()
+  return `${limpo} [REABERTO_AUTO:${agora.toISOString()}]`.trim()
+}
+
 /** Tira os carimbos da desistência e deixa o rastro de que ele voltou. */
 export function obsDaVolta(obs: string | null | undefined, agora: Date): string {
   const limpo = (obs ?? '').replace(/\s*\[(DESISTIU|DESCARTADO_MANUAL):[^\]]*\]/g, '').trim()

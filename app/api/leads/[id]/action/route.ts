@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getMensagens, saveMensagem } from '@/lib/supabase'
 import { enviarCoringa, enviarUtilidadeOu } from '@/lib/template-utilidade'
 import { painelInfo, painelFollowup, lojaDe, linkCadastro } from '@/lib/template-utilidade-calc'
-import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId, getOpportunity, statusFromOpp } from '@/lib/evotalks'
+import { sendText, sendTemplate, uploadFileToEvo, sendFileToChat, getOpenChatId, getOpportunity, statusFromOpp, changeOpportunityStage, STAGES } from '@/lib/evotalks'
 import { processarMensagem, gerarMioloRetomada, extrairNomeRealDoHistorico } from '@/lib/claude'
 import { normalizaNome, nomeSaudacao, APROVACAO_TEMPLATE_VAR, buildAvisoMatrizMsg } from '@/lib/text'
 
@@ -590,6 +590,7 @@ export async function POST(
   // ─── Ações que atualizam colunas simples ─────────────────────────────────
 
   const updates: Record<string, unknown> = {}
+  let reativou = false
 
   switch (action.type) {
     case 'pause': {
@@ -649,6 +650,18 @@ export async function POST(
           )
         }
         if (!doEvo) {
+          // 18/11/2026 (Aldo): o Nei não conseguia reativar — o card estava fora do funil e o botão só dizia
+          // "mova no Evo primeiro". Agora o próprio botão tenta levar o card pra Interessado; só se o Evo
+          // recusar (card de outro pipeline, por exemplo) é que volta o aviso antigo.
+          try {
+            await changeOpportunityStage(Number(lead.evotalks_opportunity_id), STAGES.INTERESSADO)
+            doEvo = 'INTERESSADO'
+            console.log(`[reativar] Lead ${id}: card #${lead.evotalks_opportunity_id} movido pra Interessado`)
+          } catch (err) {
+            console.warn(`[reativar] não consegui mover o card do lead ${id}:`, err)
+          }
+        }
+        if (!doEvo) {
           return NextResponse.json(
             {
               error: 'card_fora_do_funil',
@@ -664,7 +677,8 @@ export async function POST(
       }
       updates.status = statusVolta
       updates.observacoes =
-        (lead.observacoes ?? '').replace(/\s*\[DESCARTADO_MANUAL:[^\]]+\]/g, '').trim() || null
+        (lead.observacoes ?? '').replace(/\s*\[(DESCARTADO_MANUAL|DESISTIU):[^\]]+\]/g, '').trim() || null
+      reativou = true
       console.log(`[reativar] Lead ${id}: DESCARTADO → ${statusVolta} (origem: ${origem})`)
       break
     }
@@ -694,6 +708,29 @@ export async function POST(
 
   if (updErr) {
     return NextResponse.json({ error: updErr.message }, { status: 500 })
+  }
+
+  // Reativou: se a ÚLTIMA mensagem da conversa é do lojista (ele escreveu enquanto estava descartado e ninguém
+  // respondeu), a VictorIA assume agora — mesmo caminho do botão Reprocessar. Falha aqui não desfaz a reativação.
+  if (reativou) {
+    let victoria: Record<string, unknown> | null = null
+    try {
+      const { data: ult } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo, enviado_em').eq('lead_id', id).order('enviado_em', { ascending: false }).limit(1).maybeSingle()
+      const recente = ult && Date.now() - Date.parse(ult.enviado_em) < 7 * 24 * 3600e3
+      if (ult && ult.direcao === 'in' && recente && !String(ult.conteudo ?? '').startsWith('[')) {
+        await supabaseAdmin.from('sdr_leads').update({ webhook_lock_at: null }).eq('id', id)
+        const res = await fetch(`${new URL(req.url).origin}/api/sdr/webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.WEBHOOK_SECRET ?? '', 'x-auto-reprocess': 'true' },
+          body: JSON.stringify({ event: 'messages.upsert', data: { key: { fromMe: false, remoteJid: `${lead.telefone}@s.whatsapp.net` }, message: { conversation: ult.conteudo } } }),
+        })
+        victoria = { respondeu: res.ok, ...(await res.json().catch(() => ({}))) }
+      }
+    } catch (err) {
+      console.error(`[reativar] reprocesso da última mensagem falhou (lead ${id}):`, err)
+      victoria = { respondeu: false, erro: err instanceof Error ? err.message : String(err) }
+    }
+    return NextResponse.json({ ok: true, action: action.type, updates, victoria })
   }
 
   return NextResponse.json({ ok: true, action: action.type, updates })
