@@ -1802,6 +1802,10 @@ export async function POST(req: NextRequest) {
           // webhook ignorar a correção dele. Então: segura, pergunta e chama humano.
           if (!consulta.info && (consulta.status === 'nao_encontrado' || consulta.status === 'invalido')) {
             const ehInvalido = consulta.status === 'invalido'
+            // Já dissemos "não aparece na base" pra ESTE CNPJ nesta conversa? Então o lojista está insistindo que o
+            // número está certo: repetir a mesma mensagem é o laço da Lion Imports (16/11/2026, 5 vezes seguidas,
+            // até o "você está errado"). Da 2ª vez em diante a resposta muda e o time NÃO é alertado de novo.
+            const jaAvisouNaoConsta = !ehInvalido && historico.some((m) => m.direcao === 'out' && m.conteudo.includes('ainda não aparece na base') && m.conteudo.includes(cnpjPraChecar))
             resposta.novo_status = 'INTERESSADO'
             resposta.acionar_humano = true
             resposta.motivo_humano =
@@ -1811,6 +1815,8 @@ export async function POST(req: NextRequest) {
                 // acusar o lojista e sem falar em reprovação — o número pode estar certo no papel.
                 `Obrigada! 😊 Tentei validar o CNPJ ${cnpjPraChecar} aqui e ele não passou na verificação — parece que algum dígito ficou trocado ou faltando.\n\n` +
                 `Pode conferir no cartão CNPJ e me mandar de novo? São 14 números. Assim que chegar certinho eu valido na hora e seguimos! 🙌`
+              : jaAvisouNaoConsta
+              ? `Entendi! Se o número está certo, o problema pode ser na nossa consulta, não no seu CNPJ. Já passei pro nosso time conferir direto na Receita e, assim que confirmarem, eu sigo com o seu cadastro por aqui. Não precisa mandar o número de novo.`
               : `Obrigada, ${normalizaNome(lead.nome) || 'tudo bem'}! 😊 Consultei o CNPJ ${cnpjPraChecar} na Receita e ele ainda não aparece na base — isso costuma acontecer quando o CNPJ foi aberto há pouco tempo.\n\n` +
                 `Só pra eu conferir: o número está certinho? Se tiver algum dígito trocado, me manda de novo que eu valido na hora.\n\n` +
                 `Se estiver certo mesmo, é porque a empresa é bem recente — e hoje a AIVA pede CNPJ com pelo menos 1 ano de abertura. Nesse caso eu guardo seu contato e, assim que completar 1 ano, a gente segue o cadastro na hora! 🙌`
@@ -1823,9 +1829,11 @@ export async function POST(req: NextRequest) {
                 `🏪 ${lead.nome}\n📞 ${lead.telefone}\n🏢 CNPJ: ${cnpjPraChecar}\n\n` +
                 `A consulta pública não achou esse CNPJ. Provável empresa recém-aberta (reprovaria pela regra de 1 ano) ou número digitado errado.\n` +
                 `A VictorIA NÃO pré-aprovou: pediu confirmação do número e o lead está aguardando. Confiram se cabe exceção.`
-            if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
-            if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
-            console.log(`[CNPJ] ${cnpjPraChecar} ${consulta.status} — pré-aprovação bloqueada`)
+            if (!jaAvisouNaoConsta) {
+              if (process.env.NEI_WHATSAPP) await alertHuman(process.env.NEI_WHATSAPP, alerta)
+              if (process.env.ALDO_WHATSAPP) await alertHuman(process.env.ALDO_WHATSAPP, alerta)
+            }
+            console.log(`[CNPJ] ${cnpjPraChecar} ${consulta.status} — pré-aprovação bloqueada${jaAvisouNaoConsta ? ' (lojista insistiu; sem repetir a mensagem)' : ''}`)
           }
 
           if (cnpjInfoNovo) {

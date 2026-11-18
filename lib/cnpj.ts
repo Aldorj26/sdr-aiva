@@ -103,7 +103,16 @@ async function consultarCNPJInterno(
       // 400 = a API também recusou o número (formato/DV). 404 = não existe na base.
       // Só 5xx/timeout/rate-limit contam como problema nosso e liberam o lead.
       ref.status = res.status === 400 ? 'invalido' : res.status === 404 ? 'nao_encontrado' : 'indisponivel'
-      // 400/404 são decisão, não instabilidade: não têm segunda fonte.
+      // 404 da BrasilAPI NÃO é prova de que a empresa não existe (Lion Imports, 16/11/2026: CNPJ ativo desde
+      // 22/11/2023 veio 404, a VictorIA disse "ainda não aparece na base, costuma ser empresa recente" e o
+      // lojista ouviu isso 5 vezes). Antes de dizer "não encontrado", confirma na cnpj.ws. Só o 400 (DV/formato
+      // recusado) segue sem segunda fonte. Se a cnpj.ws também não achar ou não responder, fica "não encontrado"
+      // — conservador de propósito (bug ICONNECT: CNPJ inexistente não pode ser pré-aprovado).
+      if (ref.status === 'nao_encontrado') {
+        const viaWs = await consultarCnpjWs(cnpj)
+        if (viaWs) { ref.status = 'ok'; console.log(`[CNPJ] BrasilAPI deu 404 mas a cnpj.ws achou ${cnpj}`); return viaWs }
+        return null
+      }
       return ref.status === 'indisponivel' ? await consultarCnpjWs(cnpj) : null
     }
     const data = (await res.json()) as Record<string, unknown>
