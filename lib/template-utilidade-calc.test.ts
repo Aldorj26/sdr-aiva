@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   montar, limpar, lojaDe, FORMULARIO, cadastroIncompleto, biometria, acessoPendente, treinamentoGenerico, treinamentoLembrete,
   treinamentoPosTurma, ticketResolvido, AVISO_ETAPA_UTIL, PRE_APROVADA_UTIL, alertaInterno, LOJA_INTERNA, type MsgUtilidade,
-  retomada, campanha, generico, painelInfo, painelFollowup, disparoInicial, linkCadastro, treinamentoLiberado, NOME_D0,
+  retomada, campanha, generico, painelInfo, painelFollowup, disparoInicial, linkCadastro, treinamentoLiberado, NOME_D0, semSaudacao,
 } from './template-utilidade-calc.ts'
 
 const URL = 'https://liveness.exemplo/abc'
@@ -110,7 +110,17 @@ test('retomada de interessado: 6 variantes, todas pendencia, com a pergunta no f
 })
 
 test('texto livre: tira emoji, comeca com maiuscula e preserva o conteudo', () => {
-  assert.equal(painelInfo('o reenvio da senha já foi pedido 😊').prazo, 'assim que puder. O reenvio da senha já foi pedido')
+  assert.equal(painelInfo('o reenvio da senha já foi pedido 😊').situacao, 'O reenvio da senha já foi pedido')
+  assert.equal(painelInfo('x').tipo, 'etapa')
+  // caso real (MJ Celulares, 18/11): o atalho começa com "tudo bem?" e o modelo já tem a saudação
+  assert.equal(
+    montar('Mauricio', 'MJ celulares e acessórios', painelInfo('tudo bem?\n\nGostaria de saber se você ainda tem interesse de seguir com o cadastramento da Aiva?')).texto,
+    'Olá Mauricio, aqui é a VictorIA da Track.\n\nA loja MJ celulares e acessórios teve uma etapa concluída: retorno do nosso time sobre o seu atendimento.\n\nSituação: Gostaria de saber se você ainda tem interesse de seguir com o cadastramento da Aiva?\n\nDúvidas, responda esta mensagem.',
+  )
+  assert.equal(semSaudacao('Oi, bom dia! Tudo bem? Segue o link'), 'Segue o link')
+  assert.equal(semSaudacao('Tudo certo com o cadastro'), 'Tudo certo com o cadastro') // frase de verdade, não saudação
+  assert.equal(semSaudacao('tudo bem?'), 'tudo bem?') // só saudação: não deixa a mensagem vazia
+  assert.equal(semSaudacao('Olavo pediu o link'), 'Olavo pediu o link') // não corta palavra que só começa parecido
   assert.equal(painelFollowup('consegue retornar pra finalizarmos?').prazo, 'assim que puder. Consegue retornar pra finalizarmos?')
   assert.equal(generico('vi que a loja já consultou 👏 me conta como foi?').prazo, 'assim que puder. Vi que a loja já consultou me conta como foi?')
 })

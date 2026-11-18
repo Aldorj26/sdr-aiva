@@ -132,8 +132,22 @@ const frase = (s: string) => { const t = semEmoji(s); return t ? t[0].toUpperCas
 
 /** Qualquer miolo antigo de uma linha, sem tradução própria: vira o complemento do aviso. */
 export const generico = (miolo: string): Pendencia => pend('há um aviso do nosso time sobre a AIVA pra sua loja.', `assim que puder. ${frase(miolo)}`)
-/** Painel → "Enviar info": o operador digitou a resposta. */
-export const painelInfo = (texto: string): Pendencia => pend('há um retorno do nosso time pra você.', `assim que puder. ${frase(texto)}`)
+/**
+ * Tira a saudação do começo do texto digitado ("tudo bem?", "Oi", "Bom dia"): o modelo já abre com
+ * "Olá Fulano, aqui é a VictorIA da Track". Os atalhos do painel foram escritos pro coringa antigo
+ * ("Olá {nome}, tudo bem? …") e começam assim. Se sobrar vazio, devolve o texto como veio.
+ */
+export function semSaudacao(texto: string): string {
+  const t = (texto ?? '').replace(/^\s*(?:(?:oi+|ol[áa]|bom dia|boa tarde|boa noite|tudo bem|tudo bom|td bem|como vai)\b[\s,!?.;:-]*)+/i, '').trim()
+  return t || (texto ?? '').trim()
+}
+
+/**
+ * Painel → "Enviar info": o operador digitou a resposta. Sai pelo 86 (etapa concluída), não pelo 87: com o
+ * 87 o texto dele entrava depois de "Prazo: assim que puder." e a mensagem ficava truncada (MJ Celulares,
+ * 18/11/2026: "Prazo: assim que puder. Tudo bem? Gostaria de saber se…"). No 86 ele entra depois de "Situação:".
+ */
+export const painelInfo = (texto: string): Etapa => etapa('retorno do nosso time sobre o seu atendimento.', frase(semSaudacao(texto)))
 /** Painel → "Follow-up agora": miolo curto gerado pela IA, terminando em pergunta. */
 export const painelFollowup = (miolo: string): Pendencia => pend('o atendimento da loja com a Track ficou em aberto.', `assim que puder. ${frase(miolo)}`)
 
