@@ -1101,7 +1101,9 @@ export async function POST(req: NextRequest) {
       // sistema igual às outras: a biometria não conclui sem o SMS.
       const naoChega =
         /n[ãa]o (?:chegou|chega|est[áa] chegando|recebi|recebo|veio|vem)/i.test(txt) &&
-        /\bsms\b|c[óo]digo|\blink\b|e-?mail|acesso|senha|biometria|token/i.test(txt)
+        // Em CADASTRO_RECEBIDO "o link não chegou" NÃO é erro de portal: o link do cadastro ainda nem foi enviado
+        // (loja só pré-aprovada). Pedir print ali contradiz o bloco de fase, que manda dizer que o link chega por aqui.
+        (lead.status === 'CADASTRO_RECEBIDO' ? /\bsms\b|c[óo]digo|e-?mail|acesso|senha|biometria|token/i : /\bsms\b|c[óo]digo|\blink\b|e-?mail|acesso|senha|biometria|token/i).test(txt)
 
       // FINANCEIRO / REPASSE (Conecta Cell 10-11/08/2026): repasse de venda que
       // não caiu é reclamação de sistema pro lojista — some no chat se não virar
