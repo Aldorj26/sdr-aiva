@@ -168,6 +168,8 @@ export const comMarcadorLojaNova = (obs: string | null | undefined, cnpj: string
 
 /** CNPJs da mensagem (DV já conferido por quem chama) que abrem o fluxo neste turno — no máximo 3. */
 export function cnpjsParaConferir(e: { status: string; cnpjsMensagem: string[]; cnpjsDoLead: string[]; contextoRepasse: boolean; obs: string | null; agora: number }): string[] {
+  // sem CNPJ nenhum do lead, todo CNPJ seria "outra empresa" — inclusive o dele mesmo (revisão 1, item 2)
+  if (!e.cnpjsDoLead.some((c) => soDigitos(c).length === 14)) return []
   const out: string[] = []
   for (const c of new Set(e.cnpjsMensagem.map(soDigitos))) {
     if (!deveAbrirFluxo({ status: e.status, classe: classificar(c, e.cnpjsDoLead), contextoRepasse: e.contextoRepasse })) continue
@@ -192,13 +194,19 @@ export type DecisaoPedido =
 
 export function avaliarPedidoLojaNova(e: { motivo: string | null | undefined; obs: string | null | undefined; falasDoLojista: string; agora: number }): DecisaoPedido {
   const p = lerMotivoLojaNova(e.motivo)
-  if (!p) return { tipo: 'escalar', porque: `motivo de loja nova ilegível (${e.motivo})` }
+  if (!p) return { tipo: 'escalar', porque: `motivo de loja nova ilegível (${e.motivo}) — a VictorIA pode já ter dito ao lojista que registrou a loja nova` }
   const marca = lerMarcadorLojaNova(e.obs, p.cnpj)
-  if (p.acao === 'cancelar') return marca ? { tipo: 'cancelar', pedido: p } : { tipo: 'ignorar', porque: 'cancelamento sem marcador aberto' }
+  if (p.acao === 'cancelar') {
+    if (marca) return { tipo: 'cancelar', pedido: p }
+    if (jaPedido(e.obs, p.cnpj)) return { tipo: 'escalar', porque: `o lojista desistiu da loja nova ${fmtCnpj(p.cnpj)}, mas o pedido já está na fila de pré-cadastro — tirar da fila` }
+    return { tipo: 'ignorar', porque: 'cancelamento sem marcador aberto' }
+  }
   if (jaPedido(e.obs, p.cnpj)) return { tipo: 'ignorar', porque: 'pedido já registrado' }
-  if (!soDigitos(e.falasDoLojista).includes(p.cnpj)) return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} do motivo não foi escrito pelo lojista na janela recente` }
-  if (!marca || e.agora - marca.t > SETE_DIAS_MS) return { tipo: 'escalar', porque: `sem conferência recente do CNPJ ${p.cnpj}` }
-  if (marca.sit !== 'ok') return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} não elegível (${marca.sit}${marca.det ? `: ${marca.det}` : ''})` }
+  // a VictorIA devolve o confirmar junto com "Registrei a loja nova…" — quem recebe a escalada precisa saber
+  const jaDisse = ' — a VictorIA já disse ao lojista que registrou a loja nova'
+  if (!soDigitos(e.falasDoLojista).includes(p.cnpj)) return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} do motivo não foi escrito pelo lojista na janela recente${jaDisse}` }
+  if (!marca || e.agora - marca.t > SETE_DIAS_MS) return { tipo: 'escalar', porque: `sem conferência recente do CNPJ ${p.cnpj}${jaDisse}` }
+  if (marca.sit !== 'ok') return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} não elegível (${marca.sit}${marca.det ? `: ${marca.det}` : ''})${jaDisse}` }
   return { tipo: 'registrar', pedido: p }
 }
 
@@ -223,6 +231,27 @@ export function avisoLojaNovaFila(x: { loja: string; telefone: string; cnpj: str
       : []),
     '👉 https://sdr-aiva.vercel.app/atendimento',
   ].join('\n')
+}
+
+/** Atalho "nova loja" só instrui se não há fluxo aberto (marcador < 7 dias) nem pedido recente (< 7 dias). */
+export function deveInstruirAtalho(texto: string | null | undefined, obs: string | null | undefined, agora: number): boolean {
+  if (!ehAtalhoNovaLoja(texto)) return false
+  const recente = (iso: string) => { const t = Date.parse(iso); return !Number.isNaN(t) && agora - t <= SETE_DIAS_MS }
+  for (const m of (obs ?? '').matchAll(RE_MARCADOR)) if (recente(m[4])) return false
+  for (const m of (obs ?? '').matchAll(/\[LOJA_NOVA_PEDIDA:cnpj=\d{14}\|([^\]]+)\]/g)) if (recente(m[1])) return false
+  return true
+}
+
+/** Alerta de CNPJ novo (bloco LOJA NOVA do webhook): qual texto e quais CNPJs viram linha na aba Filiais.
+ *  Outra empresa só sai da regra atual em etapa do fluxo; o texto novo só quando todos foram conferidos antes do
+ *  modelo (senão prometeria uma confirmação da VictorIA que não vem). Fora do fluxo, tudo como antes. */
+export function planoAlertaCnpjNovo(e: { status: string; novos: { cnpj: string; classe: Classe; conferido: boolean }[]; dvRuim: number }): { textoOutraEmpresa: boolean; linhaFiliais: string[] } {
+  const noFluxo = (STATUS_ABRE_FLUXO as readonly string[]).includes(e.status)
+  const outraNoFluxo = (n: { classe: Classe }) => noFluxo && n.classe === 'outra_empresa'
+  return {
+    textoOutraEmpresa: e.novos.length > 0 && e.dvRuim === 0 && e.novos.every((n) => outraNoFluxo(n) && n.conferido),
+    linhaFiliais: e.novos.filter((n) => !outraNoFluxo(n)).map((n) => n.cnpj),
+  }
 }
 
 export const instrucaoAtalhoLojaNova = () =>

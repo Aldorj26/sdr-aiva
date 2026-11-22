@@ -44,9 +44,9 @@ import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido,
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
-import { reenviarSenhaApi, telefonePorRetailer, listarOnboardingsApi } from '@/lib/portal-aiva'
+import { reenviarSenhaApi, telefonePorRetailer, listarOnboardingsApi, type OnboardingApi } from '@/lib/portal-aiva'
 import {
-  STATUS_ABRE_FLUXO, FLUXO_LOJA_NOVA, ridDaRaiz, classificar, ehAtalhoNovaLoja, elegibilidade, marcadorLojaNova, blocoPromptLojaNova,
+  STATUS_ABRE_FLUXO, FLUXO_LOJA_NOVA, ridDaRaiz, classificar, deveInstruirAtalho, planoAlertaCnpjNovo, elegibilidade, marcadorLojaNova, blocoPromptLojaNova,
   ehMotivoLojaNova, cnpjsDasObs, comMarcadorLojaNova, semMarcadorLojaNova, cnpjsParaConferir, marcadorPedido, avaliarPedidoLojaNova,
   resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova, lerMarcadorLojaNova, type Elegibilidade,
 } from '@/lib/loja-nova-calc'
@@ -204,12 +204,13 @@ async function calcularContextoRepasse(leadId: string, obs: string, texto: strin
 // (a própria regra trata); base Odres/UME ou API de onboardings fora → LANÇA (quem chama não grava marcador).
 const comTeto = <T,>(p: Promise<T>, ms: number, oque: string): Promise<T> =>
   Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${oque}: sem resposta em ${ms / 1000}s`)), ms))])
-async function conferirLojaNova(cnpj: string): Promise<Elegibilidade> {
+/** A API lista TUDO (não há consulta por CNPJ nem espelho local): quem confere vários CNPJs no turno busca uma vez e reparte. */
+const onboardingsDoTurno = (): Promise<OnboardingApi[]> => comTeto(listarOnboardingsApi(), 30_000, 'API de onboardings')
+async function conferirLojaNova(cnpj: string, onboardings: Promise<OnboardingApi[]> = onboardingsDoTurno()): Promise<Elegibilidade> {
   const [info, base, onbs] = await Promise.all([
     comTeto(consultarCNPJ(cnpj), 15_000, 'Receita').catch(() => null),
     supabaseAdmin.from('aiva_base_cnpjs').select('cnpj').eq('cnpj', cnpj).maybeSingle(),
-    // lista tudo (não há consulta por CNPJ nem espelho local) — só roda quando chega CNPJ de outra empresa
-    comTeto(listarOnboardingsApi(), 30_000, 'API de onboardings'),
+    onboardings,
   ])
   if (base.error) throw new Error(`aiva_base_cnpjs: ${base.error.message}`)
   const onb = onbs.find((o) => String(o.cnpj ?? '').replace(/\D/g, '') === cnpj)
@@ -1454,7 +1455,7 @@ export async function POST(req: NextRequest) {
       const leadIdLN = lead.id, statusLN = lead.status
       try {
         const cnpjsMsg = extrairCnpjs(conteudoEfetivo).filter((c) => cnpjDvValido(c))
-        if (!cnpjsMsg.length && ehAtalhoNovaLoja(conteudoEfetivo)) instrucaoAtalho = instrucaoAtalhoLojaNova()
+        if (!cnpjsMsg.length && deveInstruirAtalho(conteudoEfetivo, lead.observacoes, Date.now())) instrucaoAtalho = instrucaoAtalhoLojaNova()
         if (cnpjsMsg.length) {
           const { data: regsLN, error: errRegs } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').eq('lead_id', leadIdLN)
           if (errRegs) throw new Error(`sdr_registros_cnpj: ${errRegs.message}`)
@@ -1464,8 +1465,11 @@ export async function POST(req: NextRequest) {
             contextoRepasse: await calcularContextoRepasse(leadIdLN, lead.observacoes ?? '', conteudoEfetivo),
             obs: lead.observacoes, agora: Date.now(),
           })
+          // uma busca de onboardings por turno, repartida entre os CNPJs (revisão 1, item 3)
+          const onbsTurno = conferir.length ? onboardingsDoTurno() : null
+          onbsTurno?.catch(() => { /* a rejeição chega pelo await em conferirLojaNova */ })
           for (const c of conferir) {
-            const e = await conferirLojaNova(c)
+            const e = await conferirLojaNova(c, onbsTurno!)
             lead.observacoes = await gravarMarcadorLojaNova(leadIdLN, lead.observacoes, c, e)
             lojaNovaTurno.set(c, e)
             console.log(`[LOJA_NOVA_EMPRESA] ${lead.telefone}: ${c} → ${e.ok ? 'elegível' : e.motivo}`)
@@ -3184,7 +3188,9 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
       }
     }
     const escalarN = async (porque: string) => {
-      resposta.acionar_humano = true // o 🔔 genérico lá embaixo sai com o motivo cru
+      resposta.acionar_humano = true
+      // o 🔔 genérico lá embaixo sai com o motivo: o porquê vai junto (as observações já foram gravadas acima)
+      resposta.motivo_humano = `${resposta.motivo_humano} — ⚠️ ${porque}`
       await supabaseAdmin.from('sdr_leads').update({ acionar_humano: true }).eq('id', leadIdN)
       console.warn(`[LOJA_NOVA_EMPRESA] ${telN}: ${porque}`)
     }
@@ -3233,7 +3239,7 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
       }
     } catch (err) {
       console.error(`[LOJA_NOVA_EMPRESA] pedido falhou para ${telN}:`, err)
-      try { await escalarN('erro no bloco de loja nova') } catch { /* segue */ }
+      try { await escalarN('erro no bloco de loja nova — a VictorIA pode já ter dito ao lojista que registrou a loja nova') } catch { /* segue */ }
     }
   }
 
@@ -3633,8 +3639,8 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
         const conhecidos = new Set([...conhecidosObs, ...(jaRegistrados ?? []).map((r) => r.cnpj)])
         const novos = doTexto.filter((c) => !conhecidos.has(c))
         const dvRuimNovos = dvRuim.filter((c) => !conhecidos.has(c))
-        // 19/11/2026: raiz diferente de tudo que o lead tem = OUTRA EMPRESA (fluxo de loja nova, sem linha na aba Filiais)
-        const outraEmpresa = new Set(novos.filter((c) => classificar(c, [...conhecidos]) === 'outra_empresa'))
+        // 19/11/2026: raiz diferente de tudo que o lead tem = OUTRA EMPRESA (lead sem CNPJ conhecido: não classifica)
+        const outraEmpresa = new Set(conhecidos.size ? novos.filter((c) => classificar(c, [...conhecidos]) === 'outra_empresa') : [])
         const obsElegDe = lead.observacoes // const fora da closure (TS perde o narrowing de `lead`)
         const elegDe = (c: string): Elegibilidade | null => {
           const doTurno = lojaNovaTurno.get(c)
@@ -3643,6 +3649,12 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
           if (!m) return null
           return m.sit === 'ok' ? { ok: true } : ({ ok: false, motivo: m.sit, detalhe: m.det } as Elegibilidade)
         }
+        // texto do alerta e linhas da aba Filiais (revisão 1, item 1 — regra em lib/loja-nova-calc.ts)
+        const planoAlerta = planoAlertaCnpjNovo({
+          status: lead.status,
+          novos: novos.map((c) => ({ cnpj: c, classe: outraEmpresa.has(c) ? 'outra_empresa' as const : 'filial' as const, conferido: elegDe(c) != null })),
+          dvRuim: dvRuimNovos.length,
+        })
         if (novos.length > 0 || dvRuimNovos.length > 0) {
           // captura em const antes do callback — TS perde o narrowing de `lead`
           // dentro de closures
@@ -3681,8 +3693,8 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
           // Idempotente por [FILIAL_AIVA:cnpj] — CNPJ repetido não vira linha nova.
           const filiaisLancadas: string[] = []
           const filiaisPendentes: string[] = []
-          // só FILIAL (mesma raiz) vira linha na aba Filiais; outra empresa segue o fluxo de loja nova (19/11/2026)
-          for (const c of novos.filter((x) => !outraEmpresa.has(x))) {
+          // outra empresa EM ETAPA DO FLUXO não vira linha na aba Filiais; fora do fluxo (CADASTRO_RECEBIDO/EM_ANALISE_AIVA) vale a regra atual
+          for (const c of planoAlerta.linhaFiliais) {
             const { data: frescoF } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
             const obsF = frescoF?.observacoes ?? lead.observacoes ?? ''
             if (obsF.includes(marcadorFilial(c))) continue
@@ -3714,9 +3726,9 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
 
           // Rótulo neutro de propósito: CNPJ desconhecido também pode ser
           // CORREÇÃO/TROCA do cadastral, não só loja nova — quem decide é o Nei.
-          // Exceção (19/11/2026): quando TODOS os novos são de outra empresa, o título diz a classe e o resultado
-          // da conferência vai em cada linha; o texto de filial/ticket não se aplica.
-          const soOutraEmpresa = novos.length > 0 && novos.every((c) => outraEmpresa.has(c)) && dvRuimNovos.length === 0
+          // Exceção (19/11/2026): todos os novos de outra empresa, em etapa do fluxo e conferidos antes do modelo →
+          // título com a classe; senão o texto de hoje (+ a linha 🔎 OUTRA EMPRESA por CNPJ).
+          const soOutraEmpresa = planoAlerta.textoOutraEmpresa
           const aviso =
             (soOutraEmpresa
               ? `🏪 *CNPJ DE OUTRA EMPRESA NA CONVERSA — loja nova de cliente ativo*\n\n`

@@ -5,6 +5,7 @@ import {
   marcadorLojaNova, blocoPromptLojaNova, textoLinkLojaNova, textoLojaCriada, seloRegistroFila,
   ehMotivoLojaNova, cnpjsDasObs, lerMarcadorLojaNova, semMarcadorLojaNova, comMarcadorLojaNova, cnpjsParaConferir,
   marcadorPedido, jaPedido, avaliarPedidoLojaNova, resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova,
+  deveInstruirAtalho, planoAlertaCnpjNovo,
 } from './loja-nova-calc.ts'
 
 const T0 = Date.parse('2026-11-19T13:00:00Z')
@@ -82,6 +83,44 @@ test('resumo da elegibilidade e aviso da fila', () => {
   assert.doesNotMatch(a, /colunas/)
   const b = avisoLojaNovaFila({ loja: 'Loja X', telefone: '5547999990000', cnpj: '59218413000190', razao: null, socioNome: 'Maria', socioTelefone: '5521965002926', colunasFaltando: true })
   assert.match(b, /Maria \(5521965002926\)/); assert.match(b, /colunas.*não existem/)
+})
+test('lead sem CNPJ conhecido não abre o fluxo pro próprio CNPJ', () => {
+  const base = { status: 'LOGIN', cnpjsMensagem: ['59218413000190'], cnpjsDoLead: [] as string[], contextoRepasse: false, obs: '', agora: T0 }
+  assert.deepEqual(cnpjsParaConferir(base), [])
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsDoLead: ['', '123'] }), [])
+})
+test('cancelar depois de confirmado escala; escalada de confirmação avisa que o lojista já ouviu "Registrei"', () => {
+  const pedida = marcadorPedido('59218413000190', '2026-11-19T12:30:00Z')
+  const d = avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: cnpj=59218413000190 | acao=cancelar', obs: pedida, falasDoLojista: 'desisti', agora: T0 })
+  assert.equal(d.tipo, 'escalar'); assert.match((d as any).porque, /já está na fila de pré-cadastro/)
+  const e = avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: cnpj=59218413000190 | acao=confirmar | socio=mesmo', obs: '', falasDoLojista: '59218413000190', agora: T0 })
+  assert.equal(e.tipo, 'escalar'); assert.match((e as any).porque, /já disse ao lojista que registrou/)
+  const f = avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: lixo', obs: '', falasDoLojista: '', agora: T0 })
+  assert.match((f as any).porque, /pode já ter dito/)
+})
+test('atalho não repete com fluxo aberto ou pedido recente', () => {
+  assert.ok(deveInstruirAtalho('quero abrir nova loja', '', T0))
+  assert.ok(!deveInstruirAtalho('oi', '', T0))
+  assert.ok(!deveInstruirAtalho('nova loja', MK_OK, T0))
+  assert.ok(!deveInstruirAtalho('nova loja', marcadorPedido('59218413000190', '2026-11-19T12:30:00Z'), T0))
+  assert.ok(deveInstruirAtalho('nova loja', MK_OK, T0 + 8 * 86400000))
+  assert.ok(deveInstruirAtalho('nova loja', marcadorPedido('59218413000190', '2026-11-01T12:30:00Z'), T0))
+})
+test('alerta de CNPJ novo: texto de outra empresa só no fluxo e com conferência; linha de Filiais como antes fora do fluxo', () => {
+  const o = (cnpj: string, conferido = true) => ({ cnpj, classe: 'outra_empresa' as const, conferido })
+  const f = (cnpj: string) => ({ cnpj, classe: 'filial' as const, conferido: false })
+  // no fluxo, conferido: título novo, sem linha de Filiais
+  assert.deepEqual(planoAlertaCnpjNovo({ status: 'LOGIN', novos: [o('A')], dvRuim: 0 }), { textoOutraEmpresa: true, linhaFiliais: [] })
+  // no fluxo, conferência falhou: texto de hoje, mas ainda sem linha (outra empresa no fluxo nunca vira filial)
+  assert.deepEqual(planoAlertaCnpjNovo({ status: 'LOGIN', novos: [o('A', false)], dvRuim: 0 }), { textoOutraEmpresa: false, linhaFiliais: [] })
+  // fora do fluxo (CADASTRO_RECEBIDO/EM_ANALISE_AIVA): regra atual — texto de hoje e linha gerada
+  assert.deepEqual(planoAlertaCnpjNovo({ status: 'EM_ANALISE_AIVA', novos: [o('A')], dvRuim: 0 }), { textoOutraEmpresa: false, linhaFiliais: ['A'] })
+  assert.deepEqual(planoAlertaCnpjNovo({ status: 'CADASTRO_RECEBIDO', novos: [o('A'), f('B')], dvRuim: 0 }), { textoOutraEmpresa: false, linhaFiliais: ['A', 'B'] })
+  // mistura no fluxo: texto de hoje; filial ganha linha
+  assert.deepEqual(planoAlertaCnpjNovo({ status: 'LOJA_FINALIZADA_E_VENDENDO', novos: [o('A'), f('B')], dvRuim: 0 }), { textoOutraEmpresa: false, linhaFiliais: ['B'] })
+  // DV ruim junto: texto de hoje
+  assert.equal(planoAlertaCnpjNovo({ status: 'LOGIN', novos: [o('A')], dvRuim: 1 }).textoOutraEmpresa, false)
+  assert.equal(planoAlertaCnpjNovo({ status: 'LOGIN', novos: [], dvRuim: 1 }).textoOutraEmpresa, false)
 })
 test('atalho: instrução de pedir o CNPJ', () => {
   assert.match(instrucaoAtalhoLojaNova(), /peça o CNPJ dela \(14 dígitos\)/)
