@@ -3,7 +3,23 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
-## ▶️ PRÓXIMA SESSÃO (combinado com o Aldo em 19/11) — executar o plano "loja nova de outra empresa"
+## ▶️ ESTADO EM 22/11 — "loja nova de outra empresa" PROGRAMADA, NÃO PUBLICADA
+
+- **Tarefas 1–5 do plano prontas** na branch local `feat/loja-nova-empresa` (`7aa4507..b6793fb`), cada uma com revisão e
+  correção, mais revisão final do conjunto. **Nada foi enviado ao remoto; a `main` e a produção estão intactas.**
+  Testes: `test:lojanova` 52, `test:tickets` 6, `test:json` 9, `test:espelho` 37, `test:utilidade` 13, `tsc` limpo.
+  Espelho local em `?dry=1`: 200, passo novo "pulado: colunas_ausentes".
+- **Falta (Tarefa 6, só com o Aldo):** aprovar `docs/Textos-loja-nova-outra-empresa-2026-11-19.md` (a seção 6 traz a ordem
+  de publicação) → conferir `/curadoria` → aplicar `docs/sql/2026-11-19-loja-nova-empresa.sql` **antes** do push → merge na
+  `main` e push → só então Eduardo Cell e RG Cell, um de cada vez (marcar `fluxo` sozinho faz o espelho mandar mensagem em
+  até 15 min; ver a seção 6 do doc). As duas linhas já estão `pre_cadastro_enviado`, `enviado = true`.
+- **Decisões abertas no doc (seção 5):** texto do modelo 86 no link ("etapa concluída: aprovação da loja pela AIVA"), frase
+  do motivo Odres, texto de "loja criada". Não conferido: tela `/atendimento` (exige login).
+- **Atenção:** o commit `a2a55db` (sync automático de fim de sessão) pôs nesta branch docs antes sem commit (xlsx de casos,
+  proposta de templates html/pdf, spec, plano) — decidir se vão ao remoto. Registro das decisões tomadas na execução:
+  `.superpowers/sdd/2026-11-19-loja-nova-outra-empresa/progress.md` (pasta fora do git).
+
+## (histórico) combinado com o Aldo em 19/11 — executar o plano "loja nova de outra empresa"
 
 - **O que é:** cliente já ativo pede, no mesmo WhatsApp, cadastro de loja de OUTRA empresa (raiz de CNPJ diferente).
   Hoje a VictorIA diz "passei pro Nei" e para. Casos reais: Eduardo Cell (→ 59.218.413/0001-90) e RG Cell (→ 69.849.333/0001-96).
