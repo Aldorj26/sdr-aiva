@@ -6,6 +6,9 @@ import {
   ehMotivoLojaNova, cnpjsDasObs, lerMarcadorLojaNova, semMarcadorLojaNova, comMarcadorLojaNova, cnpjsParaConferir,
   marcadorPedido, jaPedido, avaliarPedidoLojaNova, resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova,
   deveInstruirAtalho, planoAlertaCnpjNovo,
+  pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, chaveFilaParada, chaveLinkLojaNova, chaveCriadaLojaNova,
+  chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada,
+  type RegLojaNova, type RegLojaNovaFila,
 } from './loja-nova-calc.ts'
 
 const T0 = Date.parse('2026-11-19T13:00:00Z')
@@ -186,4 +189,99 @@ test('selo da fila: só o fluxo ganha selo; sócio nulo = mesmo sócio', () => {
   assert.deepEqual(seloRegistroFila({ fluxo: 'loja_nova_empresa' }), { selo: 'loja nova de cliente ativo', socio: 'mesmo sócio' })
   assert.equal(seloRegistroFila({ fluxo: 'loja_nova_empresa', socio_nome: 'Maria', socio_telefone: '5521965002926' })?.socio, 'sócio: Maria (5521965002926)')
   assert.equal(seloRegistroFila({ fluxo: 'loja_nova_empresa', socio_nome: 'Maria' })?.socio, 'sócio: Maria')
+})
+
+// ─── Task 4: espelho — link, loja criada, recusada e fila parada (por CNPJ) ─────────────────────
+const reg = (p: Partial<RegLojaNova> = {}): RegLojaNova => ({ id: 1, lead_id: 'a', cnpj: '59218413000190', fluxo: 'loja_nova_empresa', link_enviado_em: null, criada_avisada_em: null, ...p })
+test('link: só fluxo loja nova, em dados_varejo, ainda sem link', () => {
+  const o = [{ cnpj: '59218413000190', stage: 'dados_varejo' }]
+  assert.equal(pendentesLink([reg()], o).length, 1)
+  assert.equal(pendentesLink([reg({ link_enviado_em: '2026-11-19T12:00:00Z' })], o).length, 0)
+  assert.equal(pendentesLink([reg({ fluxo: null })], o).length, 0)
+  assert.equal(pendentesLink([reg()], []).length, 0)                                   // pré-cadastro ainda não chegou
+  assert.equal(pendentesLink([reg()], [{ cnpj: '59218413000190', stage: 'not_approved', pre_cadastro_status: 'not_approved' }]).length, 0)
+})
+test('recusada pela AIVA aparece só em recusadas', () => {
+  const o = [{ cnpj: '59218413000190', stage: 'not_approved', pre_cadastro_status: 'not_approved' }]
+  assert.equal(recusadas([reg()], o).length, 1); assert.equal(pendentesCriada([reg()], o).length, 0)
+})
+test('loja criada: retailer_id presente, um aviso só', () => {
+  const o = [{ cnpj: '59218413000190', stage: 'cadastro_finalizado', retailer_id: 9001, legal_name: 'ACME' }]
+  assert.equal(pendentesCriada([reg()], o).length, 1)
+  assert.equal(pendentesCriada([reg({ criada_avisada_em: '2026-11-20T12:00:00Z' })], o).length, 0)
+})
+test('seleção: CNPJ formatado casa, linha sem lead fica fora, recusada nunca vira link nem criada', () => {
+  const o = [{ cnpj: '59.218.413/0001-90', stage: 'dados_varejo' }]
+  assert.equal(pendentesLink([reg()], o)[0].onb.stage, 'dados_varejo')
+  assert.equal(pendentesLink([reg({ lead_id: '' })], o).length, 0)
+  // loja já criada: não manda mais o link
+  assert.equal(pendentesLink([reg({ criada_avisada_em: '2026-11-20T12:00:00Z' })], o).length, 0)
+  // recusada com retailer_id (lixo do portal) não vira "loja criada"
+  const rec = [{ cnpj: '59218413000190', stage: 'not_approved', retailer_id: 9001 }]
+  assert.equal(pendentesCriada([reg()], rec).length, 0)
+  assert.equal(recusadas([reg()], rec).length, 1)
+  // recusa só pelo pre_cadastro_status também conta
+  assert.equal(recusadas([reg()], [{ cnpj: '59218413000190', stage: 'dados_varejo', pre_cadastro_status: 'not_approved' }]).length, 1)
+  assert.equal(pendentesLink([reg()], [{ cnpj: '59218413000190', stage: 'dados_varejo', pre_cadastro_status: 'not_approved' }]).length, 0)
+  // outro onboarding vivo do mesmo CNPJ: não é recusada
+  assert.equal(recusadas([reg()], [...rec, { cnpj: '59218413000190', stage: 'dados_varejo' }]).length, 0)
+  assert.equal(recusadas([reg({ fluxo: null })], rec).length, 0)
+})
+test('fila parada: sem clique há 24h+ pelo criado_em; clicado e não chegou pelo enviado_em; no portal ou com link, nada', () => {
+  const agora = Date.parse('2026-11-21T15:00:00Z')
+  const f = (p: Partial<RegLojaNovaFila> = {}): RegLojaNovaFila => ({ ...reg(), enviado: false, criado_em: '2026-11-20T14:00:00Z', enviado_em: null, ...p })
+  assert.deepEqual(filaParadaLojaNova([f()], [], agora).map((x) => [x.motivo, x.horas]), [['sem_clique', 25]])
+  assert.equal(filaParadaLojaNova([f({ criado_em: '2026-11-20T16:00:00Z' })], [], agora).length, 0)            // 23h
+  assert.deepEqual(filaParadaLojaNova([f({ enviado: true, enviado_em: '2026-11-20T10:00:00Z' })], [], agora).map((x) => x.motivo), ['nao_chegou'])
+  assert.equal(filaParadaLojaNova([f({ enviado: true, enviado_em: '2026-11-21T10:00:00Z' })], [], agora).length, 0) // clicado há 5h
+  assert.equal(filaParadaLojaNova([f({ enviado: true, enviado_em: null })], [], agora)[0].motivo, 'nao_chegou')     // sem enviado_em: criado_em
+  assert.equal(filaParadaLojaNova([f()], [{ cnpj: '59218413000190', stage: 'dados_varejo' }], agora).length, 0)  // chegou
+  assert.equal(filaParadaLojaNova([f({ link_enviado_em: '2026-11-20T15:00:00Z' })], [], agora).length, 0)
+  assert.equal(filaParadaLojaNova([f({ fluxo: null })], [], agora).length, 0)
+  assert.equal(filaParadaLojaNova([f({ criado_em: null })], [], agora).length, 0)
+})
+test('chaves por CNPJ; a da fila parada vira à meia-noite de Brasília', () => {
+  assert.equal(chaveLinkLojaNova('59.218.413/0001-90'), 'loja_nova_link:59218413000190')
+  assert.equal(chaveCriadaLojaNova('59218413000190'), 'loja_nova_criada:59218413000190')
+  assert.equal(chaveRecusadaLojaNova('59218413000190'), 'loja_nova_recusada:59218413000190')
+  assert.equal(chaveFilaParada('59218413000190', Date.parse('2026-11-21T02:59:00Z')), 'loja_nova_parada:59218413000190:2026-11-20')
+  assert.equal(chaveFilaParada('59218413000190', Date.parse('2026-11-21T03:00:00Z')), 'loja_nova_parada:59218413000190:2026-11-21')
+})
+test('coluna ausente: 42703 no select, PGRST204 na escrita; outros erros não', () => {
+  assert.ok(colunaLojaNovaAusente({ code: '42703', message: 'column sdr_registros_cnpj.fluxo does not exist' }))
+  assert.ok(colunaLojaNovaAusente({ code: 'PGRST204', message: "Could not find the 'link_enviado_em' column" }))
+  assert.ok(!colunaLojaNovaAusente({ code: '57014', message: 'canceling statement due to statement timeout' }))
+  assert.ok(!colunaLojaNovaAusente(null))
+})
+test('template 86: loja com a razão e o CNPJ em até 60 caracteres; loja criada sem prazo', () => {
+  assert.equal(lojaTemplateLojaNova('59218413000190', 'ACME LTDA'), 'ACME LTDA (CNPJ 59.218.413/0001-90)')
+  assert.equal(lojaTemplateLojaNova('59218413000190', null), 'CNPJ 59.218.413/0001-90')
+  const longa = lojaTemplateLojaNova('59218413000190', 'COMERCIO DE TELEFONIA CELULAR E ACESSORIOS DO VALE LTDA')
+  assert.ok(longa.length <= 60, longa); assert.match(longa, /\(CNPJ 59\.218\.413\/0001-90\)$/)
+  const u = utilLojaCriada()
+  assert.equal(u.tipo, 'etapa'); assert.match(u.etapa, /criada na AIVA/)
+  assert.doesNotMatch(`${u.etapa} ${u.situacao}`, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
+})
+
+// ─── polimento (itens estacionados) ─────────────────────────────────────────────────────────────
+test('elegibilidade: idade com no máximo 1 casa decimal', () => {
+  assert.equal((elegibilidade({ situacao: 'ATIVA', idadeAnos: 0.4166666, odres: false, jaNaAiva: null }) as any).detalhe, '0,4 ano')
+  assert.equal((elegibilidade({ situacao: 'ATIVA', idadeAnos: 0.96, odres: false, jaNaAiva: null }) as any).detalhe, '0,9 ano') // trunca: nunca "1 ano" pra quem tem menos de 1
+  assert.equal((elegibilidade({ situacao: 'ATIVA', idadeAnos: 0.5, odres: false, jaNaAiva: null }) as any).detalhe, '0,5 ano')
+})
+test('dois marcadores do mesmo CNPJ: o mais recente vence', () => {
+  const velho = marcadorLojaNova('59218413000190', { ok: true }, '2026-11-18T12:00:00Z')
+  const novo = marcadorLojaNova('59218413000190', { ok: false, motivo: 'odres', detalhe: 'base Odres/UME' }, '2026-11-19T12:00:00Z')
+  assert.equal(lerMarcadorLojaNova(`${novo} ${velho}`, '59218413000190')?.sit, 'odres')
+  assert.equal(lerMarcadorLojaNova(`${velho} ${novo}`, '59218413000190')?.sit, 'odres')
+  assert.match(blocoPromptLojaNova(`${novo} ${velho}`, T0)!, /NÃO ELEGÍVEL/)
+})
+test('detalhe com | ou ] é limpo no marcador e não quebra a leitura', () => {
+  const m = marcadorLojaNova('59218413000190', { ok: false, motivo: 'nao_ativa', detalhe: 'BAIXADA | por ] omissão' }, '2026-11-19T12:00:00Z')
+  assert.equal(m, '[LOJA_NOVA:cnpj=59218413000190|sit=nao_ativa|det=BAIXADA por omissão|2026-11-19T12:00:00Z]')
+  assert.deepEqual(lerMarcadorLojaNova(`x ${m} y`, '59218413000190'), { sit: 'nao_ativa', det: 'BAIXADA por omissão', t: Date.parse('2026-11-19T12:00:00Z') })
+})
+test('atalho: "nova loja" só como palavras inteiras', () => {
+  for (const t of ['renova loja', 'nova lojas', 'inova loja']) assert.ok(!ehAtalhoNovaLoja(t), t)
+  for (const t of ['nova loja.', '(nova loja)', 'NOVA-LOJA']) assert.ok(ehAtalhoNovaLoja(t), t)
 })

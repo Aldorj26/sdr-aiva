@@ -4,11 +4,12 @@
  */
 import { telefone55 } from './filiais-aiva.ts'
 import { fmtCnpj } from './tickets-aiva.ts'
+import type { Etapa } from './template-utilidade-calc.ts'
 
 export const FLUXO_LOJA_NOVA = 'loja_nova_empresa'
 export const MOTIVO_LOJA_NOVA = 'loja_nova_empresa' // prefixo do motivo_humano
 export const STATUS_ABRE_FLUXO = ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'] as const
-const LINK_CADASTRO = 'https://retail-onboarding-hub.vercel.app/'
+export const LINK_CADASTRO = 'https://retail-onboarding-hub.vercel.app/'
 const SETE_DIAS_MS = 7 * 24 * 3600 * 1000
 
 const soDigitos = (v: unknown) => String(v ?? '').replace(/\D/g, '')
@@ -43,7 +44,8 @@ const normalizar = (t: string) =>
 export function ehAtalhoNovaLoja(texto: string | null | undefined): boolean {
   if (!texto) return false
   const n = normalizar(texto)
-  return n.includes('nova loja') && n.split(' ').length <= 6
+  // palavras inteiras: "renova loja" e "nova lojas" não são o atalho (normalizar já trocou pontuação por espaço)
+  return /(?:^| )nova loja(?: |$)/.test(n) && n.split(' ').length <= 6
 }
 
 export type Elegibilidade =
@@ -53,7 +55,7 @@ export type Elegibilidade =
 export function elegibilidade(e: { situacao: string | null; idadeAnos: number | null; odres: boolean; jaNaAiva: string | null }): Elegibilidade {
   if (!e.situacao || e.idadeAnos == null) return { ok: false, motivo: 'receita_indisponivel', detalhe: 'Receita sem resposta' }
   if (e.situacao.trim().toUpperCase() !== 'ATIVA') return { ok: false, motivo: 'nao_ativa', detalhe: e.situacao }
-  if (e.idadeAnos < 1) return { ok: false, motivo: 'menos_de_1_ano', detalhe: `${String(e.idadeAnos).replace('.', ',')} ano` }
+  if (e.idadeAnos < 1) return { ok: false, motivo: 'menos_de_1_ano', detalhe: `${String(Math.floor(e.idadeAnos * 10 + 1e-9) / 10).replace('.', ',')} ano` } // trunca em 1 casa: nunca "1 ano"
   if (e.odres) return { ok: false, motivo: 'odres', detalhe: 'base Odres/UME' }
   if (e.jaNaAiva) return { ok: false, motivo: 'ja_na_aiva', detalhe: e.jaNaAiva }
   return { ok: true }
@@ -266,6 +268,107 @@ export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
 export function textoLojaCriada(razao: string | null): string {
   return `A loja${razao ? ` ${razao}` : ''} foi criada na AIVA. Você já pode acessar normalmente com o seu login. Qualquer dúvida, é só me chamar por aqui.`
 }
+
+// ─── espelho do portal: link, loja criada, recusa e fila parada — tudo POR CNPJ ────────────────
+// Só linhas nascidas deste fluxo (`fluxo = FLUXO_LOJA_NOVA`). Quem chama envia e só DEPOIS de envio aceito
+// grava o carimbo; a chave em `sdr_avisos_chave` é a segunda trava (ver lib/espelho-portal.ts, passo 12).
+export type RegLojaNova = { id: string | number; lead_id: string; cnpj: string; fluxo: string | null; link_enviado_em: string | null; criada_avisada_em: string | null }
+export type OnbLojaNova = { cnpj: string; stage?: string | null; retailer_id?: string | number | null; legal_name?: string | null; pre_cadastro_status?: string | null }
+export type ParLojaNova = { reg: RegLojaNova; onb: OnbLojaNova }
+
+const doFluxo = (r: RegLojaNova) => r.fluxo === FLUXO_LOJA_NOVA && !!r.lead_id && soDigitos(r.cnpj).length === 14
+const recusado = (o: OnbLojaNova) => o.stage === 'not_approved' || o.pre_cadastro_status === 'not_approved'
+const temRid = (o: OnbLojaNova) => o.retailer_id != null && String(o.retailer_id).trim() !== ''
+const onbsDo = (cnpj: string, onbs: OnbLojaNova[]) => { const c = soDigitos(cnpj); return onbs.filter((o) => soDigitos(o.cnpj) === c) }
+
+/** Pré-cadastro chegou à AIVA (coluna dados_varejo) e o link ainda não foi. Loja já criada não recebe link. */
+export function pendentesLink(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLojaNova[] {
+  const out: ParLojaNova[] = []
+  for (const reg of regs) {
+    if (!doFluxo(reg) || reg.link_enviado_em || reg.criada_avisada_em) continue
+    const doCnpj = onbsDo(reg.cnpj, onbs)
+    if (doCnpj.some(recusado)) continue
+    const onb = doCnpj.find((o) => o.stage === 'dados_varejo' && !temRid(o))
+    if (onb) out.push({ reg, onb })
+  }
+  return out
+}
+
+/** A AIVA criou a loja (retailer_id no onboarding) e o aviso ainda não foi. Recusada nunca entra. */
+export function pendentesCriada(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLojaNova[] {
+  const out: ParLojaNova[] = []
+  for (const reg of regs) {
+    if (!doFluxo(reg) || reg.criada_avisada_em) continue
+    const onb = onbsDo(reg.cnpj, onbs).find((o) => temRid(o) && !recusado(o))
+    if (onb) out.push({ reg, onb })
+  }
+  return out
+}
+
+/** A AIVA recusou o pré-cadastro (e não há outro onboarding vivo do CNPJ): aviso ao time, nada ao lojista. */
+export function recusadas(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLojaNova[] {
+  const out: ParLojaNova[] = []
+  for (const reg of regs) {
+    if (!doFluxo(reg)) continue
+    const doCnpj = onbsDo(reg.cnpj, onbs)
+    const onb = doCnpj.find(recusado)
+    if (onb && doCnpj.every(recusado)) out.push({ reg, onb })
+  }
+  return out
+}
+
+export const HORAS_FILA_PARADA = 24
+export type RegLojaNovaFila = RegLojaNova & { enviado?: boolean | null; criado_em?: string | null; enviado_em?: string | null }
+export type ParadaLojaNova = { reg: RegLojaNovaFila; motivo: 'sem_clique' | 'nao_chegou'; horas: number }
+
+/** Pré-cadastro parado: sem clique há 24h+ (relógio = criado_em) ou clicado há 24h+ (enviado_em, senão criado_em)
+ *  e o CNPJ não aparece na AIVA. O aviso `pre_cadastro_nao_chegou` do passo 11 nunca pega estas linhas: ele só
+ *  olha leads em PRE_APROVACAO/CADASTRO_RECEBIDO sem nenhum CNPJ no portal — e o lead deste fluxo já opera. */
+export function filaParadaLojaNova(regs: RegLojaNovaFila[], onbs: OnbLojaNova[], agora: number): ParadaLojaNova[] {
+  const noPortal = new Set(onbs.map((o) => soDigitos(o.cnpj)))
+  const out: ParadaLojaNova[] = []
+  for (const reg of regs) {
+    if (!doFluxo(reg) || reg.link_enviado_em || reg.criada_avisada_em || noPortal.has(soDigitos(reg.cnpj))) continue
+    const clicado = reg.enviado === true
+    const desde = Date.parse(String((clicado ? reg.enviado_em || reg.criado_em : reg.criado_em) ?? ''))
+    if (Number.isNaN(desde)) continue
+    const horas = Math.floor((agora - desde) / 3_600_000)
+    if (horas >= HORAS_FILA_PARADA) out.push({ reg, motivo: clicado ? 'nao_chegou' : 'sem_clique', horas })
+  }
+  return out
+}
+
+/** Chaves em `sdr_avisos_chave`. Link e loja criada: uma vez por CNPJ, para sempre. Fila parada: 1×/dia (BRT). */
+export const chaveLinkLojaNova = (cnpj: string) => `loja_nova_link:${soDigitos(cnpj)}`
+export const chaveCriadaLojaNova = (cnpj: string) => `loja_nova_criada:${soDigitos(cnpj)}`
+export const chaveRecusadaLojaNova = (cnpj: string) => `loja_nova_recusada:${soDigitos(cnpj)}`
+export const PREFIXO_FILA_PARADA = 'loja_nova_parada:'
+/** Brasília é UTC−3 fixo (sem horário de verão desde 2019). */
+export const chaveFilaParada = (cnpj: string, agora: number) =>
+  `${PREFIXO_FILA_PARADA}${soDigitos(cnpj)}:${new Date(agora - 3 * 3_600_000).toISOString().slice(0, 10)}`
+
+/** Coluna do SQL de 19/11 ainda não aplicada: 42703 (Postgres, no select) ou PGRST204 (PostgREST, na escrita). */
+export function colunaLojaNovaAusente(err: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!err) return false
+  if (err.code === '42703' || err.code === 'PGRST204') return true
+  return /(fluxo|link_enviado_em|criada_avisada_em)/.test(err.message ?? '') && /(does not exist|could not find)/i.test(err.message ?? '')
+}
+
+/** {{2}} do template 86: "<razão> (CNPJ xx.xxx.xxx/xxxx-xx)" em até 60 caracteres (limite do `montar`). */
+export function lojaTemplateLojaNova(cnpj: string, razao: string | null | undefined): string {
+  const doc = `CNPJ ${fmtCnpj(soDigitos(cnpj))}`
+  const r = (razao ?? '').replace(/\s+/g, ' ').trim()
+  if (!r) return doc
+  const cabe = 60 - doc.length - 3
+  return `${r.length > cabe ? r.slice(0, cabe).trim() : r} (${doc})`
+}
+
+/** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`, sem prazo. */
+export const utilLojaCriada = (): Etapa => ({
+  tipo: 'etapa',
+  etapa: 'loja nova criada na AIVA.',
+  situacao: 'você já pode acessar normalmente com o seu login. Qualquer dúvida, é só me chamar por aqui.',
+})
 
 // ─── fila de pré-cadastro (painel /atendimento) ─────────────────────────────────────────────────
 /** Selo e sócio de uma linha de `sdr_registros_cnpj` na fila. Sem `fluxo` = linha comum (null). */
