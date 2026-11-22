@@ -71,8 +71,12 @@ export function elegibilidade(e: { situacao: string | null; idadeAnos: number | 
   return { ok: true }
 }
 
-export function deveAbrirFluxo(e: { status: string; classe: Classe; contextoRepasse: boolean }): boolean {
-  return (STATUS_ABRE_FLUXO as readonly string[]).includes(e.status) && e.classe === 'outra_empresa' && !e.contextoRepasse
+/** Cadastro da loja PRINCIPAL ainda aberto no portal ([ONB_ETAPA:…] do espelho): a loja dele ainda não está ativa,
+ *  então o pedido de loja nova espera (passo 0 da seção LOJA NOVA do prompt — revisão Task 5, item 4). */
+export const cadastroPrincipalAberto = (obs: string | null | undefined): boolean => (obs ?? '').includes('[ONB_ETAPA:')
+
+export function deveAbrirFluxo(e: { status: string; classe: Classe; contextoRepasse: boolean; cadastroAberto?: boolean }): boolean {
+  return (STATUS_ABRE_FLUXO as readonly string[]).includes(e.status) && e.classe === 'outra_empresa' && !e.contextoRepasse && !e.cadastroAberto
 }
 
 export type PedidoLojaNova = { cnpj: string; acao: 'confirmar' | 'cancelar'; socioNome: string | null; socioTelefone: string | null }
@@ -105,12 +109,39 @@ export const marcadorLojaNova = (cnpj: string, elegivel: Elegibilidade, iso: str
     : `[LOJA_NOVA:cnpj=${c}|sit=${elegivel.motivo}|det=${limpa(elegivel.detalhe)}|${iso}]`
 }
 
+/** Motivo como o TIME lê (aviso do webhook): pode citar a base Odres/UME e a etapa do portal. */
 const FRASE_MOTIVO: Record<string, (det: string) => string> = {
   nao_ativa: det => `A situação desse CNPJ na Receita não é ATIVA${det ? ` (${det})` : ''}.`,
   menos_de_1_ano: det => `Esse CNPJ tem menos de 1 ano de abertura${det ? ` (${det})` : ''}.`,
   odres: () => 'Esse CNPJ está na base Odres/UME, que é tratada manualmente pela equipe.',
   ja_na_aiva: det => `Esse CNPJ já tem cadastro na AIVA${det ? ` (${det})` : ''}, então não cabe um pedido novo.`,
   receita_indisponivel: () => 'Não foi possível consultar esse CNPJ na Receita agora.',
+}
+
+/** Motivo como o LOJISTA pode ouvir (revisão Task 5, itens 3 e 7): sem "base", sem promessa de a equipe tratar,
+ *  sem a etapa do portal. Receita fora do ar não é recusa — tem texto próprio (item 6). */
+const FRASE_MOTIVO_LOJISTA: Record<string, (det: string) => string> = {
+  nao_ativa: FRASE_MOTIVO.nao_ativa,
+  menos_de_1_ano: FRASE_MOTIVO.menos_de_1_ano,
+  odres: () => 'Esse CNPJ já é atendido pela AIVA/Odres por outro canal (fora da Track), então não pode entrar como loja nova por aqui.',
+  ja_na_aiva: () => 'Esse CNPJ já tem um cadastro aberto ou analisado na AIVA, então não cabe um pedido novo por aqui.',
+}
+/** O que a VictorIA lê além da frase (só no bloco do prompt). */
+const ALERTA_VICTORIA: Record<string, string> = {
+  odres: ' ⛔ Não fale em "base" nem diga que a equipe vai tratar ou retornar.',
+  ja_na_aiva: ' Não cite a etapa.',
+}
+export const fraseMotivoLojista = (motivo: string, det: string): string =>
+  (FRASE_MOTIVO_LOJISTA[motivo] ?? (() => 'Esse CNPJ não pôde ser aceito como loja nova.'))(det)
+
+/** Resultado da conferência levado à mensagem de filial recusada por raiz (`mensagemFilial`, lib/tickets-aiva.ts).
+ *  null = conferência falhou, não houve, ou a Receita não respondeu: o lojista reenvia e o sistema confere de novo. */
+export type ConferenciaFilial = { ok: true } | { ok: false; frase: string } | null
+export function conferenciaParaFilial(e: Elegibilidade | null | undefined): ConferenciaFilial {
+  if (!e) return null
+  if (e.ok) return { ok: true }
+  if (e.motivo === 'receita_indisponivel') return null
+  return { ok: false, frase: fraseMotivoLojista(e.motivo, e.detalhe) }
 }
 
 export function blocoPromptLojaNova(obs: string | null | undefined, agora: number = Date.now()): string | null {
@@ -124,8 +155,15 @@ export function blocoPromptLojaNova(obs: string | null | undefined, agora: numbe
   if (!melhor || agora - melhor.t > SETE_DIAS_MS) return null
   const cnpj = fmtCnpj(melhor.cnpj)
 
+  if (melhor.sit === 'receita_indisponivel') {
+    return [
+      '## LOJA NOVA DE OUTRA EMPRESA — CONFERÊNCIA PENDENTE',
+      `O lojista pediu para cadastrar o CNPJ ${cnpj} como loja nova. ${FRASE_MOTIVO.receita_indisponivel('')}`,
+      'VictorIA: NÃO abra pedido agora. Diga que não deu pra consultar esse CNPJ neste momento e peça pra ele mandar o CNPJ de novo mais tarde — o sistema confere de novo. Sem prazo.',
+    ].join('\n')
+  }
   if (melhor.sit !== 'ok') {
-    const frase = (FRASE_MOTIVO[melhor.sit] ?? (() => 'Esse CNPJ não pôde ser aceito como loja nova.'))(melhor.det)
+    const frase = fraseMotivoLojista(melhor.sit, melhor.det) + (ALERTA_VICTORIA[melhor.sit] ?? '')
     return [
       '## LOJA NOVA DE OUTRA EMPRESA — NÃO ELEGÍVEL',
       `O lojista pediu para cadastrar o CNPJ ${cnpj} como loja nova. ${frase}`,
@@ -138,7 +176,7 @@ export function blocoPromptLojaNova(obs: string | null | undefined, agora: numbe
     'VictorIA, conduza assim:',
     `1. Confirme com ele que quer cadastrar essa empresa (${cnpj}) como nova loja na AIVA.`,
     '2. Pergunte se o sócio responsável é ele mesmo; se não for, peça o nome e o WhatsApp do sócio.',
-    `3. Com a confirmação, devolva o motivo no formato \`${MOTIVO_LOJA_NOVA}: cnpj=${melhor.cnpj} | acao=confirmar | socio=mesmo|<nome> | tel=<telefone>\` com acionar_humano = false. Se ele desistir, use acao=cancelar.`,
+    `3. Com a confirmação, devolva o motivo no formato \`${MOTIVO_LOJA_NOVA}: cnpj=${melhor.cnpj} | acao=confirmar | socio=<mesmo OU nome do sócio> | tel=<WhatsApp do sócio, só se não for ele>\` com acionar_humano = false. Se ele desistir, use acao=cancelar.`,
     '4. Diga: "Registrei a loja nova; assim que o cadastro dela abrir na AIVA eu te mando o link por aqui."',
     '⛔ Não mande link de cadastro, não prometa prazo e não refaça a qualificação (a loja principal já está ativa).',
   ].join('\n')
@@ -179,12 +217,28 @@ export const comMarcadorLojaNova = (obs: string | null | undefined, cnpj: string
   `${semMarcadorLojaNova(obs, cnpj)} ${marcador}`.trim()
 
 /** CNPJs da mensagem (DV já conferido por quem chama) que abrem o fluxo neste turno — no máximo 3. */
-export function cnpjsParaConferir(e: { status: string; cnpjsMensagem: string[]; cnpjsDoLead: string[]; contextoRepasse: boolean; obs: string | null; agora: number }): string[] {
-  // sem CNPJ nenhum do lead, todo CNPJ seria "outra empresa" — inclusive o dele mesmo (revisão 1, item 2)
-  if (!e.cnpjsDoLead.some((c) => soDigitos(c).length === 14)) return []
+/** CNPJs que só são "do lead" porque a captura de LOJA NOVA do webhook gravou a linha (tipo 'adicional',
+ *  status 'informada') — não estão nas observações. Esses podem ser conferidos de novo quando o lojista reenviar
+ *  (conferência que falhou não deixa marcador; sem isto o reenvio virava "conhecido" — revisão Task 5, item 2). */
+export function reconferiveisDoLead(regs: { cnpj: unknown; tipo?: unknown; status?: unknown }[], obs: string | null | undefined): string[] {
+  const daObs = new Set(cnpjsDasObs(obs))
+  return [...new Set(regs
+    .filter((r) => r.tipo === 'adicional' && r.status === 'informada')
+    .map((r) => soDigitos(r.cnpj))
+    .filter((c) => c.length === 14 && !daObs.has(c)))]
+}
+
+export function cnpjsParaConferir(e: { status: string; cnpjsMensagem: string[]; cnpjsDoLead: string[]; contextoRepasse: boolean; obs: string | null; agora: number; reconferiveis?: string[] }): string[] {
+  // cadastro da loja principal ainda aberto no portal: o pedido espera a loja dele ficar ativa (item 4)
+  const cadastroAberto = cadastroPrincipalAberto(e.obs)
+  const reconf = new Set((e.reconferiveis ?? []).map(soDigitos))
   const out: string[] = []
   for (const c of new Set(e.cnpjsMensagem.map(soDigitos))) {
-    if (!deveAbrirFluxo({ status: e.status, classe: classificar(c, e.cnpjsDoLead), contextoRepasse: e.contextoRepasse })) continue
+    // CNPJ reconferível: classifica contra os OUTROS CNPJs do lead (a linha dele mesmo não o torna conhecido)
+    const doLead = reconf.has(c) ? e.cnpjsDoLead.filter((x) => soDigitos(x) !== c) : e.cnpjsDoLead
+    // sem CNPJ nenhum do lead, todo CNPJ seria "outra empresa" — inclusive o dele mesmo (revisão 1, item 2)
+    if (!doLead.some((x) => soDigitos(x).length === 14)) continue
+    if (!deveAbrirFluxo({ status: e.status, classe: classificar(c, doLead), contextoRepasse: e.contextoRepasse, cadastroAberto })) continue
     const m = lerMarcadorLojaNova(e.obs, c)
     // marcador < 7 dias não repete — salvo Receita fora do ar, que confere de novo quando ele reenviar
     if (m && m.sit !== 'receita_indisponivel' && e.agora - m.t <= SETE_DIAS_MS) continue
@@ -248,6 +302,7 @@ export function avisoLojaNovaFila(x: { loja: string; telefone: string; cnpj: str
 /** Atalho "nova loja" só instrui se não há fluxo aberto (marcador < 7 dias) nem pedido recente (< 7 dias). */
 export function deveInstruirAtalho(texto: string | null | undefined, obs: string | null | undefined, agora: number): boolean {
   if (!ehAtalhoNovaLoja(texto)) return false
+  if (cadastroPrincipalAberto(obs)) return false // loja principal ainda em cadastro: vale o passo 0 do prompt (item 4)
   const recente = (iso: string) => { const t = Date.parse(iso); return !Number.isNaN(t) && agora - t <= SETE_DIAS_MS }
   for (const m of (obs ?? '').matchAll(RE_MARCADOR)) if (recente(m[4])) return false
   for (const m of (obs ?? '').matchAll(/\[LOJA_NOVA_PEDIDA:cnpj=\d{14}\|([^\]]+)\]/g)) if (recente(m[1])) return false
@@ -271,8 +326,8 @@ export const instrucaoAtalhoLojaNova = () =>
 
 // ─── textos ao lojista (sem prazo) ──────────────────────────────────────────────────────────────
 export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
-  const quem = razao ? `${razao} (CNPJ ${fmtCnpj(cnpj)})` : `o CNPJ ${fmtCnpj(cnpj)}`
-  return `O cadastro de ${quem} já está aberto na AIVA. Para concluir, acesse ${LINK_CADASTRO} e informe esse CNPJ. Qualquer dúvida, é só me chamar por aqui.`
+  const quem = razao ? `de ${razao} (CNPJ ${fmtCnpj(cnpj)})` : `do CNPJ ${fmtCnpj(cnpj)}`
+  return `O cadastro ${quem} já está aberto na AIVA. Para concluir, acesse ${LINK_CADASTRO} e informe esse CNPJ. Qualquer dúvida, é só me chamar por aqui.`
 }
 
 export function textoLojaCriada(razao: string | null): string {

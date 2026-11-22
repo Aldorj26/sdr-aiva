@@ -85,13 +85,22 @@ export function mensagemRepasse(a: Abertura): string {
   }
 }
 
-export function mensagemFilial(a: Abertura, cnpj: string): string {
+/** Conferência de loja nova do CNPJ recusado por raiz (`conferenciaParaFilial` em lib/loja-nova-calc.ts):
+ *  ok = pode ser loja nova; frase = motivo pro lojista; null = conferência falhou/não houve (reenviar). */
+export type ConferenciaLojaNova = { ok: true } | { ok: false; frase: string } | null
+
+export function mensagemFilial(a: Abertura, cnpj: string, lojaNova: ConferenciaLojaNova = null): string {
   const c = fmtCnpj(cnpj)
   switch (a.tipo) {
     case 'criado': return `Pronto! Abri o pedido de cadastro da filial ${c} na AIVA (ticket nº ${a.numero}). A AIVA já conferiu o CNPJ na Receita; agora o time deles faz o cadastro — quando concluírem, eu te aviso por aqui. 🎉`
     case 'ja_existe': return `Já existe um pedido de cadastro aberto pra filial ${c}${a.numero ? ` (ticket nº ${a.numero})` : ''} — é só aguardar, eu te aviso quando a AIVA concluir.`
     case 'recusado': return /raiz/i.test(a.erro)
-      ? `O CNPJ ${c} é de outra empresa — aí o caminho é o cadastro de loja nova. Quer que eu registre essa empresa como nova loja na AIVA?`
+      // raiz diferente: o texto segue a conferência de loja nova (revisão Task 5, item 2)
+      ? !lojaNova
+        ? `O CNPJ ${c} é de outra empresa, então não entra como filial. Me manda esse CNPJ de novo daqui a pouco que eu confiro se ele pode entrar como loja nova.`
+        : lojaNova.ok
+          ? `O CNPJ ${c} é de outra empresa — aí o caminho é o cadastro de loja nova. Quer que eu registre essa empresa como nova loja na AIVA?`
+          : `O CNPJ ${c} é de outra empresa, então não entra como filial — e, pela conferência, ele também não pode seguir como loja nova por aqui agora. ${lojaNova.frase}`
       : /endere|cep/i.test(a.erro)
         ? `A AIVA não conseguiu completar o endereço da filial ${c} pelo CEP. Me confirma o endereço completo dela (rua, bairro, cidade e estado)?`
         : `A AIVA não aceitou o CNPJ ${c} como filial: ${a.erro.replace(/^\d+\s*/, '')}. Confere o número? Se estiver certo, passei pro nosso time olhar.`

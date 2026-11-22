@@ -5,7 +5,7 @@ import {
   marcadorLojaNova, blocoPromptLojaNova, textoLinkLojaNova, textoLojaCriada, seloRegistroFila,
   ehMotivoLojaNova, cnpjsDasObs, lerMarcadorLojaNova, semMarcadorLojaNova, comMarcadorLojaNova, cnpjsParaConferir,
   marcadorPedido, jaPedido, avaliarPedidoLojaNova, resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova,
-  deveInstruirAtalho, planoAlertaCnpjNovo,
+  deveInstruirAtalho, planoAlertaCnpjNovo, cadastroPrincipalAberto, reconferiveisDoLead, conferenciaParaFilial, fraseMotivoLojista,
   pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, chaveFilaParada, chaveLinkLojaNova, chaveCriadaLojaNova,
   chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada,
   type RegLojaNova, type RegLojaNovaFila,
@@ -341,4 +341,74 @@ test('idade abaixo de 0,1 ano vira meses', () => {
   assert.equal(det(0.09), '1 mês')
   assert.equal(det(0.1), '0,1 ano')
   assert.equal(det(0.4166666), '0,4 ano')
+})
+
+// ─── revisão Task 5, rodada 1 ────────────────────────────────────────────────────────────────────
+const bloco = (motivo: string, det: string) =>
+  blocoPromptLojaNova(`x ${marcadorLojaNova('59218413000190', { ok: false, motivo, detalhe: det } as never, '2026-11-19T12:00:00Z')}`, T0)!
+
+test('item 3/7: motivo pro lojista sem "base", sem promessa da equipe e sem a etapa; o time mantém o detalhe', () => {
+  const od = bloco('odres', 'base Odres/UME')
+  assert.match(od, /já é atendido pela AIVA\/Odres por outro canal \(fora da Track\)/)
+  assert.match(od, /⛔ Não fale em "base"/)
+  assert.doesNotMatch(od, /tratada manualmente/)
+  const ja = bloco('ja_na_aiva', 'biometria_pendente')
+  assert.match(ja, /cadastro aberto ou analisado na AIVA/); assert.match(ja, /Não cite a etapa/)
+  assert.doesNotMatch(ja, /biometria_pendente/)
+  // aviso ao time continua com a base e a etapa
+  assert.match(resumoElegibilidade({ ok: false, motivo: 'odres', detalhe: 'base Odres/UME' }), /base Odres\/UME/)
+  assert.match(resumoElegibilidade({ ok: false, motivo: 'ja_na_aiva', detalhe: 'biometria_pendente' }), /biometria_pendente/)
+})
+test('item 6: Receita fora do ar não vira recusa — pede o CNPJ de novo mais tarde', () => {
+  const b = bloco('receita_indisponivel', 'Receita sem resposta')
+  assert.match(b, /NÃO abra pedido/); assert.match(b, /mandar o CNPJ de novo mais tarde/); assert.match(b, /Sem prazo/)
+  assert.doesNotMatch(b, /NÃO ELEGÍVEL/); assert.doesNotMatch(b, /não pode seguir por aqui/)
+})
+test('item 8: formato do motivo no bloco não usa o separador como "ou"', () => {
+  const ok = blocoPromptLojaNova(`x ${MK_OK}`, T0)!
+  assert.match(ok, /socio=<mesmo OU nome do sócio> \| tel=<WhatsApp do sócio, só se não for ele>/)
+  assert.doesNotMatch(ok, /socio=mesmo\|/)
+})
+test('item 4: cadastro da loja principal aberto no portal ([ONB_ETAPA:…]) não abre o fluxo nem o atalho', () => {
+  const onb = '[ONB_ETAPA:dados_varejo:2026-11-19T10:00:00Z]'
+  assert.ok(cadastroPrincipalAberto(onb)); assert.ok(!cadastroPrincipalAberto('')); assert.ok(!cadastroPrincipalAberto(null))
+  assert.ok(!deveAbrirFluxo({ status: 'TREINAR', classe: 'outra_empresa', contextoRepasse: false, cadastroAberto: true }))
+  const base = { status: 'TREINAR', cnpjsMensagem: ['59218413000190'], cnpjsDoLead: ['32306162000149'], contextoRepasse: false, obs: onb, agora: T0 }
+  assert.deepEqual(cnpjsParaConferir(base), [])
+  assert.deepEqual(cnpjsParaConferir({ ...base, obs: '' }), ['59218413000190'])
+  assert.ok(!deveInstruirAtalho('nova loja', onb, T0))
+  assert.ok(deveInstruirAtalho('nova loja', '', T0))
+})
+test('item 2: CNPJ que só existe pela linha da captura (conferência falhou, sem marcador) é conferido de novo no reenvio', () => {
+  const regs = [
+    { cnpj: '32306162000149', tipo: 'matriz', status: 'credenciada' },
+    { cnpj: '59218413000190', tipo: 'adicional', status: 'informada' },
+    { cnpj: '11222333000181', tipo: 'adicional', status: 'enviada' },
+  ]
+  assert.deepEqual(reconferiveisDoLead(regs, ''), ['59218413000190'])
+  // CNPJ que também está nas observações é conhecido de verdade
+  assert.deepEqual(reconferiveisDoLead(regs, '[DADOS_COLETADOS:cnpj=59.218.413/0001-90]'), [])
+  const base = { status: 'LOGIN', cnpjsMensagem: ['59218413000190'], cnpjsDoLead: regs.map((r) => r.cnpj), contextoRepasse: false, obs: '', agora: T0 }
+  assert.deepEqual(cnpjsParaConferir(base), [])                                                   // sem a regra: "conhecido"
+  assert.deepEqual(cnpjsParaConferir({ ...base, reconferiveis: reconferiveisDoLead(regs, '') }), ['59218413000190'])
+  // com marcador recente ou pedido registrado continua sem repetir
+  assert.deepEqual(cnpjsParaConferir({ ...base, reconferiveis: ['59218413000190'], obs: MK_OK }), [])
+  assert.deepEqual(cnpjsParaConferir({ ...base, reconferiveis: ['59218413000190'], obs: marcadorPedido('59218413000190', '2026-11-19T12:00:00Z') }), [])
+  // filial (mesma raiz de outro CNPJ do lead) reconferível não vira outra empresa
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsMensagem: ['32306162000220'], cnpjsDoLead: [...base.cnpjsDoLead, '32306162000220'], reconferiveis: ['32306162000220'] }), [])
+  // única linha do lead é a da captura: sem outro CNPJ, não classifica
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsDoLead: ['59218413000190'], reconferiveis: ['59218413000190'] }), [])
+})
+test('item 2: conferência levada à mensagem de filial recusada por raiz', () => {
+  assert.deepEqual(conferenciaParaFilial({ ok: true }), { ok: true })
+  assert.equal(conferenciaParaFilial(null), null)
+  assert.equal(conferenciaParaFilial({ ok: false, motivo: 'receita_indisponivel', detalhe: 'Receita sem resposta' }), null)
+  assert.deepEqual(conferenciaParaFilial({ ok: false, motivo: 'menos_de_1_ano', detalhe: '0,4 ano' }), { ok: false, frase: 'Esse CNPJ tem menos de 1 ano de abertura (0,4 ano).' })
+  const od = conferenciaParaFilial({ ok: false, motivo: 'odres', detalhe: 'base Odres/UME' })
+  assert.ok(od && !od.ok && !/base|⛔/.test(od.frase))
+  assert.equal(fraseMotivoLojista('xyz', ''), 'Esse CNPJ não pôde ser aceito como loja nova.')
+})
+test('item 13: link sem razão social diz "do CNPJ"', () => {
+  assert.equal(textoLinkLojaNova('59218413000190', null), 'O cadastro do CNPJ 59.218.413/0001-90 já está aberto na AIVA. Para concluir, acesse https://retail-onboarding-hub.vercel.app/ e informe esse CNPJ. Qualquer dúvida, é só me chamar por aqui.')
+  assert.match(textoLinkLojaNova('59218413000190', 'ACME LTDA'), /^O cadastro de ACME LTDA \(CNPJ 59\.218\.413\/0001-90\) já está aberto na AIVA\./)
 })

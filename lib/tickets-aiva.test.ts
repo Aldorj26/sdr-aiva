@@ -22,9 +22,21 @@ test('respostas de abertura', () => {
   assert.equal(classificarAbertura(404, { error: 'varejo não encontrado' }).tipo, 'nao_elegivel')
   assert.equal(classificarAbertura(503, { error: 'Receita indisponível' }).tipo, 'falha')
   assert.equal(
-    mensagemFilial({ tipo: 'recusado', erro: '422 raiz diferente' }, '60854022000221'),
+    mensagemFilial({ tipo: 'recusado', erro: '422 raiz diferente' }, '60854022000221', { ok: true }),
     'O CNPJ 60.854.022/0002-21 é de outra empresa — aí o caminho é o cadastro de loja nova. Quer que eu registre essa empresa como nova loja na AIVA?',
   )
+})
+
+test('filial recusada por raiz: o texto segue a conferência de loja nova (elegível, não elegível, sem conferência)', () => {
+  const rec = { tipo: 'recusado' as const, erro: '422 raiz diferente' }
+  const nao = mensagemFilial(rec, '60854022000221', { ok: false, frase: 'Esse CNPJ tem menos de 1 ano de abertura (0,4 ano).' })
+  assert.equal(nao, 'O CNPJ 60.854.022/0002-21 é de outra empresa, então não entra como filial — e, pela conferência, ele também não pode seguir como loja nova por aqui agora. Esse CNPJ tem menos de 1 ano de abertura (0,4 ano).')
+  assert.doesNotMatch(nao, /Quer que eu registre/)
+  const sem = mensagemFilial(rec, '60854022000221', null)
+  assert.equal(sem, 'O CNPJ 60.854.022/0002-21 é de outra empresa, então não entra como filial. Me manda esse CNPJ de novo daqui a pouco que eu confiro se ele pode entrar como loja nova.')
+  assert.equal(mensagemFilial(rec, '60854022000221'), sem) // sem conferência informada = reenviar
+  // recusa que não é por raiz não muda
+  assert.match(mensagemFilial({ tipo: 'recusado', erro: '422 CEP inválido' }, '60854022000221', { ok: true }), /endereço completo/)
 })
 
 test('acompanhamento: resolvido avisa o lojista uma vez; resposta da AIVA só vira evento', () => {

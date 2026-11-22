@@ -49,6 +49,7 @@ import {
   STATUS_ABRE_FLUXO, FLUXO_LOJA_NOVA, ridDaRaiz, classificar, deveInstruirAtalho, planoAlertaCnpjNovo, elegibilidade, marcadorLojaNova, blocoPromptLojaNova,
   ehMotivoLojaNova, cnpjsDasObs, comMarcadorLojaNova, semMarcadorLojaNova, cnpjsParaConferir, marcadorPedido, avaliarPedidoLojaNova,
   resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova, lerMarcadorLojaNova, type Elegibilidade,
+  reconferiveisDoLead, conferenciaParaFilial,
 } from '@/lib/loja-nova-calc'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
@@ -1457,13 +1458,15 @@ export async function POST(req: NextRequest) {
         const cnpjsMsg = extrairCnpjs(conteudoEfetivo).filter((c) => cnpjDvValido(c))
         if (!cnpjsMsg.length && deveInstruirAtalho(conteudoEfetivo, lead.observacoes, Date.now())) instrucaoAtalho = instrucaoAtalhoLojaNova()
         if (cnpjsMsg.length) {
-          const { data: regsLN, error: errRegs } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').eq('lead_id', leadIdLN)
+          const { data: regsLN, error: errRegs } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj, tipo, status').eq('lead_id', leadIdLN)
           if (errRegs) throw new Error(`sdr_registros_cnpj: ${errRegs.message}`)
           const conferir = cnpjsParaConferir({
             status: statusLN, cnpjsMensagem: cnpjsMsg,
             cnpjsDoLead: [...(regsLN ?? []).map((r) => String(r.cnpj)), ...cnpjsDasObs(lead.observacoes)],
             contextoRepasse: await calcularContextoRepasse(leadIdLN, lead.observacoes ?? '', conteudoEfetivo),
             obs: lead.observacoes, agora: Date.now(),
+            // linha só da captura (conferência que falhou não deixa marcador): reenvio confere de novo (Task 5, item 2)
+            reconferiveis: reconferiveisDoLead(regsLN ?? [], lead.observacoes),
           })
           // uma busca de onboardings por turno, repartida entre os CNPJs (revisão 1, item 3)
           const onbsTurno = conferir.length ? onboardingsDoTurno() : null
@@ -3140,17 +3143,19 @@ export async function POST(req: NextRequest) {
           const a = await abrirTicketFilial(ridFilial, ped)
           // raiz diferente = outra empresa: o texto pergunta se registra como loja nova e o marcador leva o turno seguinte pro fluxo
           let marcouLojaNova = false
+          let confLN: Elegibilidade | null = null
           if (a.tipo === 'recusado' && /raiz/i.test(a.erro)) {
             try {
               const e = await conferirLojaNova(ped.cnpj)
               lead.observacoes = await gravarMarcadorLojaNova(leadIdT, lead.observacoes, ped.cnpj, e)
               marcouLojaNova = true
+              confLN = e
               console.log(`[LOJA_NOVA_EMPRESA] ${telT}: ${ped.cnpj} (ticket de filial recusado por raiz) → ${e.ok ? 'elegível' : e.motivo}`)
             } catch (e) {
               console.error(`[LOJA_NOVA_EMPRESA] marcador depois da recusa por raiz falhou para ${telT}:`, e instanceof Error ? e.message : e)
             }
           }
-          await falarComLojista(mensagemFilial(a, ped.cnpj))
+          await falarComLojista(mensagemFilial(a, ped.cnpj, conferenciaParaFilial(confLN)))
           if (a.tipo === 'criado' || a.tipo === 'ja_existe') {
             if (a.numero) {
               const { data: fr } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadIdT).maybeSingle()
