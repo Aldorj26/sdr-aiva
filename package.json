@@ -41,7 +41,8 @@
     "test:esgotados": "node --test lib/esgotados-calc.test.ts",
     "test:frescor": "node --test lib/frescor-portal-calc.test.ts",
     "test:regua": "node --test lib/regua-alerta-calc.test.ts",
-    "test:utilidade": "node --test lib/template-utilidade-calc.test.ts"
+    "test:utilidade": "node --test lib/template-utilidade-calc.test.ts",
+    "test:lojanova": "node --test lib/loja-nova-calc.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
