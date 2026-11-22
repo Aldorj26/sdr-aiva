@@ -33,11 +33,11 @@ import {
 import { detectarRepeticao, linhaRepetido, PREFIXO_CHAVE, type LinhaLog } from '@/lib/espelho-repeticao-calc'
 import { avisarEquipe } from '@/lib/alerta-equipe'
 import { enviarUtilidadeOu, TPL_ETAPA } from '@/lib/template-utilidade'
-import { linkCadastro, montar, type MsgUtilidade } from '@/lib/template-utilidade-calc'
+import { montar, type MsgUtilidade } from '@/lib/template-utilidade-calc'
 import {
   FLUXO_LOJA_NOVA, LINK_CADASTRO, pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, textoLinkLojaNova, textoLojaCriada,
   chaveLinkLojaNova, chaveCriadaLojaNova, chaveRecusadaLojaNova, chaveFilaParada, PREFIXO_FILA_PARADA, colunaLojaNovaAusente,
-  lojaTemplateLojaNova, utilLojaCriada, linhaCuraLojaNova, blocoCuraLojaNova, type OnbLojaNova, type RegLojaNovaFila,
+  lojaTemplateLojaNova, utilLojaCriada, utilLinkLojaNova, linhaCuraLojaNova, blocoCuraLojaNova, type OnbLojaNova, type RegLojaNovaFila,
   decidirFalhaEnvio, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova,
 } from '@/lib/loja-nova-calc'
 
@@ -376,7 +376,7 @@ async function passoLojaNova(
       let conteudo: string
       try {
         conteudo = t.tipo === 'link'
-          ? await enviarLojaNova(lead, textoLinkLojaNova(cnpj, razao), linkCadastro(LINK_CADASTRO), loja)
+          ? await enviarLojaNova(lead, textoLinkLojaNova(cnpj, razao), utilLinkLojaNova(LINK_CADASTRO), loja)
           : await enviarLojaNova(lead, textoLojaCriada(razao), utilLojaCriada(), loja)
       } catch (e) {
         // Só a rejeição CLARA do Evo (4xx) solta a chave: timeout/5xx/rede podem ter saído — reenviar duplicaria.

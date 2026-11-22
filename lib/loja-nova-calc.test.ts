@@ -7,7 +7,7 @@ import {
   marcadorPedido, jaPedido, avaliarPedidoLojaNova, resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova,
   deveInstruirAtalho, planoAlertaCnpjNovo, cadastroPrincipalAberto, reconferiveisDoLead, conferenciaParaFilial, fraseMotivoLojista,
   pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, chaveFilaParada, chaveLinkLojaNova, chaveCriadaLojaNova,
-  chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada,
+  chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada, utilLinkLojaNova,
   type RegLojaNova, type RegLojaNovaFila, ehSocioMesmo, ridDaLojaPrincipal, linhaCuraLojaNova, blocoCuraLojaNova, avisoEscaladaLojaNova,
   decidirFalhaEnvio, rejeicaoClara, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova, TENTATIVAS_LOJA_NOVA, FLUXO_LOJA_NOVA,
 } from './loja-nova-calc.ts'
@@ -263,6 +263,16 @@ test('template 86: loja com a razão e o CNPJ em até 60 caracteres; loja criada
   const u = utilLojaCriada()
   assert.equal(u.tipo, 'etapa'); assert.match(u.etapa, /criada na AIVA/)
   assert.doesNotMatch(`${u.etapa} ${u.situacao}`, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
+})
+
+test('template 86 do link de loja nova: etapa é a abertura do cadastro, não "aprovação"; lembra o CNPJ novo; sem prazo', () => {
+  const u = utilLinkLojaNova('https://retail-onboarding-hub.vercel.app/')
+  assert.equal(u.tipo, 'etapa')
+  assert.equal(u.etapa, 'abertura do cadastro da loja nova na AIVA.')
+  assert.equal(u.situacao, 'falta preencher o cadastro neste link: https://retail-onboarding-hub.vercel.app/ Use o CNPJ da loja nova, não o da loja que já opera. Assim que finalizar, me avisa por aqui.')
+  assert.doesNotMatch(`${u.etapa} ${u.situacao}`, /aprova/i)
+  assert.doesNotMatch(`${u.etapa} ${u.situacao}`, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
+  assert.doesNotMatch(`${u.etapa} ${u.situacao}`, /[\r\n\t]| {4,}/)
 })
 
 // ─── polimento (itens estacionados) ─────────────────────────────────────────────────────────────

@@ -3,7 +3,18 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
-## ▶️ ESTADO EM 22/11 — "loja nova de outra empresa" PROGRAMADA, NÃO PUBLICADA
+## ✅ 22/11 à noite — "loja nova de outra empresa" PUBLICADA (vale por cima do bloco abaixo)
+
+- Aldo aprovou os textos. SQL `docs/sql/2026-11-19-loja-nova-empresa.sql` aplicado no Supabase; `main` em `b128339`,
+  deploy da Vercel concluído; espelho de produção em `?dry=1` → `loja_nova.pulado = null`, contadores zerados.
+  Curadoria conferida (30 correções, nenhuma ensina a regra antiga). Suíte: só a falha conhecida de `test:campanha`.
+- **Eduardo Cell (59.218.413/0001-90) e RG Cell (69.849.333/0001-96):** com o OK do Aldo, marcados `fluxo =
+  'loja_nova_empresa'` + `[LOJA_NOVA_PEDIDA:…]` nos dois leads. O espelho mandou o link aos dois em 22/11 19h46 BRT pelo
+  modelo 86 (rótulo `aiva_loja_nova`), `link_enviado_em` gravado. Falta confirmar a ENTREGA (recibo da Meta) e acompanhar
+  o aviso de "loja criada". **RG Cell: o Nei ainda precisa corrigir a promessa de Osasco (19/11).**
+- Ainda não visto: selo no `/atendimento` (exige login). Desligar sem deploy: `update sdr_registros_cnpj set fluxo = null`.
+
+## (anterior) ESTADO EM 22/11 — "loja nova de outra empresa" PROGRAMADA, NÃO PUBLICADA
 
 - **Tarefas 1–5 do plano prontas** na branch local `feat/loja-nova-empresa` (`7aa4507..b6793fb`), cada uma com revisão e
   correção, mais revisão final do conjunto. **Nada foi enviado ao remoto; a `main` e a produção estão intactas.**

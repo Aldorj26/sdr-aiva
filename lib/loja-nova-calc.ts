@@ -450,6 +450,15 @@ export function lojaTemplateLojaNova(cnpj: string, razao: string | null | undefi
   return `${r.length > cabe ? r.slice(0, cabe).trim() : r} (${doc})`
 }
 
+/** Link do cadastro da loja nova pelo template 86 (janela fechada). Texto PRÓPRIO (Aldo 22/11/2026): o `linkCadastro`
+ *  do prospect diz "aprovação da loja pela AIVA", que não vale pra loja nova de quem já opera — aqui a etapa é a
+ *  abertura do cadastro, e o lojista é lembrado de usar o CNPJ da loja NOVA. Sem prazo, sem emoji. */
+export const utilLinkLojaNova = (url: string): Etapa => ({
+  tipo: 'etapa',
+  etapa: 'abertura do cadastro da loja nova na AIVA.',
+  situacao: `falta preencher o cadastro neste link: ${url} Use o CNPJ da loja nova, não o da loja que já opera. Assim que finalizar, me avisa por aqui.`,
+})
+
 /** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`: sem prazo, sem
  *  prometer acesso nem próximos passos por aqui, sem emoji (variável de utilidade). */
 export const utilLojaCriada = (): Etapa => ({
