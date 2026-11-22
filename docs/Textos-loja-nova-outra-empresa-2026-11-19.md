@@ -27,9 +27,16 @@ Fonte: `lib/loja-nova-calc.ts` (`blocoPromptLojaNova`).
 **Quando:** o lojista (TREINAR / LOGIN / VENDENDO) mandou o CNPJ de outra empresa e ele passou na conferência. Vale
 por até 7 dias, até a VictorIA registrar o pedido. **Para quem:** VictorIA.
 
+O bloco diz só o **fato** (o lojista mandou um CNPJ de outra empresa), vale **só para aquele CNPJ** e manda a
+VictorIA ignorá-lo quando o assunto for outro (troca de CNPJ, usuário/login, dúvida, CNPJ de terceiro) e não repetir o
+que já foi tratado — o mesmo vale para 1.2 e 1.3 (revisão final, 22/11).
+
 ```
 ## LOJA NOVA DE OUTRA EMPRESA — ELEGÍVEL
-O lojista pediu para cadastrar o CNPJ <CNPJ> (outra empresa) como loja nova na AIVA, e o CNPJ passou na conferência.
+O lojista mandou o CNPJ <CNPJ>, que é de OUTRA empresa (raiz diferente das lojas dele). O CNPJ passou na conferência.
+Este bloco vale SÓ para o CNPJ <CNPJ>. Outro CNPJ que ele mandar segue a regra normal (o sistema classifica de novo).
+Se ele quer cadastrá-la como loja nova na AIVA: siga os passos abaixo; se o assunto for outro (troca de CNPJ de loja existente, usuário/login, dúvida, CNPJ de terceiro), ignore este bloco e siga a regra daquele assunto.
+Se você (ou uma mensagem do sistema) já tratou disso nesta conversa e ele não voltou ao assunto, não repita.
 VictorIA, conduza assim:
 1. Confirme com ele que quer cadastrar essa empresa (<CNPJ>) como nova loja na AIVA.
 2. Pergunte se o sócio responsável é ele mesmo; se não for, peça o nome e o WhatsApp do sócio.
@@ -47,8 +54,10 @@ VictorIA, conduza assim:
 
 ```
 ## LOJA NOVA DE OUTRA EMPRESA — NÃO ELEGÍVEL
-O lojista pediu para cadastrar o CNPJ <CNPJ> como loja nova. <MOTIVO>
-VictorIA: NÃO abra pedido de loja nova para esse CNPJ. Explique ao lojista, com cordialidade e sem prometer prazo, que esse CNPJ não pode seguir por aqui agora, e ofereça ajuda com o que ele precisar da loja que já está ativa.
+O lojista mandou o CNPJ <CNPJ>, que é de OUTRA empresa (raiz diferente das lojas dele). Pela conferência, ele não pode entrar como loja nova. Motivo: <MOTIVO>
+Este bloco vale SÓ para o CNPJ <CNPJ>. Outro CNPJ que ele mandar segue a regra normal (o sistema classifica de novo).
+VictorIA: NÃO abra pedido de loja nova para esse CNPJ. Só se ele estiver pedindo para cadastrá-la como loja nova na AIVA: explique o motivo, com cordialidade e sem prometer prazo, e ofereça ajuda com o que ele precisar da loja que já está ativa. Se o assunto for outro (troca de CNPJ de loja existente, usuário/login, dúvida, CNPJ de terceiro), ignore este bloco e siga a regra daquele assunto.
+Se você (ou uma mensagem do sistema) já tratou disso nesta conversa e ele não voltou ao assunto, não repita.
 ```
 
 `<MOTIVO>` é uma destas frases, conforme o caso (é o que a VictorIA pode repetir ao lojista):
@@ -70,8 +79,10 @@ sistema confere de novo. **Para quem:** VictorIA.
 
 ```
 ## LOJA NOVA DE OUTRA EMPRESA — CONFERÊNCIA PENDENTE
-O lojista pediu para cadastrar o CNPJ <CNPJ> como loja nova. Não foi possível consultar esse CNPJ na Receita agora.
-VictorIA: NÃO abra pedido agora. Diga que não deu pra consultar esse CNPJ neste momento e peça pra ele mandar o CNPJ de novo mais tarde — o sistema confere de novo. Sem prazo.
+O lojista mandou o CNPJ <CNPJ>, que é de OUTRA empresa (raiz diferente das lojas dele). Não foi possível consultar esse CNPJ na Receita agora.
+Este bloco vale SÓ para o CNPJ <CNPJ>. Outro CNPJ que ele mandar segue a regra normal (o sistema classifica de novo).
+VictorIA: NÃO abra pedido agora. Se ele quer cadastrá-la como loja nova na AIVA: diga que não deu pra consultar esse CNPJ neste momento e peça pra ele mandar o CNPJ de novo mais tarde — o sistema confere de novo. Sem prazo. Se o assunto for outro (troca de CNPJ de loja existente, usuário/login, dúvida, CNPJ de terceiro), ignore este bloco e siga a regra daquele assunto.
+Se você (ou uma mensagem do sistema) já tratou disso nesta conversa e ele não voltou ao assunto, não repita.
 ```
 
 ### 1.4 Atalho NOVA LOJA sem CNPJ
@@ -96,8 +107,10 @@ o sistema confere o CNPJ como loja nova e manda ao lojista **uma de três mensag
 que é só para a VictorIA:
 > O CNPJ `<CNPJ>` é de outra empresa, então não entra como filial — e, pela conferência, ele também não pode seguir como loja nova por aqui agora. `<MOTIVO>`
 
-**c) A conferência falhou ou a Receita não respondeu** (quando ele reenviar o CNPJ, o sistema confere de novo; o time
-também recebe o aviso de ticket que não abriu):
+**c) A conferência falhou ou a Receita não respondeu** (quando ele reenviar o CNPJ, o sistema confere de novo). Se a
+Receita só não respondeu, o time **não** é avisado (o sistema grava a conferência pendente e a VictorIA segue o bloco
+1.3). Só quando a própria conferência dá erro o lead vai para a fila de atendimento humano (o 🔔 sai com o pedido de filial
+como motivo, se o lead ainda não estava nessa fila):
 > O CNPJ `<CNPJ>` é de outra empresa, então não entra como filial. Me manda esse CNPJ de novo daqui a pouco que eu confiro se ele pode entrar como loja nova.
 
 ---
@@ -127,24 +140,32 @@ Fonte: `lib/loja-nova-calc.ts` + `lib/espelho-portal.ts` (rotina do espelho, a c
 >
 > Dúvidas, responda esta mensagem.
 
-Se o lojista perder o link, a VictorIA pode reenviar o **mesmo** link — só quando uma destas mensagens já estiver na
-conversa — lembrando que ele informa o CNPJ da loja nova.
+Se o lojista perder o link, a VictorIA pode reenviar o **mesmo** link — só quando uma destas mensagens, com o CNPJ da
+loja nova escrito nela, já estiver na conversa (a frase "falta preencher o cadastro da AIVA neste link" sem esse CNPJ
+é do cadastro da loja que já opera e não vale) — lembrando que ele informa o CNPJ da loja nova.
 
 ### 2.2 Loja criada
 
 **Quando:** a AIVA criou a loja nova (o portal mostra o ID da loja).
 
 **Texto normal (janela aberta):**
-> A loja nova `<RAZÃO SOCIAL>` foi criada na AIVA. Os próximos passos dela chegam por aqui, neste mesmo WhatsApp. Qualquer dúvida, é só me chamar.
+> A loja nova `<RAZÃO SOCIAL>` foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.
+
+**Sem razão social:**
+> A loja nova foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.
 
 **Template 86 (janela fechada):**
 > Olá `<nome do sócio>`, aqui é a VictorIA da Track.
 >
 > A loja `<RAZÃO SOCIAL> (CNPJ <CNPJ>)` teve uma etapa concluída: loja nova criada na AIVA.
 >
-> Situação: os próximos passos dessa loja chegam por este mesmo WhatsApp.
+> Situação: qualquer dúvida sobre ela, é só me chamar por aqui.
 >
 > Dúvidas, responda esta mensagem.
+
+(Antes dizia "os próximos passos dela chegam por aqui, neste mesmo WhatsApp" — saiu porque nenhuma mensagem de etapa
+sai para a loja nova: a linha dela fica fora do card, e o login dela vem pelo número da própria AIVA. Ver ponto 3 da
+seção 5.)
 
 Se a AIVA **recusar** a loja nova, o lojista **não recebe nada** do robô (só o time é avisado, item 3.4).
 
@@ -167,6 +188,7 @@ número certo. Fonte: `app/api/sdr/webhook/route.ts`.
 
 📝 Registrado no painel (status "informada"). Raiz diferente da loja dele = OUTRA EMPRESA: não é filial e não gerou linha na aba Filiais.
 Se elegível, a VictorIA confirma com o lojista (e o sócio); com a confirmação o pedido entra na fila de pré-cadastro (/atendimento) e chega outro aviso. Se não elegível, ela explica ao lojista que não segue por aqui.
+⛔ Não clique em 'Abrir form' deste CNPJ antes de chegar o aviso 'LOJA NOVA DE CLIENTE ATIVO — na fila de pré-cadastro'.
 Se for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.
 ```
 
@@ -182,7 +204,12 @@ Se for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empres
   - `Esse CNPJ está na base Odres/UME, que é tratada manualmente pela equipe.`
   - `Esse CNPJ já tem cadastro na AIVA (<etapa no portal>), então não cabe um pedido novo.`
   - `Não foi possível consultar esse CNPJ na Receita agora.`
-- `elegibilidade não conferida (etapa fora do fluxo ou consulta falhou)`
+- `elegibilidade não conferida (etapa fora do fluxo, cadastro da loja principal ainda aberto na AIVA ou consulta falhou)`
+
+**Por que a linha ⛔ do "Abrir form":** o CNPJ já entra no painel como "informada" antes de o lojista confirmar — e
+a fila de pré-cadastro mostra todo registro ainda não enviado, inclusive o CNPJ não confirmado, cancelado ou não
+elegível, sem selo. Clicar "Abrir form" nele manda à AIVA um pré-cadastro que o espelho trata como loja comum (pode
+mexer no card da loja que já vende). Só depois do aviso 3.2 a linha é da loja nova.
 
 **Quando a mensagem mistura tipos de CNPJ** (outra empresa + filial, algum não conferido, ou algum com número
 errado), sai o aviso antigo, com título `🏪 *CNPJ NOVO NA CONVERSA — conferir: loja nova ou correção/troca?*`, a
@@ -209,8 +236,8 @@ Se o SQL de 19/11 ainda não estiver aplicado, entra antes do link do painel:
 
 ### 3.3 Pedido que o sistema não conseguiu registrar (vai para o 🔔 de atendimento humano)
 
-**Quando:** a VictorIA devolveu o pedido, mas algo não bate. O aviso humano de sempre sai com o motivo seguido de
-"— ⚠️" e um destes textos:
+**Quando:** a VictorIA devolveu o pedido, mas algo não bate. Na fila humana, o motivo fica seguido de "— ⚠️" e um
+destes textos:
 
 - `motivo de loja nova ilegível (<motivo>) — a VictorIA pode já ter dito ao lojista que registrou a loja nova`
 - `o lojista desistiu da loja nova <CNPJ>, mas o pedido já está na fila de pré-cadastro — tirar da fila`
@@ -218,6 +245,18 @@ Se o SQL de 19/11 ainda não estiver aplicado, entra antes do link do painel:
 - `sem conferência recente do CNPJ <CNPJ> — a VictorIA já disse ao lojista que registrou a loja nova`
 - `CNPJ <CNPJ> não elegível (<motivo>: <detalhe>) — a VictorIA já disse ao lojista que registrou a loja nova`
 - `erro no bloco de loja nova — a VictorIA pode já ter dito ao lojista que registrou a loja nova`
+
+O lead entra na fila de atendimento humano e o time recebe **direto** este aviso (uma vez por mensagem do lojista,
+mesmo que o lead já estivesse na fila — antes, nesse caso, a escalada saía calada). Nesse turno o 🔔 genérico não sai,
+para não chegar em dobro. Fonte: `lib/loja-nova-calc.ts` (`avisoEscaladaLojaNova`).
+
+```
+🏪 *LOJA NOVA DE CLIENTE ATIVO — pedido NÃO registrado, conferir* — <loja> (<telefone> — etapa <status>)
+⚠️ <um dos textos acima>
+Motivo devolvido: <motivo que a VictorIA devolveu>
+💬 Última mensagem do lojista: "<mensagem>"
+👉 https://sdr-aiva.vercel.app/atendimento
+```
 
 ### 3.4 Avisos do espelho (rotina de 15 min)
 
@@ -242,6 +281,16 @@ Pedido de loja nova (outra empresa) em Registros AIVA que não chegou à AIVA. E
 📌 Também está no painel, no topo do Atendimento: https://sdr-aiva.vercel.app/atendimento
 ```
 No painel, o mesmo aviso aparece como: `LOJA NOVA (outra empresa) CNPJ <CNPJ> · <na fila há …h sem o "Abrir form" | "Abrir form" clicado há …h e não chegou à AIVA>`.
+
+**Mensagem carimbada como enviada sem confirmação** (a rodada anterior reservou o envio e o carimbo não gravou — pode
+ter caído entre reservar e enviar; sai a cada vez que o espelho "cura" a linha). Fonte: `lib/loja-nova-calc.ts`
+(`blocoCuraLojaNova`):
+```
+⚠️ *Loja nova de cliente ativo: carimbado como enviado sem confirmação* (<n>)
+• <loja> — CNPJ <CNPJ> · <link do cadastro | aviso de loja criada> · carimbado como enviado sem confirmação — conferir com o lojista
+
+A reserva do envio existia, mas o carimbo não: a rodada anterior pode ter caído entre reservar e enviar. O robô NÃO reenvia — conferir na conversa se o lojista recebeu e, se não, mandar à mão.
+```
 
 **Mensagem ao lojista que pode não ter saído** (envio retido):
 ```
@@ -360,9 +409,9 @@ Se o lojista já cadastrado (CADASTRO_RECEBIDO em diante) disser que **abriu/vai
 Se o lojista já cadastrado (CADASTRO_RECEBIDO em diante) disser que **abriu/vai abrir outra loja, quer incluir uma filial ou mais um CNPJ** (ou mandar o atalho **NOVA LOJA**):
 0. ⚠️ O pedido de filial ou de loja nova só vale com a loja PRINCIPAL já criada na AIVA (TREINAR, LOGIN ou VENDENDO — exceto quando a instrução do sistema disser que a AIVA ainda não criou a loja). Em CADASTRO_RECEBIDO/EM_ANALISE_AIVA, faça só o passo 1 (pegue o CNPJ) e diga que a loja nova entra depois que a principal estiver ativa — sem abrir pedido.
 1. Comemore ("Que ótimo, mais uma loja! 🎉") e **peça o CNPJ da loja nova** — EXCEÇÃO cirúrgica à regra de não recoletar dados (14 dígitos, confira a contagem; se parecer digitado errado, peça de novo). Atalho NOVA LOJA: quando vier a instrução do sistema "LOJA NOVA" mandando pedir o CNPJ, é este passo — peça só o CNPJ (14 dígitos).
-**Regra 19/11/2026 — quem diz se o CNPJ é FILIAL (mesma raiz da loja dele) ou de OUTRA EMPRESA (raiz diferente) é o SISTEMA, nunca você.** ⛔ Não compare raiz de CNPJ por conta própria nem pergunte ao lojista se é filial. Com o CNPJ na conversa: veio o bloco do sistema **LOJA NOVA DE OUTRA EMPRESA** → passo 2b; não veio → passo 2a.
-2a. **FILIAL — Regra 13/10/2026: o pedido é por TICKET que o NOSSO sistema abre na AIVA; o formulário de credenciamento de filial foi desativado — ⛔ não mande mais o link dele.** Peça também o **número do endereço** da filial (e o complemento, se tiver) — rua, bairro e cidade a AIVA busca sozinha pela Receita. Quando tiver CNPJ + número: motivo_humano = "abrir_ticket_filial: cnpj=<CNPJ> | numero=<número> | complemento=<se tiver>" (ex.: abrir_ticket_filial: cnpj=60.854.022/0002-21 | numero=150). Use SÓ o que ELE escreveu. Responda curto: "Perfeito, vou abrir o pedido da filial na AIVA." ⛔ Não prometa prazo nem ativação — o sistema abre o ticket, manda a confirmação com o número e avisa quando a AIVA concluir. A AIVA confere na Receita: a filial tem que ter a MESMA raiz de CNPJ da loja principal e estar ATIVA. Se a AIVA recusar por ser de outra empresa (raiz diferente), o próprio sistema pergunta ao lojista se registra a empresa como loja nova — dali em diante vale o passo 2b (bloco LOJA NOVA DE OUTRA EMPRESA). Se o sistema pedir o endereço completo, colete rua, bairro, cidade e UF e devolva motivo_humano = "filial_endereco: cnpj=<CNPJ> | numero=<número> | endereco=<rua, bairro, cidade/UF>" com acionar_humano = true — o time abre o pedido pelo portal. ⛔ Não repita o abrir_ticket_filial nesse caso.
-2b. **LOJA NOVA DE OUTRA EMPRESA (regra 19/11/2026):** siga o bloco **LOJA NOVA DE OUTRA EMPRESA** da instrução do sistema — ele traz o resultado da conferência que o sistema já fez e o passo a passo. ELEGÍVEL: confirme que ele quer cadastrar essa empresa como loja nova na AIVA e faça UMA pergunta — o sócio dela é ele mesmo? se não, o nome e o WhatsApp do sócio; com a confirmação, devolva motivo_humano = "loja_nova_empresa: cnpj=<CNPJ> | acao=confirmar | socio=<mesmo OU nome do sócio> | tel=<WhatsApp do sócio, só se não for ele>" (o formato do bloco), com acionar_humano = false, e use a fala do bloco ("Registrei a loja nova; …"). Se ele disser que não é loja nova, acao=cancelar. NÃO ELEGÍVEL: explique em uma frase o motivo que o bloco traz, sem prazo, e não abra pedido. CONFERÊNCIA PENDENTE (a Receita não respondeu): não abra pedido; peça pra ele mandar o CNPJ de novo mais tarde, como o bloco diz. ⛔ Aqui NÃO existe ticket de filial: não peça número do endereço nem devolva abrir_ticket_filial. ⛔ Você NÃO manda link de cadastro antes do sistema (ele manda sozinho quando o cadastro abrir na AIVA). Depois do pedido registrado: se ele perguntar da loja nova, diga que o pedido está registrado e que o link do cadastro chega por aqui quando a AIVA abrir — sem prazo. Se ele disser que perdeu o link E no histórico já houver a mensagem do sistema "O cadastro de/do … já está aberto na AIVA" (ou "falta preencher o cadastro da AIVA neste link") desse CNPJ, reenvie o MESMO link https://retail-onboarding-hub.vercel.app/ e lembre que ele informa o CNPJ da loja NOVA, não o da loja que já opera. Sem essa mensagem no histórico, o cadastro ainda não abriu: não mande link. ⛔ Você NÃO promete prazo nem ativação e NÃO refaz a qualificação (faturamento, e-mail, número de lojas).
+**Regra 19/11/2026 — quem diz se o CNPJ é FILIAL (mesma raiz da loja dele) ou de OUTRA EMPRESA (raiz diferente) é o SISTEMA, nunca você.** ⛔ Não compare raiz de CNPJ por conta própria nem pergunte ao lojista se é filial. Com o CNPJ na conversa: veio o bloco do sistema **LOJA NOVA DE OUTRA EMPRESA** com ESTE CNPJ → passo 2b; não veio, ou o bloco é de outro CNPJ → passo 2a (o bloco vale SÓ para o CNPJ que ele cita — uma filial mandada depois é passo 2a, mesmo com o bloco ainda aparecendo).
+2a. **FILIAL — Regra 13/10/2026: o pedido é por TICKET que o NOSSO sistema abre na AIVA; o formulário de credenciamento de filial foi desativado — ⛔ não mande mais o link dele.** Peça também o **número do endereço** da filial (e o complemento, se tiver) — rua, bairro e cidade a AIVA busca sozinha pela Receita. Quando tiver CNPJ + número: motivo_humano = "abrir_ticket_filial: cnpj=<CNPJ> | numero=<número> | complemento=<se tiver>" (ex.: abrir_ticket_filial: cnpj=60.854.022/0002-21 | numero=150). Use SÓ o que ELE escreveu. Responda curto: "Perfeito, vou abrir o pedido da filial na AIVA." ⛔ Não prometa prazo nem ativação — o sistema abre o ticket, manda a confirmação com o número e avisa quando a AIVA concluir. A AIVA confere na Receita: a filial tem que ter a MESMA raiz de CNPJ da loja principal e estar ATIVA. Se a AIVA recusar por ser de outra empresa (raiz diferente), o próprio sistema pergunta ao lojista se registra a empresa como loja nova — dali em diante, para ESSE CNPJ, vale o passo 2b (bloco LOJA NOVA DE OUTRA EMPRESA). Se o sistema pedir o endereço completo, colete rua, bairro, cidade e UF e devolva motivo_humano = "filial_endereco: cnpj=<CNPJ> | numero=<número> | endereco=<rua, bairro, cidade/UF>" com acionar_humano = true — o time abre o pedido pelo portal. ⛔ Não repita o abrir_ticket_filial nesse caso.
+2b. **LOJA NOVA DE OUTRA EMPRESA (regra 19/11/2026):** o bloco **LOJA NOVA DE OUTRA EMPRESA** da instrução do sistema diz um FATO — o lojista mandou um CNPJ de outra empresa — e traz o resultado da conferência que o sistema já fez. Ele vale SÓ para o CNPJ que cita (outro CNPJ segue a regra normal; o sistema classifica de novo). Se o assunto da mensagem for outro (troca de CNPJ de loja existente, usuário/login, dúvida, CNPJ de terceiro), ignore o bloco e siga a regra daquele assunto. Se você (ou uma mensagem do sistema) já tratou disso nesta conversa e ele não voltou ao assunto, não repita. Se ele quer cadastrar essa empresa como loja nova na AIVA, siga o bloco. ELEGÍVEL: confirme que ele quer cadastrar essa empresa como loja nova na AIVA e faça UMA pergunta — o sócio dela é ele mesmo? se não, o nome e o WhatsApp do sócio; com a confirmação, devolva motivo_humano = "loja_nova_empresa: cnpj=<CNPJ> | acao=confirmar | socio=<mesmo OU nome do sócio> | tel=<WhatsApp do sócio, só se não for ele>" (o formato do bloco), com acionar_humano = false, e use a fala do bloco ("Registrei a loja nova; …"). Se ele disser que não é loja nova, acao=cancelar. NÃO ELEGÍVEL: não abra pedido; só se ele estiver pedindo pra cadastrar esse CNPJ, explique em uma frase o motivo que o bloco traz, sem prazo. CONFERÊNCIA PENDENTE (a Receita não respondeu): não abra pedido; se ele quer cadastrar esse CNPJ, peça pra ele mandar o CNPJ de novo mais tarde, como o bloco diz. ⛔ Aqui NÃO existe ticket de filial: não peça número do endereço nem devolva abrir_ticket_filial. ⛔ Você NÃO manda link de cadastro antes do sistema (ele manda sozinho quando o cadastro abrir na AIVA). Depois do pedido registrado: se ele perguntar da loja nova, diga que o pedido está registrado e que o link do cadastro chega por aqui quando a AIVA abrir — sem prazo. Se ele disser que perdeu o link E no histórico já houver a mensagem do sistema "O cadastro de/do … já está aberto na AIVA" (ou "falta preencher o cadastro da AIVA neste link") que traga o CNPJ da loja NOVA escrito nela ("CNPJ …"), reenvie o MESMO link https://retail-onboarding-hub.vercel.app/ e lembre que ele informa o CNPJ da loja NOVA, não o da loja que já opera. A frase "falta preencher o cadastro da AIVA neste link" sem o CNPJ da loja nova é do cadastro da loja que já opera — não vale. Sem essa mensagem com o CNPJ da loja nova no histórico, o cadastro ainda não abriu: não mande link. ⛔ Você NÃO promete prazo nem ativação e NÃO refaz a qualificação (faturamento, e-mail, número de lojas).
 2c. **ENDEREÇO NOVO SEM CNPJ PRÓPRIO (regra 19/11/2026):** se ele quer operar em outro endereço usando o CNPJ da matriz (ou de uma loja que já opera), isso NÃO é pedido de filial nem de loja nova — cada loja da AIVA tem o próprio CNPJ. Oriente a registrar a filial com o contador dele e voltar aqui com o CNPJ da filial (aí segue o passo 1). Não abra pedido (nem abrir_ticket_filial nem loja_nova_empresa). ⛔ Não diga que "o time vai analisar" nem que dá pra usar o mesmo CNPJ.
 ```
 
@@ -462,3 +511,36 @@ exceção: o CNPJ de LOJA NOVA/filial que ele queira incluir — peça SÓ o CNP
    cadastro normal. Para a loja nova, o lojista pode ler como "a AIVA já aprovou". Manter ou trocar?
 2. **Motivo Odres (1.2 e 1.5 b):** a frase agora é "Esse CNPJ já é atendido pela AIVA/Odres por outro canal (fora da
    Track), então não pode entrar como loja nova por aqui." Ok assim, ou prefere outra redação?
+3. **"Loja criada" (2.2):** o texto deixou de dizer que "os próximos passos dela chegam por aqui, neste mesmo
+   WhatsApp" — o sistema não manda mensagem de etapa para a loja nova (ela fica fora do card) e o login dela vem pelo
+   número da própria AIVA. Ficou neutro: "… foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por
+   aqui." Ok assim, ou quer que a VictorIA diga que o acesso vem pela AIVA?
+
+---
+
+## 6. Publicação — ordem e cuidados
+
+1. **Aprovação:** você aprova os textos deste documento e confere o `/curadoria` — se alguma correção ativa ensinar
+   "CNPJ + número do endereço" ou "o time cuida" para CNPJ de outra empresa, ela contradiz a regra nova e precisa sair.
+2. **SQL antes do push:** aplicar `docs/sql/2026-11-19-loja-nova-empresa.sql` ANTES do push e rodar
+   `notify pgrst, 'reload schema'`; conferir com `select fluxo from sdr_registros_cnpj limit 1`.
+3. **Ensaio na produção atual:** `GET /api/sdr/espelho-portal?dry=1` — esperar `loja_nova.pulado = null` e os
+   contadores zerados.
+4. **Push:** aguardar o deploy ficar READY; abrir `/atendimento` e conferir o quadro; acompanhar a rodada seguinte do
+   espelho.
+5. **Só então os dois casos reais** (59.218.413/0001-90 e 69.849.333/0001-96), **UM de cada vez**. As duas linhas já
+   estão `pre_cadastro_enviado`, `enviado = true`. Marcar só o `fluxo` faz o espelho agir em até 15 min: em
+   `dados_varejo` sai o link (provavelmente pelo modelo 86); com a loja já criada sai "loja criada"; em biometria,
+   nada; fora do portal, o aviso diário "clicado e não chegou". Antes do update:
+   - consultar cada CNPJ na API de onboardings e perguntar ao Nei o que ele já mandou ao lojista;
+   - para NÃO mandar uma mensagem, preencher `link_enviado_em` / `criada_avisada_em` no mesmo update;
+   - acrescentar `[LOJA_NOVA_PEDIDA:cnpj=…|ISO]` nas observações dos dois leads;
+   - conferir que cada lead tem a linha da loja principal com RID;
+   - ler o `?dry` antes da rodada real.
+6. **Desligar sem deploy:** `update sdr_registros_cnpj set fluxo = null` desliga o passo do espelho; sem marcador
+   `[LOJA_NOVA:` nas observações, o bloco da VictorIA não aparece.
+7. **Riscos conhecidos e aceitos:**
+   - o mesmo CNPJ pedido por dois leads: só o primeiro recebe o link;
+   - lojista que cancela e reenvia o CNPJ é perguntado de novo;
+   - a campanha de boas-vindas pode disparar no primeiro acesso da loja nova;
+   - os avisos do painel desta fila não fecham sozinhos.

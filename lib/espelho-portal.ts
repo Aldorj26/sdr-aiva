@@ -37,7 +37,7 @@ import { linkCadastro, montar, type MsgUtilidade } from '@/lib/template-utilidad
 import {
   FLUXO_LOJA_NOVA, LINK_CADASTRO, pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, textoLinkLojaNova, textoLojaCriada,
   chaveLinkLojaNova, chaveCriadaLojaNova, chaveRecusadaLojaNova, chaveFilaParada, PREFIXO_FILA_PARADA, colunaLojaNovaAusente,
-  lojaTemplateLojaNova, utilLojaCriada, type OnbLojaNova, type RegLojaNovaFila,
+  lojaTemplateLojaNova, utilLojaCriada, linhaCuraLojaNova, blocoCuraLojaNova, type OnbLojaNova, type RegLojaNovaFila,
   decidirFalhaEnvio, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova,
 } from '@/lib/loja-nova-calc'
 
@@ -328,6 +328,7 @@ async function passoLojaNova(
     let envios = 0
     const vistosRodada = new Set<string>()
     const linhasRet: string[] = []
+    const linhasCura: string[] = []
     for (const t of tarefas) {
       const cnpj = t.reg.cnpj
       const chave = t.tipo === 'link' ? chaveLinkLojaNova(cnpj) : chaveCriadaLojaNova(cnpj)
@@ -345,7 +346,11 @@ async function passoLojaNova(
         s.curados++
         if (dry) continue
         const { error: eCur } = await supabaseAdmin.from('sdr_registros_cnpj').update(carimbo).eq('id', t.reg.id)
-        if (eCur) ctx.avisos.push(`loja nova ${cnpj}: carimbo de ${t.tipo} ainda não gravado (${eCur.message.slice(0, 80)}) — a chave ${chave} segura o reenvio`)
+        if (eCur) { ctx.avisos.push(`loja nova ${cnpj}: carimbo de ${t.tipo} ainda não gravado (${eCur.message.slice(0, 80)}) — a chave ${chave} segura o reenvio`); continue }
+        // cura nunca é calada (revisão final, item 5): a rodada pode ter morrido entre reservar e enviar
+        const linha = linhaCuraLojaNova(nomeLead(t.reg.lead_id), cnpj, t.tipo)
+        linhasCura.push(linha)
+        ctx.avisos.push(`loja nova ${linha.slice(2)}`)
         continue
       }
       if (dry) { if (t.tipo === 'link') s.links++; else s.criadas++; continue }
@@ -421,6 +426,7 @@ async function passoLojaNova(
       if (t.tipo === 'link') s.links++
       else s.criadas++
     }
+    if (linhasCura.length) blocos.push(blocoCuraLojaNova(linhasCura))
     if (linhasRet.length) {
       blocos.push(
         `⚠️ *Loja nova de cliente ativo: mensagem ao lojista pode não ter saído* (${linhasRet.length})\n${linhasRet.join('\n')}\n\n` +

@@ -81,7 +81,12 @@ export function deveAbrirFluxo(e: { status: string; classe: Classe; contextoRepa
 
 export type PedidoLojaNova = { cnpj: string; acao: 'confirmar' | 'cancelar'; socioNome: string | null; socioTelefone: string | null }
 
-/** `loja_nova_empresa: cnpj=… | acao=confirmar|cancelar | socio=mesmo|<nome> | tel=<telefone>` */
+/** O sócio é o próprio lojista: "mesmo", "eu", "eu mesmo", "sou eu", "o mesmo" (e o feminino). Sem acento/pontuação. */
+const SOCIO_MESMO = new Set(['mesmo', 'mesma', 'o mesmo', 'a mesma', 'eu', 'eu mesmo', 'eu mesma', 'sou eu', 'sou eu mesmo', 'sou eu mesma', 'ele mesmo', 'ela mesma'])
+export const ehSocioMesmo = (socio: string | null | undefined): boolean => SOCIO_MESMO.has(normalizar(socio ?? ''))
+
+/** Formato (campos separados por "|"): `loja_nova_empresa: cnpj=<CNPJ> | acao=<confirmar OU cancelar> |
+ *  socio=<mesmo OU nome do sócio> | tel=<WhatsApp do sócio, só se não for ele>`. */
 export function lerMotivoLojaNova(motivo: string | null | undefined): PedidoLojaNova | null {
   const m = /^\s*loja_nova_empresa\s*:([\s\S]*)$/i.exec(motivo ?? '')
   if (!m) return null
@@ -94,7 +99,7 @@ export function lerMotivoLojaNova(motivo: string | null | undefined): PedidoLoja
   const acao = (campos.acao ?? '').toLowerCase()
   if (cnpj.length !== 14 || (acao !== 'confirmar' && acao !== 'cancelar')) return null
   const socio = campos.socio?.trim()
-  const socioNome = socio && socio.toLowerCase() !== 'mesmo' ? socio : null
+  const socioNome = socio && !ehSocioMesmo(socio) ? socio : null
   const tel = socioNome && campos.tel ? telefone55(campos.tel) : ''
   return { cnpj, acao, socioNome, socioTelefone: tel || null }
 }
@@ -154,25 +159,37 @@ export function blocoPromptLojaNova(obs: string | null | undefined, agora: numbe
   }
   if (!melhor || agora - melhor.t > SETE_DIAS_MS) return null
   const cnpj = fmtCnpj(melhor.cnpj)
+  // Fato, não intenção (revisão final, item 1): o CNPJ pode ser troca de CNPJ, de fornecedor, de terceiro…
+  const fato = `O lojista mandou o CNPJ ${cnpj}, que é de OUTRA empresa (raiz diferente das lojas dele).`
+  const escopo = `Este bloco vale SÓ para o CNPJ ${cnpj}. Outro CNPJ que ele mandar segue a regra normal (o sistema classifica de novo).`
+  const outroAssunto = 'o assunto for outro (troca de CNPJ de loja existente, usuário/login, dúvida, CNPJ de terceiro), ignore este bloco e siga a regra daquele assunto.'
+  const semRepetir = 'Se você (ou uma mensagem do sistema) já tratou disso nesta conversa e ele não voltou ao assunto, não repita.'
 
   if (melhor.sit === 'receita_indisponivel') {
     return [
       '## LOJA NOVA DE OUTRA EMPRESA — CONFERÊNCIA PENDENTE',
-      `O lojista pediu para cadastrar o CNPJ ${cnpj} como loja nova. ${FRASE_MOTIVO.receita_indisponivel('')}`,
-      'VictorIA: NÃO abra pedido agora. Diga que não deu pra consultar esse CNPJ neste momento e peça pra ele mandar o CNPJ de novo mais tarde — o sistema confere de novo. Sem prazo.',
+      `${fato} ${FRASE_MOTIVO.receita_indisponivel('')}`,
+      escopo,
+      `VictorIA: NÃO abra pedido agora. Se ele quer cadastrá-la como loja nova na AIVA: diga que não deu pra consultar esse CNPJ neste momento e peça pra ele mandar o CNPJ de novo mais tarde — o sistema confere de novo. Sem prazo. Se ${outroAssunto}`,
+      semRepetir,
     ].join('\n')
   }
   if (melhor.sit !== 'ok') {
     const frase = fraseMotivoLojista(melhor.sit, melhor.det) + (ALERTA_VICTORIA[melhor.sit] ?? '')
     return [
       '## LOJA NOVA DE OUTRA EMPRESA — NÃO ELEGÍVEL',
-      `O lojista pediu para cadastrar o CNPJ ${cnpj} como loja nova. ${frase}`,
-      'VictorIA: NÃO abra pedido de loja nova para esse CNPJ. Explique ao lojista, com cordialidade e sem prometer prazo, que esse CNPJ não pode seguir por aqui agora, e ofereça ajuda com o que ele precisar da loja que já está ativa.',
+      `${fato} Pela conferência, ele não pode entrar como loja nova. Motivo: ${frase}`,
+      escopo,
+      `VictorIA: NÃO abra pedido de loja nova para esse CNPJ. Só se ele estiver pedindo para cadastrá-la como loja nova na AIVA: explique o motivo, com cordialidade e sem prometer prazo, e ofereça ajuda com o que ele precisar da loja que já está ativa. Se ${outroAssunto}`,
+      semRepetir,
     ].join('\n')
   }
   return [
     '## LOJA NOVA DE OUTRA EMPRESA — ELEGÍVEL',
-    `O lojista pediu para cadastrar o CNPJ ${cnpj} (outra empresa) como loja nova na AIVA, e o CNPJ passou na conferência.`,
+    `${fato} O CNPJ passou na conferência.`,
+    escopo,
+    `Se ele quer cadastrá-la como loja nova na AIVA: siga os passos abaixo; se ${outroAssunto}`,
+    semRepetir,
     'VictorIA, conduza assim:',
     `1. Confirme com ele que quer cadastrar essa empresa (${cnpj}) como nova loja na AIVA.`,
     '2. Pergunte se o sócio responsável é ele mesmo; se não for, peça o nome e o WhatsApp do sócio.',
@@ -216,7 +233,6 @@ export const semMarcadorLojaNova = (obs: string | null | undefined, cnpj: string
 export const comMarcadorLojaNova = (obs: string | null | undefined, cnpj: string, marcador: string): string =>
   `${semMarcadorLojaNova(obs, cnpj)} ${marcador}`.trim()
 
-/** CNPJs da mensagem (DV já conferido por quem chama) que abrem o fluxo neste turno — no máximo 3. */
 /** CNPJs que só são "do lead" porque a captura de LOJA NOVA do webhook gravou a linha (tipo 'adicional',
  *  status 'informada') — não estão nas observações. Esses podem ser conferidos de novo quando o lojista reenviar
  *  (conferência que falhou não deixa marcador; sem isto o reenvio virava "conhecido" — revisão Task 5, item 2). */
@@ -228,6 +244,7 @@ export function reconferiveisDoLead(regs: { cnpj: unknown; tipo?: unknown; statu
     .filter((c) => c.length === 14 && !daObs.has(c)))]
 }
 
+/** CNPJs da mensagem (DV já conferido por quem chama) que abrem o fluxo neste turno — no máximo 3. */
 export function cnpjsParaConferir(e: { status: string; cnpjsMensagem: string[]; cnpjsDoLead: string[]; contextoRepasse: boolean; obs: string | null; agora: number; reconferiveis?: string[] }): string[] {
   // cadastro da loja principal ainda aberto no portal: o pedido espera a loja dele ficar ativa (item 4)
   const cadastroAberto = cadastroPrincipalAberto(e.obs)
@@ -277,7 +294,7 @@ export function avaliarPedidoLojaNova(e: { motivo: string | null | undefined; ob
 }
 
 export function resumoElegibilidade(e: Elegibilidade | null): string {
-  if (!e) return 'elegibilidade não conferida (etapa fora do fluxo ou consulta falhou)'
+  if (!e) return 'elegibilidade não conferida (etapa fora do fluxo, cadastro da loja principal ainda aberto na AIVA ou consulta falhou)'
   if (e.ok) return 'elegível (Receita ATIVA, 1 ano ou mais, fora da base Odres/UME e sem cadastro na AIVA) — a VictorIA confirma com o lojista'
   return `NÃO elegível — ${(FRASE_MOTIVO[e.motivo] ?? (() => e.motivo))(e.detalhe)}`
 }
@@ -331,8 +348,10 @@ export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
 }
 
 export function textoLojaCriada(razao: string | null): string {
-  // sem prometer acesso: no retailer_id a loja existe, mas o acesso só sai depois (treinamento / pronto_para_operar)
-  return `A loja nova${razao ? ` ${razao}` : ''} foi criada na AIVA. Os próximos passos dela chegam por aqui, neste mesmo WhatsApp. Qualquer dúvida, é só me chamar.`
+  // sem prometer acesso: no retailer_id a loja existe, mas o acesso só sai depois (treinamento / pronto_para_operar).
+  // Sem prometer próximos passos por aqui: a linha do fluxo fica fora do card, nenhuma mensagem de etapa sai dela,
+  // e o login da loja nova vem pelo número da própria AIVA (revisão final, item 3).
+  return `A loja nova${razao ? ` ${razao}` : ''} foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.`
 }
 
 // ─── espelho do portal: link, loja criada, recusa e fila parada — tudo POR CNPJ ────────────────
@@ -431,13 +450,46 @@ export function lojaTemplateLojaNova(cnpj: string, razao: string | null | undefi
   return `${r.length > cabe ? r.slice(0, cabe).trim() : r} (${doc})`
 }
 
-/** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`: sem prazo e sem
- *  prometer acesso (ele só sai depois do treinamento / pronto_para_operar). */
+/** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`: sem prazo, sem
+ *  prometer acesso nem próximos passos por aqui, sem emoji (variável de utilidade). */
 export const utilLojaCriada = (): Etapa => ({
   tipo: 'etapa',
   etapa: 'loja nova criada na AIVA.',
-  situacao: 'os próximos passos dessa loja chegam por este mesmo WhatsApp.',
+  situacao: 'qualquer dúvida sobre ela, é só me chamar por aqui.',
 })
+
+// ─── revisão final: RID da loja principal, cura sem confirmação e escalada direta ───────────────
+/** RID da loja PRINCIPAL do lead (repasse / filial sem par de raiz). Nunca de linha do fluxo de loja nova (outra
+ *  empresa): a matriz primeiro; sem matriz, a linha com RID mais antiga (criado_em). Sem linha principal com RID = null
+ *  (o webhook escala "sem RID"), mesmo que a linha do fluxo já tenha RID. Sem a coluna `fluxo`, ninguém é do fluxo. */
+export function ridDaLojaPrincipal(regs: { rid: unknown; tipo?: unknown; fluxo?: unknown; criado_em?: unknown }[]): string | null {
+  const t = (v: unknown) => { const n = Date.parse(String(v ?? '')); return Number.isNaN(n) ? Infinity : n }
+  const principais = regs
+    .filter((r) => r.rid != null && String(r.rid).trim() !== '' && r.fluxo !== FLUXO_LOJA_NOVA)
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => t(a.r.criado_em) - t(b.r.criado_em) || a.i - b.i)
+    .map((x) => x.r)
+  const escolhida = principais.find((r) => r.tipo === 'matriz') ?? principais[0]
+  return escolhida ? String(escolhida.rid).trim() : null
+}
+
+/** Linha do aviso ao time quando o espelho "cura" (chave reservada, sem carimbo): ninguém confirmou que saiu. */
+export const linhaCuraLojaNova = (loja: string, cnpj: string, tipo: TipoEnvioLojaNova): string =>
+  `• ${loja} — CNPJ ${fmtCnpj(soDigitos(cnpj))} · ${tipo === 'link' ? 'link do cadastro' : 'aviso de loja criada'} · carimbado como enviado sem confirmação — conferir com o lojista`
+export const blocoCuraLojaNova = (linhas: string[]): string =>
+  `⚠️ *Loja nova de cliente ativo: carimbado como enviado sem confirmação* (${linhas.length})\n${linhas.join('\n')}\n\n` +
+  'A reserva do envio existia, mas o carimbo não: a rodada anterior pode ter caído entre reservar e enviar. O robô NÃO reenvia — conferir na conversa se o lojista recebeu e, se não, mandar à mão.'
+
+/** Escalada do pedido de loja nova direto ao time (o 🔔 genérico só sai na transição false→true do acionar_humano:
+ *  lead já marcado escalaria calado, embora o lojista já tenha ouvido "Registrei a loja nova"). */
+export const avisoEscaladaLojaNova = (x: { loja: string; telefone: string; status: string; motivo: string | null | undefined; porque: string; ultimaMensagem: string }): string =>
+  [
+    `🏪 *LOJA NOVA DE CLIENTE ATIVO — pedido NÃO registrado, conferir* — ${x.loja} (${x.telefone} — etapa ${x.status})`,
+    `⚠️ ${x.porque}`,
+    `Motivo devolvido: ${String(x.motivo ?? '—')}`,
+    `💬 Última mensagem do lojista: "${x.ultimaMensagem}"`,
+    '👉 https://sdr-aiva.vercel.app/atendimento',
+  ].join('\n')
 
 // ─── falha de envio: tentar de novo, segurar ou desistir (revisão Task 4, item 2) ───────────────
 /** Rejeições automáticas de um mesmo CNPJ e tipo antes de desistir e avisar o time. */

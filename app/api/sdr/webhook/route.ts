@@ -49,7 +49,7 @@ import {
   STATUS_ABRE_FLUXO, FLUXO_LOJA_NOVA, ridDaRaiz, classificar, deveInstruirAtalho, planoAlertaCnpjNovo, elegibilidade, marcadorLojaNova, blocoPromptLojaNova,
   ehMotivoLojaNova, cnpjsDasObs, comMarcadorLojaNova, semMarcadorLojaNova, cnpjsParaConferir, marcadorPedido, avaliarPedidoLojaNova,
   resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova, lerMarcadorLojaNova, type Elegibilidade,
-  reconferiveisDoLead, conferenciaParaFilial,
+  reconferiveisDoLead, conferenciaParaFilial, ridDaLojaPrincipal, colunaLojaNovaAusente, avisoEscaladaLojaNova,
 } from '@/lib/loja-nova-calc'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
@@ -3092,8 +3092,14 @@ export async function POST(req: NextRequest) {
       const falasDeleT = [conteudo, conteudoEfetivo, ...(ultimasT ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ')
       const digitosDele = falasDeleT.replace(/\D/g, '')
       const assuntoOk = ehRepasse ? /repasse|pagamento|caiu|venda|valor|receb|contrato/.test(janelaT) : /filial|loja nova|outra loja|nova loja|cnpj|abri/.test(janelaT)
-      const { data: regsT } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj, rid, tipo').eq('lead_id', leadIdT).not('rid', 'is', null)
-      const ridMatriz = String((regsT ?? []).find((r) => r.tipo === 'matriz')?.rid ?? (regsT ?? [])[0]?.rid ?? '')
+      // RID da loja PRINCIPAL (revisão final, item 2): mais antiga primeiro e nunca a linha do fluxo de loja nova;
+      // sem a coluna `fluxo` (SQL de 19/11 não aplicado) lê como antes — aí nenhuma linha é do fluxo
+      const selRegsT = (cols: string) => supabaseAdmin.from('sdr_registros_cnpj').select(cols).eq('lead_id', leadIdT).order('criado_em', { ascending: true })
+      let leituraT = await selRegsT('cnpj, rid, tipo, fluxo, criado_em')
+      if (colunaLojaNovaAusente(leituraT.error)) leituraT = await selRegsT('cnpj, rid, tipo, criado_em')
+      if (leituraT.error) throw new Error(`sdr_registros_cnpj (ticket): ${leituraT.error.message}`)
+      const regsT = (leituraT.data ?? []) as unknown as Array<{ cnpj: unknown; rid: unknown; tipo: unknown; fluxo?: unknown; criado_em?: unknown }>
+      const ridMatriz = ridDaLojaPrincipal(regsT) ?? ''
       if (!['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
         await escalarT(`ticket pedido com a loja ainda não criada (${lead.status})`)
       } else if (!assuntoOk) {
@@ -3185,19 +3191,26 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
   // Motivo "loja_nova_empresa: cnpj=… | acao=confirmar|cancelar | socio=mesmo|<nome> | tel=…" (acionar_humano já foi
   // zerado lá em cima). Confirmar = marca a linha de sdr_registros_cnpj como fluxo de loja nova (fila de pré-cadastro);
   // cancelar = tira o marcador. O link de cadastro NÃO sai daqui (outra rotina manda depois).
+  let escaladaDiretaLN = false // escalada do pedido já avisada direto ao time: o 🔔 genérico não repete
   if (ehMotivoLojaNova(resposta.motivo_humano)) {
-    const leadIdN = lead.id, telN = lead.telefone, nomeN = lead.nome
+    const leadIdN = lead.id, telN = lead.telefone, nomeN = lead.nome, statusN = lead.status
     const avisarTimeN = async (texto: string) => {
       for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
         try { await alertHuman(tel, texto) } catch (e) { console.error('[LOJA_NOVA_EMPRESA] aviso ao time falhou:', e) }
       }
     }
     const escalarN = async (porque: string) => {
+      const motivoOriginal = resposta.motivo_humano
       resposta.acionar_humano = true
-      // o 🔔 genérico lá embaixo sai com o motivo: o porquê vai junto (as observações já foram gravadas acima)
+      // o porquê vai junto do motivo (painel/fila humana; as observações já foram gravadas acima)
       resposta.motivo_humano = `${resposta.motivo_humano} — ⚠️ ${porque}`
       await supabaseAdmin.from('sdr_leads').update({ acionar_humano: true }).eq('id', leadIdN)
       console.warn(`[LOJA_NOVA_EMPRESA] ${telN}: ${porque}`)
+      // aviso DIRETO, uma vez (revisão final, item 6): o 🔔 genérico só sai na transição false→true e engoliria a
+      // escalada de lead já marcado — e o lojista já ouviu "Registrei a loja nova". O genérico pula este turno.
+      if (escaladaDiretaLN) return
+      escaladaDiretaLN = true
+      await avisarTimeN(avisoEscaladaLojaNova({ loja: nomeN, telefone: telN, status: statusN, motivo: motivoOriginal, porque, ultimaMensagem: conteudo }))
     }
     try {
       const { data: ultimasN } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', leadIdN).order('enviado_em', { ascending: false }).limit(12)
@@ -3531,7 +3544,7 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
     } catch (err) {
       console.error(`[REDE_COLAB] Falha ao capturar colaborador de ${lead.telefone}:`, err)
     }
-  } else if (resposta.acionar_humano && !autoDetected && !lead.acionar_humano) {
+  } else if (resposta.acionar_humano && !autoDetected && !lead.acionar_humano && !escaladaDiretaLN) {
     // Auto-detectado não alerta humanos (seria spam a cada msg do bot do outro lado).
     // O lead fica visível no filtro /?aguardando_humano=true do painel se quiserem revisar.
     //
@@ -3743,6 +3756,7 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
             (soOutraEmpresa
               ? `\n\n📝 Registrado no painel (status "informada"). Raiz diferente da loja dele = OUTRA EMPRESA: não é filial e não gerou linha na aba Filiais.` +
                 `\nSe elegível, a VictorIA confirma com o lojista (e o sócio); com a confirmação o pedido entra na fila de pré-cadastro (/atendimento) e chega outro aviso. Se não elegível, ela explica ao lojista que não segue por aqui.` +
+                `\n⛔ Não clique em 'Abrir form' deste CNPJ antes de chegar o aviso 'LOJA NOVA DE CLIENTE ATIVO — na fila de pré-cadastro'.` +
                 `\nSe for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.`
               : '') +
             (novos.length > 0 && !soOutraEmpresa

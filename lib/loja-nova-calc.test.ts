@@ -8,7 +8,7 @@ import {
   deveInstruirAtalho, planoAlertaCnpjNovo, cadastroPrincipalAberto, reconferiveisDoLead, conferenciaParaFilial, fraseMotivoLojista,
   pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, chaveFilaParada, chaveLinkLojaNova, chaveCriadaLojaNova,
   chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada,
-  type RegLojaNova, type RegLojaNovaFila,
+  type RegLojaNova, type RegLojaNovaFila, ehSocioMesmo, ridDaLojaPrincipal, linhaCuraLojaNova, blocoCuraLojaNova, avisoEscaladaLojaNova,
   decidirFalhaEnvio, rejeicaoClara, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova, TENTATIVAS_LOJA_NOVA, FLUXO_LOJA_NOVA,
 } from './loja-nova-calc.ts'
 import { FLUXO_LOJA_NOVA_REG } from './espelho-portal-calc.ts'
@@ -323,16 +323,20 @@ test('CNPJ duplicado na API (um sem RID em dados_varejo, outro com RID): só "lo
   assert.equal(pendentesLink([reg()], o).length, 0)
   assert.equal(pendentesCriada([reg()], o).length, 1)
 })
-test('loja criada não promete acesso nem ativação; próximos passos por este WhatsApp, sem prazo', () => {
+test('loja criada não promete acesso, ativação nem próximos passos por aqui; sem prazo (revisão final, item 3)', () => {
   const u = utilLojaCriada()
   for (const t of [textoLojaCriada('ACME LTDA'), textoLojaCriada(null), `${u.etapa} ${u.situacao}`]) {
     assert.doesNotMatch(t, /acess|login|senha|liberad|ativ|operar|vender/i, t)
     assert.match(t, /criada na AIVA/)
-    assert.match(t, /próximos passos/)
-    assert.match(t, /WhatsApp/)
+    assert.match(t, /[Qq]ualquer dúvida sobre ela, é só me chamar por aqui\./)
+    assert.doesNotMatch(t, /próximos passos|chegam por|WhatsApp/i, t)
     assert.doesNotMatch(t, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
   }
-  assert.match(textoLojaCriada('ACME LTDA'), /ACME LTDA/)
+  assert.equal(textoLojaCriada('ACME LTDA'), 'A loja nova ACME LTDA foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.')
+  assert.equal(textoLojaCriada(null), 'A loja nova foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.')
+  // variável de utilidade: sem emoji, uma linha, cabe no limite de 60
+  assert.doesNotMatch(u.situacao, /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u)
+  assert.ok(u.situacao.length <= 60, u.situacao)
 })
 test('idade abaixo de 0,1 ano vira meses', () => {
   const det = (idadeAnos: number) => (elegibilidade({ situacao: 'ATIVA', idadeAnos, odres: false, jaNaAiva: null }) as any).detalhe
@@ -411,4 +415,72 @@ test('item 2: conferência levada à mensagem de filial recusada por raiz', () =
 test('item 13: link sem razão social diz "do CNPJ"', () => {
   assert.equal(textoLinkLojaNova('59218413000190', null), 'O cadastro do CNPJ 59.218.413/0001-90 já está aberto na AIVA. Para concluir, acesse https://retail-onboarding-hub.vercel.app/ e informe esse CNPJ. Qualquer dúvida, é só me chamar por aqui.')
   assert.match(textoLinkLojaNova('59218413000190', 'ACME LTDA'), /^O cadastro de ACME LTDA \(CNPJ 59\.218\.413\/0001-90\) já está aberto na AIVA\./)
+})
+
+// ─── revisão final da branch ─────────────────────────────────────────────────────────────────────
+test('final item 1: o bloco afirma fato (não intenção), tem escopo do CNPJ, condiciona a conduta e não repete', () => {
+  const ok = blocoPromptLojaNova(`x ${MK_OK}`, T0)!
+  const ruim = bloco('menos_de_1_ano', '0,4 ano')
+  const pend = bloco('receita_indisponivel', 'Receita sem resposta')
+  for (const b of [ok, ruim, pend]) {
+    assert.doesNotMatch(b, /pediu para cadastrar/)
+    assert.match(b, /O lojista mandou o CNPJ 59\.218\.413\/0001-90, que é de OUTRA empresa \(raiz diferente das lojas dele\)\./)
+    assert.match(b, /Este bloco vale SÓ para o CNPJ 59\.218\.413\/0001-90\. Outro CNPJ que ele mandar segue a regra normal \(o sistema classifica de novo\)\./)
+    assert.match(b, /o assunto for outro \(troca de CNPJ de loja existente, usuário\/login, dúvida, CNPJ de terceiro\), ignore este bloco e siga a regra daquele assunto\./)
+    assert.match(b, /já tratou disso nesta conversa e ele não voltou ao assunto, não repita\./)
+  }
+  assert.match(ok, /Se ele quer cadastrá-la como loja nova na AIVA: siga os passos abaixo/)
+  // inelegível: o motivo só é explicado se ele estiver pedindo pra cadastrar esse CNPJ
+  assert.match(ruim, /Só se ele estiver pedindo para cadastrá-la como loja nova na AIVA: explique o motivo/)
+  assert.doesNotMatch(ruim, /Explique ao lojista/)
+  assert.match(ruim, /Motivo: Esse CNPJ tem menos de 1 ano de abertura \(0,4 ano\)\./)
+  // literais que outras regras usam continuam
+  assert.match(ok, /4\. Diga: "Registrei a loja nova; assim que o cadastro dela abrir na AIVA eu te mando o link por aqui\."/)
+  assert.match(ok, /loja_nova_empresa: cnpj=59218413000190 \| acao=confirmar \| socio=<mesmo OU nome do sócio> \| tel=/)
+  assert.match(pend, /NÃO abra pedido agora\. Se ele quer cadastrá-la como loja nova na AIVA: diga que não deu pra consultar/)
+})
+test('final item 7: "eu mesmo", "eu", "sou eu", "o mesmo" são o próprio lojista, não nome de sócio', () => {
+  for (const s of ['mesmo', 'Mesmo', 'eu mesmo', 'Eu mesmo.', 'eu', 'EU', 'sou eu', 'Sou eu!', 'o mesmo', 'a mesma', 'eu mesma', 'sou eu mesmo']) {
+    const p = lerMotivoLojaNova(`loja_nova_empresa: cnpj=59218413000190 | acao=confirmar | socio=${s} | tel=(21) 96500-2926`)
+    assert.equal(p?.socioNome, null, s); assert.equal(p?.socioTelefone, null, s)
+    assert.ok(ehSocioMesmo(s), s)
+  }
+  for (const s of ['Eunice', 'Maria Souza', 'Eu e o João', 'Mesmo Ltda']) assert.ok(!ehSocioMesmo(s), s)
+  assert.equal(lerMotivoLojaNova('loja_nova_empresa: cnpj=59218413000190 | acao=confirmar | socio=Eunice | tel=21965002926')?.socioNome, 'Eunice')
+})
+test('final item 2: RID da loja principal — matriz, a mais antiga, nunca a linha do fluxo', () => {
+  const F = FLUXO_LOJA_NOVA
+  // matriz presente vence, mesmo mais nova
+  assert.equal(ridDaLojaPrincipal([
+    { rid: 'A1', tipo: 'adicional', criado_em: '2026-01-01T00:00:00Z' },
+    { rid: 'M1', tipo: 'matriz', criado_em: '2026-05-01T00:00:00Z' },
+  ]), 'M1')
+  // dois RIDs, sem matriz, linha do fluxo mais nova: a principal (mais antiga) vence — em qualquer ordem de leitura
+  const principal = { rid: 'P1', tipo: 'adicional', fluxo: null, criado_em: '2026-03-01T00:00:00Z' }
+  const doFluxo = { rid: 'N1', tipo: 'adicional', fluxo: F, criado_em: '2026-11-20T00:00:00Z' }
+  assert.equal(ridDaLojaPrincipal([principal, doFluxo]), 'P1')
+  assert.equal(ridDaLojaPrincipal([doFluxo, principal]), 'P1')
+  // sem a coluna fluxo (SQL não aplicado): ordem por criado_em decide
+  assert.equal(ridDaLojaPrincipal([{ rid: 'N1', tipo: 'adicional', criado_em: '2026-11-20T00:00:00Z' }, { rid: 'P1', tipo: 'adicional', criado_em: '2026-03-01T00:00:00Z' }]), 'P1')
+  // linha do fluxo com RID e a principal sem RID: não há RID da loja principal
+  assert.equal(ridDaLojaPrincipal([{ rid: null, tipo: 'adicional', fluxo: null, criado_em: '2026-03-01T00:00:00Z' }, doFluxo]), null)
+  assert.equal(ridDaLojaPrincipal([]), null)
+  assert.equal(ridDaLojaPrincipal([{ rid: '  ', tipo: 'matriz' }]), null)
+  assert.equal(ridDaLojaPrincipal([{ rid: 9001, tipo: 'matriz' }]), '9001')
+})
+test('final item 5: cura avisa o time com CNPJ e mensagem', () => {
+  const l = linhaCuraLojaNova('Cell Center', '59218413000190', 'link')
+  assert.equal(l, '• Cell Center — CNPJ 59.218.413/0001-90 · link do cadastro · carimbado como enviado sem confirmação — conferir com o lojista')
+  assert.match(linhaCuraLojaNova('X', '59218413000190', 'criada'), /aviso de loja criada/)
+  const b = blocoCuraLojaNova([l])
+  assert.match(b, /^⚠️ \*Loja nova de cliente ativo: carimbado como enviado sem confirmação\* \(1\)\n• Cell Center/)
+  assert.match(b, /NÃO reenvia/)
+})
+test('final item 6: escalada direta leva o porquê, o motivo e a última mensagem', () => {
+  const t = avisoEscaladaLojaNova({ loja: 'Cell Center', telefone: '5547999990000', status: 'LOGIN', motivo: 'loja_nova_empresa: cnpj=1', porque: 'sem conferência recente', ultimaMensagem: 'sim' })
+  assert.match(t, /^🏪 \*LOJA NOVA DE CLIENTE ATIVO — pedido NÃO registrado, conferir\* — Cell Center \(5547999990000 — etapa LOGIN\)/)
+  assert.match(t, /⚠️ sem conferência recente/); assert.match(t, /Motivo devolvido: loja_nova_empresa: cnpj=1/); assert.match(t, /"sim"/)
+})
+test('final item 9: elegibilidade não conferida cita o cadastro da loja principal aberto', () => {
+  assert.equal(resumoElegibilidade(null), 'elegibilidade não conferida (etapa fora do fluxo, cadastro da loja principal ainda aberto na AIVA ou consulta falhou)')
 })
