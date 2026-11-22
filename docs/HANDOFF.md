@@ -3,46 +3,41 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
-## ✅ 22/11 à noite — "loja nova de outra empresa" PUBLICADA (vale por cima do bloco abaixo)
+## ✅ 22/11/2026 — "Loja nova de outra empresa" NO AR (vale por cima do que conflitar abaixo)
 
-- Aldo aprovou os textos. SQL `docs/sql/2026-11-19-loja-nova-empresa.sql` aplicado no Supabase; `main` em `b128339`,
-  deploy da Vercel concluído; espelho de produção em `?dry=1` → `loja_nova.pulado = null`, contadores zerados.
-  Curadoria conferida (30 correções, nenhuma ensina a regra antiga). Suíte: só a falha conhecida de `test:campanha`.
-- **Eduardo Cell (59.218.413/0001-90) e RG Cell (69.849.333/0001-96):** com o OK do Aldo, marcados `fluxo =
-  'loja_nova_empresa'` + `[LOJA_NOVA_PEDIDA:…]` nos dois leads. O espelho mandou o link aos dois em 22/11 19h46 BRT pelo
-  modelo 86 (rótulo `aiva_loja_nova`), `link_enviado_em` gravado. Falta confirmar a ENTREGA (recibo da Meta) e acompanhar
-  o aviso de "loja criada". **RG Cell: o Nei ainda precisa corrigir a promessa de Osasco (19/11).**
-- Ainda não visto: selo no `/atendimento` (exige login). Desligar sem deploy: `update sdr_registros_cnpj set fluxo = null`.
+**Produção:** `main` = `21a838f`, deploy da Vercel concluído 22/11 ~21h BRT. Nada pendente de push. SQL
+`docs/sql/2026-11-19-loja-nova-empresa.sql` aplicado (colunas `fluxo`, `socio_nome`, `socio_telefone`, `link_enviado_em`,
+`criada_avisada_em` em `sdr_registros_cnpj`).
 
-## (anterior) ESTADO EM 22/11 — "loja nova de outra empresa" PROGRAMADA, NÃO PUBLICADA
+**O que faz:** cliente em TREINAR/LOGIN/LOJA_FINALIZADA_E_VENDENDO manda CNPJ de outra raiz (ou digita `NOVA LOJA`) →
+sistema classifica e confere antes do modelo (`lib/loja-nova-calc.ts`, marcador `[LOJA_NOVA:…]`) → VictorIA confirma + pergunta
+do sócio → motivo `loja_nova_empresa:` grava `fluxo = 'loja_nova_empresa'` na linha `adicional` e troca o marcador por
+`[LOJA_NOVA_PEDIDA:…]` → Nei só clica "Abrir form" no `/atendimento` → espelho (passo novo) manda o link quando o CNPJ chega
+a `dados_varejo` e avisa "loja criada" com RID. Um de cada por CNPJ (`link_enviado_em`/`criada_avisada_em` + chaves
+`loja_nova_%` em `sdr_avisos_chave`). Linhas do fluxo ficam FORA da lógica de card (`registrosDoCard`). Filial de mesma raiz
+não mudou. Textos e ordem de publicação: `docs/Textos-loja-nova-outra-empresa-2026-11-19.md`.
 
-- **Tarefas 1–5 do plano prontas** na branch local `feat/loja-nova-empresa` (`7aa4507..b6793fb`), cada uma com revisão e
-  correção, mais revisão final do conjunto. **Nada foi enviado ao remoto; a `main` e a produção estão intactas.**
-  Testes: `test:lojanova` 52, `test:tickets` 6, `test:json` 9, `test:espelho` 37, `test:utilidade` 13, `tsc` limpo.
-  Espelho local em `?dry=1`: 200, passo novo "pulado: colunas_ausentes".
-- **Falta (Tarefa 6, só com o Aldo):** aprovar `docs/Textos-loja-nova-outra-empresa-2026-11-19.md` (a seção 6 traz a ordem
-  de publicação) → conferir `/curadoria` → aplicar `docs/sql/2026-11-19-loja-nova-empresa.sql` **antes** do push → merge na
-  `main` e push → só então Eduardo Cell e RG Cell, um de cada vez (marcar `fluxo` sozinho faz o espelho mandar mensagem em
-  até 15 min; ver a seção 6 do doc). As duas linhas já estão `pre_cadastro_enviado`, `enviado = true`.
-- **Decisões abertas no doc (seção 5):** texto do modelo 86 no link ("etapa concluída: aprovação da loja pela AIVA"), frase
-  do motivo Odres, texto de "loja criada". Não conferido: tela `/atendimento` (exige login).
-- **Atenção:** o commit `a2a55db` (sync automático de fim de sessão) pôs nesta branch docs antes sem commit (xlsx de casos,
-  proposta de templates html/pdf, spec, plano) — decidir se vão ao remoto. Registro das decisões tomadas na execução:
-  `.superpowers/sdd/2026-11-19-loja-nova-outra-empresa/progress.md` (pasta fora do git).
+**Feito em 22/11:** plano de 5 tarefas com revisão por tarefa + revisão final (`17f7813`…`b6793fb`), publicação `b128339`,
+texto próprio do link no modelo 86 (`21a838f`: "abertura do cadastro da loja nova na AIVA"; o prospect segue com
+`linkCadastro`). Revisor do prompt: limpo. Curadoria conferida (30 correções, nenhuma ensina a regra antiga).
+Eduardo Cell (59.218.413/0001-90) e RG Cell (69.849.333/0001-96): marcados, link enviado 19h46 e ENTREGUE (recibo da Meta);
+ambos em `dados_varejo`, sem RID.
 
-## (histórico) combinado com o Aldo em 19/11 — executar o plano "loja nova de outra empresa"
+**Em aberto:**
+- Aldo/Nei: tratam Eduardo Cell e RG Cell direto (inclui corrigir a promessa de Osasco feita à RG Cell em 19/11).
+- Não visto em conversa real: passos 1–3 (CNPJ novo → confirmação → fila com selo). Acompanhar o PRIMEIRO pedido de ponta
+  a ponta (logs `[LOJA_NOVA_EMPRESA]` e `[espelho-portal] loja nova`). Selo do `/atendimento` nunca visto na tela.
+- Nei precisa saber: só clicar "Abrir form" depois do aviso "LOJA NOVA DE CLIENTE ATIVO — na fila de pré-cadastro".
+- Sugestões do revisor não aplicadas (opcionais): bloco elegível diz "Não mande link" (`lib/loja-nova-calc.ts` ~198);
+  "sem link" nos blocos TREINAR/LOGIN (`lib/claude.ts` ~354/357) → "sem link no pedido — o sistema manda quando abrir".
+- Riscos aceitos: mesmo CNPJ pedido por dois leads (só o 1º recebe link); quem cancela e reenvia o CNPJ é perguntado de
+  novo; campanha de boas-vindas pode disparar no 1º acesso da loja nova; avisos do painel dessa fila não fecham sozinhos;
+  envio retido por falha ambígua só é liberado à mão (apagar as chaves citadas no aviso).
 
-- **O que é:** cliente já ativo pede, no mesmo WhatsApp, cadastro de loja de OUTRA empresa (raiz de CNPJ diferente).
-  Hoje a VictorIA diz "passei pro Nei" e para. Casos reais: Eduardo Cell (→ 59.218.413/0001-90) e RG Cell (→ 69.849.333/0001-96).
-- **Desenho aprovado pelo Aldo:** `docs/superpowers/specs/2026-11-19-loja-nova-outra-empresa-design.md`.
-  **Plano (6 tarefas):** `docs/superpowers/plans/2026-11-19-loja-nova-outra-empresa.md`. **Nada programado, nada commitado**
-  (os dois docs estão sem commit).
-- **Decisões do Aldo:** SEM aprovação do Nei; o link só sai depois do pré-cadastro (a AIVA exige) — o CNPJ cai direto na
-  fila de pré-cadastro do `/atendimento`, o Nei só clica, e o espelho manda o link quando o CNPJ chegar a `dados_varejo`.
-  Atalho `NOVA LOJA`. Filial de mesma raiz não muda.
-- **Falta o Aldo escolher:** execução com revisão por tarefa (recomendado) ou direto na sessão. Ele volta e dá o comando.
-- **Cuidados:** registro da loja nova é `tipo: 'adicional'` + `fluxo`, nunca `matriz` (move o card). Textos e push só com OK
-  do Aldo. RG Cell recebeu promessa errada em 19/11 13h22 (credenciar Osasco com o CNPJ da matriz) — o Nei corrige.
+**Como retomar:** `npm run test:lojanova` (53) · `test:espelho` (37) · `test:tickets` · `test:utilidade` · `tsc`.
+`GET /api/sdr/espelho-portal?dry=1` → olhar `loja_nova`. Desligar sem deploy: `update sdr_registros_cnpj set fluxo = null`
+(para o passo do espelho); sem `[LOJA_NOVA:` nas observações o bloco não aparece. Decisões da execução:
+`.superpowers/sdd/2026-11-19-loja-nova-outra-empresa/progress.md` (fora do git; apagar quando não for mais útil).
 
 ## ⚠️ LEIA PRIMEIRO — estado em 17/11/2026 à noite (vale por cima do que conflitar abaixo)
 
