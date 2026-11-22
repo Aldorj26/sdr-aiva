@@ -446,3 +446,40 @@ test('derrubado: card em 50 com prova antiga do portal e CNPJ sumido volta pra 5
   assert.equal(DIAS_MIN_DERRUBADO, 25)
   assert.equal(dataProvaPortal('[X]'), null)
 })
+
+// ─── loja nova de OUTRA empresa fora da lógica de card/etapa (revisão Task 4, item 1) ─────────────
+import { registrosDoCard, etapaOnbPorLead, FLUXO_LOJA_NOVA_REG } from './espelho-portal-calc.ts'
+{
+  // lead ativo cuja matriz NÃO aparece na API (cadastro antigo, sem RID no registro) + loja nova no fluxo
+  const L = lead('L', 100, 'LOJA_FINALIZADA_E_VENDENDO')
+  const T = lead('T', 200, 'TREINAR')
+  const matriz = (leadId: string, id: number): RegistroCnpj => ({ id, cnpj: '32306162000149', lead_id: leadId, status: 'pre_cadastro_enviado' })
+  const nova = (leadId: string, id: number): RegistroCnpj => ({ id, cnpj: '59218413000190', lead_id: leadId, status: 'pre_cadastro_enviado', fluxo: FLUXO_LOJA_NOVA_REG })
+  const regs = [matriz('L', 1), nova('L', 2), { ...matriz('T', 3), cnpj: '11222333000181' }, { ...nova('T', 4), cnpj: '45997418000153' }]
+  const stageAtual = new Map([[100, 51], [200, 70]])
+  for (const stage of ['dados_varejo', 'not_approved'] as const) {
+    const onboardings = [onb({ cnpj: '59218413000190', stage, pre_cadastro_status: stage === 'not_approved' ? 'not_approved' : 'approved' }), onb({ cnpj: '45997418000153', stage, pre_cadastro_status: stage === 'not_approved' ? 'not_approved' : 'approved' })]
+    test(`loja nova em ${stage}: sem o filtro mexeria no card; com o filtro, nada (sem movimento, reprovado, conferir nem ONB_ETAPA)`, () => {
+      const cru = calcularEspelho(base({ onboardings, registros: regs, leads: [L, T], stageAtual }))
+      // prova de que o teste pega o defeito: sem o filtro, o CNPJ novo puxa o card (ou reprova o lead)
+      assert.ok(cru.movimentos.length + cru.reprovados.length + cru.conferir.length > 0, 'o cenário deveria reproduzir o defeito sem o filtro')
+      const card = registrosDoCard(regs)
+      assert.deepEqual(card.map((r) => r.id), [1, 3])
+      const r = calcularEspelho(base({ onboardings, registros: card, leads: [L, T], stageAtual }))
+      assert.deepEqual(r.movimentos, []); assert.deepEqual(r.reprovados, []); assert.deepEqual(r.conferir, [])
+      assert.deepEqual(r.registrosEnviados, []); assert.deepEqual(r.derrubados, [])
+      assert.equal(etapaOnbPorLead(onboardings, card, [L, T]).size, 0)
+      if (stage === 'dados_varejo') assert.equal(etapaOnbPorLead(onboardings, regs, [L, T]).get('T'), 'dados_varejo') // sem filtro: marcaria
+      // pré-cadastro não chegou também não vê a linha do fluxo
+      assert.equal(preCadastroNaoChegou(onboardings, card, [L, T], Date.parse('2026-12-01T00:00:00Z')).porLead.size, 0)
+    })
+  }
+  test('sem linha do fluxo (ou sem a coluna fluxo), registrosDoCard devolve tudo e o resultado é o de sempre', () => {
+    const comuns: RegistroCnpj[] = [matriz('L', 1), { id: 5, cnpj: '59218413000190', lead_id: 'L', status: 'informada', fluxo: null }, { id: 6, cnpj: '11222333000181', lead_id: 'L', status: 'informada' }]
+    assert.deepEqual(registrosDoCard(comuns), comuns)
+    const onboardings = [onb({ cnpj: '59218413000190', stage: 'dados_varejo' })]
+    const e = base({ onboardings, registros: comuns, leads: [lead('L', 100, 'CADASTRO_RECEBIDO')], stageAtual: new Map([[100, 49]]) })
+    assert.deepEqual(calcularEspelho({ ...e, registros: registrosDoCard(comuns) }), calcularEspelho(e))
+    assert.deepEqual([...etapaOnbPorLead(onboardings, registrosDoCard(comuns), e.leads)], [...etapaOnbPorLead(onboardings, comuns, e.leads)])
+  })
+}

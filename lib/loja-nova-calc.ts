@@ -48,6 +48,16 @@ export function ehAtalhoNovaLoja(texto: string | null | undefined): boolean {
   return /(?:^| )nova loja(?: |$)/.test(n) && n.split(' ').length <= 6
 }
 
+/** Idade < 1 ano: abaixo de 0,1 ano em meses ("menos de 1 mês", "1 mês"); senão anos truncados em 1 casa
+ *  (trunca: nunca "1 ano" pra quem tem menos de 1). */
+function idadeCurta(anos: number): string {
+  if (anos < 0.1) {
+    const meses = Math.floor(anos * 12 + 1e-9)
+    return meses < 1 ? 'menos de 1 mês' : `${meses} ${meses === 1 ? 'mês' : 'meses'}`
+  }
+  return `${String(Math.floor(anos * 10 + 1e-9) / 10).replace('.', ',')} ano`
+}
+
 export type Elegibilidade =
   | { ok: true }
   | { ok: false; motivo: 'nao_ativa' | 'menos_de_1_ano' | 'odres' | 'ja_na_aiva' | 'receita_indisponivel'; detalhe: string }
@@ -55,7 +65,7 @@ export type Elegibilidade =
 export function elegibilidade(e: { situacao: string | null; idadeAnos: number | null; odres: boolean; jaNaAiva: string | null }): Elegibilidade {
   if (!e.situacao || e.idadeAnos == null) return { ok: false, motivo: 'receita_indisponivel', detalhe: 'Receita sem resposta' }
   if (e.situacao.trim().toUpperCase() !== 'ATIVA') return { ok: false, motivo: 'nao_ativa', detalhe: e.situacao }
-  if (e.idadeAnos < 1) return { ok: false, motivo: 'menos_de_1_ano', detalhe: `${String(Math.floor(e.idadeAnos * 10 + 1e-9) / 10).replace('.', ',')} ano` } // trunca em 1 casa: nunca "1 ano"
+  if (e.idadeAnos < 1) return { ok: false, motivo: 'menos_de_1_ano', detalhe: idadeCurta(e.idadeAnos) }
   if (e.odres) return { ok: false, motivo: 'odres', detalhe: 'base Odres/UME' }
   if (e.jaNaAiva) return { ok: false, motivo: 'ja_na_aiva', detalhe: e.jaNaAiva }
   return { ok: true }
@@ -266,7 +276,8 @@ export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
 }
 
 export function textoLojaCriada(razao: string | null): string {
-  return `A loja${razao ? ` ${razao}` : ''} foi criada na AIVA. Você já pode acessar normalmente com o seu login. Qualquer dúvida, é só me chamar por aqui.`
+  // sem prometer acesso: no retailer_id a loja existe, mas o acesso só sai depois (treinamento / pronto_para_operar)
+  return `A loja nova${razao ? ` ${razao}` : ''} foi criada na AIVA. Os próximos passos dela chegam por aqui, neste mesmo WhatsApp. Qualquer dúvida, é só me chamar.`
 }
 
 // ─── espelho do portal: link, loja criada, recusa e fila parada — tudo POR CNPJ ────────────────
@@ -288,7 +299,9 @@ export function pendentesLink(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLoja
     if (!doFluxo(reg) || reg.link_enviado_em || reg.criada_avisada_em) continue
     const doCnpj = onbsDo(reg.cnpj, onbs)
     if (doCnpj.some(recusado)) continue
-    const onb = doCnpj.find((o) => o.stage === 'dados_varejo' && !temRid(o))
+    // algum onboarding do CNPJ já tem RID = a loja existe: vale só o "loja criada" (revisão Task 4, item 3)
+    if (doCnpj.some(temRid)) continue
+    const onb = doCnpj.find((o) => o.stage === 'dados_varejo')
     if (onb) out.push({ reg, onb })
   }
   return out
@@ -363,12 +376,46 @@ export function lojaTemplateLojaNova(cnpj: string, razao: string | null | undefi
   return `${r.length > cabe ? r.slice(0, cabe).trim() : r} (${doc})`
 }
 
-/** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`, sem prazo. */
+/** Loja criada pelo template 86 (janela fechada). Mesmo conteúdo do `textoLojaCriada`: sem prazo e sem
+ *  prometer acesso (ele só sai depois do treinamento / pronto_para_operar). */
 export const utilLojaCriada = (): Etapa => ({
   tipo: 'etapa',
   etapa: 'loja nova criada na AIVA.',
-  situacao: 'você já pode acessar normalmente com o seu login. Qualquer dúvida, é só me chamar por aqui.',
+  situacao: 'os próximos passos dessa loja chegam por este mesmo WhatsApp.',
 })
+
+// ─── falha de envio: tentar de novo, segurar ou desistir (revisão Task 4, item 2) ───────────────
+/** Rejeições automáticas de um mesmo CNPJ e tipo antes de desistir e avisar o time. */
+export const TENTATIVAS_LOJA_NOVA = 3
+export type TipoEnvioLojaNova = 'link' | 'criada'
+
+/** O Evo RECUSOU antes de aceitar (4xx, menos 408): nada saiu, pode tentar de novo. 5xx, 408, rede, timeout,
+ *  JSON quebrado e qualquer erro desconhecido NÃO são claros — o Evo pode ter aceitado e o lojista recebido. */
+export function rejeicaoClara(erro: string): boolean {
+  const m = /Evo Talks \S+ → (\d{3})\b/.exec(erro)
+  if (!m) return false
+  const st = Number(m[1])
+  return st >= 400 && st < 500 && st !== 408
+}
+
+/** `segurar` = mantém a chave, não reenvia e avisa o time pra conferir à mão. `tentar_de_novo` = solta a chave.
+ *  `desistir` = 3ª rejeição: mantém a chave e avisa o time. `conta` = grava uma tentativa. Silêncio de envio
+ *  (chave silencio_global/silencio_templates) é pausa deliberada, bloqueada antes de sair: tenta depois sem contar. */
+export function decidirFalhaEnvio(erro: string, tentativasAnteriores: number): { acao: 'tentar_de_novo' | 'segurar' | 'desistir'; conta: boolean } {
+  if (/SILENCIO_(GLOBAL|TEMPLATES)/.test(erro)) return { acao: 'tentar_de_novo', conta: false }
+  if (!rejeicaoClara(erro)) return { acao: 'segurar', conta: false }
+  return { acao: tentativasAnteriores + 1 >= TENTATIVAS_LOJA_NOVA ? 'desistir' : 'tentar_de_novo', conta: true }
+}
+
+export const chaveTentativaLojaNova = (tipo: TipoEnvioLojaNova, cnpj: string, n: number) => `loja_nova_tentativa:${tipo}:${soDigitos(cnpj)}:${n}`
+/** Envio retido (ambíguo ou desistido): a chave de reserva fica, e esta impede o "curar" de carimbar como enviado. */
+export const chaveRetidoLojaNova = (tipo: TipoEnvioLojaNova, cnpj: string) => `loja_nova_retido:${tipo}:${soDigitos(cnpj)}`
+export function tentativasDe(chaves: Iterable<string>, tipo: TipoEnvioLojaNova, cnpj: string): number {
+  const pre = `loja_nova_tentativa:${tipo}:${soDigitos(cnpj)}:`
+  let n = 0
+  for (const k of chaves) if (k.startsWith(pre)) n++
+  return n
+}
 
 // ─── fila de pré-cadastro (painel /atendimento) ─────────────────────────────────────────────────
 /** Selo e sócio de uma linha de `sdr_registros_cnpj` na fila. Sem `fluxo` = linha comum (null). */

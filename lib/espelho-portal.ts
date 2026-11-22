@@ -24,9 +24,10 @@ import { leadsEmSilencio, registrarAvisos, resolverAvisos } from '@/lib/avisos-p
 import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import {
-  calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, ONB_ORDEM, situacaoOnb, type OnbSituacao,
+  calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, situacaoOnb,
   MARCADOR_DERRUBADO, MOTIVO_DERRUBADO,
   preCadastroNaoChegou, PRE_CAD_HORAS, type PreCadastroEstado,
+  registrosDoCard, etapaOnbPorLead, SITUACAO_REAL,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
 import { detectarRepeticao, linhaRepetido, PREFIXO_CHAVE, type LinhaLog } from '@/lib/espelho-repeticao-calc'
@@ -37,6 +38,7 @@ import {
   FLUXO_LOJA_NOVA, LINK_CADASTRO, pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, textoLinkLojaNova, textoLojaCriada,
   chaveLinkLojaNova, chaveCriadaLojaNova, chaveRecusadaLojaNova, chaveFilaParada, PREFIXO_FILA_PARADA, colunaLojaNovaAusente,
   lojaTemplateLojaNova, utilLojaCriada, type OnbLojaNova, type RegLojaNovaFila,
+  decidirFalhaEnvio, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova,
 } from '@/lib/loja-nova-calc'
 
 const PIPELINE_AIVA = 15
@@ -63,8 +65,6 @@ export const MARCADOR_CNPJ_INVALIDO = 'CNPJ_PORTAL_INVALIDO'
  *  A VictorIA usa isso pra não falar de senha com quem nem terminou o cadastro
  *  (regra do Aldo 18/09/2026 — é a msg que o Nei manda na mão hoje). */
 export const MARCADOR_ONB_ETAPA = 'ONB_ETAPA'
-/** Situação REAL ruim na Receita — a loja precisa regularizar. */
-const SITUACAO_REAL = new Set(['inapta', 'baixada', 'suspensa'])
 /** CNPJ que não fecha — quase sempre erro de digitação no portal. */
 const CNPJ_NAO_FECHA = new Set(['invalid', 'not_found'])
 // ⚠️ 'pending' (a AIVA ainda não conferiu) e 'valid' NÃO entram em nenhum dos dois.
@@ -97,29 +97,34 @@ function sinaisPortal(onboardings: OnbApi[]): { loginEnviado: Set<string>; vende
  *  enquanto o SQL não for aplicado, pedi-la derruba o SELECT inteiro — e com ele a rodada do espelho, que
  *  move card. Por isso o primeiro erro de coluna faz a rodada cair pro conjunto antigo (o relógio do passo 11
  *  volta pro `criado_em`, que é o que já acontecia antes). Depois do SQL aplicado, nunca mais cai aqui. */
-const COLS_REGISTRO = 'id,cnpj,lead_id,status,rid,criado_em,enviado_em'
+//  `fluxo` entrou em 19/11/2026 (docs/sql/2026-11-19-loja-nova-empresa.sql), com a mesma tolerância: sem a
+//  coluna, nenhuma linha é do fluxo da loja nova e a rodada fica idêntica à de antes.
+const COLS_REGISTRO = 'id,cnpj,lead_id,status,rid,criado_em,enviado_em,fluxo'
+const COLS_REGISTRO_SEM_FLUXO = 'id,cnpj,lead_id,status,rid,criado_em,enviado_em'
 const COLS_REGISTRO_ANTIGO = 'id,cnpj,lead_id,status,rid,criado_em'
 
 async function registrosComLead(): Promise<RegistroCnpj[]> {
   const out: RegistroCnpj[] = []
   let cols = COLS_REGISTRO
   for (let de = 0; ; de += 1000) {
-    let { data, error } = await supabaseAdmin
+    const ler = () => supabaseAdmin
       .from('sdr_registros_cnpj')
       .select(cols)
       .not('lead_id', 'is', null)
       .order('id', { ascending: true })
       .range(de, de + 999)
-    // 42703 = undefined_column no Postgres; o PostgREST também devolve a coluna no texto do erro
-    if (error && cols === COLS_REGISTRO && (error.code === '42703' || /enviado_em/.test(error.message))) {
-      cols = COLS_REGISTRO_ANTIGO
-      console.warn('[espelho] sdr_registros_cnpj sem a coluna enviado_em — rodada usando criado_em (aplicar docs/sql/2026-10-15-pre-cadastro-enviado-em.sql)')
-      ;({ data, error } = await supabaseAdmin
-        .from('sdr_registros_cnpj')
-        .select(cols)
-        .not('lead_id', 'is', null)
-        .order('id', { ascending: true })
-        .range(de, de + 999))
+    let { data, error } = await ler()
+    // 42703 = undefined_column no Postgres; o PostgREST também devolve a coluna no texto do erro.
+    // Cai um degrau por vez: sem `fluxo` → sem `enviado_em` também.
+    while (error && cols !== COLS_REGISTRO_ANTIGO && (error.code === '42703' || /fluxo|enviado_em/.test(error.message))) {
+      if (cols === COLS_REGISTRO) {
+        cols = COLS_REGISTRO_SEM_FLUXO
+        console.warn('[espelho] sdr_registros_cnpj sem a coluna fluxo — nenhuma linha tratada como loja nova (aplicar docs/sql/2026-11-19-loja-nova-empresa.sql)')
+      } else {
+        cols = COLS_REGISTRO_ANTIGO
+        console.warn('[espelho] sdr_registros_cnpj sem a coluna enviado_em — rodada usando criado_em (aplicar docs/sql/2026-10-15-pre-cadastro-enviado-em.sql)')
+      }
+      ;({ data, error } = await ler())
     }
     if (error) throw new Error(`sdr_registros_cnpj: ${error.message}`)
     out.push(...((data ?? []) as unknown as RegistroCnpj[]))
@@ -232,6 +237,8 @@ export type SaidaLojaNova = {
   adiados: number
   /** lead sem telefone ou em status que não recebe mensagem */
   sem_destino: number
+  /** envio retido (resposta ambígua do Evo ou 3 rejeições): aviso ao time, nada automático até liberar à mão */
+  retidos: number
   falhas: number
 }
 
@@ -264,7 +271,7 @@ async function passoLojaNova(
   dry: boolean,
   ctx: { onboardings: OnbApi[]; registros: RegistroCnpj[]; inicio: number; avisos: string[] },
 ): Promise<{ saida: SaidaLojaNova; blocos: string[] }> {
-  const s: SaidaLojaNova = { pulado: null, links: 0, criadas: 0, recusadas: 0, paradas: 0, curados: 0, adiados: 0, sem_destino: 0, falhas: 0 }
+  const s: SaidaLojaNova = { pulado: null, links: 0, criadas: 0, recusadas: 0, paradas: 0, curados: 0, adiados: 0, sem_destino: 0, retidos: 0, falhas: 0 }
   const blocos: string[] = []
   if (!dry && Date.now() - ctx.inicio > TETO_MS) {
     s.pulado = 'sem_tempo'
@@ -319,9 +326,17 @@ async function passoLojaNova(
 
     // a) link e loja criada ao lojista
     let envios = 0
+    const vistosRodada = new Set<string>()
+    const linhasRet: string[] = []
     for (const t of tarefas) {
       const cnpj = t.reg.cnpj
       const chave = t.tipo === 'link' ? chaveLinkLojaNova(cnpj) : chaveCriadaLojaNova(cnpj)
+      const retido = chaveRetidoLojaNova(t.tipo, cnpj)
+      // linha duplicada do mesmo CNPJ: uma tentativa por CNPJ e tipo por rodada; a outra linha se cura na próxima
+      if (vistosRodada.has(chave)) continue
+      vistosRodada.add(chave)
+      // envio retido (resposta ambígua do Evo ou 3 rejeições): nada automático — o time confere e reenvia à mão
+      if (chaves.has(retido)) { s.retidos++; continue }
       const carimbo = t.tipo === 'link'
         ? { link_enviado_em: new Date().toISOString() }
         : { criada_avisada_em: new Date().toISOString(), rid: String(t.onb.retailer_id) }
@@ -343,6 +358,8 @@ async function passoLojaNova(
       }
       // trava 2: reserva ANTES de enviar. Falhou a reserva (outra rodada pegou, ou o banco recusou) = não envia.
       const { error: eRes } = await supabaseAdmin.from('sdr_avisos_chave').insert({ chave, ultimo_aviso: new Date().toISOString() })
+      // 23505 = unique: outra rodada já reservou — não é falha, só não envia
+      if (eRes?.code === '23505') { chaves.add(chave); continue }
       if (eRes) {
         s.falhas++
         ctx.avisos.push(`loja nova ${cnpj}: chave ${chave} não reservada (${eRes.code ?? ''} ${eRes.message.slice(0, 60)}) — ${t.tipo} NÃO enviado`)
@@ -357,11 +374,39 @@ async function passoLojaNova(
           ? await enviarLojaNova(lead, textoLinkLojaNova(cnpj, razao), linkCadastro(LINK_CADASTRO), loja)
           : await enviarLojaNova(lead, textoLojaCriada(razao), utilLojaCriada(), loja)
       } catch (e) {
-        // envio não aceito: solta a chave pra próxima rodada tentar de novo
+        // Só a rejeição CLARA do Evo (4xx) solta a chave: timeout/5xx/rede podem ter saído — reenviar duplicaria.
+        // Regra em decidirFalhaEnvio (lib/loja-nova-calc.ts).
         s.falhas++
-        const { error: eSolta } = await supabaseAdmin.from('sdr_avisos_chave').delete().eq('chave', chave)
-        if (eSolta) console.error(`[espelho-portal] ⚠️ loja nova ${cnpj}: envio de ${t.tipo} FALHOU e a chave ${chave} não foi solta — não haverá nova tentativa até apagá-la:`, eSolta.message)
-        ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} não enviado (${String(e).slice(0, 100)})${eSolta ? ` — chave ${chave} presa, apagar à mão pra tentar de novo` : ''}`)
+        const erro = String(e)
+        const anteriores = tentativasDe(chaves, t.tipo, cnpj)
+        const d = decidirFalhaEnvio(erro, anteriores)
+        if (d.conta) {
+          const kT = chaveTentativaLojaNova(t.tipo, cnpj, anteriores + 1)
+          const { error: eT } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: kT, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+          if (eT) console.error(`[espelho-portal] loja nova ${cnpj}: tentativa ${kT} não gravada:`, eT.message)
+          chaves.add(kT)
+        }
+        let solta = d.acao === 'tentar_de_novo'
+        if (solta) {
+          const { error: eSolta } = await supabaseAdmin.from('sdr_avisos_chave').delete().eq('chave', chave)
+          // não soltou: com a reserva presa a próxima rodada "curaria" o carimbo de algo que não saiu — retém
+          if (eSolta) { console.error(`[espelho-portal] ⚠️ loja nova ${cnpj}: chave ${chave} não solta (${eSolta.message}) — envio retido`); solta = false }
+          else chaves.delete(chave)
+        }
+        if (solta) {
+          ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} recusado pelo Evo (${erro.slice(0, 100)}) — tenta de novo na próxima rodada`)
+          continue
+        }
+        const { error: eRet } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: retido, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+        if (eRet) console.error(`[espelho-portal] ⚠️⚠️ loja nova ${cnpj}: chave ${retido} não gravada (${eRet.message}) — a próxima rodada vai carimbar ${t.tipo} como enviado sem ter certeza`)
+        chaves.add(retido)
+        s.retidos++
+        const porque = d.acao === 'desistir' ? `recusado pelo Evo ${anteriores + 1}×`
+          : d.acao === 'tentar_de_novo' ? 'recusado pelo Evo e a reserva não foi solta (não saiu)'
+          : 'resposta ambígua do Evo (pode ter saído)'
+        console.error(`[espelho-portal] ⚠️ loja nova ${cnpj}: ${t.tipo} RETIDO — ${porque}: ${erro.slice(0, 160)}`)
+        ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} retido — ${porque}`)
+        linhasRet.push(`• ${nomeLead(t.reg.lead_id)} — CNPJ ${cnpj} · ${t.tipo === 'link' ? 'link do cadastro' : 'aviso de loja criada'} · ${porque}`)
         continue
       }
       // aceito → carimbo. Se falhar, a chave reservada fica e segura o reenvio.
@@ -376,12 +421,20 @@ async function passoLojaNova(
       if (t.tipo === 'link') s.links++
       else s.criadas++
     }
+    if (linhasRet.length) {
+      blocos.push(
+        `⚠️ *Loja nova de cliente ativo: mensagem ao lojista pode não ter saído* (${linhasRet.length})\n${linhasRet.join('\n')}\n\n` +
+        'O link da loja nova (ou o aviso de loja criada) pode não ter saído — conferir na conversa e reenviar à mão. ' +
+        'O robô NÃO tenta de novo sozinho pra não mandar em dobro (pra liberar: apagar em sdr_avisos_chave as chaves loja_nova_<link|criada>:<cnpj> e loja_nova_retido:<tipo>:<cnpj>).',
+      )
+    }
 
     // b) recusada pela AIVA: aviso ao time, uma vez por CNPJ. NADA ao lojista.
     const linhasRec: string[] = []
     for (const { reg } of recs) {
       const chave = chaveRecusadaLojaNova(reg.cnpj)
       if (chaves.has(chave)) continue
+      chaves.add(chave) // linha duplicada do mesmo CNPJ: uma linha só no aviso
       s.recusadas++
       if (dry) continue
       const { error: eK } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
@@ -403,6 +456,7 @@ async function passoLojaNova(
       const chave = chaveFilaParada(p.reg.cnpj, agora)
       vivasHoje.add(chave)
       if (chaves.has(chave)) continue
+      chaves.add(chave) // linha duplicada do mesmo CNPJ: uma linha só no aviso
       s.paradas++
       if (dry) continue
       const { error: eK } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
@@ -512,7 +566,11 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   }
 
   // 2) nossa base + Evo
-  const registros = await registrosComLead()
+  // `registros` = só o que alimenta card e marcadores de etapa (calc, ONB_ETAPA, reprovados, CNPJ irregular,
+  // pré-cadastro não chegou, aiva_sem_criar). A loja nova de outra empresa fica em `todosRegistros` e só o
+  // passo 12 a usa (revisão Task 4, item 1).
+  const todosRegistros = await registrosComLead()
+  const registros = registrosDoCard(todosRegistros)
   const leads = await leadsPorIds([...new Set(registros.map((r) => r.lead_id!).filter(Boolean))])
   const stageAtual = new Map<number, number>()
   for (const o of await getPipeOpportunities(PIPELINE_AIVA)) stageAtual.set(Number(o.id), Number(o.fkStage))
@@ -540,7 +598,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
     pre_cadastro_nao_chegou: [], derrubados: [], repetidos: [], colunas_desconhecidas: [],
-    loja_nova: { pulado: null, links: 0, criadas: 0, recusadas: 0, paradas: 0, curados: 0, adiados: 0, sem_destino: 0, falhas: 0 },
+    loja_nova: { pulado: null, links: 0, criadas: 0, recusadas: 0, paradas: 0, curados: 0, adiados: 0, sem_destino: 0, retidos: 0, falhas: 0 },
   }
 
   // coluna nova no quadro da AIVA: `etapaDesejada` cai na dedução pelo stage em vez de congelar o card,
@@ -559,37 +617,9 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
 
   // Etapa do onboarding por lead. dados_varejo vence biometria quando o lojista tem
   // mais de uma loja: enquanto UM formulário estiver aberto, o cadastro dele não fechou.
-  const etapaPorLead = new Map<string, string>()
+  // (regra pura em etapaOnbPorLead — recebe só os registros do card, sem a loja nova de outra empresa)
+  const etapaPorLead = etapaOnbPorLead(onboardings, registros, leads)
   {
-    const stagePorCnpj = new Map<string, string>()
-    for (const o of onboardings) {
-      // CNPJ com situação REAL irregular (inapta/baixada/suspensa) nunca fecha o formulário — ele
-      // não pode "vencer" a etapa do lead. Smarttech (06/10/2026): matriz com biometria APROVADA
-      // esperando a AIVA, e a filial INAPTA prendia o lead em "formulário aberto" — a VictorIA
-      // cobraria um formulário que não existe pra fazer. Esse CNPJ já tem marcador próprio.
-      if (SITUACAO_REAL.has(String(o.cnpj_check_status ?? '').toLowerCase())) continue
-      const sit = situacaoOnb(String(o.stage ?? ''), o.biometry_status)
-      if (sit) stagePorCnpj.set(soDigitos(o.cnpj), sit)
-    }
-    // Fora: quem JÁ OPERA. Duas portas de erro, as duas reais:
-    //  - importado do portal (lote de 16/09) que JÁ SAIU da Em Análise: o portal o tem em
-    //    dados_varejo, mas vende. ⚠️ Desde 02/10/2026 o importado que CONTINUA em
-    //    EM_ANALISE_AIVA não conta como "opera": quem consulta ou vende já foi pra 51, então
-    //    o que ficou tem o cadastro aberto de verdade (raio-x do funil, Aldo).
-    //  - lojista com matriz vendendo e FILIAL nova em cadastro: o marcador é do LEAD,
-    //    a etapa é do CNPJ — sem esta trava, a VictorIA diria "você não tem acesso"
-    //    a quem está logado e vendendo.
-    const opera = new Set<string>()
-    for (const l of leads) if ((l.observacoes ?? '').includes('[IMPORTADO_PORTAL:') && l.status !== 'EM_ANALISE_AIVA') opera.add(l.id)
-    for (const reg of registros) if (reg.lead_id && (reg.rid || reg.status === 'ativa')) opera.add(reg.lead_id)
-    for (const reg of registros) {
-      if (!reg.lead_id || opera.has(reg.lead_id)) continue
-      const st = stagePorCnpj.get(soDigitos(reg.cnpj))
-      if (!st) continue
-      const atual = etapaPorLead.get(reg.lead_id)
-      const pior = (a: string, b: string) => (ONB_ORDEM.indexOf(a as OnbSituacao) <= ONB_ORDEM.indexOf(b as OnbSituacao) ? a : b)
-      etapaPorLead.set(reg.lead_id, atual ? pior(atual, st) : st)
-    }
     for (const st of etapaPorLead.values()) {
       if (st === 'dados_varejo') saida.onboarding_aberto.dados_varejo++
       else if (st === 'aguardando_aiva') saida.onboarding_aberto.aguardando_aiva++
@@ -632,7 +662,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       }
     }
     // passo 12 no dry: só conta (sem envio, sem chave, sem carimbo)
-    saida.loja_nova = (await passoLojaNova(true, { onboardings, registros, inicio, avisos })).saida
+    saida.loja_nova = (await passoLojaNova(true, { onboardings, registros: todosRegistros, inicio, avisos })).saida
     return saida
   }
 
@@ -707,7 +737,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       await marcar(x.lead_id, MARCADOR_DERRUBADO, new Date().toISOString())
       await marcar(x.lead_id, 'MOVE_SILENCIOSO', `${ETAPA.PRE_APROVACAO}:${new Date().toISOString()}`)
       await supabaseAdmin.from('sdr_leads').update({ status: 'PRE_APROVACAO', acionar_humano: false }).eq('id', x.lead_id)
-      await supabaseAdmin.from('sdr_registros_cnpj').update({ enviado: false, origem: null, enviado_em: null, status: 'informada' }).eq('lead_id', x.lead_id).neq('status', 'ativa')
+      await supabaseAdmin.from('sdr_registros_cnpj').update({ enviado: false, origem: null, enviado_em: null, status: 'informada' }).in('id', registros.filter((rg) => rg.lead_id === x.lead_id).map((rg) => rg.id)).neq('status', 'ativa') // por id: a loja nova de outra empresa (fora de `registros`) não volta pra pendente
       const corpo = await changeOpportunityStage(x.opp, ETAPA.PRE_APROVACAO)
       await new Promise((res) => setTimeout(res, 800))
       const relida = Number((await getOpportunity(x.opp)).fkStage)
@@ -974,7 +1004,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   }
 
   // 12) loja nova de outra empresa (por CNPJ) — link, loja criada, recusa, fila parada. Não mexe em card.
-  const lojaNova = await passoLojaNova(false, { onboardings, registros, inicio, avisos })
+  const lojaNova = await passoLojaNova(false, { onboardings, registros: todosRegistros, inicio, avisos })
   saida.loja_nova = lojaNova.saida
 
   const blocos: string[] = []

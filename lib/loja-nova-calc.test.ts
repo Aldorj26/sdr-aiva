@@ -9,7 +9,9 @@ import {
   pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, chaveFilaParada, chaveLinkLojaNova, chaveCriadaLojaNova,
   chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada,
   type RegLojaNova, type RegLojaNovaFila,
+  decidirFalhaEnvio, rejeicaoClara, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova, TENTATIVAS_LOJA_NOVA, FLUXO_LOJA_NOVA,
 } from './loja-nova-calc.ts'
+import { FLUXO_LOJA_NOVA_REG } from './espelho-portal-calc.ts'
 
 const T0 = Date.parse('2026-11-19T13:00:00Z')
 const MK_OK = marcadorLojaNova('59218413000190', { ok: true }, '2026-11-19T12:00:00Z')
@@ -284,4 +286,59 @@ test('detalhe com | ou ] é limpo no marcador e não quebra a leitura', () => {
 test('atalho: "nova loja" só como palavras inteiras', () => {
   for (const t of ['renova loja', 'nova lojas', 'inova loja']) assert.ok(!ehAtalhoNovaLoja(t), t)
   for (const t of ['nova loja.', '(nova loja)', 'NOVA-LOJA']) assert.ok(ehAtalhoNovaLoja(t), t)
+})
+
+// ─── revisão Task 4, rodada 1 ───────────────────────────────────────────────────────────────────
+test('o filtro do card usa o mesmo valor de fluxo', () => {
+  assert.equal(FLUXO_LOJA_NOVA_REG, FLUXO_LOJA_NOVA)
+})
+test('falha de envio: só rejeição clara solta a chave; ambígua segura; 3 rejeições = desiste', () => {
+  const r400 = 'Error: Evo Talks /int/sendWaTemplate → 400: {"error":"template inválido"}'
+  assert.ok(rejeicaoClara(r400))
+  assert.ok(rejeicaoClara('Error: Evo Talks /int/sendMessageToChat → 404: chat'))
+  assert.ok(rejeicaoClara('Error: Evo Talks /int/sendWaTemplate → 429: rate'))
+  for (const amb of ['Error: Evo Talks /int/sendWaTemplate → 500: oops', 'Error: Evo Talks /int/sendWaTemplate → 408: timeout',
+    'TypeError: fetch failed', 'AbortError: The operation was aborted', 'SyntaxError: Unexpected token < in JSON', 'qualquer coisa']) {
+    assert.ok(!rejeicaoClara(amb), amb)
+    assert.deepEqual(decidirFalhaEnvio(amb, 0), { acao: 'segurar', conta: false })
+  }
+  assert.deepEqual(decidirFalhaEnvio(r400, 0), { acao: 'tentar_de_novo', conta: true })
+  assert.deepEqual(decidirFalhaEnvio(r400, 1), { acao: 'tentar_de_novo', conta: true })
+  assert.deepEqual(decidirFalhaEnvio(r400, 2), { acao: 'desistir', conta: true })   // 3ª rejeição
+  assert.equal(TENTATIVAS_LOJA_NOVA, 3)
+  // silêncio de envio é pausa deliberada: bloqueado antes de sair, tenta depois e não gasta tentativa
+  assert.deepEqual(decidirFalhaEnvio('Error: SILENCIO_GLOBAL: envio bloqueado (/int/sendWaTemplate)', 2), { acao: 'tentar_de_novo', conta: false })
+  assert.deepEqual(decidirFalhaEnvio('Error: SILENCIO_TEMPLATES: template bloqueado (templateId 86)', 2), { acao: 'tentar_de_novo', conta: false })
+})
+test('chaves de tentativa e de retenção por CNPJ e tipo', () => {
+  assert.equal(chaveTentativaLojaNova('link', '59.218.413/0001-90', 2), 'loja_nova_tentativa:link:59218413000190:2')
+  assert.equal(chaveRetidoLojaNova('criada', '59218413000190'), 'loja_nova_retido:criada:59218413000190')
+  const ch = ['loja_nova_tentativa:link:59218413000190:1', 'loja_nova_tentativa:link:59218413000190:2', 'loja_nova_tentativa:criada:59218413000190:1', 'loja_nova_tentativa:link:11222333000181:1']
+  assert.equal(tentativasDe(ch, 'link', '59218413000190'), 2)
+  assert.equal(tentativasDe(ch, 'criada', '59218413000190'), 1)
+  assert.equal(tentativasDe([], 'link', '59218413000190'), 0)
+})
+test('CNPJ duplicado na API (um sem RID em dados_varejo, outro com RID): só "loja criada", nunca os dois', () => {
+  const o = [{ cnpj: '59218413000190', stage: 'dados_varejo' }, { cnpj: '59218413000190', stage: 'cadastro_finalizado', retailer_id: 9001 }]
+  assert.equal(pendentesLink([reg()], o).length, 0)
+  assert.equal(pendentesCriada([reg()], o).length, 1)
+})
+test('loja criada não promete acesso nem ativação; próximos passos por este WhatsApp, sem prazo', () => {
+  const u = utilLojaCriada()
+  for (const t of [textoLojaCriada('ACME LTDA'), textoLojaCriada(null), `${u.etapa} ${u.situacao}`]) {
+    assert.doesNotMatch(t, /acess|login|senha|liberad|ativ|operar|vender/i, t)
+    assert.match(t, /criada na AIVA/)
+    assert.match(t, /próximos passos/)
+    assert.match(t, /WhatsApp/)
+    assert.doesNotMatch(t, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
+  }
+  assert.match(textoLojaCriada('ACME LTDA'), /ACME LTDA/)
+})
+test('idade abaixo de 0,1 ano vira meses', () => {
+  const det = (idadeAnos: number) => (elegibilidade({ situacao: 'ATIVA', idadeAnos, odres: false, jaNaAiva: null }) as any).detalhe
+  assert.equal(det(0.04), 'menos de 1 mês')
+  assert.equal(det(0), 'menos de 1 mês')
+  assert.equal(det(0.09), '1 mês')
+  assert.equal(det(0.1), '0,1 ano')
+  assert.equal(det(0.4166666), '0,4 ano')
 })

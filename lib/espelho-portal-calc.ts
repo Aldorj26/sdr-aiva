@@ -62,6 +62,20 @@ export type RegistroCnpj = {
   /** Clique em "Abrir form" (/api/registros, enviado false→true). Vazio nas linhas anteriores a 15/10/2026
    *  e nas que nasceram já marcadas (vínculo pelo telefone, fase 3) — aí o relógio cai em criado_em. */
   enviado_em?: string | null
+  /** 'loja_nova_empresa' = loja de OUTRA empresa pedida por lojista ativo (docs/sql/2026-11-19-loja-nova-empresa.sql).
+   *  Ausente/null = registro comum. Linha do fluxo NUNCA entra na lógica de card/etapa — ver `registrosDoCard`. */
+  fluxo?: string | null
+}
+
+/** Mesmo valor de FLUXO_LOJA_NOVA (lib/loja-nova-calc.ts) — repetido aqui pra este módulo seguir sem imports. */
+export const FLUXO_LOJA_NOVA_REG = 'loja_nova_empresa'
+
+/** Registros que alimentam o card e os marcadores de etapa do lead. A loja nova de outra empresa (fluxo
+ *  `loja_nova_empresa`) sai de TUDO isso: o lead já opera pela loja principal, e o CNPJ novo em
+ *  dados_varejo/not_approved puxaria o card pra 50/95, marcaria [ONB_ETAPA] e duplicaria avisos (revisão
+ *  Task 4, item 1). Ela é tratada só pelo passo 12 do espelho. Sem a coluna `fluxo`, nada sai (igual a antes). */
+export function registrosDoCard<R extends { fluxo?: string | null }>(registros: R[]): R[] {
+  return registros.filter((r) => r.fluxo !== FLUXO_LOJA_NOVA_REG)
 }
 export type LeadEspelho = {
   id: string
@@ -395,6 +409,49 @@ export function situacaoOnb(stage: string, bio: string | null | undefined): OnbS
   return 'biometria'
 }
 
+
+/** Situação REAL ruim na Receita (checagem da AIVA) — a loja precisa regularizar. */
+export const SITUACAO_REAL = new Set(['inapta', 'baixada', 'suspensa'])
+
+/**
+ * Etapa do onboarding em aberto por lead → marcador [ONB_ETAPA] (passo 9 do espelho). Saiu do IO em 22/11/2026
+ * sem mudar a regra, pra dar pra testar que a loja nova de outra empresa não marca o lead (quem chama passa
+ * `registrosDoCard`). dados_varejo vence biometria quando o lojista tem mais de uma loja: enquanto UM
+ * formulário estiver aberto, o cadastro dele não fechou.
+ */
+export function etapaOnbPorLead(onboardings: OnbApi[], registros: RegistroCnpj[], leads: LeadEspelho[]): Map<string, string> {
+  const etapaPorLead = new Map<string, string>()
+  const stagePorCnpj = new Map<string, string>()
+  for (const o of onboardings) {
+    // CNPJ com situação REAL irregular (inapta/baixada/suspensa) nunca fecha o formulário — ele
+    // não pode "vencer" a etapa do lead. Smarttech (06/10/2026): matriz com biometria APROVADA
+    // esperando a AIVA, e a filial INAPTA prendia o lead em "formulário aberto" — a VictorIA
+    // cobraria um formulário que não existe pra fazer. Esse CNPJ já tem marcador próprio.
+    if (SITUACAO_REAL.has(String(o.cnpj_check_status ?? '').toLowerCase())) continue
+    const sit = situacaoOnb(String(o.stage ?? ''), o.biometry_status)
+    if (sit) stagePorCnpj.set(soDigitos(o.cnpj), sit)
+  }
+  // Fora: quem JÁ OPERA. Duas portas de erro, as duas reais:
+  //  - importado do portal (lote de 16/09) que JÁ SAIU da Em Análise: o portal o tem em
+  //    dados_varejo, mas vende. ⚠️ Desde 02/10/2026 o importado que CONTINUA em
+  //    EM_ANALISE_AIVA não conta como "opera": quem consulta ou vende já foi pra 51, então
+  //    o que ficou tem o cadastro aberto de verdade (raio-x do funil, Aldo).
+  //  - lojista com matriz vendendo e FILIAL nova em cadastro: o marcador é do LEAD,
+  //    a etapa é do CNPJ — sem esta trava, a VictorIA diria "você não tem acesso"
+  //    a quem está logado e vendendo.
+  const opera = new Set<string>()
+  for (const l of leads) if ((l.observacoes ?? '').includes('[IMPORTADO_PORTAL:') && l.status !== 'EM_ANALISE_AIVA') opera.add(l.id)
+  for (const reg of registros) if (reg.lead_id && (reg.rid || reg.status === 'ativa')) opera.add(reg.lead_id)
+  const pior = (a: string, b: string) => (ONB_ORDEM.indexOf(a as OnbSituacao) <= ONB_ORDEM.indexOf(b as OnbSituacao) ? a : b)
+  for (const reg of registros) {
+    if (!reg.lead_id || opera.has(reg.lead_id)) continue
+    const st = stagePorCnpj.get(soDigitos(reg.cnpj))
+    if (!st) continue
+    const atual = etapaPorLead.get(reg.lead_id)
+    etapaPorLead.set(reg.lead_id, atual ? pior(atual, st) : st)
+  }
+  return etapaPorLead
+}
 
 /** Estado de um lead no passo "pré-cadastro que não chegou" (passo 11 do espelho). */
 export type PreCadastroEstado = { algumNoPortal: boolean; maisAntigo: number; cnpjs: string[] }
