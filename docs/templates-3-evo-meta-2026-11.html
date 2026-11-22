@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Templates WhatsApp (HSM) — VictorIA / AIVA — Proposta de 3 templates</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 14mm 14mm; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; overflow-x:hidden; }
+  body { font-family: "Segoe UI","Helvetica Neue",Arial,sans-serif; color:#0F1B2D; font-size:11px; line-height:1.55;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h1 { font-size:21px; margin:0 0 4px; letter-spacing:-.3px; }
+  .sub { color:#3D4A5C; font-size:10px; line-height:1.6; margin:0 0 16px; }
+  h2 { font-size:13px; color:#1E78FF; margin:18px 0 8px; text-transform:uppercase; letter-spacing:.5px; }
+  h3 { font-size:11.5px; margin:14px 0 6px; }
+  .callout { background:#EEF4FF; border:1px solid #1E78FF; border-radius:6px; padding:12px 14px; margin:0 0 18px; }
+  table.cfg { width:100%; border-collapse:collapse; font-size:10px; margin:0 0 14px; }
+  table.cfg td, table.cfg th { padding:5px 8px; border:1px solid #DDE3EA; vertical-align:top; text-align:left; }
+  table.cfg th { background:#F4F6F9; font-weight:700; }
+  table.cfg.kv td:first-child { width:150px; font-weight:700; background:#F4F6F9; }
+  .mono { font-family:"Consolas","Courier New",monospace; }
+  .chip { display:inline-block; padding:2px 8px; border-radius:3px; font-size:8.5px; font-weight:700; color:#fff; letter-spacing:.4px; background:#0A7B6C; }
+  .chip.mk { background:#B5471B; }
+  .msg { background:#F4F6F9; border:1px solid #DDE3EA; border-left:3px solid #1E78FF; border-radius:0 5px 5px 0;
+         padding:12px 14px; font-size:11px; line-height:1.7; white-space:pre-wrap; word-wrap:break-word; margin:0 0 6px; }
+  .btns { margin:0 0 10px; font-size:10px; color:#3D4A5C; }
+  .btns span { display:inline-block; border:1px solid #1E78FF; color:#1E78FF; border-radius:14px; padding:2px 10px; margin-right:6px; }
+  .hint { color:#3D4A5C; font-size:9.5px; margin:0 0 14px; }
+  .notes { background:#FFF8EC; border:1px solid #E8710A; border-radius:6px; padding:12px 14px; margin:14px 0 0; }
+  .notes ol, .notes ul { margin:8px 0 0 16px; padding:0; }
+  .notes li { margin:6px 0; }
+  code { background:#eef; padding:1px 4px; border-radius:3px; font-family:"Consolas",monospace; font-size:10px; }
+  .ex { background:#F0FBF6; border:1px solid #9FE0C5; border-radius:5px; padding:8px 12px; margin:6px 0; font-size:10.5px; }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Templates WhatsApp (HSM) — Proposta de 3 templates</h1>
+<p class="sub">
+  Agente <b>VictorIA</b> · Track Tecnologia e Inovação — parceira oficial AIVA<br>
+  Fila Evo Talks 10 · Número: +55 47 9204-2626 · Conta Meta "Track … - Habilis"<br>
+  Documento para submissão e aprovação na Meta Business — 12/11/2026
+</p>
+
+<div class="callout">
+  <b>Objetivo.</b> Substituir os templates reclassificados pela Meta como MARKETING (21, 31, 32, 35, 38, 39, 48)
+  por <b>um template principal e dois coringas</b>, todos para <b>loja que já é parceira ou já está em cadastro</b>.
+  O texto fixo de cada um diz quem fala, sobre qual loja e que tipo de aviso é; a variável só completa o fato.
+  É isso que mantém a categoria UTILITY na revisão e na releitura posterior da Meta.
+  Prospecção fria (template 41, D+0) não faz parte desta proposta.
+</div>
+
+<h2>1. Template principal — Comunicado ao parceiro</h2>
+<table class="cfg kv">
+  <tr><td>Nome do modelo (Meta)</td><td class="mono">aiva_comunicado_parceiro</td></tr>
+  <tr><td>Nome interno Evo</td><td>[AIVA] Comunicado Parceiro</td></tr>
+  <tr><td>Categoria</td><td><span class="chip">UTILITY</span></td></tr>
+  <tr><td>Idioma</td><td>pt_BR</td></tr>
+  <tr><td>Abertura pelo agente</td><td>LIGADO (reabre janela de 24 h)</td></tr>
+  <tr><td>Uso</td><td>Mudança de regra, condição, processo ou acesso que afeta a conta da loja: nova tabela de repasse permanente, mudança no portal, nova etapa de cadastro, manutenção, horário de atendimento.</td></tr>
+  <tr><td>Parâmetros</td><td>5 (corpo) · sem botões</td></tr>
+</table>
+<div class="msg">Olá {{1}}, aqui é a VictorIA, da Track, parceira oficial AIVA.
+
+Comunicado para a loja {{2}}: {{3}}
+
+{{4}}
+
+Vale a partir de {{5}}. Dúvidas, é só responder esta mensagem.</div>
+<table class="cfg">
+  <tr><th style="width:60px">Var</th><th>Conteúdo</th><th>Amostra para submissão</th></tr>
+  <tr><td class="mono">{{1}}</td><td>nome do contato</td><td>Kaio</td></tr>
+  <tr><td class="mono">{{2}}</td><td>nome fantasia da loja</td><td>KR Infocell</td></tr>
+  <tr><td class="mono">{{3}}</td><td>título do comunicado (até 80 caracteres)</td><td>nova tabela de repasse de vendas</td></tr>
+  <tr><td class="mono">{{4}}</td><td>detalhe em uma frase (até 200 caracteres)</td><td>O repasse passa a cair em D+1 para vendas aprovadas até as 15h.</td></tr>
+  <tr><td class="mono">{{5}}</td><td>data de vigência</td><td>01/12/2026</td></tr>
+</table>
+
+<h3>1b. Gêmeo em MARKETING — Novidade para o parceiro</h3>
+<table class="cfg kv">
+  <tr><td>Nome do modelo (Meta)</td><td class="mono">aiva_novidade_parceiro</td></tr>
+  <tr><td>Nome interno Evo</td><td>[AIVA] Novidade Parceiro</td></tr>
+  <tr><td>Categoria</td><td><span class="chip mk">MARKETING</span></td></tr>
+  <tr><td>Uso</td><td>Promoção ou incentivo por tempo limitado: Black November, bônus de comissão, campanha de vendas, dicas comerciais. Mesmo corpo do principal, trocando "Comunicado" por "Novidade". Separar evita que o conteúdo promocional contamine o template UTILITY.</td></tr>
+  <tr><td>Parâmetros</td><td>5 (iguais ao principal)</td></tr>
+</table>
+<div class="msg">Olá {{1}}, aqui é a VictorIA, da Track, parceira oficial AIVA.
+
+Novidade para a loja {{2}}: {{3}}
+
+{{4}}
+
+Vale a partir de {{5}}. Dúvidas, é só responder esta mensagem.</div>
+<p class="hint">Amostras: {{3}} = "comissão em dobro nas vendas de novembro" · {{4}} = "Até 30/11, cada venda aprovada paga até R$ 50 de comissão para a loja." · {{5}} = "10/11/2026".</p>
+
+<h2 class="pb">2. Coringa de status — Atualização da loja</h2>
+<table class="cfg kv">
+  <tr><td>Nome do modelo (Meta)</td><td class="mono">aiva_atualizacao_loja</td></tr>
+  <tr><td>Nome interno Evo</td><td>[AIVA] Atualização Loja</td></tr>
+  <tr><td>Categoria</td><td><span class="chip">UTILITY</span></td></tr>
+  <tr><td>Idioma</td><td>pt_BR</td></tr>
+  <tr><td>Abertura pelo agente</td><td>LIGADO</td></tr>
+  <tr><td>Uso</td><td>Algo avançou ou foi concluído e o lojista precisa saber: biometria aprovada, cadastro aprovado, treinamento liberado, acesso liberado, documento recebido, venda repassada, ticket resolvido.</td></tr>
+  <tr><td>Parâmetros</td><td>4 (corpo) · sem botões</td></tr>
+</table>
+<div class="msg">Olá {{1}}, aqui é a VictorIA, da Track, sobre a loja {{2}} na AIVA.
+
+Atualização: {{3}}
+
+Próximo passo: {{4}}
+
+Qualquer dúvida, responda esta mensagem.</div>
+<table class="cfg">
+  <tr><th style="width:60px">Var</th><th>Conteúdo</th><th>Amostra para submissão</th></tr>
+  <tr><td class="mono">{{1}}</td><td>nome do contato</td><td>Maria</td></tr>
+  <tr><td class="mono">{{2}}</td><td>nome fantasia da loja</td><td>Planeta Cell</td></tr>
+  <tr><td class="mono">{{3}}</td><td>fato concluído (até 160 caracteres)</td><td>sua biometria foi aprovada e o cadastro seguiu para análise de documentos</td></tr>
+  <tr><td class="mono">{{4}}</td><td>o que fazer agora (até 160 caracteres)</td><td>nada por enquanto; aviso aqui quando a análise terminar</td></tr>
+</table>
+<div class="ex"><b>Outros exemplos de {{3}} / {{4}}:</b> "sua loja foi liberada para o treinamento da AIVA" / "escolha um horário no link do treinamento" ·
+"o repasse da venda 4821 foi feito hoje" / "confira o valor no painel financeiro" ·
+"seu acesso ao portal foi liberado" / "entre com o e-mail cadastrado e crie sua senha".</div>
+
+<h2>3. Coringa de pendência — Ação do lojista</h2>
+<table class="cfg kv">
+  <tr><td>Nome do modelo (Meta)</td><td class="mono">aiva_pendencia_loja</td></tr>
+  <tr><td>Nome interno Evo</td><td>[AIVA] Pendência Loja</td></tr>
+  <tr><td>Categoria</td><td><span class="chip">UTILITY</span></td></tr>
+  <tr><td>Idioma</td><td>pt_BR</td></tr>
+  <tr><td>Abertura pelo agente</td><td>LIGADO</td></tr>
+  <tr><td>Uso</td><td>Tudo que está parado esperando o lojista: documento faltando, código de 6 dígitos, senha pendente, acesso pendente, cadastro parado, agendar treinamento, confirmar dado.</td></tr>
+  <tr><td>Parâmetros</td><td>4 (corpo) · 2 botões de resposta rápida (opcionais)</td></tr>
+</table>
+<div class="msg">Olá {{1}}, aqui é a VictorIA, da Track. A loja {{2}} na AIVA está aguardando uma ação sua.
+
+Pendência: {{3}}
+
+Prazo: {{4}}
+
+Responda esta mensagem para resolver.</div>
+<p class="btns">Botões de resposta rápida: <span>Resolver agora</span> <span>Preciso de ajuda</span></p>
+<table class="cfg">
+  <tr><th style="width:60px">Var</th><th>Conteúdo</th><th>Amostra para submissão</th></tr>
+  <tr><td class="mono">{{1}}</td><td>nome do contato</td><td>Kaio</td></tr>
+  <tr><td class="mono">{{2}}</td><td>nome fantasia da loja</td><td>KR Infocell</td></tr>
+  <tr><td class="mono">{{3}}</td><td>o que falta (até 160 caracteres)</td><td>enviar o código de 6 dígitos que chegou no seu e-mail</td></tr>
+  <tr><td class="mono">{{4}}</td><td>prazo ou consequência (até 120 caracteres)</td><td>até sexta, 14/11; depois o cadastro é reiniciado</td></tr>
+</table>
+<div class="ex"><b>Outros exemplos de {{3}}:</b> "enviar a foto do comprovante de endereço da loja" · "finalizar o cadastro no link que enviamos" ·
+"criar a senha de acesso ao portal" · "escolher o horário do treinamento".</div>
+
+<h2 class="pb">4. Migração dos templates atuais</h2>
+<table class="cfg">
+  <tr><th>Hoje</th><th>Vai para</th></tr>
+  <tr><td>48 coringa — retomada, cobranças, avisos de etapa</td><td>Pendência (3) ou Atualização (2)</td></tr>
+  <tr><td>48 coringa — Black November, dicas, incentivos</td><td>Novidade para o parceiro (1b, MARKETING)</td></tr>
+  <tr><td>48 coringa — alertas internos para Aldo e Nei</td><td>continua no 48 (números da própria Track)</td></tr>
+  <tr><td>69 / 70 — treinamento liberado</td><td>Atualização (2)</td></tr>
+  <tr><td>29 loja pré-aprovada · 34 link de cadastro</td><td>Pendência (3)</td></tr>
+  <tr><td>21, 31, 32, 35, 38, 39</td><td>descontinuar</td></tr>
+  <tr><td>41 — D+0 prospecção</td><td>mantido como está</td></tr>
+</table>
+<p class="hint">Resultado: 5 templates em uso (41, principal, gêmeo MARKETING, dois coringas) em vez de 13.</p>
+
+<h2>5. Observações para a submissão</h2>
+<div class="notes">
+  <ol>
+    <li><b>Nomes com significado</b>, nunca reciclados. Nome de "validação de pedido" com corpo de outra coisa é sinal para a revisão da Meta.</li>
+    <li><b>Amostras operacionais</b>, como as tabelas acima. A Meta classifica pela amostra, não pela categoria marcada.</li>
+    <li>Categoria UTILITY nos três; MARKETING só no gêmeo. Se a Meta devolver o principal como MARKETING, aceitar e usar a Atualização (2) para o que for mudança de conta; não abrir recurso.</li>
+    <li>"Abertura pelo agente" LIGADO nos três (reabrem janela de 24 h).</li>
+    <li>Do lado da Track, o sistema passa a: mandar texto de sessão quando a janela estiver aberta (sem template); sanitizar as variáveis (sem quebra de linha, limites de tamanho); barrar palavras promocionais nas variáveis dos UTILITY e desviar o envio para o gêmeo MARKETING.</li>
+  </ol>
+</div>
+
+<h2>6. Espelho para a Parcelex (Patricia, fila 21, +55 47 9244-8176)</h2>
+<p>Mesmos três corpos, trocando "VictorIA, da Track, parceira oficial AIVA" por "Patricia, da Track, canal oficial Parcelex" e "na AIVA" por "na Parcelex".
+Nomes: <code>parcelex_comunicado_lojista</code>, <code>parcelex_atualizacao_loja</code>, <code>parcelex_pendencia_loja</code>.
+O <code>parcelex_reabridor_conversa</code> pendente desde julho tem o mesmo corpo do 48 e deve ser substituído pela Pendência (3) antes da submissão.</p>
+
+</body>
+</html>

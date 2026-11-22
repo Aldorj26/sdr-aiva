@@ -3,6 +3,20 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## ▶️ PRÓXIMA SESSÃO (combinado com o Aldo em 19/11) — executar o plano "loja nova de outra empresa"
+
+- **O que é:** cliente já ativo pede, no mesmo WhatsApp, cadastro de loja de OUTRA empresa (raiz de CNPJ diferente).
+  Hoje a VictorIA diz "passei pro Nei" e para. Casos reais: Eduardo Cell (→ 59.218.413/0001-90) e RG Cell (→ 69.849.333/0001-96).
+- **Desenho aprovado pelo Aldo:** `docs/superpowers/specs/2026-11-19-loja-nova-outra-empresa-design.md`.
+  **Plano (6 tarefas):** `docs/superpowers/plans/2026-11-19-loja-nova-outra-empresa.md`. **Nada programado, nada commitado**
+  (os dois docs estão sem commit).
+- **Decisões do Aldo:** SEM aprovação do Nei; o link só sai depois do pré-cadastro (a AIVA exige) — o CNPJ cai direto na
+  fila de pré-cadastro do `/atendimento`, o Nei só clica, e o espelho manda o link quando o CNPJ chegar a `dados_varejo`.
+  Atalho `NOVA LOJA`. Filial de mesma raiz não muda.
+- **Falta o Aldo escolher:** execução com revisão por tarefa (recomendado) ou direto na sessão. Ele volta e dá o comando.
+- **Cuidados:** registro da loja nova é `tipo: 'adicional'` + `fluxo`, nunca `matriz` (move o card). Textos e push só com OK
+  do Aldo. RG Cell recebeu promessa errada em 19/11 13h22 (credenciar Osasco com o CNPJ da matriz) — o Nei corrige.
+
 ## ⚠️ LEIA PRIMEIRO — estado em 17/11/2026 à noite (vale por cima do que conflitar abaixo)
 
 **Três mudanças grandes no dia. Tudo publicado e no ar: último commit `7a18edc`, deploy READY em 17/11 ~19h20 BRT. Nada pendente de push.**
