@@ -141,3 +141,13 @@ export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
 export function textoLojaCriada(razao: string | null): string {
   return `A loja${razao ? ` ${razao}` : ''} foi criada na AIVA. Você já pode acessar normalmente com o seu login. Qualquer dúvida, é só me chamar por aqui.`
 }
+
+// ─── fila de pré-cadastro (painel /atendimento) ─────────────────────────────────────────────────
+/** Selo e sócio de uma linha de `sdr_registros_cnpj` na fila. Sem `fluxo` = linha comum (null). */
+export function seloRegistroFila(r: { fluxo?: string | null; socio_nome?: string | null; socio_telefone?: string | null }): { selo: string; socio: string } | null {
+  if (r.fluxo !== FLUXO_LOJA_NOVA) return null
+  const nome = r.socio_nome?.trim()
+  const tel = r.socio_telefone?.trim()
+  const socio = nome ? `sócio: ${nome}${tel ? ` (${tel})` : ''}` : 'mesmo sócio'
+  return { selo: 'loja nova de cliente ativo', socio }
+}

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   raizCnpj, classificar, ridDaRaiz, ehAtalhoNovaLoja, elegibilidade, deveAbrirFluxo, lerMotivoLojaNova,
-  marcadorLojaNova, blocoPromptLojaNova, textoLinkLojaNova, textoLojaCriada,
+  marcadorLojaNova, blocoPromptLojaNova, textoLinkLojaNova, textoLojaCriada, seloRegistroFila,
 } from './loja-nova-calc.ts'
 
 test('raiz e classificação', () => {
@@ -58,4 +58,11 @@ test('textos ao lojista: link com o CNPJ, sem prazo', () => {
   const t = textoLinkLojaNova('59218413000190', 'ACME LTDA')
   assert.match(t, /https:\/\/retail-onboarding-hub\.vercel\.app\//); assert.match(t, /59\.218\.413\/0001-90/)
   for (const s of [t, textoLojaCriada('ACME LTDA')]) assert.doesNotMatch(s, /\b(hoje|amanhã|\d+ ?(h|horas|dias))\b/i)
+})
+test('selo da fila: só o fluxo ganha selo; sócio nulo = mesmo sócio', () => {
+  assert.equal(seloRegistroFila({ fluxo: null }), null)
+  assert.equal(seloRegistroFila({}), null)
+  assert.deepEqual(seloRegistroFila({ fluxo: 'loja_nova_empresa' }), { selo: 'loja nova de cliente ativo', socio: 'mesmo sócio' })
+  assert.equal(seloRegistroFila({ fluxo: 'loja_nova_empresa', socio_nome: 'Maria', socio_telefone: '5521965002926' })?.socio, 'sócio: Maria (5521965002926)')
+  assert.equal(seloRegistroFila({ fluxo: 'loja_nova_empresa', socio_nome: 'Maria' })?.socio, 'sócio: Maria')
 })

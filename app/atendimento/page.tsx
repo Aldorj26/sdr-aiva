@@ -13,6 +13,7 @@ import { orientar, resumirFala, haQuanto } from '@/lib/atendimento-orientacao'
 import AbrirFormLink from '@/app/registros/AbrirFormLink'
 import { linkFormPreenchido, formatarCnpj } from '@/lib/pre-cadastro-form'
 import { listarTicketsAbertos, STATUS_ROTULO, type TicketApi } from '@/lib/tickets-aiva'
+import { seloRegistroFila } from '@/lib/loja-nova-calc'
 
 // 🎧 MESA DE ATENDIMENTO (pedido do Aldo 03/09): tudo que o Nei precisa
 // resolver, numa aba só, ordenado por prioridade — a versão viva do digest de
@@ -198,29 +199,37 @@ async function getAvisos(): Promise<Array<{ tipo: TipoAviso; linhas: Linha[] }>>
 // se havia CNPJ esperando o pré-cadastro. O quadro mostra os pendentes (enviado = false) com o mesmo
 // "Abrir form" do /registros — que marca no clique e avança o card pra 49.
 const PLANILHA_ATENDIMENTOS = 'https://docs.google.com/spreadsheets/d/1lTB9LvptQejFd_WLygGAKDE6UDVlzvfLEDGhcdSRmQU/edit?gid=1497480463#gid=1497480463'
-interface RegPendente { id: string; loja: string | null; cnpj: string; telefone: string | null; tipo: string | null; criado_em: string; lead_id: string | null }
+interface RegPendente { id: string; loja: string | null; cnpj: string; telefone: string | null; tipo: string | null; criado_em: string; lead_id: string | null; fluxo?: string | null; socio_nome?: string | null; socio_telefone?: string | null }
 async function getRegistros() {
   const agora = Date.now()
   const hojeBrt = new Date(new Date(agora - 3 * 3600e3).toISOString().slice(0, 10) + 'T03:00:00Z').toISOString()
   const d7 = new Date(agora - 7 * 864e5).toISOString()
+  const colunas = 'id, loja, cnpj, telefone, tipo, criado_em, lead_id'
+  const pendentesQ = (cols: string) => supabaseAdmin.from('sdr_registros_cnpj').select(cols).eq('enviado', false).order('criado_em', { ascending: true }).limit(60)
+  // Colunas do fluxo "loja nova de outra empresa" (docs/sql/2026-11-19-loja-nova-empresa.sql): se ainda não
+  // foram aplicadas (42703), refaz o select sem elas — o quadro segue como antes.
+  const pendComFluxo = pendentesQ(`${colunas}, fluxo, socio_nome, socio_telefone`).then(async (r) => (r.error?.code === '42703' ? pendentesQ(colunas) : r))
   const [pend, hoje, semana] = await Promise.all([
-    supabaseAdmin.from('sdr_registros_cnpj').select('id, loja, cnpj, telefone, tipo, criado_em, lead_id').eq('enviado', false).order('criado_em', { ascending: true }).limit(60),
+    pendComFluxo,
     supabaseAdmin.from('sdr_registros_cnpj').select('id', { count: 'exact', head: true }).gte('criado_em', hojeBrt),
     supabaseAdmin.from('sdr_registros_cnpj').select('id', { count: 'exact', head: true }).gte('criado_em', d7),
   ])
-  return { pendentes: (pend.data ?? []) as RegPendente[], hoje: hoje.count ?? 0, semana: semana.count ?? 0 }
+  return { pendentes: (pend.data ?? []) as unknown as RegPendente[], hoje: hoje.count ?? 0, semana: semana.count ?? 0 }
 }
 
 function ItemRegistro({ r }: { r: RegPendente }) {
+  const selo = seloRegistroFila(r)
   return (
     <li style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0', borderTop: '1px solid var(--border)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {r.loja ?? '—'} <span style={{ fontWeight: 400, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{r.tipo === 'matriz' ? 'matriz' : 'adicional'}</span>
+          {selo ? <span style={{ marginLeft: 6, fontWeight: 600, fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid var(--accent)', color: 'var(--accent)' }}>{selo.selo}</span> : null}
         </div>
         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           <Copiavel valor={r.cnpj} exibir={formatarCnpj(r.cnpj)} />{r.telefone ? <> · <Copiavel valor={r.telefone} /></> : null} · há {haQuanto(r.criado_em)}
         </div>
+        {selo ? <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{selo.socio}</div> : null}
       </div>
       <span style={{ padding: '0.25rem 0.55rem', border: '1px solid var(--accent)', borderRadius: 6 }}>
         <AbrirFormLink id={r.id} href={linkFormPreenchido(r.cnpj) ?? '#'} jaEnviado={false} />
