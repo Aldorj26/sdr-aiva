@@ -91,7 +91,7 @@ export function mensagemFilial(a: Abertura, cnpj: string): string {
     case 'criado': return `Pronto! Abri o pedido de cadastro da filial ${c} na AIVA (ticket nº ${a.numero}). A AIVA já conferiu o CNPJ na Receita; agora o time deles faz o cadastro — quando concluírem, eu te aviso por aqui. 🎉`
     case 'ja_existe': return `Já existe um pedido de cadastro aberto pra filial ${c}${a.numero ? ` (ticket nº ${a.numero})` : ''} — é só aguardar, eu te aviso quando a AIVA concluir.`
     case 'recusado': return /raiz/i.test(a.erro)
-      ? `O CNPJ ${c} não é filial da sua loja principal (é de outra empresa) — aí não é cadastro de filial, é uma loja nova. Passei pro nosso time ver o melhor caminho com você.`
+      ? `O CNPJ ${c} é de outra empresa — aí o caminho é o cadastro de loja nova. Quer que eu registre essa empresa como nova loja na AIVA?`
       : /endere|cep/i.test(a.erro)
         ? `A AIVA não conseguiu completar o endereço da filial ${c} pelo CEP. Me confirma o endereço completo dela (rua, bairro, cidade e estado)?`
         : `A AIVA não aceitou o CNPJ ${c} como filial: ${a.erro.replace(/^\d+\s*/, '')}. Confere o número? Se estiver certo, passei pro nosso time olhar.`

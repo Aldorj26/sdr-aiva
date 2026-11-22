@@ -132,6 +132,102 @@ export function blocoPromptLojaNova(obs: string | null | undefined, agora: numbe
   ].join('\n')
 }
 
+// ─── webhook: o que conferir antes do modelo e o que fazer com o motivo depois ──────────────────
+export const ehMotivoLojaNova = (m: string | null | undefined): boolean =>
+  String(m ?? '').trim().toLowerCase().startsWith(MOTIVO_LOJA_NOVA)
+
+const RE_MARCADOR = /\s*\[LOJA_NOVA:cnpj=(\d{14})\|sit=([a-z_0-9]+)(?:\|det=([^|\]]*))?\|([^|\]]+)\]/g
+
+/** CNPJs (14 dígitos) já presentes nas observações — sem contar o marcador do fluxo nem o motivo cru dele
+ *  (senão o CNPJ pedido viraria "conhecido" e sumiria da captura de LOJA NOVA). */
+export function cnpjsDasObs(obs: string | null | undefined): string[] {
+  const limpo = (obs ?? '').replace(RE_MARCADOR, ' ').replace(/loja_nova_empresa\s*:[^[]*/gi, ' ')
+  return [...new Set(limpo.replace(/[.\-\/]/g, '').match(/\d{14}/g) ?? [])]
+}
+
+/** Marcador `[LOJA_NOVA:…]` mais recente desse CNPJ. */
+export function lerMarcadorLojaNova(obs: string | null | undefined, cnpj: string): { sit: string; det: string; t: number } | null {
+  const c = soDigitos(cnpj)
+  let melhor: { sit: string; det: string; t: number } | null = null
+  for (const m of (obs ?? '').matchAll(RE_MARCADOR)) {
+    const t = Date.parse(m[4])
+    if (m[1] !== c || Number.isNaN(t)) continue
+    if (!melhor || t > melhor.t) melhor = { sit: m[2], det: m[3] ?? '', t }
+  }
+  return melhor
+}
+
+export const semMarcadorLojaNova = (obs: string | null | undefined, cnpj: string): string => {
+  const c = soDigitos(cnpj)
+  return (obs ?? '').replace(RE_MARCADOR, (todo, cm: string) => (cm === c ? '' : todo)).trim()
+}
+
+/** Troca o marcador desse CNPJ pelo novo (nunca dois do mesmo CNPJ). */
+export const comMarcadorLojaNova = (obs: string | null | undefined, cnpj: string, marcador: string): string =>
+  `${semMarcadorLojaNova(obs, cnpj)} ${marcador}`.trim()
+
+/** CNPJs da mensagem (DV já conferido por quem chama) que abrem o fluxo neste turno — no máximo 3. */
+export function cnpjsParaConferir(e: { status: string; cnpjsMensagem: string[]; cnpjsDoLead: string[]; contextoRepasse: boolean; obs: string | null; agora: number }): string[] {
+  const out: string[] = []
+  for (const c of new Set(e.cnpjsMensagem.map(soDigitos))) {
+    if (!deveAbrirFluxo({ status: e.status, classe: classificar(c, e.cnpjsDoLead), contextoRepasse: e.contextoRepasse })) continue
+    const m = lerMarcadorLojaNova(e.obs, c)
+    // marcador < 7 dias não repete — salvo Receita fora do ar, que confere de novo quando ele reenviar
+    if (m && m.sit !== 'receita_indisponivel' && e.agora - m.t <= SETE_DIAS_MS) continue
+    if (jaPedido(e.obs, c)) continue
+    out.push(c)
+  }
+  return out.slice(0, 3)
+}
+
+/** Pedido já registrado (o marcador do fluxo sai e entra este — o bloco do prompt para de instruir). */
+export const marcadorPedido = (cnpj: string, iso: string) => `[LOJA_NOVA_PEDIDA:cnpj=${soDigitos(cnpj)}|${iso}]`
+export const jaPedido = (obs: string | null | undefined, cnpj: string) => (obs ?? '').includes(`[LOJA_NOVA_PEDIDA:cnpj=${soDigitos(cnpj)}|`)
+
+export type DecisaoPedido =
+  | { tipo: 'registrar'; pedido: PedidoLojaNova }
+  | { tipo: 'cancelar'; pedido: PedidoLojaNova }
+  | { tipo: 'ignorar'; porque: string }
+  | { tipo: 'escalar'; porque: string }
+
+export function avaliarPedidoLojaNova(e: { motivo: string | null | undefined; obs: string | null | undefined; falasDoLojista: string; agora: number }): DecisaoPedido {
+  const p = lerMotivoLojaNova(e.motivo)
+  if (!p) return { tipo: 'escalar', porque: `motivo de loja nova ilegível (${e.motivo})` }
+  const marca = lerMarcadorLojaNova(e.obs, p.cnpj)
+  if (p.acao === 'cancelar') return marca ? { tipo: 'cancelar', pedido: p } : { tipo: 'ignorar', porque: 'cancelamento sem marcador aberto' }
+  if (jaPedido(e.obs, p.cnpj)) return { tipo: 'ignorar', porque: 'pedido já registrado' }
+  if (!soDigitos(e.falasDoLojista).includes(p.cnpj)) return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} do motivo não foi escrito pelo lojista na janela recente` }
+  if (!marca || e.agora - marca.t > SETE_DIAS_MS) return { tipo: 'escalar', porque: `sem conferência recente do CNPJ ${p.cnpj}` }
+  if (marca.sit !== 'ok') return { tipo: 'escalar', porque: `CNPJ ${p.cnpj} não elegível (${marca.sit}${marca.det ? `: ${marca.det}` : ''})` }
+  return { tipo: 'registrar', pedido: p }
+}
+
+export function resumoElegibilidade(e: Elegibilidade | null): string {
+  if (!e) return 'elegibilidade não conferida (etapa fora do fluxo ou consulta falhou)'
+  if (e.ok) return 'elegível (Receita ATIVA, 1 ano ou mais, fora da base Odres/UME e sem cadastro na AIVA) — a VictorIA confirma com o lojista'
+  return `NÃO elegível — ${(FRASE_MOTIVO[e.motivo] ?? (() => e.motivo))(e.detalhe)}`
+}
+
+export function avisoLojaNovaFila(x: { loja: string; telefone: string; cnpj: string; razao: string | null; socioNome: string | null; socioTelefone: string | null; colunasFaltando: boolean }): string {
+  const socio = x.socioNome ? `${x.socioNome}${x.socioTelefone ? ` (${x.socioTelefone})` : ''}` : 'mesmo sócio'
+  return [
+    '🏪 *LOJA NOVA DE CLIENTE ATIVO — na fila de pré-cadastro*',
+    '',
+    `Loja: ${x.loja} (${x.telefone})`,
+    `CNPJ: ${fmtCnpj(x.cnpj)}${x.razao ? ` — ${x.razao}` : ''}`,
+    `Sócio: ${socio}`,
+    '',
+    'O lojista confirmou o pedido com a VictorIA; o link de cadastro sai depois, pela rotina de pré-cadastro.',
+    ...(x.colunasFaltando
+      ? ['', '⚠️ As colunas fluxo/socio_nome/socio_telefone ainda não existem em sdr_registros_cnpj (SQL não aplicado): o pedido está registrado como "informada", mas SEM o selo de loja nova nem o sócio — anote o sócio à mão.']
+      : []),
+    '👉 https://sdr-aiva.vercel.app/atendimento',
+  ].join('\n')
+}
+
+export const instrucaoAtalhoLojaNova = () =>
+  '[INSTRUÇÃO DO SISTEMA — LOJA NOVA] O lojista quer cadastrar uma loja nova: peça o CNPJ dela (14 dígitos). [FIM INSTRUÇÃO DO SISTEMA]'
+
 // ─── textos ao lojista (sem prazo) ──────────────────────────────────────────────────────────────
 export function textoLinkLojaNova(cnpj: string, razao: string | null): string {
   const quem = razao ? `${razao} (CNPJ ${fmtCnpj(cnpj)})` : `o CNPJ ${fmtCnpj(cnpj)}`

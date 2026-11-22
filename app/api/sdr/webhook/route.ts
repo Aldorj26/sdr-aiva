@@ -44,7 +44,12 @@ import { parseColaboradores, enviarColaboradorAoForm, linkColaboradorPreenchido,
 import { isAdmin, isCommand, handleCommand, respondToAdmin, conversarComAdmin } from '@/lib/admin-commands'
 import { consumirBriefingFollowup } from '@/lib/pipeline-briefing'
 import { ehSoReconhecimento } from '@/lib/reconhecimento'
-import { reenviarSenhaApi, telefonePorRetailer } from '@/lib/portal-aiva'
+import { reenviarSenhaApi, telefonePorRetailer, listarOnboardingsApi } from '@/lib/portal-aiva'
+import {
+  STATUS_ABRE_FLUXO, FLUXO_LOJA_NOVA, ridDaRaiz, classificar, ehAtalhoNovaLoja, elegibilidade, marcadorLojaNova, blocoPromptLojaNova,
+  ehMotivoLojaNova, cnpjsDasObs, comMarcadorLojaNova, semMarcadorLojaNova, cnpjsParaConferir, marcadorPedido, avaliarPedidoLojaNova,
+  resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova, lerMarcadorLojaNova, type Elegibilidade,
+} from '@/lib/loja-nova-calc'
 import { COLUNAS_FILIAL_AIVA, montarLinhaFilial, enderecoDaReceita, marcadorFilial } from '@/lib/filiais-aiva'
 import { registrarFilialAiva } from '@/lib/manual-docs'
 import { manterAntesDoInteresse, STATUS_ANTES_DO_INTERESSE, ehRespostaAutomatica } from '@/lib/resposta-automatica'
@@ -177,6 +182,52 @@ function serializeDadosAcumulados(dados: Record<string, string>): string | null 
     .map(([k, v]) => `${k}=${v}`)
   if (pairs.length === 0) return null
   return `[DADOS_COLETADOS:${pairs.join('|')}]`
+}
+
+// ─── PAINEL DE REPASSES / CONTEXTO DE REPASSE ───────────────────────────────
+// ⛔ Coleta automática DESLIGADA em 01/10/2026 (ver o bloco PAINEL DE REPASSES no POST). O contexto continua
+// calculado porque suprime o falso "CNPJ novo" no papo de repasse — antes (loja nova de outra empresa,
+// 19/11/2026) e depois do modelo, pelo MESMO critério.
+const REPASSE_AUTO_ATIVO = false
+async function calcularContextoRepasse(leadId: string, obs: string, texto: string | null | undefined): Promise<boolean> {
+  // com a coleta automática desligada, o marcador da campanha de 03/09 não deve mais
+  // calar a captura de LOJA NOVA (183 leads ficariam sem registro de filial pra sempre)
+  if ((REPASSE_AUTO_ATIVO && obs.includes('[CAMPANHA_PAINEL_REPASSES')) || /repasse|painel/i.test(texto ?? '')) return true
+  const { data: ultimas } = await supabaseAdmin
+    .from('sdr_mensagens').select('conteudo').eq('lead_id', leadId)
+    .order('enviado_em', { ascending: false }).limit(6)
+  return (ultimas ?? []).some((m) => /painel de repasse|repasses/i.test(m.conteudo ?? ''))
+}
+
+// ─── LOJA NOVA DE OUTRA EMPRESA (19/11/2026 — lib/loja-nova-calc.ts) ────────
+// Conferência do CNPJ de outra empresa pedido por loja já ativa. Receita fora → `receita_indisponivel`
+// (a própria regra trata); base Odres/UME ou API de onboardings fora → LANÇA (quem chama não grava marcador).
+const comTeto = <T,>(p: Promise<T>, ms: number, oque: string): Promise<T> =>
+  Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${oque}: sem resposta em ${ms / 1000}s`)), ms))])
+async function conferirLojaNova(cnpj: string): Promise<Elegibilidade> {
+  const [info, base, onbs] = await Promise.all([
+    comTeto(consultarCNPJ(cnpj), 15_000, 'Receita').catch(() => null),
+    supabaseAdmin.from('aiva_base_cnpjs').select('cnpj').eq('cnpj', cnpj).maybeSingle(),
+    // lista tudo (não há consulta por CNPJ nem espelho local) — só roda quando chega CNPJ de outra empresa
+    comTeto(listarOnboardingsApi(), 30_000, 'API de onboardings'),
+  ])
+  if (base.error) throw new Error(`aiva_base_cnpjs: ${base.error.message}`)
+  const onb = onbs.find((o) => String(o.cnpj ?? '').replace(/\D/g, '') === cnpj)
+  return elegibilidade({
+    situacao: info?.situacao ?? null,
+    idadeAnos: info?.idadeAnos ?? null,
+    odres: !!base.data, // qualquer CNPJ da base (Odres ou UME) é tratado à mão
+    jaNaAiva: onb ? String(onb.board_column ?? onb.stage ?? 'cadastro aberto') : null,
+  })
+}
+/** Grava o marcador no banco (lido fresco) e devolve as observações em memória já com ele. */
+async function gravarMarcadorLojaNova(leadId: string, obsMemoria: string | null, cnpj: string, e: Elegibilidade): Promise<string> {
+  const marca = marcadorLojaNova(cnpj, e, new Date().toISOString())
+  const { data: fresco, error: errLer } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
+  if (errLer) throw new Error(`ler observações: ${errLer.message}`)
+  const { error } = await supabaseAdmin.from('sdr_leads').update({ observacoes: comMarcadorLojaNova(fresco?.observacoes, cnpj, marca) }).eq('id', leadId)
+  if (error) throw new Error(`gravar marcador: ${error.message}`)
+  return comMarcadorLojaNova(obsMemoria, cnpj, marca)
 }
 
 export async function POST(req: NextRequest) {
@@ -1394,8 +1445,38 @@ export async function POST(req: NextRequest) {
         console.error('[webhook] desempenho da loja:', e instanceof Error ? e.message : e)
       }
     }
+    // LOJA NOVA DE OUTRA EMPRESA (19/11/2026): loja já ativa manda o CNPJ de OUTRA empresa (raiz diferente) →
+    // o SISTEMA confere (Receita, base Odres/UME, cadastro na AIVA) e grava [LOJA_NOVA:…] ANTES do modelo,
+    // pra VictorIA receber o bloco já neste turno. Mesma raiz (filial) segue como hoje. Falha = sem marcador.
+    const lojaNovaTurno = new Map<string, Elegibilidade>()
+    let instrucaoAtalho: string | null = null
+    if ((STATUS_ABRE_FLUXO as readonly string[]).includes(lead.status)) {
+      const leadIdLN = lead.id, statusLN = lead.status
+      try {
+        const cnpjsMsg = extrairCnpjs(conteudoEfetivo).filter((c) => cnpjDvValido(c))
+        if (!cnpjsMsg.length && ehAtalhoNovaLoja(conteudoEfetivo)) instrucaoAtalho = instrucaoAtalhoLojaNova()
+        if (cnpjsMsg.length) {
+          const { data: regsLN, error: errRegs } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').eq('lead_id', leadIdLN)
+          if (errRegs) throw new Error(`sdr_registros_cnpj: ${errRegs.message}`)
+          const conferir = cnpjsParaConferir({
+            status: statusLN, cnpjsMensagem: cnpjsMsg,
+            cnpjsDoLead: [...(regsLN ?? []).map((r) => String(r.cnpj)), ...cnpjsDasObs(lead.observacoes)],
+            contextoRepasse: await calcularContextoRepasse(leadIdLN, lead.observacoes ?? '', conteudoEfetivo),
+            obs: lead.observacoes, agora: Date.now(),
+          })
+          for (const c of conferir) {
+            const e = await conferirLojaNova(c)
+            lead.observacoes = await gravarMarcadorLojaNova(leadIdLN, lead.observacoes, c, e)
+            lojaNovaTurno.set(c, e)
+            console.log(`[LOJA_NOVA_EMPRESA] ${lead.telefone}: ${c} → ${e.ok ? 'elegível' : e.motivo}`)
+          }
+        }
+      } catch (err) {
+        console.error(`[LOJA_NOVA_EMPRESA] conferência antes do modelo falhou para ${lead.telefone} — segue sem marcador:`, err instanceof Error ? err.message : err)
+      }
+    }
     try {
-      const instrucaoTurno = [lead.instrucao_silvia, instrucaoPedirPrint].filter((s) => s && String(s).trim()).join('\n\n') || null
+      const instrucaoTurno = [lead.instrucao_silvia, instrucaoPedirPrint, instrucaoAtalho].filter((s) => s && String(s).trim()).join('\n\n') || null
       resposta = await processarMensagem(
         conteudoParaClaude, historico, lead.nome, lead.status, lead.produto, dadosAcumulados, imagemPraClaude, instrucaoTurno, undefined, undefined,
         // cliente Track já ativo na AIVA (lote importado do portal 16/09): a FASE 4
@@ -1415,7 +1496,7 @@ export async function POST(req: NextRequest) {
         desempenhoLoja,
         (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:'),
         // + campanha de boas-vindas (placar gravado pela /campanha-ativacao — lib/campanha-ativacao-calc.ts)
-        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null, blocoPromptTickets(lead.observacoes), blocoRegua].filter(Boolean).join('\n\n') || null,
+        [bloqueioLimite, !bloqueioLimite && ['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status) ? blocoPromptCampanha(lead.observacoes) : null, blocoPromptTickets(lead.observacoes), blocoPromptLojaNova(lead.observacoes), blocoRegua].filter(Boolean).join('\n\n') || null,
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -1979,6 +2060,9 @@ export async function POST(req: NextRequest) {
   if (resposta.novo_status === 'CADASTRO_RECEBIDO' || resposta.motivo_humano === 'cadastro_completo') {
     resposta.acionar_humano = false
   }
+  // Loja nova de outra empresa (19/11/2026): o pedido é do SISTEMA (bloco LOJA NOVA DE OUTRA EMPRESA, depois dos
+  // tickets). Não vira fila humana por aqui — se o pedido não fechar, aquele bloco escala (e o 🔔 sai na transição).
+  if (ehMotivoLojaNova(resposta.motivo_humano)) resposta.acionar_humano = false
 
   // 10. Bot/auto-reply — contador de tentativas de "furar o bot".
   // A VictorIA sinaliza motivo_humano = "atendimento_automatico_detectado" enquanto
@@ -3001,7 +3085,7 @@ export async function POST(req: NextRequest) {
       const falasDeleT = [conteudo, conteudoEfetivo, ...(ultimasT ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ')
       const digitosDele = falasDeleT.replace(/\D/g, '')
       const assuntoOk = ehRepasse ? /repasse|pagamento|caiu|venda|valor|receb|contrato/.test(janelaT) : /filial|loja nova|outra loja|nova loja|cnpj|abri/.test(janelaT)
-      const { data: regsT } = await supabaseAdmin.from('sdr_registros_cnpj').select('rid, tipo').eq('lead_id', leadIdT).not('rid', 'is', null)
+      const { data: regsT } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj, rid, tipo').eq('lead_id', leadIdT).not('rid', 'is', null)
       const ridMatriz = String((regsT ?? []).find((r) => r.tipo === 'matriz')?.rid ?? (regsT ?? [])[0]?.rid ?? '')
       if (!['TREINAR', 'LOGIN', 'LOJA_FINALIZADA_E_VENDENDO'].includes(lead.status)) {
         await escalarT(`ticket pedido com a loja ainda não criada (${lead.status})`)
@@ -3047,19 +3131,36 @@ export async function POST(req: NextRequest) {
         if (!ped || !digitosDele.includes(ped.cnpj) || !falasDeleT.includes(ped.numero)) {
           await escalarT(`motivo de filial ilegível ou com dado que o lojista não escreveu (${resposta.motivo_humano})`)
         } else {
-          const a = await abrirTicketFilial(ridMatriz, ped)
+          // filial da SEGUNDA empresa do lojista vai no RID da mesma raiz (19/11/2026); sem par, o de sempre
+          const ridFilial = ridDaRaiz(ped.cnpj, (regsT ?? []).map((r) => ({ cnpj: String(r.cnpj ?? ''), rid: r.rid == null ? null : String(r.rid), tipo: String(r.tipo ?? '') }))) ?? ridMatriz
+          const a = await abrirTicketFilial(ridFilial, ped)
+          // raiz diferente = outra empresa: o texto pergunta se registra como loja nova e o marcador leva o turno seguinte pro fluxo
+          let marcouLojaNova = false
+          if (a.tipo === 'recusado' && /raiz/i.test(a.erro)) {
+            try {
+              const e = await conferirLojaNova(ped.cnpj)
+              lead.observacoes = await gravarMarcadorLojaNova(leadIdT, lead.observacoes, ped.cnpj, e)
+              marcouLojaNova = true
+              console.log(`[LOJA_NOVA_EMPRESA] ${telT}: ${ped.cnpj} (ticket de filial recusado por raiz) → ${e.ok ? 'elegível' : e.motivo}`)
+            } catch (e) {
+              console.error(`[LOJA_NOVA_EMPRESA] marcador depois da recusa por raiz falhou para ${telT}:`, e instanceof Error ? e.message : e)
+            }
+          }
           await falarComLojista(mensagemFilial(a, ped.cnpj))
           if (a.tipo === 'criado' || a.tipo === 'ja_existe') {
             if (a.numero) {
               const { data: fr } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadIdT).maybeSingle()
               if (!lerTicketsDoLead(fr?.observacoes).has(a.numero)) await supabaseAdmin.from('sdr_leads').update({ observacoes: gravarTicketNoLead(fr?.observacoes, { number: a.numero, type: 'Cadastro de filial', status: 'aberto', msgsAiva: 0 }) }).eq('id', leadIdT)
             }
-            if (a.tipo === 'criado') await avisarTimeT(`🎫 *FILIAL — ticket aberto na AIVA* (nº ${a.numero}) — ${nomeT} (${telT})\nMatriz RID ${ridMatriz} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}${ped.complemento ? ` ${ped.complemento}` : ''}\nO sistema avisa o lojista quando a AIVA concluir.`)
+            if (a.tipo === 'criado') await avisarTimeT(`🎫 *FILIAL — ticket aberto na AIVA* (nº ${a.numero}) — ${nomeT} (${telT})\nMatriz RID ${ridFilial} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}${ped.complemento ? ` ${ped.complemento}` : ''}\nO sistema avisa o lojista quando a AIVA concluir.`)
           } else if (a.tipo === 'recusado' && /endere|cep/i.test(a.erro)) {
             await escalarT(`filial pediu endereço completo — ${a.erro}`)
             await avisarTimeT(`🏪 *FILIAL — a AIVA pediu o endereço completo, ticket NÃO abriu* — ${nomeT} (${telT})
-Matriz RID ${ridMatriz} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}
+Matriz RID ${ridFilial} · filial ${fmtCnpj(ped.cnpj)}, nº ${ped.numero}
 A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIVA com o endereço que ele mandar.`)
+          } else if (marcouLojaNova) {
+            // outra empresa: a VictorIA conduz o pedido de loja nova no turno seguinte (bloco do marcador) — sem fila humana
+            console.log(`[TICKET_AIVA] ${telT}: filial ${ped.cnpj} recusada por raiz → fluxo de loja nova`)
           } else {
             await escalarT(`ticket de filial não abriu: ${a.erro}`)
           }
@@ -3068,6 +3169,71 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
     } catch (err) {
       console.error(`[TICKET_AIVA] falhou para ${telT}:`, err)
       try { await escalarT('erro no bloco de ticket') } catch { /* segue */ }
+    }
+  }
+
+  // ─── LOJA NOVA DE OUTRA EMPRESA — o pedido (19/11/2026, lib/loja-nova-calc.ts) ───
+  // Motivo "loja_nova_empresa: cnpj=… | acao=confirmar|cancelar | socio=mesmo|<nome> | tel=…" (acionar_humano já foi
+  // zerado lá em cima). Confirmar = marca a linha de sdr_registros_cnpj como fluxo de loja nova (fila de pré-cadastro);
+  // cancelar = tira o marcador. O link de cadastro NÃO sai daqui (outra rotina manda depois).
+  if (ehMotivoLojaNova(resposta.motivo_humano)) {
+    const leadIdN = lead.id, telN = lead.telefone, nomeN = lead.nome
+    const avisarTimeN = async (texto: string) => {
+      for (const tel of [process.env.NEI_WHATSAPP, process.env.ALDO_WHATSAPP].filter(Boolean) as string[]) {
+        try { await alertHuman(tel, texto) } catch (e) { console.error('[LOJA_NOVA_EMPRESA] aviso ao time falhou:', e) }
+      }
+    }
+    const escalarN = async (porque: string) => {
+      resposta.acionar_humano = true // o 🔔 genérico lá embaixo sai com o motivo cru
+      await supabaseAdmin.from('sdr_leads').update({ acionar_humano: true }).eq('id', leadIdN)
+      console.warn(`[LOJA_NOVA_EMPRESA] ${telN}: ${porque}`)
+    }
+    try {
+      const { data: ultimasN } = await supabaseAdmin.from('sdr_mensagens').select('direcao, conteudo').eq('lead_id', leadIdN).order('enviado_em', { ascending: false }).limit(12)
+      const falasDeleN = [conteudo, conteudoEfetivo, ...(ultimasN ?? []).filter((m) => m.direcao === 'in').map((m) => m.conteudo)].filter(Boolean).join(' ')
+      const { data: frN } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadIdN).maybeSingle()
+      const obsN = frN?.observacoes ?? lead.observacoes ?? ''
+      const d = avaliarPedidoLojaNova({ motivo: resposta.motivo_humano, obs: obsN, falasDoLojista: falasDeleN, agora: Date.now() })
+      if (d.tipo === 'escalar') {
+        await escalarN(d.porque)
+      } else if (d.tipo === 'ignorar') {
+        console.log(`[LOJA_NOVA_EMPRESA] ${telN}: ${d.porque} — nada a fazer`)
+      } else if (d.tipo === 'cancelar') {
+        await supabaseAdmin.from('sdr_leads').update({ observacoes: semMarcadorLojaNova(obsN, d.pedido.cnpj) }).eq('id', leadIdN)
+        lead.observacoes = semMarcadorLojaNova(lead.observacoes, d.pedido.cnpj)
+        console.log(`[LOJA_NOVA_EMPRESA] ${telN}: ${d.pedido.cnpj} cancelado pelo lojista — marcador removido, registro mantido`)
+      } else {
+        const p = d.pedido
+        const extra = { fluxo: FLUXO_LOJA_NOVA, socio_nome: p.socioNome, socio_telefone: p.socioTelefone }
+        // coluna inexistente (SQL ainda não aplicado): 42703 do Postgres; o PostgREST costuma responder PGRST204 no payload
+        const semColuna = (e: { code?: string } | null) => e?.code === '42703' || e?.code === 'PGRST204'
+        let colunasFaltando = false
+        // ⛔ nunca tipo 'matriz' aqui: é loja adicional do lojista (a linha costuma existir pela captura de LOJA NOVA)
+        const up = await supabaseAdmin.from('sdr_registros_cnpj').update(extra).eq('lead_id', leadIdN).eq('cnpj', p.cnpj).select('id')
+        if (semColuna(up.error)) colunasFaltando = true
+        else if (up.error) throw new Error(`update sdr_registros_cnpj: ${up.error.message}`)
+        if (colunasFaltando || !(up.data ?? []).length) {
+          const linha = { lead_id: leadIdN, loja: nomeN, telefone: telN, cnpj: p.cnpj, tipo: 'adicional', status: 'informada' }
+          let ins = colunasFaltando
+            ? await supabaseAdmin.from('sdr_registros_cnpj').upsert([linha], { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
+            : await supabaseAdmin.from('sdr_registros_cnpj').upsert([{ ...linha, ...extra }], { onConflict: 'lead_id,cnpj' })
+          if (semColuna(ins.error)) {
+            colunasFaltando = true
+            ins = await supabaseAdmin.from('sdr_registros_cnpj').upsert([linha], { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
+          }
+          if (ins.error) throw new Error(`upsert sdr_registros_cnpj: ${ins.error.message}`)
+        }
+        // o marcador do fluxo sai (o bloco do prompt para de pedir confirmação) e fica o carimbo do pedido
+        const obsPedido = `${semMarcadorLojaNova(obsN, p.cnpj)} ${marcadorPedido(p.cnpj, new Date().toISOString())}`.trim()
+        await supabaseAdmin.from('sdr_leads').update({ observacoes: obsPedido }).eq('id', leadIdN)
+        lead.observacoes = `${semMarcadorLojaNova(lead.observacoes, p.cnpj)} ${marcadorPedido(p.cnpj, new Date().toISOString())}`.trim()
+        const razao = (await comTeto(consultarCNPJ(p.cnpj), 10_000, 'Receita').catch(() => null))?.razaoSocial ?? null
+        await avisarTimeN(avisoLojaNovaFila({ loja: nomeN, telefone: telN, cnpj: p.cnpj, razao, socioNome: p.socioNome, socioTelefone: p.socioTelefone, colunasFaltando }))
+        console.log(`[LOJA_NOVA_EMPRESA] ${telN}: ${p.cnpj} na fila de pré-cadastro${colunasFaltando ? ' (SEM as colunas novas — 42703)' : ''}`)
+      }
+    } catch (err) {
+      console.error(`[LOJA_NOVA_EMPRESA] pedido falhou para ${telN}:`, err)
+      try { await escalarN('erro no bloco de loja nova') } catch { /* segue */ }
     }
   }
 
@@ -3399,7 +3565,7 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
   // sócio, nome da loja e telefone) e o Aldo decidiu que o PRÓPRIO lojista preenche
   // — a VictorIA só manda o link. O form antigo foi desativado; o contextoRep abaixo
   // continua calculado porque ele também suprime o falso "CNPJ novo" no papo de repasse.
-  const REPASSE_AUTO_ATIVO = false
+  // (REPASSE_AUTO_ATIVO e calcularContextoRepasse moram no topo do arquivo — o pré-modelo da loja nova usa o mesmo critério.)
   let repasseCapturado = false
   // Contexto de repasse calculado FORA do gate de e-mail: também suprime a
   // captura de LOJA NOVA quando o lojista manda o CNPJ num turno e o Gmail no
@@ -3409,15 +3575,7 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
   if (STATUS_REPASSE.includes(lead.status)) {
     try {
       const obsRep = lead.observacoes ?? ''
-      // com a coleta automática desligada, o marcador da campanha de 03/09 não deve mais
-      // calar a captura de LOJA NOVA (183 leads ficariam sem registro de filial pra sempre)
-      contextoRep = (REPASSE_AUTO_ATIVO && obsRep.includes('[CAMPANHA_PAINEL_REPASSES')) || /repasse|painel/i.test(conteudoEfetivo ?? '')
-      if (!contextoRep) {
-        const { data: ultimas } = await supabaseAdmin
-          .from('sdr_mensagens').select('conteudo').eq('lead_id', lead.id)
-          .order('enviado_em', { ascending: false }).limit(6)
-        contextoRep = (ultimas ?? []).some((m) => /painel de repasse|repasses/i.test(m.conteudo ?? ''))
-      }
+      contextoRep = await calcularContextoRepasse(lead.id, obsRep, conteudoEfetivo)
       const emailMatch = (conteudoEfetivo ?? '').match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)
       if (emailMatch && REPASSE_AUTO_ATIVO) {
         const jaSolicitado = obsRep.includes('[REPASSE_SOLICITADO')
@@ -3468,12 +3626,23 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
       const doTexto = todos14.filter((c) => cnpjDvValido(c))
       const dvRuim = todos14.filter((c) => !cnpjDvValido(c))
       if (todos14.length > 0) {
-        const conhecidosObs = new Set(((lead.observacoes ?? '').replace(/[.\-\/]/g, '').match(/\d{14}/g) ?? []))
+        // o marcador [LOJA_NOVA:…] gravado antes do modelo NÃO torna o CNPJ conhecido (senão a captura não registrava)
+        const conhecidosObs = new Set(cnpjsDasObs(lead.observacoes))
         const { data: jaRegistrados } = await supabaseAdmin
           .from('sdr_registros_cnpj').select('cnpj').eq('lead_id', lead.id)
         const conhecidos = new Set([...conhecidosObs, ...(jaRegistrados ?? []).map((r) => r.cnpj)])
         const novos = doTexto.filter((c) => !conhecidos.has(c))
         const dvRuimNovos = dvRuim.filter((c) => !conhecidos.has(c))
+        // 19/11/2026: raiz diferente de tudo que o lead tem = OUTRA EMPRESA (fluxo de loja nova, sem linha na aba Filiais)
+        const outraEmpresa = new Set(novos.filter((c) => classificar(c, [...conhecidos]) === 'outra_empresa'))
+        const obsElegDe = lead.observacoes // const fora da closure (TS perde o narrowing de `lead`)
+        const elegDe = (c: string): Elegibilidade | null => {
+          const doTurno = lojaNovaTurno.get(c)
+          if (doTurno) return doTurno
+          const m = lerMarcadorLojaNova(obsElegDe, c)
+          if (!m) return null
+          return m.sit === 'ok' ? { ok: true } : ({ ok: false, motivo: m.sit, detalhe: m.det } as Elegibilidade)
+        }
         if (novos.length > 0 || dvRuimNovos.length > 0) {
           // captura em const antes do callback — TS perde o narrowing de `lead`
           // dentro de closures
@@ -3499,7 +3668,8 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
               info?.idadeAnos != null && info.idadeAnos < 1 ? `⚠️ ${info.idadeAnos.toFixed(1)} ano(s) de abertura — regra de 1 ano pode barrar` : null,
               info?.situacao && info.situacao !== 'ATIVA' ? `⚠️ situação ${info.situacao} — CNPJ ≠ ATIVA não credencia (regra 10/09)` : null,
             ].filter(Boolean).join(' | ')
-            linhasAlerta.push(`• ${c}${info?.razaoSocial ? ` — ${info.razaoSocial}` : ''}${avisos ? `\n  ${avisos}` : ''}`)
+            const classeTxt = outraEmpresa.has(c) ? `\n  🔎 OUTRA EMPRESA (raiz diferente): ${resumoElegibilidade(elegDe(c))}` : ''
+            linhasAlerta.push(`• ${c}${info?.razaoSocial ? ` — ${info.razaoSocial}` : ''}${avisos ? `\n  ${avisos}` : ''}${classeTxt}`)
           }
           for (const c of dvRuimNovos) {
             linhasAlerta.push(`• ${c} — ❌ dígito verificador NÃO fecha (digitação errada?) — NÃO registrado; pedir o número de novo`)
@@ -3511,7 +3681,8 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
           // Idempotente por [FILIAL_AIVA:cnpj] — CNPJ repetido não vira linha nova.
           const filiaisLancadas: string[] = []
           const filiaisPendentes: string[] = []
-          for (const c of novos) {
+          // só FILIAL (mesma raiz) vira linha na aba Filiais; outra empresa segue o fluxo de loja nova (19/11/2026)
+          for (const c of novos.filter((x) => !outraEmpresa.has(x))) {
             const { data: frescoF } = await supabaseAdmin.from('sdr_leads').select('observacoes').eq('id', leadId).maybeSingle()
             const obsF = frescoF?.observacoes ?? lead.observacoes ?? ''
             if (obsF.includes(marcadorFilial(c))) continue
@@ -3543,12 +3714,22 @@ A VictorIA pediu rua/bairro/cidade ao lojista; abrir o pedido pelo portal da AIV
 
           // Rótulo neutro de propósito: CNPJ desconhecido também pode ser
           // CORREÇÃO/TROCA do cadastral, não só loja nova — quem decide é o Nei.
+          // Exceção (19/11/2026): quando TODOS os novos são de outra empresa, o título diz a classe e o resultado
+          // da conferência vai em cada linha; o texto de filial/ticket não se aplica.
+          const soOutraEmpresa = novos.length > 0 && novos.every((c) => outraEmpresa.has(c)) && dvRuimNovos.length === 0
           const aviso =
-            `🏪 *CNPJ NOVO NA CONVERSA — conferir: loja nova ou correção/troca?*\n\n` +
+            (soOutraEmpresa
+              ? `🏪 *CNPJ DE OUTRA EMPRESA NA CONVERSA — loja nova de cliente ativo*\n\n`
+              : `🏪 *CNPJ NOVO NA CONVERSA — conferir: loja nova ou correção/troca?*\n\n`) +
             `${lead.nome} (${lead.telefone} — etapa ${lead.status}) mandou:\n` +
             linhasAlerta.join('\n') +
-            (novos.length > 0
-              ? `\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
+            (soOutraEmpresa
+              ? `\n\n📝 Registrado no painel (status "informada"). Raiz diferente da loja dele = OUTRA EMPRESA: não é filial e não gerou linha na aba Filiais.` +
+                `\nSe elegível, a VictorIA confirma com o lojista (e o sócio); com a confirmação o pedido entra na fila de pré-cadastro (/atendimento) e chega outro aviso. Se não elegível, ela explica ao lojista que não segue por aqui.` +
+                `\nSe for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.`
+              : '') +
+            (novos.length > 0 && !soOutraEmpresa
+              ?`\n\n📝 Registrado no painel (status "informada") — link do pré-cadastro preenchido em:\nhttps://sdr-aiva.vercel.app/registros` +
                 `\n📮 Desde 13/10 a VictorIA pede o número do endereço e o sistema abre o ticket de filial na AIVA (o formulário foi desativado); a linha da planilha fica como registro.` +
                 `\nSe for LOJA NOVA: só acompanhar — o ticket abre quando ele mandar o número do endereço; NÃO mandar a linha da planilha à AIVA (a conta MRR nasce sozinha quando ativar, no cruzamento de segunda).` +
                 `\nSe for TROCA do CNPJ cadastral: o lojista pede no form de alterações da empresa (https://forms.gle/GkmyfeDghnzxbxm89); desconsiderar o registro.`

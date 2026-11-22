@@ -3,7 +3,89 @@ import assert from 'node:assert/strict'
 import {
   raizCnpj, classificar, ridDaRaiz, ehAtalhoNovaLoja, elegibilidade, deveAbrirFluxo, lerMotivoLojaNova,
   marcadorLojaNova, blocoPromptLojaNova, textoLinkLojaNova, textoLojaCriada, seloRegistroFila,
+  ehMotivoLojaNova, cnpjsDasObs, lerMarcadorLojaNova, semMarcadorLojaNova, comMarcadorLojaNova, cnpjsParaConferir,
+  marcadorPedido, jaPedido, avaliarPedidoLojaNova, resumoElegibilidade, avisoLojaNovaFila, instrucaoAtalhoLojaNova,
 } from './loja-nova-calc.ts'
+
+const T0 = Date.parse('2026-11-19T13:00:00Z')
+const MK_OK = marcadorLojaNova('59218413000190', { ok: true }, '2026-11-19T12:00:00Z')
+
+test('motivo do fluxo é reconhecido pelo prefixo (o bloco de ticket não o trata)', () => {
+  assert.ok(ehMotivoLojaNova(' Loja_Nova_Empresa: cnpj=1 | acao=x'))
+  assert.ok(!ehMotivoLojaNova('abrir_ticket_filial: cnpj=59218413000190'))
+  assert.ok(!ehMotivoLojaNova(null))
+})
+test('CNPJs conhecidos das observações ignoram o marcador do fluxo e o motivo cru', () => {
+  const obs = `[DADOS_COLETADOS:cnpj_matriz=32.306.162/0001-49] ${MK_OK} loja_nova_empresa: cnpj=11222333000181 | acao=confirmar [FILIAL_AIVA:32306162000220]`
+  assert.deepEqual(cnpjsDasObs(obs).sort(), ['32306162000149', '32306162000220'])
+  assert.deepEqual(cnpjsDasObs(null), [])
+})
+test('marcador: leitura, remoção e troca por CNPJ', () => {
+  const obs = `a ${MK_OK} ${marcadorLojaNova('11222333000181', { ok: false, motivo: 'odres', detalhe: 'base Odres/UME' }, '2026-11-18T12:00:00Z')} b`
+  assert.deepEqual(lerMarcadorLojaNova(obs, '59.218.413/0001-90'), { sit: 'ok', det: '', t: Date.parse('2026-11-19T12:00:00Z') })
+  assert.equal(lerMarcadorLojaNova(obs, '11222333000181')?.sit, 'odres')
+  assert.equal(lerMarcadorLojaNova(obs, '99999999000191'), null)
+  const sem = semMarcadorLojaNova(obs, '59218413000190')
+  assert.equal(lerMarcadorLojaNova(sem, '59218413000190'), null)
+  assert.ok(lerMarcadorLojaNova(sem, '11222333000181'))
+  assert.match(sem, /^a \[LOJA_NOVA:cnpj=11222333000181.* b$/)
+  const troca = comMarcadorLojaNova(obs, '59218413000190', marcadorLojaNova('59218413000190', { ok: false, motivo: 'nao_ativa', detalhe: 'BAIXADA' }, '2026-11-20T12:00:00Z'))
+  assert.equal(troca.match(/cnpj=59218413000190/g)?.length, 1)
+  assert.equal(lerMarcadorLojaNova(troca, '59218413000190')?.sit, 'nao_ativa')
+  assert.equal(comMarcadorLojaNova(null, '59218413000190', MK_OK), MK_OK)
+})
+test('o que conferir antes do modelo: outra empresa, etapa certa, fora do repasse e sem marcador recente', () => {
+  const base = { status: 'LOJA_FINALIZADA_E_VENDENDO', cnpjsMensagem: ['59218413000190'], cnpjsDoLead: ['32306162000149'], contextoRepasse: false, obs: '', agora: T0 }
+  assert.deepEqual(cnpjsParaConferir(base), ['59218413000190'])
+  assert.deepEqual(cnpjsParaConferir({ ...base, contextoRepasse: true }), [])                          // (a) papo de repasse
+  assert.deepEqual(cnpjsParaConferir({ ...base, status: 'EM_ANALISE_AIVA' }), [])
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsMensagem: ['32306162000220'] }), [])             // filial: fluxo de hoje
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsDoLead: ['32306162000149', '59218413000190'] }), []) // já conhecido
+  assert.deepEqual(cnpjsParaConferir({ ...base, obs: MK_OK }), [])                                     // (d) marcador < 7 dias
+  const velho = marcadorLojaNova('59218413000190', { ok: true }, '2026-11-01T12:00:00Z')
+  assert.deepEqual(cnpjsParaConferir({ ...base, obs: velho }), ['59218413000190'])                    // > 7 dias: confere de novo
+  const semReceita = marcadorLojaNova('59218413000190', { ok: false, motivo: 'receita_indisponivel', detalhe: 'Receita sem resposta' }, '2026-11-19T12:00:00Z')
+  assert.deepEqual(cnpjsParaConferir({ ...base, obs: semReceita }), ['59218413000190'])               // Receita fora: confere de novo
+  assert.deepEqual(cnpjsParaConferir({ ...base, obs: marcadorPedido('59218413000190', '2026-11-19T12:00:00Z') }), []) // já pedido
+  assert.deepEqual(cnpjsParaConferir({ ...base, cnpjsMensagem: ['59218413000190', '59218413000190', '11222333000181', '45997418000153', '06990590000123'] }).length, 3)
+})
+test('pedido já registrado', () => {
+  const m = marcadorPedido('59.218.413/0001-90', '2026-11-19T12:00:00Z')
+  assert.equal(m, '[LOJA_NOVA_PEDIDA:cnpj=59218413000190|2026-11-19T12:00:00Z]')
+  assert.ok(jaPedido(`x ${m}`, '59218413000190'))
+  assert.ok(!jaPedido(`x ${m}`, '11222333000181'))
+  // o pedido registrado não conta como marcador do fluxo
+  assert.equal(lerMarcadorLojaNova(m, '59218413000190'), null)
+})
+test('avaliar o motivo devolvido pelo modelo', () => {
+  const falas = 'quero cadastrar 59.218.413/0001-90 sim sou eu'
+  const conf = 'loja_nova_empresa: cnpj=59218413000190 | acao=confirmar | socio=mesmo'
+  assert.deepEqual(avaliarPedidoLojaNova({ motivo: conf, obs: MK_OK, falasDoLojista: falas, agora: T0 }).tipo, 'registrar')
+  assert.equal(avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: cnpj=59 | acao=x', obs: MK_OK, falasDoLojista: falas, agora: T0 }).tipo, 'escalar')
+  assert.equal(avaliarPedidoLojaNova({ motivo: conf, obs: MK_OK, falasDoLojista: 'sim', agora: T0 }).tipo, 'escalar')   // CNPJ não escrito
+  assert.equal(avaliarPedidoLojaNova({ motivo: conf, obs: '', falasDoLojista: falas, agora: T0 }).tipo, 'escalar')       // sem marcador
+  const ruim = marcadorLojaNova('59218413000190', { ok: false, motivo: 'odres', detalhe: 'x' }, '2026-11-19T12:00:00Z')
+  assert.equal(avaliarPedidoLojaNova({ motivo: conf, obs: ruim, falasDoLojista: falas, agora: T0 }).tipo, 'escalar')     // inelegível
+  assert.equal(avaliarPedidoLojaNova({ motivo: conf, obs: MK_OK, falasDoLojista: falas, agora: T0 + 8 * 86400000 }).tipo, 'escalar') // vencido
+  assert.equal(avaliarPedidoLojaNova({ motivo: conf, obs: `${marcadorPedido('59218413000190', '2026-11-19T12:30:00Z')}`, falasDoLojista: falas, agora: T0 }).tipo, 'ignorar') // repetido
+  // (b) cancelar: remove o marcador, mesmo sem o CNPJ na janela
+  assert.equal(avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: cnpj=59218413000190 | acao=cancelar', obs: MK_OK, falasDoLojista: 'não quero', agora: T0 }).tipo, 'cancelar')
+  assert.equal(avaliarPedidoLojaNova({ motivo: 'loja_nova_empresa: cnpj=59218413000190 | acao=cancelar', obs: '', falasDoLojista: 'não', agora: T0 }).tipo, 'ignorar')
+})
+test('resumo da elegibilidade e aviso da fila', () => {
+  assert.match(resumoElegibilidade({ ok: true }), /elegível/)
+  assert.match(resumoElegibilidade({ ok: false, motivo: 'menos_de_1_ano', detalhe: '0,4 ano' }), /menos de 1 ano.*0,4 ano/)
+  assert.match(resumoElegibilidade(null), /não conferida/)
+  const a = avisoLojaNovaFila({ loja: 'Loja X', telefone: '5547999990000', cnpj: '59218413000190', razao: 'ACME LTDA', socioNome: null, socioTelefone: null, colunasFaltando: false })
+  assert.match(a, /^🏪 \*LOJA NOVA DE CLIENTE ATIVO — na fila de pré-cadastro\*/)
+  assert.match(a, /59\.218\.413\/0001-90 — ACME LTDA/); assert.match(a, /mesmo sócio/); assert.match(a, /\/atendimento/)
+  assert.doesNotMatch(a, /colunas/)
+  const b = avisoLojaNovaFila({ loja: 'Loja X', telefone: '5547999990000', cnpj: '59218413000190', razao: null, socioNome: 'Maria', socioTelefone: '5521965002926', colunasFaltando: true })
+  assert.match(b, /Maria \(5521965002926\)/); assert.match(b, /colunas.*não existem/)
+})
+test('atalho: instrução de pedir o CNPJ', () => {
+  assert.match(instrucaoAtalhoLojaNova(), /peça o CNPJ dela \(14 dígitos\)/)
+})
 
 test('raiz e classificação', () => {
   assert.equal(raizCnpj('32.306.162/0001-49'), '32306162')

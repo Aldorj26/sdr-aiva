@@ -21,7 +21,10 @@ test('respostas de abertura', () => {
   assert.equal(classificarAbertura(422, { error: 'varejo não elegível' }).tipo, 'nao_elegivel')
   assert.equal(classificarAbertura(404, { error: 'varejo não encontrado' }).tipo, 'nao_elegivel')
   assert.equal(classificarAbertura(503, { error: 'Receita indisponível' }).tipo, 'falha')
-  assert.match(mensagemFilial({ tipo: 'recusado', erro: '422 raiz diferente' }, '60854022000221'), /outra empresa/)
+  assert.equal(
+    mensagemFilial({ tipo: 'recusado', erro: '422 raiz diferente' }, '60854022000221'),
+    'O CNPJ 60.854.022/0002-21 é de outra empresa — aí o caminho é o cadastro de loja nova. Quer que eu registre essa empresa como nova loja na AIVA?',
+  )
 })
 
 test('acompanhamento: resolvido avisa o lojista uma vez; resposta da AIVA só vira evento', () => {
