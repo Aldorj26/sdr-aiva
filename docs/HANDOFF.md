@@ -3,6 +3,33 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## ✅ 23/11/2026 — Evo fila 10: fechamento automático em 2 dias + limpeza dos atendimentos abertos
+
+**Estado (23/11 ~10h22 BRT):** fila 10 com **425 atendimentos abertos** (421 de 23/11, 4 de 21/11). Antes: 6.600+.
+`clienttimeout` da fila 10 = **172800** (era 0), gravado pelo omni `queues_update` (campo dentro de `advanced`);
+`clienttimeouttext` e `closetext` vazios = nada vai pro lojista. Fila 21 (Parcelex) e funil 15 não foram tocados.
+
+**Feito (ordens do Aldo):**
+- Fechados pela API 5.137 atendimentos abertos antes de 16/11 (obs "Encerrado +7d (ordem do Aldo 23/11)") e depois
+  1.077 abertos há mais de 48 h (obs "Encerrado +2d (ordem do Aldo 23/11)"). Zero erro nas duas rodadas. Critério =
+  data de abertura (`beginTime`), não última mensagem.
+- Planilhas do retrato: `docs/Atendimentos-abertos-funil-AIVA-2026-11-23.xlsx` (09h32, por etapa do funil 15) e
+  `docs/Atendimentos-abertos-por-dia-AIVA-2026-11-23.xlsx` (10h16, por dia de abertura).
+- Script guardado: `scripts/fechar-atendimentos-evo.mjs`. Uso: `node --env-file=.env.local
+  scripts/fechar-atendimentos-evo.mjs <arquivoIds> <log> [limite] [--dry]`, com `CORTE` (ISO) e `OBS` no ambiente.
+  O arquivo de IDs é a saída do cubo `Chathistory` (`"chathistory__id": N`); 5 chamadas em paralelo, para sozinho
+  com 10 erros 5xx. ID que não é da fila 10 devolve 404 e é pulado.
+
+**Em aberto:**
+- **Não confirmado que o Evo fecha sozinho.** A unidade do `clienttimeout` (segundos) é suposição, por analogia com
+  `locktime`/`importtime`; como ele conta a inatividade também não foi visto. Teste: os 4 abertos de 21/11
+  (IDs 61498, 61499, 61500, 61502) devem sumir dos abertos até a madrugada de 25/11. Se continuarem: ajustar o valor
+  ou perguntar à Maísa (Evo). Conferir com omni `chats_list` (fila 10, status open).
+- Não investigado: 661 atendimentos abertos em 18/11 (provável régua de alerta) e ~420 abertos em 23/11 de manhã em
+  ritmo de lote (rotina não identificada).
+- Efeito esperado da régua de 2 dias: lojista que responde depois do prazo cai em atendimento novo; a URA 86
+  revincula a oportunidade pelo telefone e o funil não muda.
+
 ## ✅ 22/11/2026 — "Loja nova de outra empresa" NO AR (vale por cima do que conflitar abaixo)
 
 **Produção:** `main` = `21a838f`, deploy da Vercel concluído 22/11 ~21h BRT. Nada pendente de push. SQL
@@ -149,8 +176,7 @@ ambos em `dados_varejo`, sem RID.
   novo e transfere pro Nei; funil, janela 24 h e custo Meta não mudam. **`endChat` exige o motivo** (fila tem
   `requirereasontoclose`): sem `endReason` devolve 400 "Required data missing"; mandar `{chatId, reason,
   endReason:'ATENDIMENTO FINALIZADO'}` + `queueId`/`apiKey` da fila. Chat vazio 59226 fechado 12/11 13h58.
-  Pendente: ligar fechamento automático por inatividade (`clienttimeout` da fila, via omni `queues_update`, só
-  com OK do Aldo) e pedir à Evo o fechamento em lote (18.624 abertos na 10, 15.225 na 21).
+  Fechamento automático e limpeza da fila 10: feitos em 23/11 (seção do topo). Fila 21 segue sem `clienttimeout`.
 - **FAQ Flexfone no prompt (12/11, NÃO commitado):** Aldo mandou treinar a VictorIA com os 2 guias oficiais da
   Flexfone ("FAQ do vendedor" e "Resolver Rápido", HTMLs em Downloads). Entrou em `prompts/aiva.ts` a subseção
   `### 📗 FAQ DO VENDEDOR — FLEXFONE` (+ bloco 🧭 Guia 2) antes da FASE 5, e 4 passagens antigas foram alinhadas:
