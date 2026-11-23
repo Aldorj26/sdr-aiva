@@ -354,6 +354,14 @@ export function textoLojaCriada(razao: string | null): string {
   return `A loja nova${razao ? ` ${razao}` : ''} foi criada na AIVA. 🎉 Qualquer dúvida sobre ela, é só me chamar por aqui.`
 }
 
+/** Recusa da AIVA dita ao lojista (Aldo 23/11/2026: o lojista é avisado pelo robô; o time não é mais acionado).
+ *  A API só devolve `not_approved`, sem motivo: o texto não inventa motivo, não promete reanálise nem prazo, e
+ *  deixa claro que a loja que já opera não muda. */
+export function textoRecusadaLojaNova(cnpj: string, razao: string | null): string {
+  const quem = razao ? `de ${razao} (CNPJ ${fmtCnpj(cnpj)})` : `do CNPJ ${fmtCnpj(cnpj)}`
+  return `A AIVA analisou o cadastro da loja nova ${quem} e ele não foi aprovado. A loja que você já opera segue normal, sem nenhuma mudança. Qualquer dúvida, é só me chamar por aqui.`
+}
+
 // ─── espelho do portal: link, loja criada, recusa e fila parada — tudo POR CNPJ ────────────────
 // Só linhas nascidas deste fluxo (`fluxo = FLUXO_LOJA_NOVA`). Quem chama envia e só DEPOIS de envio aceito
 // grava o carimbo; a chave em `sdr_avisos_chave` é a segunda trava (ver lib/espelho-portal.ts, passo 12).
@@ -392,7 +400,7 @@ export function pendentesCriada(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLo
   return out
 }
 
-/** A AIVA recusou o pré-cadastro (e não há outro onboarding vivo do CNPJ): aviso ao time, nada ao lojista. */
+/** A AIVA recusou o pré-cadastro (e não há outro onboarding vivo do CNPJ): o lojista é avisado, uma vez por CNPJ. */
 export function recusadas(regs: RegLojaNova[], onbs: OnbLojaNova[]): ParLojaNova[] {
   const out: ParLojaNova[] = []
   for (const reg of regs) {
@@ -429,6 +437,9 @@ export function filaParadaLojaNova(regs: RegLojaNovaFila[], onbs: OnbLojaNova[],
 export const chaveLinkLojaNova = (cnpj: string) => `loja_nova_link:${soDigitos(cnpj)}`
 export const chaveCriadaLojaNova = (cnpj: string) => `loja_nova_criada:${soDigitos(cnpj)}`
 export const chaveRecusadaLojaNova = (cnpj: string) => `loja_nova_recusada:${soDigitos(cnpj)}`
+/** A recusa não tem coluna de carimbo na linha: esta chave faz o papel dele (gravada DEPOIS do envio aceito).
+ *  Reserva sem esta chave = a rodada pode ter caído entre reservar e enviar → o espelho "cura" e avisa o time. */
+export const chaveRecusaAvisadaLojaNova = (cnpj: string) => `loja_nova_recusa_avisada:${soDigitos(cnpj)}`
 export const PREFIXO_FILA_PARADA = 'loja_nova_parada:'
 /** Brasília é UTC−3 fixo (sem horário de verão desde 2019). */
 export const chaveFilaParada = (cnpj: string, agora: number) =>
@@ -467,6 +478,13 @@ export const utilLojaCriada = (): Etapa => ({
   situacao: 'qualquer dúvida sobre ela, é só me chamar por aqui.',
 })
 
+/** Recusa pelo template 86 (janela fechada). Mesmo conteúdo do `textoRecusadaLojaNova`: sem motivo, sem prazo. */
+export const utilRecusadaLojaNova = (): Etapa => ({
+  tipo: 'etapa',
+  etapa: 'análise do cadastro da loja nova pela AIVA.',
+  situacao: 'o cadastro da loja nova não foi aprovado. A loja que já opera segue normal, sem nenhuma mudança.',
+})
+
 // ─── revisão final: RID da loja principal, cura sem confirmação e escalada direta ───────────────
 /** RID da loja PRINCIPAL do lead (repasse / filial sem par de raiz). Nunca de linha do fluxo de loja nova (outra
  *  empresa): a matriz primeiro; sem matriz, a linha com RID mais antiga (criado_em). Sem linha principal com RID = null
@@ -484,7 +502,7 @@ export function ridDaLojaPrincipal(regs: { rid: unknown; tipo?: unknown; fluxo?:
 
 /** Linha do aviso ao time quando o espelho "cura" (chave reservada, sem carimbo): ninguém confirmou que saiu. */
 export const linhaCuraLojaNova = (loja: string, cnpj: string, tipo: TipoEnvioLojaNova): string =>
-  `• ${loja} — CNPJ ${fmtCnpj(soDigitos(cnpj))} · ${tipo === 'link' ? 'link do cadastro' : 'aviso de loja criada'} · carimbado como enviado sem confirmação — conferir com o lojista`
+  `• ${loja} — CNPJ ${fmtCnpj(soDigitos(cnpj))} · ${rotuloEnvioLojaNova(tipo)} · carimbado como enviado sem confirmação — conferir com o lojista`
 export const blocoCuraLojaNova = (linhas: string[]): string =>
   `⚠️ *Loja nova de cliente ativo: carimbado como enviado sem confirmação* (${linhas.length})\n${linhas.join('\n')}\n\n` +
   'A reserva do envio existia, mas o carimbo não: a rodada anterior pode ter caído entre reservar e enviar. O robô NÃO reenvia — conferir na conversa se o lojista recebeu e, se não, mandar à mão.'
@@ -503,7 +521,11 @@ export const avisoEscaladaLojaNova = (x: { loja: string; telefone: string; statu
 // ─── falha de envio: tentar de novo, segurar ou desistir (revisão Task 4, item 2) ───────────────
 /** Rejeições automáticas de um mesmo CNPJ e tipo antes de desistir e avisar o time. */
 export const TENTATIVAS_LOJA_NOVA = 3
-export type TipoEnvioLojaNova = 'link' | 'criada'
+export type TipoEnvioLojaNova = 'link' | 'criada' | 'recusada'
+/** Nome da mensagem nos avisos ao time (cura e envio retido). */
+export function rotuloEnvioLojaNova(tipo: TipoEnvioLojaNova): string {
+  return tipo === 'link' ? 'link do cadastro' : tipo === 'criada' ? 'aviso de loja criada' : 'aviso de recusa da AIVA'
+}
 
 /** O Evo RECUSOU antes de aceitar (4xx, menos 408): nada saiu, pode tentar de novo. 5xx, 408, rede, timeout,
  *  JSON quebrado e qualquer erro desconhecido NÃO são claros — o Evo pode ter aceitado e o lojista recebido. */

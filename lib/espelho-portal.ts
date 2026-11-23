@@ -36,6 +36,7 @@ import { enviarUtilidadeOu, TPL_ETAPA } from '@/lib/template-utilidade'
 import { montar, type MsgUtilidade } from '@/lib/template-utilidade-calc'
 import {
   FLUXO_LOJA_NOVA, LINK_CADASTRO, pendentesLink, pendentesCriada, recusadas, filaParadaLojaNova, textoLinkLojaNova, textoLojaCriada,
+  textoRecusadaLojaNova, utilRecusadaLojaNova, chaveRecusaAvisadaLojaNova, rotuloEnvioLojaNova,
   chaveLinkLojaNova, chaveCriadaLojaNova, chaveRecusadaLojaNova, chaveFilaParada, PREFIXO_FILA_PARADA, colunaLojaNovaAusente,
   lojaTemplateLojaNova, utilLojaCriada, utilLinkLojaNova, linhaCuraLojaNova, blocoCuraLojaNova, type OnbLojaNova, type RegLojaNovaFila,
   decidirFalhaEnvio, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova,
@@ -211,7 +212,7 @@ async function historicoEtapas(opps: number[]): Promise<LinhaLog[]> {
 // Linhas de sdr_registros_cnpj com fluxo = 'loja_nova_empresa' (mesmo lead, tipo 'adicional'). POR CNPJ:
 //   - pré-cadastro em dados_varejo na AIVA → link do cadastro ao lojista (uma vez, para sempre);
 //   - AIVA criou a loja (retailer_id) → aviso "loja criada" (uma vez) e o RID na linha;
-//   - AIVA recusou → aviso ao time (uma vez), NADA ao lojista;
+//   - AIVA recusou → aviso de recusa ao lojista (uma vez, Aldo 23/11/2026); o time só é avisado se não der pra enviar;
 //   - na fila há 24h+ sem clique, ou clicado e não chegou → aviso ao time, 1×/dia por CNPJ.
 // ⛔ Não move card nem toca marcador do lead: a loja principal dele já vende.
 // IDEMPOTÊNCIA (cron de 15 min, mensagem real): duas travas por CNPJ. (1) o carimbo na linha
@@ -308,44 +309,58 @@ async function passoLojaNova(
     const tarefas = [
       ...pendentesLink(regs, onbs).map((p) => ({ tipo: 'link' as const, ...p })),
       ...pendentesCriada(regs, onbs).map((p) => ({ tipo: 'criada' as const, ...p })),
+      ...recusadas(regs, onbs).map((p) => ({ tipo: 'recusada' as const, ...p })),
     ]
-    const recs = recusadas(regs, onbs)
     const paradas = filaParadaLojaNova(regs, onbs, agora)
-    if (!tarefas.length && !recs.length && !paradas.length) return { saida: s, blocos }
+    if (!tarefas.length && !paradas.length) return { saida: s, blocos }
 
     // sem conseguir ler as chaves não há como garantir "uma vez só": o passo inteiro espera a próxima rodada
     const { data: chRows, error: eCh } = await supabaseAdmin.from('sdr_avisos_chave').select('chave').like('chave', 'loja_nova_%')
     if (eCh) throw new Error(`sdr_avisos_chave (loja nova): ${eCh.message}`)
     const chaves = new Set((chRows ?? []).map((c) => c.chave as string))
 
-    const ids = [...new Set([...tarefas, ...recs, ...paradas].map((x) => x.reg.lead_id))]
+    const ids = [...new Set([...tarefas, ...paradas].map((x) => x.reg.lead_id))]
     const { data: lds, error: eLd } = await supabaseAdmin.from('sdr_leads').select('id,nome,status,telefone,observacoes').in('id', ids)
     if (eLd) throw new Error(`sdr_leads (loja nova): ${eLd.message}`)
     const leadPorId = new Map(((lds ?? []) as LeadDestino[]).map((l) => [l.id, l]))
     const nomeLead = (id: string) => (leadPorId.get(id)?.nome ?? '').trim() || id
 
-    // a) link e loja criada ao lojista
+    // a) link, loja criada e recusa da AIVA ao lojista (recusa: Aldo 23/11/2026 — o lojista é avisado, o time não)
     let envios = 0
     const vistosRodada = new Set<string>()
     const linhasRet: string[] = []
     const linhasCura: string[] = []
+    const linhasRec: string[] = []
     for (const t of tarefas) {
       const cnpj = t.reg.cnpj
-      const chave = t.tipo === 'link' ? chaveLinkLojaNova(cnpj) : chaveCriadaLojaNova(cnpj)
+      const chave = t.tipo === 'link' ? chaveLinkLojaNova(cnpj) : t.tipo === 'criada' ? chaveCriadaLojaNova(cnpj) : chaveRecusadaLojaNova(cnpj)
       const retido = chaveRetidoLojaNova(t.tipo, cnpj)
       // linha duplicada do mesmo CNPJ: uma tentativa por CNPJ e tipo por rodada; a outra linha se cura na próxima
       if (vistosRodada.has(chave)) continue
       vistosRodada.add(chave)
+      // recusa já dita ao lojista: a linha não tem coluna de carimbo pra recusa, a chave "avisada" faz esse papel
+      const avisada = chaveRecusaAvisadaLojaNova(cnpj)
+      if (t.tipo === 'recusada' && chaves.has(avisada)) continue
       // envio retido (resposta ambígua do Evo ou 3 rejeições): nada automático — o time confere e reenvia à mão
       if (chaves.has(retido)) { s.retidos++; continue }
-      const carimbo = t.tipo === 'link'
-        ? { link_enviado_em: new Date().toISOString() }
-        : { criada_avisada_em: new Date().toISOString(), rid: String(t.onb.retailer_id) }
+      const conta = () => { if (t.tipo === 'link') s.links++; else if (t.tipo === 'criada') s.criadas++; else s.recusadas++ }
+      const carimbar = async (): Promise<{ code?: string; message: string } | null> => {
+        if (t.tipo === 'recusada') {
+          const { error } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave: avisada, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
+          if (!error) chaves.add(avisada)
+          return error
+        }
+        const carimbo = t.tipo === 'link'
+          ? { link_enviado_em: new Date().toISOString() }
+          : { criada_avisada_em: new Date().toISOString(), rid: String(t.onb.retailer_id) }
+        const { error } = await supabaseAdmin.from('sdr_registros_cnpj').update(carimbo).eq('id', t.reg.id)
+        return error
+      }
       if (chaves.has(chave)) {
         // já saiu numa rodada anterior e o carimbo não gravou: NÃO reenvia, só regrava o carimbo
         s.curados++
         if (dry) continue
-        const { error: eCur } = await supabaseAdmin.from('sdr_registros_cnpj').update(carimbo).eq('id', t.reg.id)
+        const eCur = await carimbar()
         if (eCur) { ctx.avisos.push(`loja nova ${cnpj}: carimbo de ${t.tipo} ainda não gravado (${eCur.message.slice(0, 80)}) — a chave ${chave} segura o reenvio`); continue }
         // cura nunca é calada (revisão final, item 5): a rodada pode ter morrido entre reservar e enviar
         const linha = linhaCuraLojaNova(nomeLead(t.reg.lead_id), cnpj, t.tipo)
@@ -353,12 +368,21 @@ async function passoLojaNova(
         ctx.avisos.push(`loja nova ${linha.slice(2)}`)
         continue
       }
-      if (dry) { if (t.tipo === 'link') s.links++; else s.criadas++; continue }
+      if (dry) { conta(); continue }
       if (envios >= TETO_LOJA_NOVA || Date.now() - ctx.inicio > TETO_MS) { s.adiados++; continue }
       const lead = leadPorId.get(t.reg.lead_id)
       if (!lead?.telefone || SEM_ENVIO_STATUS.has(String(lead.status))) {
         s.sem_destino++
-        ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} não enviado — lead ${lead ? `em ${lead.status}${lead.telefone ? '' : ', sem telefone'}` : 'não encontrado'}`)
+        const porque = lead ? `em ${lead.status}${lead.telefone ? '' : ', sem telefone'}` : 'não encontrado'
+        ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} não enviado — lead ${porque}`)
+        // recusa que o robô não pode dizer ao lojista: o time fica sabendo, uma vez por CNPJ
+        if (t.tipo === 'recusada') {
+          const quando = new Date().toISOString()
+          const { error: eK } = await supabaseAdmin.from('sdr_avisos_chave')
+            .upsert([{ chave, ultimo_aviso: quando }, { chave: avisada, ultimo_aviso: quando }], { onConflict: 'chave' })
+          if (eK) ctx.avisos.push(`loja nova ${cnpj}: chave da recusa não gravada — aviso ao time fica pra próxima rodada`)
+          else { chaves.add(chave); chaves.add(avisada); linhasRec.push(`• ${nomeLead(t.reg.lead_id)} — CNPJ ${cnpj} · lead ${porque}`) }
+        }
         continue
       }
       // trava 2: reserva ANTES de enviar. Falhou a reserva (outra rodada pegou, ou o banco recusou) = não envia.
@@ -377,7 +401,9 @@ async function passoLojaNova(
       try {
         conteudo = t.tipo === 'link'
           ? await enviarLojaNova(lead, textoLinkLojaNova(cnpj, razao), utilLinkLojaNova(LINK_CADASTRO), loja)
-          : await enviarLojaNova(lead, textoLojaCriada(razao), utilLojaCriada(), loja)
+          : t.tipo === 'criada'
+            ? await enviarLojaNova(lead, textoLojaCriada(razao), utilLojaCriada(), loja)
+            : await enviarLojaNova(lead, textoRecusadaLojaNova(cnpj, razao), utilRecusadaLojaNova(), loja)
       } catch (e) {
         // Só a rejeição CLARA do Evo (4xx) solta a chave: timeout/5xx/rede podem ter saído — reenviar duplicaria.
         // Regra em decidirFalhaEnvio (lib/loja-nova-calc.ts).
@@ -411,11 +437,11 @@ async function passoLojaNova(
           : 'resposta ambígua do Evo (pode ter saído)'
         console.error(`[espelho-portal] ⚠️ loja nova ${cnpj}: ${t.tipo} RETIDO — ${porque}: ${erro.slice(0, 160)}`)
         ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} retido — ${porque}`)
-        linhasRet.push(`• ${nomeLead(t.reg.lead_id)} — CNPJ ${cnpj} · ${t.tipo === 'link' ? 'link do cadastro' : 'aviso de loja criada'} · ${porque}`)
+        linhasRet.push(`• ${nomeLead(t.reg.lead_id)} — CNPJ ${cnpj} · ${rotuloEnvioLojaNova(t.tipo)} · ${porque}`)
         continue
       }
       // aceito → carimbo. Se falhar, a chave reservada fica e segura o reenvio.
-      const { error: eCar } = await supabaseAdmin.from('sdr_registros_cnpj').update(carimbo).eq('id', t.reg.id)
+      const eCar = await carimbar()
       if (eCar) {
         console.error(`[espelho-portal] ⚠️⚠️ loja nova ${cnpj}: ${t.tipo} ENVIADO ao lojista mas o carimbo NÃO gravou (${eCar.code ?? ''} ${eCar.message}) — a chave ${chave} em sdr_avisos_chave segura o reenvio; a próxima rodada regrava o carimbo`)
         ctx.avisos.push(`loja nova ${cnpj}: ${t.tipo} enviado, carimbo não gravado (chave ${chave} segura o reenvio)`)
@@ -423,35 +449,24 @@ async function passoLojaNova(
       const { error: eMsg } = await supabaseAdmin.from('sdr_mensagens').insert({ lead_id: lead.id, direcao: 'out', conteudo, template_hsm: ROTULO_LOJA_NOVA })
       if (eMsg) console.error(`[espelho-portal] loja nova ${cnpj}: sdr_mensagens não gravada:`, eMsg.message)
       console.log(`[espelho-portal] loja nova ${cnpj}: ${t.tipo} enviado → lead ${lead.id}`)
-      if (t.tipo === 'link') s.links++
-      else s.criadas++
+      conta()
     }
     if (linhasCura.length) blocos.push(blocoCuraLojaNova(linhasCura))
     if (linhasRet.length) {
       blocos.push(
         `⚠️ *Loja nova de cliente ativo: mensagem ao lojista pode não ter saído* (${linhasRet.length})\n${linhasRet.join('\n')}\n\n` +
-        'O link da loja nova (ou o aviso de loja criada) pode não ter saído — conferir na conversa e reenviar à mão. ' +
-        'O robô NÃO tenta de novo sozinho pra não mandar em dobro (pra liberar: apagar em sdr_avisos_chave as chaves loja_nova_<link|criada>:<cnpj> e loja_nova_retido:<tipo>:<cnpj>).',
+        'O link da loja nova (ou o aviso de loja criada, ou o aviso de recusa da AIVA) pode não ter saído — conferir na conversa e reenviar à mão. ' +
+        'O robô NÃO tenta de novo sozinho pra não mandar em dobro (pra liberar: apagar em sdr_avisos_chave as chaves loja_nova_<link|criada|recusada>:<cnpj> e loja_nova_retido:<tipo>:<cnpj>).',
       )
     }
 
-    // b) recusada pela AIVA: aviso ao time, uma vez por CNPJ. NADA ao lojista.
-    const linhasRec: string[] = []
-    for (const { reg } of recs) {
-      const chave = chaveRecusadaLojaNova(reg.cnpj)
-      if (chaves.has(chave)) continue
-      chaves.add(chave) // linha duplicada do mesmo CNPJ: uma linha só no aviso
-      s.recusadas++
-      if (dry) continue
-      const { error: eK } = await supabaseAdmin.from('sdr_avisos_chave').upsert({ chave, ultimo_aviso: new Date().toISOString() }, { onConflict: 'chave' })
-      if (eK) { ctx.avisos.push(`loja nova ${reg.cnpj}: chave da recusa não gravada — aviso fica pra próxima rodada`); s.recusadas--; continue }
-      linhasRec.push(`• ${nomeLead(reg.lead_id)} — CNPJ ${reg.cnpj}`)
-    }
+    // b) recusa que o robô NÃO pôde dizer ao lojista (lead sem telefone ou em status que não recebe mensagem):
+    //    só aí o time é avisado. Recusa dita ao lojista não gera aviso ao time (Aldo 23/11/2026).
     if (linhasRec.length) {
       blocos.push(
-        `⛔ *Loja nova de cliente ativo RECUSADA pela AIVA* (${linhasRec.length})\n${linhasRec.join('\n')}\n\n` +
-        'A AIVA recusou o pré-cadastro da loja nova (outra empresa). O lojista NÃO foi avisado pelo robô e o card da loja principal não foi mexido — ' +
-        'conferir o motivo com a AIVA (Mauricio/Edu) e falar com o lojista.',
+        `⛔ *Loja nova de cliente ativo RECUSADA pela AIVA — lojista NÃO avisado* (${linhasRec.length})\n${linhasRec.join('\n')}\n\n` +
+        'A AIVA recusou o pré-cadastro da loja nova (outra empresa) e o robô não pôde avisar o lojista (lead sem telefone ou em status que não recebe mensagem). ' +
+        'O card da loja principal não foi mexido.',
       )
     }
 

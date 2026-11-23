@@ -10,7 +10,9 @@ import {
   chaveRecusadaLojaNova, colunaLojaNovaAusente, lojaTemplateLojaNova, utilLojaCriada, utilLinkLojaNova,
   type RegLojaNova, type RegLojaNovaFila, ehSocioMesmo, ridDaLojaPrincipal, linhaCuraLojaNova, blocoCuraLojaNova, avisoEscaladaLojaNova,
   decidirFalhaEnvio, rejeicaoClara, tentativasDe, chaveTentativaLojaNova, chaveRetidoLojaNova, TENTATIVAS_LOJA_NOVA, FLUXO_LOJA_NOVA,
+  textoRecusadaLojaNova, utilRecusadaLojaNova, chaveRecusaAvisadaLojaNova, rotuloEnvioLojaNova,
 } from './loja-nova-calc.ts'
+import { montar } from './template-utilidade-calc.ts'
 import { FLUXO_LOJA_NOVA_REG } from './espelho-portal-calc.ts'
 
 const T0 = Date.parse('2026-11-19T13:00:00Z')
@@ -485,6 +487,26 @@ test('final item 5: cura avisa o time com CNPJ e mensagem', () => {
   const b = blocoCuraLojaNova([l])
   assert.match(b, /^⚠️ \*Loja nova de cliente ativo: carimbado como enviado sem confirmação\* \(1\)\n• Cell Center/)
   assert.match(b, /NÃO reenvia/)
+})
+test('recusa da AIVA ao lojista (23/11): texto sem motivo nem prazo, e a loja que opera não muda', () => {
+  const t = textoRecusadaLojaNova('59218413000190', 'EDUARDO CELL LTDA')
+  assert.equal(t, 'A AIVA analisou o cadastro da loja nova de EDUARDO CELL LTDA (CNPJ 59.218.413/0001-90) e ele não foi aprovado. A loja que você já opera segue normal, sem nenhuma mudança. Qualquer dúvida, é só me chamar por aqui.')
+  assert.match(textoRecusadaLojaNova('59218413000190', null), /loja nova do CNPJ 59\.218\.413\/0001-90 e ele não foi aprovado/)
+  for (const x of [t, utilRecusadaLojaNova().etapa, utilRecusadaLojaNova().situacao]) {
+    assert.doesNotMatch(x, /prazo|dias|horas|reanálise|motivo|porque|https?:/i)
+  }
+  // pelo modelo 86 (janela fechada) o lojista lê a mesma coisa
+  const m = montar('Eduardo', lojaTemplateLojaNova('59218413000190', 'EDUARDO CELL LTDA'), utilRecusadaLojaNova())
+  assert.match(m.texto, /teve uma etapa concluída: análise do cadastro da loja nova pela AIVA\.\n\nSituação: o cadastro da loja nova não foi aprovado\. A loja que já opera segue normal/)
+  assert.equal(m.vars.length, 4)
+})
+test('recusa da AIVA: chaves e rótulo nos avisos ao time', () => {
+  assert.equal(chaveRecusaAvisadaLojaNova('59.218.413/0001-90'), 'loja_nova_recusa_avisada:59218413000190')
+  assert.notEqual(chaveRecusaAvisadaLojaNova('59218413000190'), chaveRecusadaLojaNova('59218413000190'))
+  assert.equal(chaveRetidoLojaNova('recusada', '59218413000190'), 'loja_nova_retido:recusada:59218413000190')
+  assert.equal(rotuloEnvioLojaNova('recusada'), 'aviso de recusa da AIVA')
+  assert.match(linhaCuraLojaNova('X', '59218413000190', 'recusada'), /aviso de recusa da AIVA · carimbado como enviado sem confirmação/)
+  assert.equal(tentativasDe(['loja_nova_tentativa:recusada:59218413000190:1', 'loja_nova_tentativa:link:59218413000190:1'], 'recusada', '59218413000190'), 1)
 })
 test('final item 6: escalada direta leva o porquê, o motivo e a última mensagem', () => {
   const t = avisoEscaladaLojaNova({ loja: 'Cell Center', telefone: '5547999990000', status: 'LOGIN', motivo: 'loja_nova_empresa: cnpj=1', porque: 'sem conferência recente', ultimaMensagem: 'sim' })

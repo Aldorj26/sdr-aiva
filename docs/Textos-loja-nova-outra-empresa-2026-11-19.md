@@ -262,13 +262,30 @@ Motivo devolvido: <motivo que a VictorIA devolveu>
 
 Fonte: `lib/espelho-portal.ts`.
 
-**AIVA recusou a loja nova** (uma vez por CNPJ):
+**AIVA recusou a loja nova** (uma vez por CNPJ) — **mudou em 23/11/2026 (pedido do Aldo): o lojista é avisado pelo
+robô e o time não é mais acionado.** Texto ao lojista com a janela de 24 h aberta (`textoRecusadaLojaNova`):
 ```
-⛔ *Loja nova de cliente ativo RECUSADA pela AIVA* (<n>)
-• <loja> — CNPJ <CNPJ>
+A AIVA analisou o cadastro da loja nova de <razão social> (CNPJ <CNPJ>) e ele não foi aprovado. A loja que você já opera segue normal, sem nenhuma mudança. Qualquer dúvida, é só me chamar por aqui.
+```
+Com a janela fechada, pelo modelo 86 (`utilRecusadaLojaNova`):
+```
+Olá <nome>, aqui é a VictorIA da Track.
 
-A AIVA recusou o pré-cadastro da loja nova (outra empresa). O lojista NÃO foi avisado pelo robô e o card da loja principal não foi mexido — conferir o motivo com a AIVA (Mauricio/Edu) e falar com o lojista.
+A loja <razão social> (CNPJ <CNPJ>) teve uma etapa concluída: análise do cadastro da loja nova pela AIVA.
+
+Situação: o cadastro da loja nova não foi aprovado. A loja que já opera segue normal, sem nenhuma mudança.
+
+Dúvidas, responda esta mensagem.
 ```
+O time só recebe aviso se o robô **não puder** avisar o lojista (lead sem telefone ou em status que não recebe
+mensagem), uma vez por CNPJ:
+```
+⛔ *Loja nova de cliente ativo RECUSADA pela AIVA — lojista NÃO avisado* (<n>)
+• <loja> — CNPJ <CNPJ> · lead <em STATUS | sem telefone | não encontrado>
+
+A AIVA recusou o pré-cadastro da loja nova (outra empresa) e o robô não pôde avisar o lojista (lead sem telefone ou em status que não recebe mensagem). O card da loja principal não foi mexido.
+```
+Falha de envio da recusa cai nos mesmos avisos de "carimbado sem confirmação" e "pode não ter saído" abaixo.
 
 **Pedido parado na fila de pré-cadastro** (24 h ou mais; uma vez por dia por CNPJ):
 ```

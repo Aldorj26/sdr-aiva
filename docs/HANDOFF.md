@@ -3,6 +3,19 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## ✅ 23/11/2026 — Recusa da loja nova: o robô avisa o lojista, o Nei não é mais acionado (pedido do Aldo)
+
+- Espelho (passo 12, `lib/espelho-portal.ts`): recusa da AIVA virou envio ao lojista, pelo mesmo caminho do link e da
+  loja criada (texto com janela aberta; modelo 86 com janela fechada). Textos aprovados pelo Aldo em 23/11:
+  `textoRecusadaLojaNova` / `utilRecusadaLojaNova` (`lib/loja-nova-calc.ts`); sem motivo (a API só devolve `not_approved`).
+- Uma vez por CNPJ: reserva `loja_nova_recusada:<cnpj>` antes do envio; `loja_nova_recusa_avisada:<cnpj>` depois do
+  envio aceito (faz o papel do carimbo, a linha não tem coluna pra recusa).
+- Time só é avisado se o robô não puder enviar (lead sem telefone/opt-out/descartado) ou se o envio falhar no Evo.
+- Nenhuma recusa aconteceu ainda (só Eduardo Cell e RG Cell no fluxo): **envio real não visto**.
+- **Em aberto (Aldo):** regra no prompt pra quando o lojista perguntar o motivo da recusa (a VictorIA não tem; pode
+  improvisar). Sugestão: "a AIVA não informa o motivo; se insistir, chama o time", passando pelo revisor.
+- Testes: `test:lojanova` (55), `test:espelho` (37), `test:utilidade` (13), `tsc`.
+
 ## ✅ 23/11/2026 — Evo fila 10: fechamento automático em 2 dias + limpeza dos atendimentos abertos
 
 **Estado (23/11 ~10h22 BRT):** fila 10 com **425 atendimentos abertos** (421 de 23/11, 4 de 21/11). Antes: 6.600+.
