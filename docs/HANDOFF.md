@@ -3,6 +3,21 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## ⚠️ 23/11/2026 — 26 lojas com pré-cadastro marcado como enviado que NÃO estão no portal da AIVA
+
+- Conferido direto na API de onboardings (1.037 registros, 23/11): **0 das 26** no portal, nem por CNPJ exato, nem
+  por raiz do CNPJ, nem por telefone. Lista: `docs/Pre-cadastro-nao-chegou-AIVA-2026-11-23.xlsx`.
+- Todas em Cadastro Recebido (etapa 49), aviso `pre_cadastro_nao_chegou` aberto. 11 paradas há mais de 30 dias
+  (maior: Clínica do Celular, desde 09/09); 23 com último envio marcado em 18/11 (16h42–18h31) e 3 em 19/11.
+- O portal recebeu 15 cadastros da Track em 18–19/11, nenhum destes. Último cadastro da Track no portal: 19/11 16h38;
+  nada de 20 a 23/11.
+- **Causa não determinada:** `sdr_registros_cnpj.enviado_em` grava só o clique no `/registros`, não a submissão do
+  formulário. Hipóteses: botão clicado sem submeter, ou a AIVA recusa na entrada (a API só mostra o aceito).
+- **Em aberto (Aldo/Nei):** reenviar uma (ex.: BW10 Repair, 61.245.532/0001-83, opp 59318) e conferir se aparece no
+  portal; se não aparecer, perguntar ao Mauricio. Nenhum lojista foi avisado do atraso.
+- Painel financeiro (24/11): Aldo trouxe dois links do Looker; o 2 (`d5e20107…`) já é o que está em produção
+  (`LINK_PAINEL_FINANCEIRO` e `prompts/aiva.ts` ~950). Decisão: não alterar. O 1 (`af7b8905…`) não é usado.
+
 ## ✅ 23/11/2026 — Recusa da loja nova: o robô avisa o lojista, o Nei não é mais acionado (pedido do Aldo)
 
 - Espelho (passo 12, `lib/espelho-portal.ts`): recusa da AIVA virou envio ao lojista, pelo mesmo caminho do link e da
