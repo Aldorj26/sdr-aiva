@@ -161,7 +161,12 @@ export const BLOCO_AIVA = new Set<number>([50, 96, 97, 70, 98, 71, 99])
  *  que pode atrasar. A coluna é a mesma 51 (loja operando). */
 export const COLUNA_PARA_ETAPA: Record<string, number> = {
   dados_varejo: 50, biometria_pendente: 96, biometria_aprovada: 97,
-  cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71, primeiro_acesso: 99,
+  cadastro_finalizado: 70, treinamento_agendado: 98, pronto_para_operar: 71,
+  // 25/11/2026 (Aldo): "acessou é ativa". Desde o bloqueio do login do portal (26/10) a API não traz
+  // consulta, e loja que consulta sem vender fica em `primeiro_acesso` — RM Celulares, Conserttechcell e
+  // Conect CEEL eram clientes ativos presos na 99. Primeiro acesso passa a valer 51; a 99 vira só a
+  // PASSAGEM de quem chega (é a entrada nela que manda o aviso "loja pronta pra consultar", uma vez por loja).
+  primeiro_acesso: 51,
   primeira_venda: 51,
 }
 /** Colunas que DE PROPÓSITO não viram etapa (não são lacuna de mapeamento). */
@@ -221,7 +226,7 @@ export function etapaDesejada(onb: OnbApi, loginEnviado: Set<string>, vendeu: Se
     // coluna NOVA, que ninguém mapeou: cai na dedução pelo stage em vez de congelar o card (15/10/2026)
   }
   // cadastro antigo sem board_column: dedução pelo stage + biometria (regra de antes)
-  if (rid && onb.primeiro_acesso_em) return ETAPA.PRIMEIRO_ACESSO
+  if (rid && onb.primeiro_acesso_em) return ETAPA.VENDENDO   // acessou é ativa (25/11/2026)
   if (rid && loginEnviado.has(rid)) return ETAPA.LOGIN
   if (onb.stage === 'cadastro_finalizado' || rid) return ETAPA.TREINAR
   if (onb.stage === 'biometria') return String(onb.biometry_status ?? '').toLowerCase() === 'aprovado' ? ETAPA.BIO_APROVADA : ETAPA.BIO_PENDENTE
@@ -382,11 +387,9 @@ export function calcularEspelho(e: Entrada): Resultado {
     // Fora dele (Vendendo, etapas laterais) nunca regride.
     // Card em Vendendo (51) SEM consulta nem venda (as ações em massa de set/2026 punham ali loja só "pronta"):
     // 51 é loja que opera, então ele volta pra coluna real da AIVA (Karol, 07/10/2026 — 30 lojas nunca acessaram).
-    // ⚠️ 25/11/2026 (Aldo, RM Celulares RID 8297): desde o bloqueio do login do portal (26/10) a API NÃO traz
-    // consulta — só `primeiro_acesso` e `primeira_venda`. Loja que consultou e ainda não vendeu fica em
-    // `primeiro_acesso` no portal. Então card em 51 com a coluna em primeiro_acesso foi o TIME que pôs (viu a
-    // consulta no sistema da AIVA) e não volta. Quem nunca acessou (colunas antes da 99) continua voltando.
-    const em51SemOperar = atual === ETAPA.VENDENDO && melhor.para !== ETAPA.VENDENDO && melhor.para !== ETAPA.PRIMEIRO_ACESSO && BLOCO_AIVA.has(melhor.para)
+    // 25/11/2026: `primeiro_acesso` passou a valer 51 (acessou é ativa), então quem volta daqui é só a loja
+    // que NUNCA acessou (colunas até Pronto para operar).
+    const em51SemOperar = atual === ETAPA.VENDENDO && melhor.para !== ETAPA.VENDENDO && BLOCO_AIVA.has(melhor.para)
     const segueColuna = (BLOCO_AIVA.has(atual) || em51SemOperar) && BLOCO_AIVA.has(melhor.para) && melhor.para !== atual
     const podeMover = atual === SEM_RESPOSTA || ordem(melhor.para) > ordem(atual) || segueColuna
     if (!podeMover) continue   // já está igual ou além — silêncio, é o caso normal
@@ -400,8 +403,14 @@ export function calcularEspelho(e: Entrada): Resultado {
     const via: number[] = []
     if (melhor.para !== ETAPA.VENDENDO && ordem(melhor.para) > ORDEM[ETAPA.TREINAR] && ordem(atual) < ORDEM[ETAPA.TREINAR]) via.push(ETAPA.TREINAR)
     const rid = melhor.onb.retailer_id != null ? String(melhor.onb.retailer_id) : ''
+    // Chegou à 51 só pelo primeiro acesso (sem venda/consulta registrada): passa pela 99, que é quem manda o
+    // aviso de primeiro acesso ao lojista. Quem já está na 99 (ou além) vai direto.
+    const soAcesso = melhor.para === ETAPA.VENDENDO && !e.vendeu.has(rid) && melhor.onb.board_column !== 'primeira_venda'
+      && (melhor.onb.board_column === 'primeiro_acesso' || !!melhor.onb.primeiro_acesso_em)
+    if (soAcesso && ordem(atual) < ORDEM[ETAPA.PRIMEIRO_ACESSO]) via.push(ETAPA.PRIMEIRO_ACESSO)
     const motivo =
-      melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`
+      soAcesso ? `primeiro acesso no portal — loja ativa (RID ${rid})`
+      : melhor.para === ETAPA.VENDENDO ? `venda ou consulta registrada no portal (RID ${rid})`
       : melhor.para === ETAPA.BIO_APROVADA ? MOTIVO_BIO_APROVADA
       : `portal da AIVA em ${ROTULO_COLUNA[melhor.para] ?? melhor.onb.stage}${rid ? ` (RID ${rid})` : ''}`
     out.movimentos.push({ lead_id: leadId, nome, opp, de: atual, para: melhor.para, via, motivo })
