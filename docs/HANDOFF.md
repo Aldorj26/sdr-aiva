@@ -137,7 +137,7 @@ ambos em `dados_varejo`, sem RID.
 ### Amanhã (18/11)
 - 5h: briefing do pipeline chega por 87 (1º envio real das rotinas convertidas). Se não chegar: apagar a chave.
 - 9h–11h30: régua de alerta (236).
-- **D+0 PAUSADO** — o Aldo vai dar `/retomar` pra testar a abertura nova. Antes, vale `/disparar <telefone do Aldo>`
+- **(Superado: D+0 voltou em 23/11, ver "D+0 ATIVO" abaixo.)** D+0 PAUSADO — o Aldo vai dar `/retomar` pra testar a abertura nova. Antes, vale `/disparar <telefone do Aldo>`
   pra ele ver a mensagem. Sem botão a resposta tende a cair; medir resposta e entrega do dia contra o histórico.
 - Conferir no fim do dia: recibos (`clientrcvtime`) por rótulo, respostas da régua, motivos `[REGUA_MOTIVO]`.
 
@@ -154,12 +154,19 @@ ambos em `dados_varejo`, sem RID.
 - `CLAUDE.md` do repo (gitignored) ainda lista dicas-desempenho e portal-aiva como automações — atualizar.
 - `test:campanha` tem 1 teste falhando por data (campanha encerrada em 05/11) — pré-existente.
 - Lista de ligação do Nei (trilhas A/B, 3º toque), retrato diário do alerta e quadro semanal de motivos: não feitos.
-- Mensagem pro Maurício (pedir `retailer_performance` + `training_sessions` na API): não reescrita.
+- **Flexfone Academy (24/11 18h17):** a Karol (UME) pediu cadastro na nova plataforma de treinamento
+  (`https://flexfone-academy.lovable.app/`) pra turma de 25/11. Enviado pelo 87 só a HD Distribuidora (Eric) e Choque
+  Celulares (Anthony), rótulo `aiva_aviso_academy`, 2/2 com recibo da Meta. Script
+  `scripts/aviso-flexfone-academy-2026-11-24.mjs` (não commitado). A VictorIA não conhece a plataforma no prompt.
+- Mensagem pro Maurício reescrita em 24/11: `docs/Mensagem-Mauricio-desempenho-novembro-2026-11-24.md` (pede planilha
+  de out+nov das lojas da Track e `retailer_performance` + agenda de turmas na API). **Não enviada — o Aldo envia.**
+  Painel `/desempenho` segue parado em 2026-10 (retrato de 26/10); API conferida em 24/11, sem números de desempenho.
+  Quando a planilha chegar: importar em `aiva_desempenho` (mes 2026-10 e 2026-11).
 
 ## Estado de produção (16/11/2026)
 
 - **16/11 09h27 BRT — TEMPLATES RELIGADOS (ordem do Aldo: "pode, mesmo em marketing"):** teste do 48 pro Aldo
-  entregue em 2 s e lido (chat 59230); chave `silencio_templates` apagada. D+0 SEGUE PAUSADO. Botão "Saber Mais"
+  entregue em 2 s e lido (chat 59230); chave `silencio_templates` apagada. D+0 SEGUE PAUSADO (superado: voltou em 23/11). Botão "Saber Mais"
   do 41 nunca parou (40/40 respondidos desde 10/11). Os 3 templates novos da Evo ainda não aparecem no `getTemplates`
   (fila 10) — quando o Aldo avisar, trocar o 48 rota a rota (ver abaixo).
 - **16/11 ~09h45 — REENVIO do apagão feito (ordem do Aldo):** dos 74 templates de 10/11 18h45 UTC → 11/11 19h30 UTC,
@@ -221,7 +228,9 @@ ambos em `dados_varejo`, sem RID.
   LOGIN de `lib/claude.ts`, checklist Odres qualificado, acesso ao site = CPF + nascimento, "responsável comercial" =
   da Flexfone). Curadoria conferida: nada conflita. `tsc` ok; testes json/reconhecimento/desistencia ok. **Falta commitar
   e dar push (= deploy)** — Aldo decide.
-- **D+0 pausado** (`sdr_disparo_estado` id=1, ordem do Aldo 10/11) — só ele dá `/retomar`. Cron 5 min, 8h–19h BRT, teto 500.
+- **D+0 ATIVO desde 23/11** (conferido no banco em 24/11 10h50; esteve pausado de 10/11 a 22/11): 500 em 23/11 e 501
+  em 24/11 (8h02–10h33). Fila `sdr_fila_disparo` PENDENTE: 15.788. Pausa+retomada pelo painel em 24/11 10h35 (6 s, teto
+  já batido). Entrega do dia não conferida. Cron 5 min, 8h–19h BRT, teto 500.
 - **Bug a corrigir:** com silêncio ligado o webhook grava a resposta em `sdr_mensagens` como `out` mesmo bloqueada
   (3 casos 11/11 12h31–12h33; lead `14c80fe6` disse "Oi" e ficou sem resposta).
 - **Tokens (10/11, `e4de388`):** `montarSystemBlocks()` em `lib/claude.ts` (4 blocos, cache 1 h, HORA só no bloco por lead)
