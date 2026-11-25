@@ -215,6 +215,32 @@ test('reprovado com sinal de loja operando (card em 51, RID ou registro ativo) N
   assert.deepEqual(r.reprovados.map((x) => x.lead_id), ['normal'])
 })
 
+test('AIVA reconsiderou o CNPJ do "conferir": marcador sai só com prova no portal (Eduardo Cell, 25/11/2026)', () => {
+  const M = '[PORTAL_REPROVADO_CONFERIR:2026-11-19T21:46:13Z]'
+  const r = calcularEspelho(base({
+    onboardings: [
+      onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '9' }),
+      onb({ cnpj: '22222222000191', stage: 'biometria', biometry_status: 'aprovado', board_column: 'biometria_aprovada' }),
+      onb({ cnpj: '33333333000191', stage: 'cadastro_finalizado', retailer_id: '9' }),
+      onb({ cnpj: '44444444000191', stage: 'not_approved', pre_cadastro_status: 'not_approved' }),
+    ],
+    vendeu: new Set(['9']),
+    registros: [
+      { id: 1, cnpj: '11111111000191', lead_id: 'reconsiderou', status: 'ativa', rid: '9' },
+      { id: 2, cnpj: '22222222000191', lead_id: 'reconsiderou', status: 'pre_cadastro_enviado' },
+      { id: 3, cnpj: '33333333000191', lead_id: 'segue', status: 'ativa', rid: '9' },
+      { id: 4, cnpj: '44444444000191', lead_id: 'segue', status: 'pre_cadastro_enviado' },
+      { id: 5, cnpj: '55555555000191', lead_id: 'sumiu', status: 'pre_cadastro_enviado' },
+      { id: 6, cnpj: '11111111000191', lead_id: 'semmarcador', status: 'ativa', rid: '9' },
+    ],
+    leads: [lead('reconsiderou', 1, 'LOJA_FINALIZADA_E_VENDENDO', M), lead('segue', 2, 'LOJA_FINALIZADA_E_VENDENDO', M),
+      lead('sumiu', 3, 'LOJA_FINALIZADA_E_VENDENDO', M), lead('semmarcador', 4, 'LOJA_FINALIZADA_E_VENDENDO')],
+    stageAtual: new Map([[1, 51], [2, 51], [3, 51], [4, 51]]),
+  }))
+  assert.deepEqual(r.conferirResolvidos.map((x) => x.lead_id), ['reconsiderou'])
+  assert.deepEqual(r.conferir.map((c) => [c.lead_id, c.jaAvisado]), [['segue', true]], 'quem segue reprovado continua no conferir, sem novo aviso')
+})
+
 // A selfie aprovada com o cadastro parado em `biometria` é a loja esperando a
 // AIVA criar o ID — NÃO é biometria pendente. Confundir os dois faz o sistema
 // cobrar de novo quem já fez tudo (LT CELL IMPORTS, 18/09/2026).

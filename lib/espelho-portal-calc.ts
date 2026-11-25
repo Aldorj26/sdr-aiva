@@ -136,6 +136,9 @@ export type Resultado = {
   registrosEnviados: Array<string | number>
   pulados: Pulado[]
   conferir: Conferir[]
+  /** tinham [PORTAL_REPROVADO_CONFERIR] e o portal não mostra mais NENHUM CNPJ do lead reprovado (a AIVA
+   *  reconsiderou): o IO tira o marcador e o aviso do painel fecha sozinho (Eduardo Cell, 25/11/2026) */
+  conferirResolvidos: Array<{ lead_id: string; nome: string }>
 }
 
 /** Funil 15 = quadro Onboarding da AIVA, coluna por coluna, do formulário até "Pronto para operar"
@@ -243,7 +246,7 @@ export function calcularEspelho(e: Entrada): Resultado {
     else registrosPorLead.set(r.lead_id, [r])
   }
 
-  const out: Resultado = { movimentos: [], reprovados: [], derrubados: [], registrosEnviados: [], pulados: [], conferir: [] }
+  const out: Resultado = { movimentos: [], reprovados: [], derrubados: [], registrosEnviados: [], pulados: [], conferir: [], conferirResolvidos: [] }
 
   for (const [leadId, regs] of registrosPorLead) {
     const lead = leadPorId.get(leadId)
@@ -254,9 +257,11 @@ export function calcularEspelho(e: Entrada): Resultado {
     //    (o Nei não precisa mais marcar o checkbox no /registros).
     let melhor: { para: number; onb: OnbApi } | null = null
     let reprovadoEm: OnbApi | null = null
+    let noPortal = 0
     for (const r of regs) {
       const onb = onbPorCnpj.get(soDigitos(r.cnpj))
       if (!onb) continue
+      noPortal += 1
       if (r.status == null || r.status === 'informada') out.registrosEnviados.push(r.id)
       const para = etapaDesejada(onb, e.loginEnviado, e.vendeu)
       if (para != null) {
@@ -264,6 +269,15 @@ export function calcularEspelho(e: Entrada): Resultado {
       } else if (onb.stage === 'not_approved') {
         reprovadoEm = onb
       }
+    }
+
+    // 1a) AIVA RECONSIDEROU O CNPJ DO "CONFERIR" (Eduardo Cell, 25/11/2026): a filial apareceu `not_approved`
+    //     2h depois do pré-cadastro, a AIVA aprovou em seguida, e o [PORTAL_REPROVADO_CONFERIR] ficou pra
+    //     sempre — aviso aberto 5 dias no painel e a loja (vendendo) sem a dica semanal, que lê o marcador
+    //     como "reprovado". O marcador só era gravado, nunca tirado. Sai quando há PROVA: pelo menos um CNPJ
+    //     do lead está no portal e nenhum está reprovado. Lead cujo CNPJ sumiu do portal não tem prova — fica.
+    if (noPortal > 0 && !reprovadoEm && (lead.observacoes ?? '').includes(`[${MARCADOR_CONFERIR}:`)) {
+      out.conferirResolvidos.push({ lead_id: leadId, nome })
     }
 
     // 1b) loja antiga cujo CNPJ não está nos onboardings da API, mas o RID do registro consulta/vende

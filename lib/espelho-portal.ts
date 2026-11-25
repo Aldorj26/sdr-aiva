@@ -519,6 +519,8 @@ export type SaidaEspelho = {
   sobraram: number
   reprovados: Resultado['reprovados']
   conferir: Resultado['conferir']
+  /** [PORTAL_REPROVADO_CONFERIR] retirado porque a AIVA reconsiderou (no dry: os que sairiam) */
+  conferir_resolvidos: string[]
   registros_enviados: number
   pulados: Resultado['pulados']
   /** CNPJ reprovado na checagem da AIVA (colunas de 17/09): irregular = situação real; invalido = não fecha */
@@ -615,7 +617,7 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
 
   const saida: SaidaEspelho = {
     ok: true, dry, avisos, vinculados, onboardings: onboardings.length, leads: leads.length,
-    movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
+    movidos: [], sobraram: 0, reprovados: r.reprovados, conferir: r.conferir, conferir_resolvidos: r.conferirResolvidos.map((x) => x.nome), registros_enviados: r.registrosEnviados.length, pulados: r.pulados,
     cnpj: { irregular: 0, invalido: 0, novos: [], regularizados: 0 },
     onboarding_aberto: { dados_varejo: 0, biometria: 0, aguardando_aiva: 0, marcados: 0, limpos: 0 },
     pre_cadastro_nao_chegou: [], derrubados: [], repetidos: [], colunas_desconhecidas: [],
@@ -842,6 +844,21 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       avisos.push(`conferir ${x.nome} não marcado: ${String(e).slice(0, 100)}`)
     }
   }
+
+  // 7b) a AIVA reconsiderou o CNPJ do "conferir": tira o marcador — o aviso do painel fecha sozinho
+  //     (PELO_MARCADOR) e a dica semanal volta a sair pra loja. Sem mensagem pra ninguém.
+  const conferirLimpos: string[] = []
+  for (const x of r.conferirResolvidos) {
+    try {
+      if (await desmarcar(x.lead_id, MARCADOR_CONFERIR)) {
+        conferirLimpos.push(x.nome)
+        console.log(`[espelho-portal] [${MARCADOR_CONFERIR}] retirado (AIVA reconsiderou) · ${x.nome}`)
+      }
+    } catch (e) {
+      avisos.push(`conferir ${x.nome} não desmarcado: ${String(e).slice(0, 100)}`)
+    }
+  }
+  saida.conferir_resolvidos = conferirLimpos
 
   // 8) checagem de CNPJ da AIVA. Desde 18/09 os campos vêm na PRÓPRIA API pública
   //    de onboardings (que já buscamos acima), então isto não depende mais do login
