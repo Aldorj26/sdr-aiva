@@ -230,7 +230,7 @@ ambos em `dados_varejo`, sem RID.
   e dar push (= deploy)** — Aldo decide.
 - **D+0 ATIVO desde 23/11** (conferido no banco em 24/11 10h50; esteve pausado de 10/11 a 22/11): 500 em 23/11 e 501
   em 24/11 (8h02–10h33). Fila `sdr_fila_disparo` PENDENTE: 15.788. Pausa+retomada pelo painel em 24/11 10h35 (6 s, teto
-  já batido). Entrega do dia não conferida. Cron 5 min, 8h–19h BRT, teto 500.
+  já batido). Entrega de 24/11 pelo recibo da Meta (amostra de 30): 13/29 = 45%, acima do piso de 30% e abaixo dos 49–62% de meados de outubro. Cron 5 min, 8h–19h BRT, teto 500.
 - **Bug a corrigir:** com silêncio ligado o webhook grava a resposta em `sdr_mensagens` como `out` mesmo bloqueada
   (3 casos 11/11 12h31–12h33; lead `14c80fe6` disse "Oi" e ficou sem resposta).
 - **Tokens (10/11, `e4de388`):** `montarSystemBlocks()` em `lib/claude.ts` (4 blocos, cache 1 h, HORA só no bloco por lead)
@@ -268,7 +268,7 @@ ambos em `dados_varejo`, sem RID.
 - **Veredito (doc `docs/Analise-recuperar-dados-portal-pos-login-2026-11-16.md`):** números de desempenho
   (consultas/vendas/R$/inadimplência) **não** vêm pela API — só o Mauricio expondo `retailer_performance`.
   Agenda FUTURA de turmas também **não** — só expondo `training_sessions` (starts_at + invite_id/link).
-- **Pendente:** reescrever `docs/Mensagem-Mauricio-login-portal-2026-11-13.md` (ela ainda pede religar login;
+- **Feito em 24/11** (ver `docs/Mensagem-Mauricio-desempenho-novembro-2026-11-24.md`): reescrever `docs/Mensagem-Mauricio-login-portal-2026-11-13.md` (ela ainda pede religar login;
   trocar por pedir só `retailer_performance` e `training_sessions` na API). Ainda não commitada.
 
 ## Feito em 12–15/11 (Evo: fechamento em massa; portal: diagnóstico do login)
@@ -306,7 +306,7 @@ ambos em `dados_varejo`, sem RID.
 
 1. Religar templates (ordem do Aldo) → reenvios → tirar cron Black November → corrigir o bug do `out` gravado com silêncio.
 2. ~17/11: medir cache em `sdr_token_usage`; depois dieta do prompt em sessão nova, com o revisor.
-3. Reescrever a mensagem do Mauricio (pedir `retailer_performance` + `training_sessions` na API). Medir toque 3/descarte e dicas+link (23/10).
+3. Aldo enviar a mensagem do Mauricio de 24/11 (planilha out+nov; `retailer_performance` + `training_sessions` na API). Medir toque 3/descarte e dicas+link (23/10).
 4. Depois da viagem: auth no `send-initial` + desfazer o lead quando o template falha.
 
 ## Como retomar rápido
