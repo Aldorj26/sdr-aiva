@@ -382,7 +382,11 @@ export function calcularEspelho(e: Entrada): Resultado {
     // Fora dele (Vendendo, etapas laterais) nunca regride.
     // Card em Vendendo (51) SEM consulta nem venda (as ações em massa de set/2026 punham ali loja só "pronta"):
     // 51 é loja que opera, então ele volta pra coluna real da AIVA (Karol, 07/10/2026 — 30 lojas nunca acessaram).
-    const em51SemOperar = atual === ETAPA.VENDENDO && melhor.para !== ETAPA.VENDENDO && BLOCO_AIVA.has(melhor.para)
+    // ⚠️ 25/11/2026 (Aldo, RM Celulares RID 8297): desde o bloqueio do login do portal (26/10) a API NÃO traz
+    // consulta — só `primeiro_acesso` e `primeira_venda`. Loja que consultou e ainda não vendeu fica em
+    // `primeiro_acesso` no portal. Então card em 51 com a coluna em primeiro_acesso foi o TIME que pôs (viu a
+    // consulta no sistema da AIVA) e não volta. Quem nunca acessou (colunas antes da 99) continua voltando.
+    const em51SemOperar = atual === ETAPA.VENDENDO && melhor.para !== ETAPA.VENDENDO && melhor.para !== ETAPA.PRIMEIRO_ACESSO && BLOCO_AIVA.has(melhor.para)
     const segueColuna = (BLOCO_AIVA.has(atual) || em51SemOperar) && BLOCO_AIVA.has(melhor.para) && melhor.para !== atual
     const podeMover = atual === SEM_RESPOSTA || ordem(melhor.para) > ordem(atual) || segueColuna
     if (!podeMover) continue   // já está igual ou além — silêncio, é o caso normal

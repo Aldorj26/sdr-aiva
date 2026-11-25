@@ -73,6 +73,16 @@ test('Vendendo (51) SEM consulta nem venda volta pra coluna real (Karol, 07/10/2
   assert.deepEqual({ de: r.movimentos[0].de, para: r.movimentos[0].para, via: r.movimentos[0].via }, { de: 51, para: 71, via: [] })
 })
 
+test('Vendendo (51) posto pelo time com o portal em primeiro_acesso NÃO volta: a API não traz consulta (RM Celulares, 25/11/2026)', () => {
+  const r = calcularEspelho(base({
+    onboardings: [onb({ cnpj: '11111111000191', stage: 'cadastro_finalizado', retailer_id: '8297', board_column: 'primeiro_acesso', primeiro_acesso_em: '2026-11-05T08:29:07Z' })],
+    registros: [{ id: 1, cnpj: '11111111000191', lead_id: 'a', status: 'pre_cadastro_enviado' }],
+    leads: [lead('a', 100, 'LOJA_FINALIZADA_E_VENDENDO')],
+    stageAtual: new Map([[100, 51]]),
+  }))
+  assert.equal(r.movimentos.length, 0)
+})
+
 test('primeiro_acesso vira a etapa 99', () => {
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '7', board_column: 'primeiro_acesso' }), new Set(), new Set()), 99)
   assert.equal(etapaDesejada(onb({ cnpj: '1', stage: 'cadastro_finalizado', retailer_id: '7', primeiro_acesso_em: '2026-10-05T13:00:00Z' }), new Set(), new Set()), 99)
