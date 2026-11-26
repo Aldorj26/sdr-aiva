@@ -3,6 +3,31 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## 25/11/2026 — espelho: "acessou é ativa", marcador de reprovado e regra de varredura
+
+- **Regra nova do Aldo (CLAUDE.md da raiz):** todo cliente trazido com problema → achar a causa, varrer a base
+  atrás dos iguais, corrigir todos e a regra, e reportar quem ficou de fora.
+- **"Acessou é ativa" (commit `1204ab5`, no ar):** coluna `primeiro_acesso` do portal vale etapa **51**. Quem
+  chega de antes passa pela 99 (sai o aviso de primeiro acesso); a 99 não segura mais ninguém. Motivo: desde o
+  bloqueio do login (26/10) a API não traz consulta. Migração concluída em 25/11 12h02: 161 pelo espelho, 0 na 99,
+  0 falhas. `[ALERTA_ETAPA:51]` pré-gravado em 61 leads pra não sair ~120 avisos a Aldo/Nei.
+- **Movidos à mão pra 51:** RM Celulares, Conserttechcell, Conect CEEL, 13 com consulta declarada na conversa,
+  Contel Telecom e Andrey Cell (estes dois **fora do portal** — o espelho não mexe neles).
+- **`[PORTAL_REPROVADO_CONFERIR]` (commit `0e29195`, no ar):** o espelho agora TIRA o marcador quando há CNPJ do
+  lead no portal e nenhum `not_approved` (saída `conferir_resolvidos`). Caso Eduardo Cell: 6 limpos na 1ª rodada.
+  À mão: 9 lojas vendendo tiveram `[PORTAL_REPROVADO]` e `[PORTAL_REPROVADO_CONFERIR]` removidos (cortavam a dica).
+  Restam com o marcador: UTI do Celular, Teccell, DHtech, Cell Maxx (reprovados de fato), Iphonix e Phonetec.
+- **Etapa 51 exige o formulário 10 do Evo preenchido:** card com `formsdata` vazio é recusado (`{"result":false}`)
+  e vira alerta de "card travado". Corrigidos à mão com dados do portal: opp 10126 (Waze Celulares, RID 6570) e
+  opp 13794 (Top Case, Araçatuba, etapa 97). Varridos 56 cards sem `DADOS_COLETADOS`: só esses dois.
+  **Não feito:** o espelho preencher o formulário sozinho antes de mover pra 51.
+- **E.M. da Rosa (RID 6667, primeira venda):** card 18604 estava encerrado no Evo desde 14/09 (API recusa mover,
+  `OPP_002`; não há reabrir pela API). Criado card novo **66375** direto na 51 e vinculado ao lead.
+- **Em aberto (Aldo):** 5 lojas com sinal fraco de consulta já foram pra 51 pela regra nova; 6 descartadas à mão
+  com loja criada na AIVA seguem descartadas (Loosetech, Apcell, Bussis Store, Dragon Cell, Dr iPhone Ibiúna,
+  Planeta cell opp 50090 duplicada). `CLAUDE.md` do repo já traz a tabela do funil nova.
+- Commit `0139355` (card em 51 não volta com portal em primeiro_acesso) ficou superado pelo `1204ab5`.
+
 ## ⚠️ 23/11/2026 — 26 lojas com pré-cadastro marcado como enviado que NÃO estão no portal da AIVA
 
 - Conferido direto na API de onboardings (1.037 registros, 23/11): **0 das 26** no portal, nem por CNPJ exato, nem
