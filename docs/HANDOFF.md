@@ -3,6 +3,27 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## 26/11/2026 — MS CELL: pré-cadastro marcado como enviado e fora do portal (só diagnóstico, nada alterado)
+
+- Caso: MS CELL (47.691.598/0001-76, opp 66398). "Abrir form" clicado 26/11 10h06; fora do portal por CNPJ, raiz e
+  telefone (API 17h22, 1.083 registros). Na conversa (25/11 16h31) o lojista disse que já tinha feito pré-análise
+  "por outro contato" na véspera e que "falou que estava ativo" (mandou print, não visto).
+- **Achado:** o portal cria os cadastros em lote no minuto **38 de cada hora**. Em 24–26/11 tudo que o Nei abriu
+  chegou no lote seguinte, menos 5 CNPJs: VIPCELL (2; lojista disse ter cadastro AIVA/Odres), Esmeraldas,
+  MS CELL e Imports dv. Os 24 antigos da lista de 23/11 seguem fora (relógio reiniciado 23/11 15h pelo "Resolvido").
+- Lista: `docs/Pre-cadastro-nao-chegou-AIVA-2026-11-26.xlsx` (29 CNPJs, 28 lojas; 6 com fala de outro canal).
+- **Causa não provada:** hipótese = a AIVA ignora CNPJ que já existe por outro parceiro (a API só mostra o aceito);
+  alternativa = formulário aberto e não submetido. `aiva_base_cnpjs` está parada desde 02/10, não serve de prova.
+- **Avisos corrigidos (ordem do Aldo, 26/11):** (1) `fase3-destravada` não avisa mais lead com TODOS os CNPJs já
+  lançados em Registros (saída `ja_lancados`) e fecha sozinho o aviso aberto desses. Causa do falso: desde 16/10 o
+  `[CAD_ALERTADO]` quase nunca é gravado (`FASE3_CAMPOS_DADOS = ['email_socio']`, campo não mais coletado), então às
+  16h caía ali todo lead ainda em Cadastro Recebido. (2) `pre_cadastro_nao_chegou` entra na fila do Nei (painel +
+  digest) com **3h** do clique (`PRE_CAD_AVISO_HORAS`, conjunto `atrasados`), não 24h. O marcador
+  `[PRE_CAD_NAO_CHEGOU]` (fala da VictorIA) **segue em 24h**. O aviso fecha sozinho sem depender do marcador; os de
+  LOJA NOVA ficam fora desse fechamento. Efeito colateral: "Resolvido" sem o CNPJ chegar volta em 6h (soneca), não 24h.
+- **Em aberto (Aldo):** perguntar ao Mauricio sobre MS CELL e VIPCELL (CNPJ já existe por outro parceiro?); proposta
+  de cobrança diária à AIVA dos CNPJs enviados e não registrados (não implementada).
+
 ## 26/11/2026 — novidades do Flexfone no prompt e nas mensagens automáticas (no ar)
 
 - Comunicado Flexfone trazido pelo Aldo: (1) boleto/link Pix e 2ª via de contrato/CCB de qualquer data pela aba

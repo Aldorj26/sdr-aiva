@@ -11,8 +11,8 @@ export type TipoAviso = 'pre_cadastro_nao_chegou' | 'biometria_negada' | 'biomet
 export const CATALOGO: Record<TipoAviso, { titulo: string; oque: string; acao: string; ordem: number }> = {
   pre_cadastro_nao_chegou: {
     titulo: '📮 Pré-cadastro não chegou à AIVA',
-    oque: 'o CNPJ foi marcado como enviado em Registros AIVA há mais de 24h e não aparece no portal — o formulário não foi enviado (o "Abrir form" marca no clique)',
-    acao: 'Abrir Registros AIVA e enviar o formulário de pré-cadastro de novo. O card anda sozinho quando a AIVA registrar.',
+    oque: 'o CNPJ foi marcado como enviado em Registros AIVA há mais de 3h e não aparece no portal (a AIVA importa de hora em hora) — o formulário não foi enviado (o "Abrir form" marca no clique) ou a AIVA não registrou',
+    acao: 'Abrir Registros AIVA e enviar o formulário de pré-cadastro de novo. Se não aparecer de novo, conferir com a AIVA se o CNPJ já existe por outro canal. O card anda sozinho quando a AIVA registrar.',
     ordem: -1,
   },
   biometria_negada: {

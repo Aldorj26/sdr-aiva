@@ -27,7 +27,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { alertHuman } from '@/lib/evotalks'
 import { supabaseAdmin } from '@/lib/supabase'
 import { flag } from '@/lib/req-flags'
-import { registrarAvisos } from '@/lib/avisos-painel'
+import { registrarAvisos, resolverAvisos } from '@/lib/avisos-painel'
 import { RODAPE_PAINEL } from '@/lib/avisos-painel-calc'
 
 export const runtime = 'nodejs'
@@ -85,26 +85,35 @@ async function executar(req: NextRequest) {
     const d = parseDados(l.observacoes)
     return OBRIGATORIOS.every((k) => String(d[k] ?? '').trim())
   })
-  const novos = presos.filter((l) => !(l.observacoes ?? '').includes(`[${MARCADOR}:`))
-
   // CNPJs que deveriam estar no /registros
   const acriar: Array<{ lead_id: string; loja: string | null; telefone: string; cnpj: string; tipo: string; status: string }> = []
+  // 26/11/2026 (MS CELL, Imports dv): lead com TODOS os CNPJs já lançados em Registros AIVA não é
+  // "cadastro que não fechou" — a ação do aviso ("lançar o CNPJ") já foi feita. Desde 16/10 o
+  // [CAD_ALERTADO] quase nunca é gravado (o registro nasce na pré-aprovação e o clique do Nei move
+  // o card), então às 16h caía aqui todo lead ainda em Cadastro Recebido: na prática, os que o
+  // portal da AIVA ainda não tinha criado. Quem cuida desses é o passo 11 do espelho.
+  const jaLancados = new Set<string>()
   for (const l of presos) {
     const d = parseDados(l.observacoes)
     const matriz = extrairCnpjs(d.cnpj_matriz)
     const adicionais = extrairCnpjs(d.cnpjs_adicionais).filter((c) => !matriz.includes(c))
-    const { data: jaTem } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj').eq('lead_id', l.id)
+    const { data: jaTem, error: erroReg } = await supabaseAdmin.from('sdr_registros_cnpj').select('cnpj, enviado, status').eq('lead_id', l.id)
     const existentes = new Set((jaTem ?? []).map((r) => soDigitos(r.cnpj)))
+    const lancados = new Set((jaTem ?? []).filter((r) => r.enviado === true || r.status === 'ativa').map((r) => soDigitos(r.cnpj)))
+    const todos = [...matriz, ...adicionais]
+    // falha de leitura não inocenta ninguém: sem a lista, o lead segue sendo avisado
+    if (!erroReg && todos.length > 0 && todos.every((c) => lancados.has(c))) jaLancados.add(l.id)
     for (const [cnpj, tipo] of [...matriz.map((c) => [c, 'matriz'] as const), ...adicionais.map((c) => [c, 'adicional'] as const)]) {
       if (!existentes.has(cnpj)) acriar.push({ lead_id: l.id, loja: l.nome, telefone: l.telefone, cnpj, tipo, status: 'informada' })
     }
   }
+  const novos = presos.filter((l) => !(l.observacoes ?? '').includes(`[${MARCADOR}:`) && !jaLancados.has(l.id))
 
-  const resumo = { ativos: leads.length, presos: presos.length, novos: novos.length, registros_a_criar: acriar.length }
+  const resumo = { ativos: leads.length, presos: presos.length, ja_lancados: jaLancados.size, novos: novos.length, registros_a_criar: acriar.length }
   if (dry) {
     return NextResponse.json({
       ok: true, dry: true, ...resumo,
-      lista: presos.slice(0, 30).map((l) => ({ loja: l.nome, telefone: l.telefone, status: l.status, ja_avisado: (l.observacoes ?? '').includes(`[${MARCADOR}:`) })),
+      lista: presos.slice(0, 30).map((l) => ({ loja: l.nome, telefone: l.telefone, status: l.status, ja_lancado: jaLancados.has(l.id), ja_avisado: (l.observacoes ?? '').includes(`[${MARCADOR}:`) })),
     })
   }
 
@@ -112,6 +121,9 @@ async function executar(req: NextRequest) {
     const { error } = await supabaseAdmin.from('sdr_registros_cnpj').upsert(acriar, { onConflict: 'lead_id,cnpj', ignoreDuplicates: true })
     if (error) console.error('[fase3-destravada] registros não criados:', error.message)
   }
+
+  // aviso aberto de quem já teve o CNPJ lançado sai do painel sozinho (inclui os abertos antes de 26/11)
+  if (jaLancados.size) await resolverAvisos('fase3_destravada', [...jaLancados], 'auto: CNPJ já lançado em Registros AIVA')
 
   const agoraISO = new Date().toISOString()
   for (const l of novos) {

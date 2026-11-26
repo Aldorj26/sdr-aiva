@@ -488,6 +488,15 @@ export type PreCadastroEstado = { algumNoPortal: boolean; maisAntigo: number; cn
  *  1h30 e máximo de 30h. 24h é também o prazo que a própria AIVA dá. */
 export const PRE_CAD_HORAS = 24
 
+/** Horas sem aparecer no portal para o aviso entrar na FILA DO NEI (painel + digest) — 26/11/2026.
+ *  Medido em 24–26/11: o portal cria os cadastros em lote no minuto 38 de cada hora, e os 36 que
+ *  chegaram entraram todos no lote seguinte ao clique. Com 3h já se perderam dois lotes inteiros
+ *  (mais a folga da rodada de 15 min do espelho) — MS CELL, clicado 10h06 junto de 5 que entraram
+ *  às 10h38, só seria avisado no dia seguinte.
+ *  ⚠️ Só o aviso ao time adianta. O marcador [PRE_CAD_NAO_CHEGOU] — que muda o que a VictorIA diz
+ *  ao lojista — continua em PRE_CAD_HORAS. */
+export const PRE_CAD_AVISO_HORAS = 3
+
 /** Quando o relógio das 24h começa a correr para este registro.
  *
  * ⚠️ É `enviado_em` (o clique em "Abrir form"), NÃO `criado_em` (a criação da linha, isto é,
@@ -512,6 +521,8 @@ export function marcadoEmMs(reg: RegistroCnpj): number | null {
  * ser enviado, o lead fica parado em Cadastro Recebido sem ninguém saber — e a VictorIA dizia que
  * "dependia da análise da AIVA" (Minas Celulares, 02→06/10/2026). Vale só pra PRE_APROVACAO /
  * CADASTRO_RECEBIDO e só quando NENHUM CNPJ do lead está no portal.
+ * `travados` = 24h+ (marcador do lead, fala da VictorIA); `atrasados` = PRE_CAD_AVISO_HORAS+ (fila do
+ * Nei). Todo travado é atrasado.
  */
 export function preCadastroNaoChegou(
   onboardings: OnbApi[],
@@ -537,6 +548,11 @@ export function preCadastroNaoChegou(
     porLead.set(reg.lead_id, x)
   }
   const travados = new Set<string>()
-  for (const [leadId, x] of porLead) if (!x.algumNoPortal && x.cnpjs.length && agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
-  return { porLead, travados }
+  const atrasados = new Set<string>()
+  for (const [leadId, x] of porLead) {
+    if (x.algumNoPortal || !x.cnpjs.length) continue
+    if (agoraMs - x.maisAntigo >= LIMITE_MS) travados.add(leadId)
+    if (agoraMs - x.maisAntigo >= PRE_CAD_AVISO_HORAS * 3_600_000) atrasados.add(leadId)
+  }
+  return { porLead, travados, atrasados }
 }

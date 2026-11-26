@@ -410,6 +410,20 @@ test('coluna NOVA do portal cai na dedução pelo stage em vez de congelar o car
     assert.equal(travados([reg({ lead_id: null, criado_em: h(48), enviado_em: h(48) })]).size, 0)
   })
 
+  test('pré-cadastro não chegou: o aviso ao time sai com 3h (dois lotes da AIVA perdidos); o marcador do lead segue nas 24h', () => {
+    const r = (horas: number, onboardings: OnbApi[] = []) =>
+      preCadastroNaoChegou(onboardings, [reg({ criado_em: h(192), enviado_em: h(horas) })], leadA(), AGORA)
+    // MS CELL (26/11): clicado 10h06, fora do lote das 10h38 — às 16h ninguém tinha sido avisado
+    assert.equal(r(2).atrasados.size, 0)
+    assert.equal(r(3).atrasados.size, 1)
+    assert.equal(r(7).atrasados.size, 1)
+    assert.equal(r(7).travados.size, 0)        // a fala da VictorIA não muda antes das 24h
+    assert.equal(r(25).atrasados.size, 1)      // todo travado é atrasado
+    assert.equal(r(25).travados.size, 1)
+    // chegou ao portal: nem um nem outro
+    assert.equal(r(7, [onb({ cnpj: '11111111000191' })]).atrasados.size, 0)
+  })
+
   test('pré-cadastro não chegou: com vários CNPJs vale o mais antigo e todos entram no detalhe', () => {
     const { porLead, travados: t } = preCadastroNaoChegou([], [
       reg({ id: 1, cnpj: '11111111000191', enviado_em: h(30) }),

@@ -26,7 +26,7 @@ import { listarOnboardingsApi } from '@/lib/portal-aiva'
 import {
   calcularEspelho, colunaDesconhecida, soDigitos, ETAPA, MARCADOR_REPROVADO, MARCADOR_CONFERIR, MOTIVO_BIO_APROVADA, situacaoOnb,
   MARCADOR_DERRUBADO, MOTIVO_DERRUBADO,
-  preCadastroNaoChegou, PRE_CAD_HORAS, type PreCadastroEstado,
+  preCadastroNaoChegou, PRE_CAD_AVISO_HORAS, type PreCadastroEstado,
   registrosDoCard, etapaOnbPorLead, SITUACAO_REAL,
   type LeadEspelho, type Movimento, type OnbApi, type RegistroCnpj, type Resultado,
 } from '@/lib/espelho-portal-calc'
@@ -662,8 +662,8 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
       saida.repetidos = rep.repetidos.map((x) => `${linhaRepetido(x)}${x.jaAvisado ? ' · já avisado' : ''}`)
     }
     {
-      const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
-      for (const l of leads) if (travados.has(l.id)) saida.pre_cadastro_nao_chegou.push(`${l.nome} (${porLead.get(l.id)!.cnpjs.join(', ')})`)
+      const { porLead, atrasados } = preCadastroNaoChegou(onboardings, registros, leads)
+      for (const l of leads) if (atrasados.has(l.id)) saida.pre_cadastro_nao_chegou.push(`${l.nome} (${porLead.get(l.id)!.cnpjs.join(', ')})`)
     }
     // preview da checagem de CNPJ: o dry antes devolvia zero porque retornava
     // aqui, ANTES do passo 8 — e "?dry=1" existe justamente pra ver o que faria.
@@ -1002,25 +1002,42 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   //     um Resolvido manual com o lead ainda marcado calava o caso para sempre.
   const novosPreCad: string[] = []
   {
-    const { porLead, travados } = preCadastroNaoChegou(onboardings, registros, leads)
+    //     26/11/2026 (MS CELL): o aviso ao time adiantou pra PRE_CAD_AVISO_HORAS (o portal importa de
+    //     hora em hora); o marcador do lead — a fala da VictorIA — segue nas 24h. Por isso o aviso
+    //     também fecha sozinho sem depender do marcador (bloco logo abaixo do laço).
+    const { porLead, travados, atrasados } = preCadastroNaoChegou(onboardings, registros, leads)
     const candidatos: Array<{ lead: LeadEspelho; x: PreCadastroEstado }> = []
     for (const lead of leads) {
       const tem = (lead.observacoes ?? '').includes('[PRE_CAD_NAO_CHEGOU:')
       const deve = travados.has(lead.id)
-      if (deve) saida.pre_cadastro_nao_chegou.push(`${lead.nome} (${porLead.get(lead.id)!.cnpjs.join(', ')})`)
+      const atrasado = atrasados.has(lead.id)
+      if (atrasado) saida.pre_cadastro_nao_chegou.push(`${lead.nome} (${porLead.get(lead.id)!.cnpjs.join(', ')})`)
       if (dry) continue
       try {
+        if (atrasado) candidatos.push({ lead, x: porLead.get(lead.id)! })
         if (deve) {
-          const x = porLead.get(lead.id)!
-          if (!tem) await marcar(lead.id, 'PRE_CAD_NAO_CHEGOU', new Date(x.maisAntigo).toISOString())
-          candidatos.push({ lead, x })
+          if (!tem) await marcar(lead.id, 'PRE_CAD_NAO_CHEGOU', new Date(porLead.get(lead.id)!.maisAntigo).toISOString())
         } else if (tem) {
           await desmarcar(lead.id, 'PRE_CAD_NAO_CHEGOU')
-          await resolverAvisos('pre_cadastro_nao_chegou', [lead.id], 'auto: o CNPJ apareceu no portal (ou o lead saiu da etapa)')
+          if (!atrasado) await resolverAvisos('pre_cadastro_nao_chegou', [lead.id], 'auto: o CNPJ apareceu no portal (ou o lead saiu da etapa)')
         }
       } catch (e) {
         avisos.push(`pré-cadastro não chegou (${lead.nome}): ${String(e).slice(0, 100)}`)
       }
+    }
+    // aviso aberto de quem não está mais atrasado (o CNPJ apareceu, o lead mudou de etapa, o registro
+    // foi desmarcado) fecha sozinho, com ou sem marcador. Os de LOJA NOVA (passo 12) usam o mesmo tipo
+    // e têm regra própria: ficam de fora.
+    try {
+      const { data: abertos, error: erroAbertos } = await supabaseAdmin.from('sdr_avisos_painel')
+        .select('lead_id, detalhe').eq('tipo', 'pre_cadastro_nao_chegou').is('resolvido_em', null)
+      if (erroAbertos) throw new Error(erroAbertos.message)
+      const fechar = [...new Set((abertos ?? [])
+        .filter((a) => a.lead_id && !atrasados.has(String(a.lead_id)) && !String(a.detalhe ?? '').startsWith('LOJA NOVA'))
+        .map((a) => String(a.lead_id)))]
+      if (fechar.length) await resolverAvisos('pre_cadastro_nao_chegou', fechar, 'auto: o CNPJ apareceu no portal (ou o lead saiu da etapa)')
+    } catch (e) {
+      avisos.push(`fechar avisos de pré-cadastro não chegado: ${String(e).slice(0, 100)}`)
     }
     // quem está travado e não está em silêncio (aviso aberto, ou Resolvido há menos de 6h) entra
     // na fila do painel e no digest — inclusive de novo, se a soneca venceu e nada andou
@@ -1049,8 +1066,8 @@ export async function executarEspelho(dry: boolean, opts: { silencioso?: boolean
   if (novosPreCad.length) {
     blocos.push(
       `📮 *Pré-cadastro não chegou à AIVA* (${novosPreCad.length})\n${novosPreCad.join('\n')}\n\n` +
-      `Marcado como enviado em Registros AIVA há mais de ${PRE_CAD_HORAS}h e o CNPJ não aparece no portal — o formulário não foi enviado. ` +
-      'Reenviar pelo Registros AIVA; o card anda sozinho depois.\n📌 Também está no topo do Atendimento.',
+      `Marcado como enviado em Registros AIVA há mais de ${PRE_CAD_AVISO_HORAS}h e o CNPJ não aparece no portal (a AIVA importa de hora em hora) — ` +
+      'o formulário não foi enviado ou a AIVA não registrou. Reenviar pelo Registros AIVA; se não aparecer de novo, conferir com a AIVA se o CNPJ já existe por outro canal. O card anda sozinho depois.\n📌 Também está no topo do Atendimento.',
     )
   }
   if (novos.length) {
