@@ -3,6 +3,27 @@
 > Leia ao abrir a sessão; atualize ao encerrar (`/handoff`). Estado ATUAL, não log: o log é o git e
 > `docs/HISTORICO-OPERACAO-AIVA.md`. Push na `main` = deploy em produção.
 
+## 26/11/2026 — novidades do Flexfone no prompt e nas mensagens automáticas (no ar)
+
+- Comunicado Flexfone trazido pelo Aldo: (1) boleto/link Pix e 2ª via de contrato/CCB de qualquer data pela aba
+  **Histórico de Vendas**; (2) login de operador criado pela própria loja na aba **Colaboradores** do site
+  (gerente/financeiro), o operador só redefine a própria senha; (3) app de pagamento AIVA e Odres Cred na Play Store.
+- Commit `6ad6cc2`: seção "🆕 NOVIDADES DO FLEXFONE" em `prompts/aiva.ts` (antes de CANAIS OFICIAIS) + ~20 passagens
+  antigas reconciliadas, blocos de fase em `lib/claude.ts` e `lib/regua-alerta-calc.ts`. Revisor rodou 1× (8 achados,
+  todos corrigidos); **não foi rodado de novo depois das correções**.
+- Commit `cf00239`: mensagens ao lojista (aviso de treinamento e kit pós-fechamento em `lib/text.ts`, modelo 69 e
+  utilidade da etapa de treinamento, dica "parou" e dica do relatório) ensinam a aba primeiro. Textos aprovados pelo
+  Aldo. A dica "parou" ficou sem o formulário (limite de caracteres do modelo).
+- Desenho adotado (interpretação, não está no comunicado): o formulário de Login de operadores continua como saída pra
+  quem não achar a aba e pra inativar/cargo/loja/reset. Operador criado na aba que não consegue redefinir a senha →
+  Live Chat, sem `senha_usuario_nao_chegou`.
+- Testes: `tsc`, `test:desempenho` (28), `test:utilidade` (13), `test:regua` (15). **Deploy e envio real não vistos.**
+- **Em aberto (Aldo confirma com a AIVA):** o formulário de operadores segue ativo? o login do SÓCIO enxerga a aba
+  Colaboradores (os textos dizem "usuário de gerente ou financeiro")? onde o operador redefine a senha?
+- **Em aberto:** conferir em `/curadoria` se alguma das 12 correções ativas ensina "só o sócio, pelo formulário";
+  avisos internos/painel ainda citam só o formulário (`webhook/route.ts` ~3464/3468/3539, `lib/atendimento-orientacao.ts`,
+  `/excecoes`, `/registros`); nome/link dos apps e existência pra iPhone desconhecidos (a VictorIA não afirma).
+
 ## 25/11/2026 — espelho: "acessou é ativa", marcador de reprovado e regra de varredura
 
 - **Regra nova do Aldo (CLAUDE.md da raiz):** todo cliente trazido com problema → achar a causa, varrer a base
