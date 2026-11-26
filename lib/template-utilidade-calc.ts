@@ -202,6 +202,6 @@ export function treinamentoLiberado(turmas: string[], materiais: string, semLoja
   const agenda = turmas.length ? `turmas ao vivo de 1 hora (horário de Brasília): ${turmas.join(' | ')}.` : 'turmas ao vivo de 1 hora durante a semana; me responde aqui que eu te passo a data e o link da próxima.'
   const acesso = semLoja
     ? 'O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 assim que a AIVA concluir a criação da loja.'
-    : `O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: ${formVendedores}`
+    : `O login do sócio chega pelo WhatsApp do número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você cria no site do Flexfone, aba Colaboradores; se não achar a aba, pede em ${formVendedores}`
   return etapa('loja liberada pra etapa de treinamento da AIVA.', `${agenda} Materiais (documentos e vídeos): ${materiais} ${acesso}`)
 }

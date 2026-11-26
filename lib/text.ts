@@ -137,7 +137,7 @@ export function buildAvisoTreinamentoMsgs(turmas: Turma[], senhaPendente: Estado
       : senhaPendente
       ? `O seu acesso (sócio) já foi solicitado à AIVA e ainda não saiu — nosso time já sinalizou isso pra eles. Assim que sair, chega aqui no seu WhatsApp pelo número +55 21 4020-2024.\n`
       : `O SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento — é só clicar em "Sim, quero".\n`) +
-    (senhaPendente === 'sem_loja' ? '' : `Pra criar os logins dos seus vendedores: é só pedir neste formulário da AIVA → https://forms.gle/izjwzRDXzYWDvtEt6 (serve também pra inativar, trocar cargo ou loja e resetar a senha deles). 📵 Se a senha deles não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊\n`) +
+    (senhaPendente === 'sem_loja' ? '' : `Pra criar os logins dos seus vendedores: agora é direto no site do Flexfone, na aba *Colaboradores* (com usuário de gerente ou financeiro) — depois o vendedor só redefine a própria senha. Não achou a aba? Pede neste formulário da AIVA → https://forms.gle/izjwzRDXzYWDvtEt6 (serve também pra inativar, trocar cargo ou loja e resetar a senha deles). 📵 Se a senha pedida pelo formulário não aparecer, confere o *spam do SMS* — às vezes ela cai lá! 😊\n`) +
     `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login`
 
   return [msgReuniao, msgMateriais, msgCadastro]
@@ -164,7 +164,7 @@ export function buildKitPosFechamentoMsg(nome: string, turmas: Turma[] = [], sen
       : `2️⃣ Depois do treinamento, o SEU login chega automático no WhatsApp pelo número +55 21 4020-2024 — clica em "Sim, quero" e pronto\n`) +
     (senhaPendente === 'sem_loja'
       ? `3️⃣ Com a loja criada e os logins na mão, é só fazer a primeira venda — eu acompanho você aqui! 😊\n`
-      : `3️⃣ Logins dos vendedores: você mesmo pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS). Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n`) +
+      : `3️⃣ Logins dos vendedores: você mesmo cria no site do Flexfone, na aba Colaboradores (usuário de gerente ou financeiro), e o vendedor só redefine a própria senha. Não achou a aba? Pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6. Aí é só fazer a primeira venda — eu acompanho você aqui! 😊\n`) +
     `💻 Todos os logins (seu e dos vendedores) são feitos em: https://vendas.flexfone.com.br/login\n\n` +
     `Qualquer dúvida sobre taxa, repasse ou o sistema, me pergunta que eu respondo na hora.`
   )

@@ -711,7 +711,7 @@ export async function POST(req: NextRequest) {
         '📚 Materiais (documentos e vídeos): https://drive.google.com/drive/folders/1t0WpRYg7b5TIb7Hbbkjg9oyMI1bGXe-w',
         semLoja
           ? '🔑 Acessos: seu cadastro e a biometria estão aprovados — assim que a AIVA concluir a criação da sua loja, o SEU login (sócio) chega automático no WhatsApp pelo +55 21 4020-2024. Os logins dos vendedores você pede depois disso.'
-          : '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6 (se a senha não chegar, confere o spam do SMS).',
+          : '🔑 Acessos: o SEU login (sócio) chega automático no WhatsApp pelo número +55 21 4020-2024 depois do treinamento. Logins dos vendedores: você cria no site do Flexfone, aba Colaboradores (usuário de gerente ou financeiro); se não achar a aba, pede neste formulário da AIVA: https://forms.gle/izjwzRDXzYWDvtEt6',
       ]))
 
       // Atualiza status no Supabase e registra histórico

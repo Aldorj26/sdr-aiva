@@ -129,7 +129,7 @@ const DICA_LIMITE = 'Venda DENTRO do limite aprovado: mostre o aparelho que cabe
 const DICA_ENTRADA = 'Deixe claro logo no começo que a entrada é de 25% — evita a desistência no final. Pergunte "prefere 9x ou 12x?" em vez de "quer levar?".'
 const DICA_CEDO = 'Consulte o CPF logo no começo do atendimento, antes de mostrar aparelho — aí você já oferece o que cabe no limite.'
 // 23/10/2026 (Aldo): a comissão de R$ 10/venda ao vendedor vale só no 1º mês da loja; a página é de toda loja, então não promete.
-const DICA_VENDEDOR = 'Vendedor novo: o sócio pede o login dele no formulário de Login de operadores. Cada vendedor com login próprio consulta e fecha sem depender do sócio.'
+const DICA_VENDEDOR = 'Vendedor novo: a loja cria o login dele no site do Flexfone, na aba Colaboradores (ou pede no formulário de Login de operadores). Cada vendedor com login próprio consulta e fecha sem depender do sócio.'
 const DICA_PLACA = 'Uma placa "Parcelamos seu celular" no balcão e na vitrine faz o cliente perguntar sozinho.'
 
 function textos(g: Gargalo, x: { consultas: number; aprovados: number; vendas: number; txAprovacao: number | null; txConversao: number | null; rede: MediaRede }) {

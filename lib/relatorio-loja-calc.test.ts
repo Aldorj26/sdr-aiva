@@ -59,7 +59,7 @@ test('variância só pra loja com poucas consultas; retomar não usa variância'
   assert.doesNotMatch(muita.explicacao, /primeiras reprovações/)
   const parou = diagnosticar([d('2026-10-19', 0, 0, 0)], 'parou', REDE)!
   assert.doesNotMatch(parou.dicas.join(' '), /primeiras reprovações/)
-  assert.match(parou.dicas.join(' '), /o sócio pede o login dele no formulário de Login de operadores/)
+  assert.match(parou.dicas.join(' '), /a loja cria o login dele no site do Flexfone, na aba Colaboradores/)
 })
 
 test('textos: cada gargalo tem título, explicação com os números e 3+ dicas sem link', () => {
